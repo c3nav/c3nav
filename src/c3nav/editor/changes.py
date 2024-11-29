@@ -342,10 +342,10 @@ class ChangedObjectCollection(BaseSchema):
                         ))
 
                     if not dependencies:
-                        initial_fields[field_name] = None
+                        initial_fields[field_name] = value
                         continue
 
-                    initial_fields[field_name] = DummyValue
+                    initial_fields[field_name] = None if field.null else DummyValue
                     obj_sub_operations.append(SingleOperationWithDependencies(
                         uid=(changed_obj.obj, f"field_{field_name}"),
                         operation=UpdateObjectOperation(obj=changed_obj.obj, fields={field_name: value}),
@@ -566,10 +566,6 @@ class ChangedObjectCollection(BaseSchema):
                         if value is DummyValue:
                             # if there's a dummy value to fill, we need to find a dummy value
                             field = model_cls._meta.get_field(field_name)
-                            if field.null:
-                                # if it's nullable, we can just null it, todo: will it even be a dummy value then?
-                                new_operation.fields[field_name] = None
-                                continue
 
                             if field.is_relation:
                                 # for a relation, we will try to find a valid other object to reference
