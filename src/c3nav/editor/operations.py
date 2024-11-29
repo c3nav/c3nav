@@ -115,7 +115,7 @@ class CreateObjectOperation(BaseOperation):
 
 
 class CreateMultipleObjectsOperation(BaseSchema):
-    type: Literal["create"] = "create_multiple"
+    type: Literal["create_multiple"] = "create_multiple"
     objects: list[CreateObjectOperation] = []
 
     def apply_create(self) -> dict[ObjectReference, Model]:

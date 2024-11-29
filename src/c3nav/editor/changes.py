@@ -147,13 +147,57 @@ class OperationSituation(BaseSchema):
 
 
 class ChangedObjectProblems(BaseSchema):
+    obj_does_not_exist: bool = False
+    cant_create: bool = False
+    protected_references: set[FoundObjectReference] = set()
     field_does_not_exist: set[FieldName] = set()
+    m2m_val_does_not_exist: dict[FieldName, set[ObjectID]] = {}
     dummy_values: dict[FieldName, Any] = {}
+    ref_doesnt_exist: set[FieldName] = set()
+    unique_constraint: set[FieldName] = set()
+
+    def clean(self) -> bool:
+        """
+        Clean up data and return true if there's any problemls left
+        """
+        self.m2m_val_does_not_exist = {
+            field_name: ids
+            for field_name, ids in self.m2m_val_does_not_exist.items()
+            if ids
+        }
+        return (
+            self.obj_does_not_exist
+            or self.cant_create
+            or self.protected_references
+            or self.field_does_not_exist
+            or self.m2m_val_does_not_exist
+            or self.dummy_values
+            or self.ref_doesnt_exist
+            or self.unique_constraint
+        )
 
 
 class ChangeProblems(BaseSchema):
-    model_does_not_exist: set[ModelName]
-    objects: dict[ModelName, dict[ObjectID, ChangedObjectProblems]]
+    model_does_not_exist: set[ModelName] = set()
+    objects: dict[ModelName, dict[ObjectID, ChangedObjectProblems]] = {}
+
+    def clean(self):
+        self.objects = {
+            model_name: problem_objects for
+            model_name, problem_objects in (
+                (model_name, {pk: obj for pk, obj in problem_objects.items() if obj.clean()})
+                for model_name, problem_objects in self.objects_items()
+            )
+            if problem_objects
+        }
+
+    def get_object(self, obj: ObjectReference):
+        return self.objects.setdefault(obj.model, {}).setdefault(obj.id, ChangedObjectProblems())
+
+    @property
+    def any(self) -> bool:
+        """ Are there any problems? """
+        return bool(self.model_does_not_exist or self.objects)
 
 
 # todo: what if model does not exist…
@@ -240,7 +284,6 @@ class ChangedObjectCollection(BaseSchema):
     class OperationsWithDependencies(NamedTuple):
         obj_operations: list[OperationWithDependencies]
         m2m_operations: list[SingleOperationWithDependencies]
-        problems: ChangeProblems
 
     @property
     def as_operations_with_dependencies(self) -> tuple[OperationsWithDependencies, ChangeProblems]:
@@ -278,9 +321,7 @@ class ChangedObjectCollection(BaseSchema):
                     try:
                         field = model._meta.get_field(field_name)
                     except FieldDoesNotExist:
-                        problems.objects.setdefault(model_name, {}).setdefault(
-                            changed_obj.obj.id, ChangedObjectProblems()
-                        ).field_does_not_exist.add(field_name)
+                        problems.get_object(changed_obj.obj).field_does_not_exist.add(field_name)
                         continue
 
                     if value is None:
@@ -371,7 +412,7 @@ class ChangedObjectCollection(BaseSchema):
         referenced_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
         deleted_existing_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
         unique_values_needed: dict[ModelName, dict[FieldName: set]] = {}
-        for operation in operations_with_dependencies:
+        for operation in operations_with_dependencies.obj_operations:
             for dependency in operation.dependencies:
                 if isinstance(dependency, OperationDependencyObjectExists):
                     referenced_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
@@ -395,9 +436,7 @@ class ChangedObjectCollection(BaseSchema):
                     try:
                         field = model._meta.get_field(field_name)
                     except FieldDoesNotExist:
-                        problems.objects.setdefault(model_name, {}).setdefault(
-                            changed_obj.obj.id, ChangedObjectProblems()
-                        ).field_does_not_exist.add(field_name)
+                        problems.get_object(changed_obj.obj).field_does_not_exist.add(field_name)
                         continue
                     referenced_objects.setdefault(
                         field.related_model._meta.model_name, set()
@@ -584,15 +623,10 @@ class ChangedObjectCollection(BaseSchema):
                                     raise NotImplementedError
                                 dummy_value = new_val
 
-                            problems.objects.setdefault(new_operation.obj.model, {}).setdefault(
-                                new_operation.obj.id, ChangedObjectProblems()
-                            ).dummy_values[field_name] = dummy_value
-                            new_operation.fields[field_name] = dummy_value
+                            problems.get_object(new_operation.obj).dummy_values[field_name] = dummy_value
 
                         else:  # not a dummy value
-                            problems.objects.get(new_operation.obj.model, {}).get(
-                                new_operation.obj.id, ChangedObjectProblems()
-                            ).dummy_values.pop(field_name)
+                            problems.get_object(new_operation.obj).dummy_values.pop(field_name, None)
 
                 # construct new situation
                 new_situation = situation.model_copy(deep=True)
@@ -716,8 +750,43 @@ class ChangedObjectCollection(BaseSchema):
             done_situation.operations.append(m2m_operation_with_dependencies.operation)
 
         for remaining_operation in done_situation.remaining_operations_with_dependencies:
-            # todo: describe what couldn't be done, look at dependencies, look at object needs to exists stuff first
-            pass
+            model_cls = apps.get_model("mapdata", remaining_operation.main_op.obj.model)
+            obj = remaining_operation.main_op.obj
+            problem_obj = problems.get_object(obj)
+            if obj.id in done_situation.missing_objects.get(obj.model, set()):
+                problem_obj.obj_does_not_exist = True
+                continue
+
+            if isinstance(remaining_operation.main_op, DeleteObjectOperation):
+                problem_obj.protected_references = done_situation.obj_references.get(
+                    remaining_operation.main_op.obj.model, {}
+                )[remaining_operation.main_op.obj.id]
+                # this will fail if there are no protected references because that should never happen
+                continue
+
+            if isinstance(remaining_operation.main_op, CreateObjectOperation):
+                problem_obj.cant_create = True
+
+            sub_ops = (chain((remaining_operation.main_op,), remaining_operation.sub_ops)
+                       if isinstance(remaining_operation, MergableOperationsWithDependencies)
+                       else (remaining_operation.main_op,))
+            for sub_op in sub_ops:
+                if isinstance(sub_op, UpdateManyToManyOperation):
+                    related_model_name = model_cls._meta.get_field(sub_op.field).related_model._meta.model_name
+                    missing_ids = (
+                        done_situation.missing_objects.get(related_model_name, set()) &
+                        (sub_op.add_values | sub_op.remove_values)
+                    )
+                    if missing_ids:
+                        problem_obj[sub_op.field] = missing_ids
+                elif isinstance(sub_op, UpdateObjectOperation):
+                    for dependency in sub_op.dependencies:
+                        if isinstance(dependency, OperationDependencyObjectExists) and dependency.obj != sub_op.obj:
+                            problem_obj.ref_doesnt_exist.update(set(sub_op.fields.keys()))
+                        elif isinstance(dependency, OperationDependencyUniqueValue):
+                            problem_obj.unique_constraint.update(set(sub_op.fields.keys()))
+
+        problems.clean()
 
         return self.ChangesAsOperations(
             operations=DatabaseOperationCollection(
