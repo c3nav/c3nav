@@ -671,13 +671,12 @@ class ChangedObjectCollection(BaseSchema):
                 if not new_situation.remaining_operations_with_dependencies:
                     # nothing left to do, congratulations we did it!
                     done_situation = new_situation
+                    print('DONE SITUATION:', done_situation)
                     break
 
                 if best_uids.get(new_situation.operation_uids, 1000000) <= len(new_situation.operations):
                     # we already reached this situation with the same or less amount of operations
                     continue
-
-                # todo: don't forget nullable references and unique values
 
                 if isinstance(new_operation, CreateObjectOperation):
                     # if an object was created it's no longer missing
@@ -771,9 +770,12 @@ class ChangedObjectCollection(BaseSchema):
                 continue
 
             if isinstance(remaining_operation.main_op, DeleteObjectOperation):
-                problem_obj.protected_references = done_situation.obj_references.get(
-                    remaining_operation.main_op.obj.model, {}
-                )[remaining_operation.main_op.obj.id]
+                problem_obj.protected_references = {
+                    found_ref for found_ref in done_situation.obj_references.get(
+                        remaining_operation.main_op.obj.model, {}
+                    )[remaining_operation.main_op.obj.id]
+                    if found_ref.on_delete == "PROTECT"
+                }
                 # this will fail if there are no protected references because that should never happen
                 continue
 
