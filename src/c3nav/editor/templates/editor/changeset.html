@@ -91,7 +91,7 @@
                             {% trans 'Edit' %}
                         </a>
                     {% elif obj.deleted and can_edit and not obj.missing_dependencies and not obj.unique_collisions %}
-                        <button type="submit" name="restore" value="{{ obj.pk }}" class="btn btn-warning btn-xs pull-right">
+                        <button type="submit" name="restore" value="{{ obj.model_name }}-{{ obj.pk }}" class="btn btn-warning btn-xs pull-right">
                             {% trans 'Restore' %}
                         </button>
                     {% endif %}

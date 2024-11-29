@@ -38,26 +38,21 @@ def changeset_detail(request, pk):
     can_delete = changeset.can_delete(request)
 
     if request.method == 'POST':
-        restore = request.POST.get('restore')
-        if restore and restore.isdigit():
-            raise NotImplementedError  # todo: restore (no pun intended) this feature
-            # if request.changeset.can_edit(request):
-            #     try:
-            #         changed_object = changeset.changed_objects_set.get(pk=restore)
-            #     except Exception:
-            #         pass
-            #     else:
-            #         try:
-            #             changed_object.restore()
-            #             messages.success(request, _('Object has been successfully restored.'))
-            #         except PermissionError:
-            #             messages.error(request, _('You cannot restore this object, because it depends on '
-            #                                       'a deleted object or it would violate a unique contraint.'))
-            #
-            # else:
-            #     messages.error(request, _('You can not edit changes on this change set.'))
-            #
-            # return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+        restore_model, restore_id = (request.POST.get('restore')+'-').split('-')[:2]
+        if restore_model and restore_id and restore_id.isdigit():
+            if request.changeset.can_edit(request):
+                changed_object = changeset.changes.objects.get(restore_model, {}).get(restore_id)
+                if changed_object is None:
+                    messages.error(request, _("Can't find this changed object"))
+                elif not changed_object.deleted:
+                    messages.error(request, _("Can't restore this object because it wasn't deleted"))
+                else:
+                    changed_object.deleted = False
+                    messages.success(request, _('Object has been successfully restored.'))
+            else:
+                messages.error(request, _('You can not edit changes on this change set.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('activate') == '1':
             with changeset.lock_to_edit(request) as changeset:
@@ -72,7 +67,7 @@ def changeset_detail(request, pk):
         elif request.POST.get('propose') == '1':
             if not request.user.is_authenticated:
                 messages.info(request, _('You need to log in to propose changes.'))
-                return redirect(reverse('editor.login')+'?r='+request.path)
+                return redirect(reverse('editor.login') + '?r=' + request.path)
 
             with changeset.lock_to_edit(request) as changeset:
                 if not changeset.title or not changeset.description:
@@ -242,6 +237,7 @@ def changeset_detail(request, pk):
 
         changed_object_data = {
             'model': model,
+            'model_name': model._meta.model_name,
             'model_title': model._meta.verbose_name,
             'pk': changed_object.obj.id,
             'desc': format_lazy(_('{model} #{id}'), model=model._meta.verbose_name, id=changed_object.obj.id),
