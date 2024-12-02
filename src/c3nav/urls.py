@@ -50,7 +50,7 @@ if settings.SERVE_ANYTHING:
 
     if settings.METRICS:
         with suppress(ImportError):
-            import django_prometheus  # noqu
+            import django_prometheus  # noqa
             from c3nav.mapdata.views import prometheus_exporter
             urlpatterns += [
                 path('prometheus/metrics', prometheus_exporter, name='prometheus-exporter'),
