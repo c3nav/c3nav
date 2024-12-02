@@ -25,7 +25,9 @@
     {% buttons %}
         <a href="{% url 'editor.changesets.detail' pk=changeset.pk %}" class="btn btn-default">{% trans 'Back' %}</a>
         <div class="pull-right">
-            <button type="submit" class="btn btn-primary">{% trans 'Save' %}</button>
+            <button type="submit" class="btn btn-primary">
+                {% if action_label %}{{ action_label }}{% else %}{% trans 'Save' %}{% endif %}
+            </button>
         </div>
     {% endbuttons %}
 </form>

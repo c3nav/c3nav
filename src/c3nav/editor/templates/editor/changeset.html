@@ -138,6 +138,9 @@
             {% if can_propose %}
                 <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
             {% endif %}
+            {% if can_commit %}
+                <button type="submit" class="btn btn-primary" name="commit" value="1">{% trans 'Apply' %}</button>
+            {% endif %}
             {% if can_end_review %}
                 <button type="submit" class="btn btn-danger" name="reject" value="1">{% trans 'Reject' %}</button>
                 <button type="submit" class="btn btn-success" name="apply" value="1">{% trans 'Accept' %}</button>

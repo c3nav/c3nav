@@ -78,6 +78,7 @@ def changeset_detail(request, pk):
                         return render(request, 'editor/changeset_edit.html', {
                             'changeset': changeset,
                             'action': 'propose',
+                            'action_label': _('Propose'),
                             'form': form,
                         })
 
@@ -109,6 +110,7 @@ def changeset_detail(request, pk):
                         return render(request, 'editor/changeset_edit.html', {
                             'changeset': changeset,
                             'action': 'commit',
+                            'action_label': _('Apply'),
                             'form': form,
                         })
 
@@ -212,6 +214,7 @@ def changeset_detail(request, pk):
         'changeset': changeset,
         'can_edit': can_edit,
         'can_delete': can_delete,
+        'can_commit': changeset.can_commit(request),
         'can_propose': changeset.can_propose(request),
         'can_unpropose': changeset.can_unpropose(request),
         'can_start_review': changeset.can_start_review(request),
