@@ -223,7 +223,7 @@ def changeset_detail(request, pk):
         prev_values = changeset.changes.prev.get(changed_object.obj).values
 
         edit_url = None
-        if not changed_object.deleted:
+        if not changed_object.deleted and (active or changeset.state == "applied"):
             # todo: only if it's active
             reverse_kwargs = {'pk': changed_object.obj.id}
             if "space" in prev_values:
