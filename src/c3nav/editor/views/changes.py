@@ -38,7 +38,7 @@ def changeset_detail(request, pk):
     can_delete = changeset.can_delete(request)
 
     if request.method == 'POST':
-        restore_model, restore_id = (request.POST.get('restore')+'-').split('-')[:2]
+        restore_model, restore_id = (request.POST.get('restore', '')+'-').split('-')[:2]
         if restore_model and restore_id and restore_id.isdigit():
             if request.changeset.can_edit(request):
                 changed_object = changeset.changes.objects.get(restore_model, {}).get(restore_id)
