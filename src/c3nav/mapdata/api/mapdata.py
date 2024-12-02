@@ -1,4 +1,3 @@
-from collections import namedtuple
 from dataclasses import dataclass
 from typing import Optional, Sequence, Type, Callable, Any
 
