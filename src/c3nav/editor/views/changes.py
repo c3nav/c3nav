@@ -258,16 +258,14 @@ def changeset_detail(request, pk):
                 'problem': _("can't create this object") if obj_problems.cant_create else None,
             })
         else:
-            changes.append({
-                'icon': 'warning-sign',
-                'class': 'danger',
-                'empty': True,
-                'title': _('no longer exists'),
-                'problem': (
-                    _("can't update this object because it no longer exists")
-                    if obj_problems.obj_does_not_exist else None
-                ),
-            })
+            if obj_problems.obj_does_not_exist:
+                changes.append({
+                    'icon': 'warning-sign',
+                    'class': 'danger',
+                    'empty': True,
+                    'title': _('no longer exists'),
+                    'problem': _("can't update this object because it no longer exists"),
+                })
             # todo: make it possible for the user to get rid of this
 
         update_changes = []
