@@ -11,7 +11,7 @@ and potential backwards incompatibilities.
 - data overlay support
 - complete rewrite of editor changesets as a base for a more modern editor – you will lose all changesets!
 
-# Eurofurence 28 ([hackmas2024](https://github.com/c3nav/c3nav/tree/ef28))
+# Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 
 - map key/legend including settings for it in the editor
 - SSO support for access permission management
