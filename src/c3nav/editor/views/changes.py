@@ -70,15 +70,59 @@ def changeset_detail(request, pk):
                 return redirect(reverse('editor.login') + '?r=' + request.path)
 
             with changeset.lock_to_edit(request) as changeset:
-                if not changeset.title or not changeset.description:
-                    messages.warning(request, _('You need to add a title an a description to propose this change set.'))
-                    return redirect(reverse('editor.changesets.edit', kwargs={'pk': changeset.pk}))
+                if not changeset.title:
+                    form = ChangeSetForm(instance=changeset, data=request.POST)
+                    if not form.is_valid():
+                        form = ChangeSetForm(instance=changeset)
+                        messages.warning(request, _('You need to add a title to propose this change set.'))
+                        return render(request, 'editor/changeset_edit.html', {
+                            'changeset': changeset,
+                            'action': 'propose',
+                            'form': form,
+                        })
+
+                    changeset = form.instance
+                    update = changeset.updates.create(user=request.user,
+                                                      title=changeset.title, description=changeset.description)
+                    changeset.last_update = update
+                    changeset.save()
 
                 if changeset.can_propose(request):
                     changeset.propose(request.user)
                     messages.success(request, _('You proposed your changes.'))
                 else:
                     messages.error(request, _('You cannot propose this change set.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+        elif request.POST.get('commit') == '1':
+            if not request.user.is_authenticated:
+                messages.info(request, _('You need to log in to apply changes.'))
+                return redirect(reverse('editor.login') + '?r=' + request.path)
+
+            with changeset.lock_to_edit(request) as changeset:
+                if not changeset.title:
+                    form = ChangeSetForm(instance=changeset, data=request.POST)
+                    if not form.is_valid():
+                        form = ChangeSetForm(instance=changeset)
+                        messages.warning(request, _('You need to add a title to apply this change set.'))
+                        return render(request, 'editor/changeset_edit.html', {
+                            'changeset': changeset,
+                            'action': 'commit',
+                            'form': form,
+                        })
+
+                    changeset = form.instance
+                    update = changeset.updates.create(user=request.user,
+                                                      title=changeset.title, description=changeset.description)
+                    changeset.last_update = update
+                    changeset.save()
+
+                if changeset.can_commit(request):
+                    changeset.apply(request.user)
+                    messages.success(request, _('You applied your changes.'))
+                else:
+                    messages.error(request, _('You cannot apply this change set.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 

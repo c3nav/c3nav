@@ -40,7 +40,7 @@ class ChangeSet(models.Model):
     state = models.CharField(max_length=20, db_index=True, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
-    description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
+    description = models.TextField(max_length=1000, default='', verbose_name=_('Description'), blank=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
     map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset',
@@ -171,6 +171,9 @@ class ChangeSet(models.Model):
 
     def can_unpropose(self, request):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
+
+    def can_commit(self, request):
+        return self.can_edit(request) and not self.proposed and self.changes and self.can_review(request)
 
     def has_space_access_on_all_objects(self, request, force=False):
         # todo: reimplement this
