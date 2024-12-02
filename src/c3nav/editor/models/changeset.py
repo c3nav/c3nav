@@ -474,4 +474,6 @@ class ChangeSet(models.Model):
 
     @property
     def problems(self) -> ChangeProblems:
+        if self.state == "applied":
+            return ChangeProblems()
         return self.get_changes_as_operations().problems
