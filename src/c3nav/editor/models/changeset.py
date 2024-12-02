@@ -173,7 +173,8 @@ class ChangeSet(models.Model):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
 
     def can_commit(self, request):
-        return self.can_edit(request) and not self.proposed and self.changes and self.can_review(request)
+        return (self.can_edit(request) and self.can_review(request)
+                and not self.proposed and self.changes and not self.problems.any)
 
     def has_space_access_on_all_objects(self, request, force=False):
         # todo: reimplement this
@@ -266,6 +267,9 @@ class ChangeSet(models.Model):
     def can_end_review(self, request):
         return self.can_review(request) and self.state == 'review' and self.assigned_to == request.user
 
+    def can_apply(self, request):
+        return self.can_end_review(request) and not self.problems.any
+
     def can_unreject(self, request):
         return (self.can_review(request) and self.state in ('rejected', 'finallyrejected') and
                 self.assigned_to == request.user)
@@ -332,6 +336,8 @@ class ChangeSet(models.Model):
         self.save()
 
     def apply(self, user):
+        if self.problems.any:
+            raise ValueError("Can't apply if there's still problems!")
         with MapUpdate.lock():
             # todo: reimplement
             update = self.updates.create(user=user, state='applied')

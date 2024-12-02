@@ -143,7 +143,7 @@
             {% endif %}
             {% if can_end_review %}
                 <button type="submit" class="btn btn-danger" name="reject" value="1">{% trans 'Reject' %}</button>
-                <button type="submit" class="btn btn-success" name="apply" value="1">{% trans 'Accept' %}</button>
+                <button type="submit" {% if not can_apply %}disabled="disabled" {% endif %}class="btn btn-success" name="apply" value="1">{% trans 'Accept' %}</button>
             {% endif %}
         {% endif %}
         {% if can_start_review %}

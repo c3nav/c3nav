@@ -219,6 +219,7 @@ def changeset_detail(request, pk):
         'can_unpropose': changeset.can_unpropose(request),
         'can_start_review': changeset.can_start_review(request),
         'can_end_review': changeset.can_end_review(request),
+        'can_apply': changeset.can_apply(request),
         'can_unreject': changeset.can_unreject(request),
         'active': active,
     }
