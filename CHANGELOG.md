@@ -9,7 +9,7 @@ and potential backwards incompatibilities.
 # 38. Chaos Communication Congress (development ongoing)
 
 - data overlay support
-- complete rewrite of editor changesets as a base for a more modern editor
+- complete rewrite of editor changesets as a base for a more modern editor – you will lose all changesets!
 
 # Eurofurence 28 ([hackmas2024](https://github.com/c3nav/c3nav/tree/ef28))
 
