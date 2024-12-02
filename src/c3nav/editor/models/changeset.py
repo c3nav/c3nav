@@ -336,6 +336,7 @@ class ChangeSet(models.Model):
             # todo: reimplement
             update = self.updates.create(user=user, state='applied')
             map_update = MapUpdate.objects.create(user=user, type='changeset')
+            self.as_operations.prefetch().apply()
             self.state = 'applied'
             self.last_state_update = update
             self.last_update = update
