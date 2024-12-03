@@ -10,6 +10,8 @@ class Source(BoundsMixin, AccessRestrictionMixin, models.Model):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
+    new_serialize = True
+
     name = models.CharField(_('Name'), unique=True, max_length=50)  # a slugfield would forbid periods
 
     class Meta:
@@ -24,8 +26,3 @@ class Source(BoundsMixin, AccessRestrictionMixin, models.Model):
     @property
     def title(self):
         return self.name
-
-    def _serialize(self, level=True, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['name'] = self.name
-        return result

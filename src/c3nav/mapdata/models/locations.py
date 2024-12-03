@@ -292,6 +292,8 @@ class SpecificLocation(Location, models.Model):
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
+    new_serialize = True
+
     name = models.SlugField(_('Name'), unique=True, max_length=50)
     single = models.BooleanField(_('single selection'), default=False)
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
@@ -313,26 +315,6 @@ class LocationGroupCategory(SerializableMixin, models.Model):
         verbose_name_plural = _('Location Group Categories')
         default_related_name = 'locationgroupcategories'
         ordering = ('-priority', )
-
-    def _serialize(self, detailed=True, **kwargs):
-        result = super()._serialize(detailed=detailed, **kwargs)
-        result['name'] = self.name
-        result['single'] = self.single
-        if detailed:
-            result['titles'] = self.titles
-            result['titles_plural'] = self.titles_plural
-            result['help_texts'] = self.help_texts
-        result['title'] = self.title
-        result['title_plural'] = self.title_plural
-        result['help_text'] = self.help_text
-        result['allow_levels'] = self.allow_levels
-        result['allow_spaces'] = self.allow_spaces
-        result['allow_areas'] = self.allow_areas
-        result['allow_pois'] = self.allow_pois
-        result['allow_dynamic_locations'] = self.allow_dynamic_locations
-        result['priority'] = self.priority
-
-        return result
 
     def register_changed_geometries(self):
         from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
@@ -402,17 +384,6 @@ class LocationGroup(Location, models.Model):
         self.orig_hierarchy = self.hierarchy
         self.orig_category_id = self.category_id
         self.orig_color = self.color
-
-    def _serialize(self, simple_geometry=False, **kwargs):
-        result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
-        result['category'] = self.category_id
-        result['priority'] = self.priority
-        result['hierarchy'] = self.hierarchy
-        result['can_report_missing'] = self.can_report_missing
-        result['color'] = self.color
-        if simple_geometry:
-            result['locations'] = tuple(obj.pk for obj in getattr(self, 'locations', ()))
-        return result
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
