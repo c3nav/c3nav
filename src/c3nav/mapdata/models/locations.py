@@ -124,25 +124,19 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
             result = {name: result[name] for name in fields if name in result}
         return result
 
-    def _serialize(self, search=False, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['subtitle'] = self.subtitle
-        result['icon'] = self.get_icon()
-        result['can_search'] = self.can_search
-        result['can_describe'] = self.can_search
-        if search:
-            result['add_search'] = ' '.join((
-                *(redirect.slug for redirect in self.redirects.all()),
-                *self.other_titles,
-            ))
-        return result
+    @property
+    def add_search(self):
+        return ' '.join((
+            *(redirect.slug for redirect in self.redirects.all()),
+            *self.other_titles,
+        ))
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].extend([
             (_('searchable'), _('Yes') if self.can_search else _('No')),
             (_('can describe'), _('Yes') if self.can_describe else _('No')),
-            (_('icon'), self.get_icon()),
+            (_('icon'), self.effective_icon),
         ])
         return result
 
@@ -175,7 +169,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
                 return (0, group.category.priority, group.hierarchy, group.priority), color
         return None
 
-    def get_icon(self):
+    @property
+    def effective_icon(self):
         return self.icon or None
 
 
@@ -281,8 +276,9 @@ class SpecificLocation(Location, models.Model):
             return (0, 0, 0)
         return (0, groups[0].category.priority, groups[0].priority)
 
-    def get_icon(self):
-        icon = super().get_icon()
+    @property
+    def effective_icon(self):
+        icon = super().effective_icon
         if icon:
             return icon
         for group in self.groups.all():
@@ -554,7 +550,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
                 'available': False,
                 'id': self.pk,
                 'slug': self.slug,
-                'icon': self.get_icon(),
+                'icon': self.effective_icon,
                 'title': str(self.title),
                 'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
             }
@@ -563,7 +559,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
             'available': True,
             'id': self.pk,
             'slug': self.slug,
-            'icon': self.get_icon(),
+            'icon': self.effective_icon,
             'title': str(self.title),
             'subtitle': '%s %s%s, %s' % (
                 _('(moving)'),

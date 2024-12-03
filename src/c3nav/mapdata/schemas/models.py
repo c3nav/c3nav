@@ -387,8 +387,13 @@ class CustomLocationSchema(BaseSchema):
         description="slug, identical to ID"
     )
     icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
-        title="icon name",
-        description="any material design icon name",
+        title="set icon name",
+        description="as set in the object specifically (any material design icon name)",
+        example="pin_drop",
+    )
+    effective_icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
+        title="icon name to use",
+        description="effective icon to use (any material design icon name)",
         example="pin_drop",
     )
     title: NonEmptyStr = APIField(
@@ -470,8 +475,13 @@ class TrackablePositionSchema(BaseSchema):
         example="p:adskjfalskdj",
     )
     icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
-        title="icon name",
-        description="any material design icon name",
+        title="set icon name",
+        description="icon as set in the location specifically (any material design icon name)",
+        example="pin_drop",
+    )
+    effective_icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
+        title="icon name to use",
+        description="effective icon to use (any material design icon name)",
         example="pin_drop",
     )
     title: NonEmptyStr = APIField(

@@ -969,7 +969,7 @@ c3nav = {
     },
     _build_location_html: function (location) {
         var html = $('<div class="location">')
-            .append($('<i class="icon material-symbols">').text(c3nav._map_material_icon(location.icon || 'place')))
+            .append($('<i class="icon material-symbols">').text(c3nav._map_material_icon(location.effective_icon || 'place')))
             .append($('<span>').text(location.title))
             .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
         html.attr('data-location', JSON.stringify(location));
@@ -1024,7 +1024,7 @@ c3nav = {
         c3nav._locationinput_reset_autocomplete();
         elem.toggleClass('selected', !!location).toggleClass('empty', !location)
             .data('location', location).data('lastlocation', location).removeData('suggestion');
-        elem.find('.icon').text(location ? c3nav._map_material_icon(location.icon || 'place') : '');
+        elem.find('.icon').text(location ? c3nav._map_material_icon(location.effective_icon || 'place') : '');
         elem.find('input').val(location ? location.title : '').removeData('origval');
         elem.find('small').text(location ? location.subtitle : '');
     },

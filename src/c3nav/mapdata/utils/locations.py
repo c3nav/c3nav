@@ -458,7 +458,8 @@ class CustomLocation:
     def subtitle(self):
         return self.title_subtitle[1]
 
-    def get_icon(self):
+    @property
+    def effective_icon(self):
         return self.icon
 
     @property
