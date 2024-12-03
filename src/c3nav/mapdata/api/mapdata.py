@@ -47,9 +47,13 @@ def mapdata_list_endpoint(request,
     # order_by
     qs = qs.order_by(*order_by)
 
-    # todo: can access geometry… using defer?
+    result = list(qs)
 
-    return qs
+    for obj in result:
+        if can_access_geometry(request, obj):
+            obj._hide_geometry = True
+
+    return result
 
 
 def mapdata_retrieve_endpoint(request, model: Type[Model], **lookups):

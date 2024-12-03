@@ -5,7 +5,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from functools import reduce
 from itertools import chain
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union, ClassVar
 
 from django.apps import apps
 from django.conf import settings
@@ -275,6 +275,8 @@ def get_custom_location_for_request(slug: str, request):
 
 @dataclass
 class CustomLocation:
+    locationtype: ClassVar = "customlocation"
+
     can_search = True
     can_describe = True
     access_restriction_id = None

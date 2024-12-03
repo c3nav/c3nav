@@ -309,8 +309,10 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
 
 class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
     """
-    An point of interest
+    A point of interest
     """
+    new_serialize = True
+
     geometry = GeometryField('point')
 
     class Meta:

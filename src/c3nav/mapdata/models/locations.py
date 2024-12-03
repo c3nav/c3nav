@@ -385,6 +385,8 @@ class LocationGroup(Location, models.Model):
         self.orig_category_id = self.category_id
         self.orig_color = self.color
 
+    locations = []
+
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].insert(3, (_('Category'), self.category.title))
@@ -522,6 +524,8 @@ class CustomLocationProxyMixin:
 
 
 class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
+    new_serialize = True
+
     position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
 
     class Meta:

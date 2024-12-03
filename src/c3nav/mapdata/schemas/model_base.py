@@ -1,6 +1,6 @@
 import math
 import re
-from typing import Annotated, Optional, Union
+from typing import Annotated, Optional, Union, Literal
 
 from pydantic import Field as APIField
 from pydantic import PositiveInt
@@ -119,6 +119,12 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
         example="more search terms",
     )
 
+    @classmethod
+    def get_overrides(cls, value) -> dict:
+        return {
+            "locationtype": value._meta.model_name,
+        }
+
 
 class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
     """
@@ -145,6 +151,7 @@ class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
 class SpecificLocationSchema(LocationSchema):
     grid_square: Union[
         Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
+        Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
         Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
     ] = APIField(
         default=None,
@@ -235,7 +242,10 @@ class WithGeometrySchema(BaseSchema):
         minx, miny, maxx, maxy = value.geometry.bounds
         return {
             **super().get_overrides(value),
-            "geometry": format_geojson(smart_mapping(value.geometry), rounded=False),
+            "geometry": (
+                format_geojson(smart_mapping(value.geometry), rounded=False)
+                if not getattr(value, '_hide_geometry', False) else None
+            ),
             "point": (value.level_id,) + tuple(round(i, 2) for i in value.point.coords[0]),
             "bounds": ((int(math.floor(minx)), int(math.floor(miny))),
                        (int(math.ceil(maxx)), int(math.ceil(maxy))))

@@ -1,6 +1,7 @@
-from typing import Annotated, ClassVar, Literal, Optional, Union
+from typing import Annotated, ClassVar, Literal, Optional, Union, Any
 
-from pydantic import Discriminator
+from django.db.models import Model
+from pydantic import Discriminator, Tag
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
@@ -415,6 +416,7 @@ class CustomLocationSchema(BaseSchema):
     )
     grid_square: Union[
         Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
+        Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
         Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
     ] = APIField(
         default=None,
@@ -569,6 +571,8 @@ class SlimLocationMixin(BaseSchema):
     can_describe: ClassVar[None]
     groups: ClassVar[None]
     groups_by_category: ClassVar[None]
+    geometry: ClassVar[None]
+    point: ClassVar[None]
 
 
 class SlimLevelLocationSchema(SlimLocationMixin, FullLevelLocationSchema):
@@ -628,46 +632,62 @@ class SlimDynamicLocationLocationSchema(SlimLocationMixin, FullDynamicLocationLo
     pass
 
 
+def get_locationtype(v: Any):
+    if isinstance(v, Model):
+        return v._meta.model_name
+    return v["locationtype"]
+
+
 FullListableLocationSchema = Annotated[
     Union[
-        FullLevelLocationSchema,
-        FullSpaceLocationSchema,
-        FullAreaLocationSchema,
-        FullPOILocationSchema,
-        FullLocationGroupLocationSchema,
-        FullDynamicLocationLocationSchema,
+        Annotated[FullLevelLocationSchema, Tag("level")],
+        Annotated[FullSpaceLocationSchema, Tag("space")],
+        Annotated[FullAreaLocationSchema, Tag("area")],
+        Annotated[FullPOILocationSchema, Tag("poi")],
+        Annotated[FullLocationGroupLocationSchema, Tag("locationgroup")],
+        Annotated[FullDynamicLocationLocationSchema, Tag("dynamiclocation")],
     ],
-    Discriminator("locationtype"),
+    Discriminator(get_locationtype),
 ]
 
 FullLocationSchema = Annotated[
     Union[
-        FullListableLocationSchema,
-        CustomLocationLocationSchema,
-        TrackablePositionLocationSchema,
+        Annotated[FullLevelLocationSchema, Tag("level")],
+        Annotated[FullSpaceLocationSchema, Tag("space")],
+        Annotated[FullAreaLocationSchema, Tag("area")],
+        Annotated[FullPOILocationSchema, Tag("poi")],
+        Annotated[FullLocationGroupLocationSchema, Tag("locationgroup")],
+        Annotated[FullDynamicLocationLocationSchema, Tag("dynamiclocation")],
+        Annotated[CustomLocationLocationSchema, Tag("customlocation")],
+        Annotated[TrackablePositionLocationSchema, Tag("position")],
     ],
-    Discriminator("locationtype"),
+    Discriminator(get_locationtype),
 ]
 
 SlimListableLocationSchema = Annotated[
     Union[
-        SlimLevelLocationSchema,
-        SlimSpaceLocationSchema,
-        SlimAreaLocationSchema,
-        SlimPOILocationSchema,
-        SlimLocationGroupLocationSchema,
-        SlimDynamicLocationLocationSchema,
+        Annotated[SlimLevelLocationSchema, Tag("level")],
+        Annotated[SlimSpaceLocationSchema, Tag("space")],
+        Annotated[SlimAreaLocationSchema, Tag("area")],
+        Annotated[SlimPOILocationSchema, Tag("poi")],
+        Annotated[SlimLocationGroupLocationSchema, Tag("locationgroup")],
+        Annotated[SlimDynamicLocationLocationSchema, Tag("dynamiclocation")],
     ],
-    Discriminator("locationtype"),
+    Discriminator(get_locationtype),
 ]
 
 SlimLocationSchema = Annotated[
     Union[
-        SlimListableLocationSchema,
-        CustomLocationLocationSchema,
-        TrackablePositionLocationSchema,
+        Annotated[SlimLevelLocationSchema, Tag("level")],
+        Annotated[SlimSpaceLocationSchema, Tag("space")],
+        Annotated[SlimAreaLocationSchema, Tag("area")],
+        Annotated[SlimPOILocationSchema, Tag("poi")],
+        Annotated[SlimLocationGroupLocationSchema, Tag("locationgroup")],
+        Annotated[SlimDynamicLocationLocationSchema, Tag("dynamiclocation")],
+        Annotated[CustomLocationLocationSchema, Tag("customlocation")],
+        Annotated[TrackablePositionLocationSchema, Tag("position")],
     ],
-    Discriminator("locationtype"),
+    Discriminator(get_locationtype),
 ]
 
 listable_location_definitions = schema_definitions(

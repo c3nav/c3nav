@@ -176,8 +176,7 @@ class RemoveGeometryFilter(FilterSchema):
     # todo: validated true as invalid if not avaiilable for this model
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
-        if ((qs.model in (Building, Space, Door) and not request.user_permissions.can_access_base_mapdata)
-                or not self.geometry):
+        if not self.geometry:
             qs = qs.defer('geometry')
         return super().filter_qs(request, qs)
 

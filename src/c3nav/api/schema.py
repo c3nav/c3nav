@@ -27,6 +27,8 @@ def make_serializable(values: Any):
             for key, val in values.items()
         }
     if isinstance(values, (list, tuple, set, frozenset)):
+        if values and isinstance(next(iter(values)), Model):
+            return type(values)(val.pk for val in values)
         return type(values)(make_serializable(val) for val in values)
     if isinstance(values, Promise):
         return str(values)

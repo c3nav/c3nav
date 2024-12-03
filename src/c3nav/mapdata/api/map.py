@@ -77,17 +77,17 @@ class LocationListFilters(BySearchableFilter, RemoveGeometryFilter):
     pass
 
 
-def _location_list(request, detailed: bool, filters: LocationListFilters):
+def _location_list(request, filters: LocationListFilters):
     if filters.searchable:
         locations = searchable_locations_for_request(request)
     else:
         locations = visible_locations_for_request(request).values()
 
-    result = [obj.serialize(detailed=detailed, search=filters.searchable,
-                            geometry=filters.geometry and can_access_geometry(request, obj),
-                            simple_geometry=True)
-              for obj in locations]
-    return result
+    for location in locations:
+        if not filters.geometry or not can_access_geometry(request, location):
+            location._hide_geometry = True
+
+    return locations
 
 
 @map_api_router.get('/locations/', summary="list locations (slim)",
@@ -96,7 +96,7 @@ def _location_list(request, detailed: bool, filters: LocationListFilters):
                     response={200: list[SlimListableLocationSchema], **validate_responses, **auth_responses})
 @api_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
-    return _location_list(request, detailed=False, filters=filters)
+    return _location_list(request, filters=filters)
 
 
 @map_api_router.get('/locations/full/', summary="list locations (full)",
@@ -105,7 +105,7 @@ def location_list(request, filters: Query[LocationListFilters]):
                     response={200: list[FullListableLocationSchema], **validate_responses, **auth_responses})
 @api_etag(base_mapdata=True)
 def location_list_full(request, filters: Query[LocationListFilters]):
-    return _location_list(request, detailed=True, filters=filters)
+    return _location_list(request, filters=filters)
 
 
 def _location_retrieve(request, location, detailed: bool, geometry: bool, show_redirects: bool):
@@ -120,11 +120,10 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
         request._target_etag = None
         request._target_cache_key = None
 
-    return location.serialize(
-        detailed=detailed,
-        geometry=geometry and can_access_geometry(request, location),
-        simple_geometry=True
-    )
+    if not geometry or not can_access_geometry(request, location):
+        location._hide_geometry = True
+
+    return location
 
 
 def _location_display(request, location):
