@@ -152,8 +152,8 @@ c3nav = {
             });
     },
     _sort_labels: function (a, b) {
-        var result = (a[0].label_settings.min_zoom || -10) - (b[0].label_settings.min_zoom || -10);
-        if (result === 0) result = b[0].label_settings.font_size - a[0].label_settings.font_size;
+        var result = (a[0].effective_label_settings.min_zoom || -10) - (b[0].effective_label_settings.min_zoom || -10);
+        if (result === 0) result = b[0].effective_label_settings.font_size - a[0].effective_label_settings.font_size;
         return result;
     },
     _last_time_searchable_locations_loaded: null,
@@ -406,12 +406,12 @@ c3nav = {
         for (var item of labels) {
             location = item[0];
             label = item[1];
-            if (zoom < (location.label_settings.min_zoom || -10)) {
+            if (zoom < (location.effective_label_settings.min_zoom || -10)) {
                 // since the labels are sorted by min_zoom, we can just leave here
                 break;
             }
             if (bounds.contains(label.getLatLng())) {
-                if ((location.label_settings.max_zoom || 10) > zoom) {
+                if ((location.effective_label_settings.max_zoom || 10) > zoom) {
                     c3nav._labelLayer._maybeAddLayerToRBush(label);
                 } else {
                     valid_upper.unshift(label);
@@ -1008,7 +1008,7 @@ c3nav = {
             new_text[i] = new_text[i].trim();
         }
         var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;' + new_text.join('&#8239;<br>&#8239;') + '&#8239;'));
-        html.css('font-size', location.label_settings.font_size + 'px');
+        html.css('font-size', location.effective_label_settings.font_size + 'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
             icon: L.divIcon({
                 html: html[0].outerHTML,

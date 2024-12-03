@@ -14,8 +14,12 @@ from c3nav.mapdata.models.locations import SpecificLocation
 
 class Level(SpecificLocation, models.Model):
     """
-    A map level
+    A physical level of the map, containing building, spaces, doors…
+
+    A level is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
+    new_serialize = True
+
     base_altitude = models.DecimalField(_('base altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
     default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0,
                                          validators=[MinValueValidator(Decimal('0'))])
@@ -67,15 +71,6 @@ class Level(SpecificLocation, models.Model):
     @property
     def primary_level_pk(self):
         return self.pk if self.on_top_of_id is None else self.on_top_of_id
-
-    def _serialize(self, level=True, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['short_label'] = self.short_label
-        result['on_top_of'] = self.on_top_of_id
-        result['base_altitude'] = float(str(self.base_altitude))
-        result['default_height'] = float(str(self.default_height))
-        result['door_height'] = float(str(self.door_height))
-        return result
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)

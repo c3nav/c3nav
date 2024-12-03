@@ -1,6 +1,10 @@
+from contextlib import suppress
+from dataclasses import dataclass
 from types import NoneType
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal, Union, ClassVar
 
+from django.core.exceptions import FieldDoesNotExist
+from django.db.models import Model, ManyToManyField
 from django.utils.functional import Promise
 from ninja import Schema
 from pydantic import Discriminator
@@ -12,31 +16,62 @@ from pydantic_core.core_schema import ValidationInfo
 from c3nav.api.utils import NonEmptyStr
 
 
+def make_serializable(values: Any):
+    if isinstance(values, Schema):
+        return values
+    if isinstance(values, (str, bool, int, float, complex, NoneType)):
+        return values
+    if isinstance(values, dict):
+        return {
+            key: make_serializable(val)
+            for key, val in values.items()
+        }
+    if isinstance(values, (list, tuple, set, frozenset)):
+        return type(values)(make_serializable(val) for val in values)
+    if isinstance(values, Promise):
+        return str(values)
+    return values
+
+
+@dataclass
+class ModelDataForwarder:
+    obj: Model
+    overrides: dict
+
+    def __getattr__(self, key):
+        # noinspection PyUnusedLocal
+        with suppress(KeyError):
+            return make_serializable(self.overrides[key])
+        with suppress(FieldDoesNotExist):
+            field = self.obj._meta.get_field(key)
+            if field.is_relation:
+                if field.many_to_many:
+                    return [obj.pk for obj in getattr(self.obj, key).all()]
+                return make_serializable(getattr(self.obj, field.attname))
+        return make_serializable(getattr(self.obj, key))
+
+
 class BaseSchema(Schema):
+    orig_keys: ClassVar[frozenset[str]] = frozenset()
+
     @model_validator(mode="wrap")  # noqa
     @classmethod
     def _run_root_validator(cls, values: Any, handler: ModelWrapValidatorHandler[Schema], info: ValidationInfo) -> Any:
         """ overwriting this, we need to call serialize to get the correct data """
-        return handler(cls.convert(values))
+        if hasattr(values, 'serialize') and callable(values.serialize) and not getattr(values, 'new_serialize', False):
+            converted = make_serializable(values.serialize())
+        elif isinstance(values, Model):
+            converted = ModelDataForwarder(
+                obj=values,
+                overrides=cls.get_overrides(values),
+            )
+        else:
+            converted = make_serializable(values)
+        return handler(converted)
 
     @classmethod
-    def convert(cls, values: Any):
-        if isinstance(values, Schema):
-            return values
-        if isinstance(values, (str, bool, int, float, complex, NoneType)):
-            return values
-        if isinstance(values, dict):
-            return {
-                key: cls.convert(val)
-                for key, val in values.items()
-            }
-        if isinstance(values, (list, tuple, set, frozenset)):
-            return type(values)(cls.convert(val) for val in values)
-        if isinstance(values, Promise):
-            return str(values)
-        if hasattr(values, 'serialize') and callable(values.serialize):
-            return cls.convert(values.serialize())
-        return values
+    def get_overrides(cls, value: Model) -> dict:
+        return {}
 
 
 class APIErrorSchema(BaseSchema):

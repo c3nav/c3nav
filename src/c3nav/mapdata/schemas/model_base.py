@@ -144,7 +144,12 @@ class SpecificLocationSchema(LocationSchema):
         description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
         example="C3",
     )
-    groups: dict[
+    groups: list[PositiveInt] = APIField(
+        title="location groups",
+        description="location group(s) that this specific location belongs to.",
+        example=[5, 1, 3, 7],
+    )
+    groups_by_category: dict[
         Annotated[NonEmptyStr, APIField(title="location group category name")],
         Union[
             Annotated[list[PositiveInt], APIField(
@@ -163,7 +168,7 @@ class SpecificLocationSchema(LocationSchema):
             )],
         ]
     ] = APIField(
-        title="location groups",
+        title="location groups by category",
         description="location group(s) that this specific location belongs to, grouped by categories.\n\n"
                     "keys are location group category names. see location group category endpoint for details.\n\n"
                     "categories may be missing if no groups apply.",
@@ -173,7 +178,15 @@ class SpecificLocationSchema(LocationSchema):
             "category_with_single_false": [1, 3, 7],
         }
     )
-    label_settings: Union[
+    label_settings: Optional[PositiveInt] = APIField(
+        default=None,
+        title="label settings",
+        description=(
+                schema_description(LabelSettingsSchema) +
+                "\n\nif not set, label settings of location groups might be used"
+        )
+    )
+    effective_label_settings: Union[
         Annotated[LabelSettingsSchema, APIField(
             title="label settings",
             description="label settings to use",

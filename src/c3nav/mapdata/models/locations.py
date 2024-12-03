@@ -113,7 +113,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     class Meta:
         abstract = True
 
-    def serialize(self, detailed=True, describe_only=False, **kwargs):
+    def serialize(self, detailed=True, **kwargs):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
@@ -195,29 +195,35 @@ class SpecificLocation(Location, models.Model):
             if grid_square is not None:
                 result['grid_square'] = grid_square or None
         if detailed:
-            groups = {}
-            for group in self.groups.all():
-                groups.setdefault(group.category, []).append(group.pk)
-            groups = {category.name: (items[0] if items else None) if category.single else items
-                      for category, items in groups.items()
-                      if getattr(category, 'allow_'+self.__class__._meta.default_related_name)}
-            result['groups'] = groups
+            result['groups'] = self.groups_by_category
 
-        label_settings = self.get_label_settings()
-        if label_settings:
-            result['label_settings'] = label_settings.serialize(detailed=False)
+        result["label_settings"] = self.label_settings_id
+        effective_label_settings = self.effective_label_settings
+        if effective_label_settings:
+            result['effective_label_settings'] = effective_label_settings.serialize(detailed=False)
         if self.label_overrides:
             # todo: what if only one language is set?
             result['label_override'] = self.label_override
         return result
 
-    def get_label_settings(self):
+    @property
+    def effective_label_settings(self):
         if self.label_settings:
             return self.label_settings
         for group in self.groups.all():
             if group.label_settings:
                 return group.label_settings
         return None
+
+    @property
+    def groups_by_category(self):
+        groups_by_category = {}
+        for group in self.groups.all():
+            groups_by_category.setdefault(group.category, []).append(group.pk)
+        groups_by_category = {category.name: (items[0] if items else None) if category.single else items
+                  for category, items in groups_by_category.items()
+                  if getattr(category, 'allow_' + self.__class__._meta.default_related_name)}
+        return groups_by_category
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
