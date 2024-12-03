@@ -93,7 +93,7 @@ class SpaceGeometryMixin(GeometryMixin):
             _('Space'),
             {
                 'id': self.space_id,
-                'slug': self.space.get_slug(),
+                'slug': self.space.effective_slug,
                 'title': self.space.title,
                 'can_search': self.space.can_search,
             },

@@ -81,18 +81,20 @@ class LocationSlug(SerializableMixin, models.Model):
                 return getattr(self, model._meta.default_related_name)
         return None
 
-    def get_slug(self):
+    @property
+    def effective_slug(self):
         return self.slug
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result["locationtype"] = self.__class__.__name__.lower()
-        result['slug'] = self.get_slug()
+        result['slug'] = self.slug
+        result['effective_slug'] = self.effective_slug
         return result
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        result['display'].insert(2, (_('Slug'), self.get_slug()))
+        result['display'].insert(2, (_('Slug'), self.effective_slug))
         return result
 
     @cached_property
@@ -116,9 +118,9 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def serialize(self, detailed=True, **kwargs):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
-            fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
-                      'locations', 'on_top_of', 'effective_label_settings', 'label_override', 'add_search', 'dynamic',
-                      'locationtype', 'geometry')
+            fields = ('id', 'type', 'slug', 'effective_slug', 'title', 'subtitle', 'icon', 'point', 'bounds',
+                      'grid_square', 'locations', 'on_top_of', 'effective_label_settings', 'label_override',
+                      'add_search', 'dynamic', 'locationtype', 'geometry')
             result = {name: result[name] for name in fields if name in result}
         return result
 
@@ -144,7 +146,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         ])
         return result
 
-    def get_slug(self):
+    @property
+    def effective_slug(self):
         if self.slug is None:
             code = self.LOCATION_TYPE_CODES.get(self.__class__.__name__)
             if code is not None:
@@ -244,7 +247,7 @@ class SpecificLocation(Location, models.Model):
                 category.title if category.single else category.title_plural,
                 tuple({
                     'id': group.pk,
-                    'slug': group.get_slug(),
+                    'slug': group.effective_slug,
                     'title': group.title,
                     'can_search': group.can_search,
                 } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
@@ -356,6 +359,8 @@ class LocationGroupManager(models.Manager):
 
 
 class LocationGroup(Location, models.Model):
+    new_serialize = True
+
     class CanReportMissing(models.TextChoices):
         DONT_OFFER = "dont_offer", _("don't offer")
         REJECT = "reject", _("offer in first step, then reject")
@@ -692,7 +697,8 @@ class Position(CustomLocationProxyMixin, models.Model):
     def slug(self):
         return 'p:%s' % self.secret
 
-    def get_slug(self):
+    @property
+    def effective_slug(self):
         return self.slug
 
     def serialize(self, *args, **kwargs):

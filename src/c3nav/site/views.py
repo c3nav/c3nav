@@ -150,24 +150,24 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         metadata = {
             'title': _('Route from %s to %s') % (origin.title, destination.title),
             'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.route', kwargs={
-                'slug': origin.get_slug(),
-                'slug2': destination.get_slug(),
+                'slug': origin.effective_slug,
+                'slug2': destination.effective_slug,
             })),
             'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
                 'mode': 'r',
-                'slug': origin.get_slug(),
-                'slug2': destination.get_slug(),
+                'slug': origin.effective_slug,
+                'slug2': destination.effective_slug,
                 'details': False,
                 'options': False,
             })),
         }
     elif destination is not None or origin is not None:
         if destination is not None:
-            loc_slug = destination.get_slug()
+            loc_slug = destination.effective_slug
             title = destination.title
             subtitle = destination.subtitle if hasattr(destination, 'subtitle') else None
         else:
-            loc_slug = origin.get_slug()
+            loc_slug = origin.effective_slug
             title = origin.title
             subtitle = origin.subtitle if hasattr(origin, 'subtitle') else None
         metadata = {
@@ -579,7 +579,7 @@ def report_missing_choose(request, coordinates):
         'locations': [
             {
                 "url": reverse('site.report_create',
-                               kwargs={"coordinates": coordinates, "group": group.get_slug()}),
+                               kwargs={"coordinates": coordinates, "group": group.effective_slug}),
                 "location": group,
                 "replace_subtitle": group.description
             }

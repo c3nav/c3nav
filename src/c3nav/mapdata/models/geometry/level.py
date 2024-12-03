@@ -64,7 +64,7 @@ class LevelGeometryMixin(GeometryMixin):
             _('Level'),
             {
                 'id': self.level_id,
-                'slug': self.level.get_slug(),
+                'slug': self.level.effective_slug,
                 'title': self.level.title,
                 'can_search': self.level.can_search,
             },

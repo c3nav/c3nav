@@ -41,11 +41,15 @@ class DjangoModelSchema(BaseSchema):
 
 
 class LocationSlugSchema(BaseSchema):
-    slug: NonEmptyStr = APIField(
+    slug: Optional[NonEmptyStr] = APIField(
         title="location slug",
         description="a slug is a unique way to refer to a location. while locations have a shared ID space, slugs"
-                    "are meants to be human-readable and easy to remember.\n\n"
-                    "if a location doesn't have a slug defined, this field holds a slug generated from the "
+                    "are meants to be human-readable and easy to remember.",
+        example="entrance",
+    )
+    effective_slug: NonEmptyStr = APIField(
+        title="effective location slug",
+        description="if a location doesn't have a slug defined, this field holds a slug generated from the "
                     "location type and ID, which will work even  if a human-readable slug is defined later.\n\n"
                     "even dynamic locations like coordinates have an (auto-generated) slug.",
         example="entrance",

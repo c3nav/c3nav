@@ -222,16 +222,7 @@ class LocationGroupSchema(LocationSchema, DjangoModelSchema):
     )
     priority: int = APIField()  # todo: ???
     hierarchy: int = APIField()  # todo: ???
-    label_settings: Union[
-        Annotated[LabelSettingsSchema, APIField(
-            title="label settings",
-            description="label settings to use for gruop members that don't have their own set",
-        )],
-        Annotated[None, APIField(
-            title="null",
-            description="no label settings set"
-        )],
-    ] = APIField(
+    label_settings: Optional[PositiveInt] = APIField(
         default=None,
         title="label settings",
         description=(

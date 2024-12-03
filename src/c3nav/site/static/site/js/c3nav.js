@@ -169,7 +169,7 @@ c3nav = {
                 location.elem = c3nav._build_location_html(location);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
-                location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug + ' ' + location.add_search.toLowerCase();
+                location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.effective_slug + ' ' + location.add_search.toLowerCase();
                 locations.push(location);
                 locations_by_id[location.id] = location;
                 if (location.point && location.label_settings) {
@@ -464,7 +464,7 @@ c3nav = {
                 for (var j = 0; j < sublocations.length; j++) {
                     loc = sublocations[j];
                     if (loc.can_search) {
-                        loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
+                        loclist.append($('<a>').attr('href', '/l/' + loc.effective_slug + '/details/').attr('data-id', loc.id).click(function (e) {
                             e.preventDefault();
                             c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
                             c3nav.update_state(false, false, true);
@@ -736,12 +736,12 @@ c3nav = {
         var url = embed ? '/embed' : '';
         if (state.routing) {
             if (state.origin) {
-                url += (state.destination) ? '/r/' + state.origin.slug + '/' + state.destination.slug + '/' : '/o/' + state.origin.slug + '/';
+                url += (state.destination) ? '/r/' + state.origin.effective_slug + '/' + state.destination.effective_slug + '/' : '/o/' + state.origin.effective_slug + '/';
             } else {
-                url += (state.destination) ? '/d/' + state.destination.slug + '/' : '/r/';
+                url += (state.destination) ? '/d/' + state.destination.effective_slug + '/' : '/r/';
             }
         } else {
-            url += state.destination ? ('/l/' + state.destination.slug + '/') : '/';
+            url += state.destination ? ('/l/' + state.destination.effective_slug + '/') : '/';
         }
         if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
             url += 'details/'
@@ -900,9 +900,8 @@ c3nav = {
     _buttons_share_click: function (location) {
         var url = c3nav._get_share_url(false, location);
         if (navigator.share) {
-            var title
-                , subtitle;
-            if (location.slug) {
+            var title, subtitle;
+            if (location.effective_slug) {
                 title = location.title;
                 subtitle = location.subtitle;
             } else {
@@ -923,8 +922,8 @@ c3nav = {
     },
     _get_share_url: function (with_position, location) {
         var url, state = $.extend({}, c3nav.state);
-        if (location.slug) {
-            url = '/l/' + location.slug + '/';
+        if (location.effective_slug) {
+            url = '/l/' + location.effective_slug + '/';
         } else {
             if (!with_position) {
                 state.center = null;

@@ -342,32 +342,32 @@ class CustomLocation:
                 (_('Slug'), self.pk),
                 (_('Level'), {
                     'id': self.level.pk,
-                    'slug': self.level.get_slug(),
+                    'slug': self.level.effective_slug,
                     'title': self.level.title,
                     'can_search': self.level.can_search,
                 }),
                 (_('Space'), {
                     'id': self.space.pk,
-                    'slug': self.space.get_slug(),
+                    'slug': self.space.effective_slug,
                     'title': self.space.title,
                     'can_search': self.space.can_search,
                 } if self.space else None),
                 (_('Areas'), tuple({
                     'id': area.pk,
-                    'slug': area.get_slug(),
+                    'slug': area.effective_slug,
                     'title': area.title,
                     'can_search': area.can_search,
                 } for area in self.areas)),
                 (_('Grid Square'), self.grid_square or None),
                 (_('Near Area'), {
                     'id': self.near_area.pk,
-                    'slug': self.near_area.get_slug(),
+                    'slug': self.near_area.effective_slug,
                     'title': self.near_area.title,
                     'can_search': self.near_area.can_search,
                 } if self.near_area else None),
                 (_('Near POI'), {
                     'id': self.near_poi.pk,
-                    'slug': self.near_poi.get_slug(),
+                    'slug': self.near_poi.effective_slug,
                     'title': self.near_poi.title,
                     'can_search': self.near_poi.can_search,
                 } if self.near_poi else None),
@@ -459,7 +459,8 @@ class CustomLocation:
     def get_icon(self):
         return self.icon
 
-    def get_slug(self):
+    @property
+    def effective_slug(self):
         return self.pk
 
     @cached_property

@@ -150,7 +150,7 @@ def preview_location(request, slug):
     if location is None:
         raise Http404
 
-    slug = location.get_slug()
+    slug = location.effective_slug
 
     if isinstance(location, CustomLocation):
         geometries = [Point(location.x, location.y)]

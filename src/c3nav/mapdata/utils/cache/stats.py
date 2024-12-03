@@ -90,7 +90,7 @@ def convert_locate(data):
     for measurement in BeaconMeasurement.objects.all().select_related('space', 'space__level'):
         pos = CustomLocation(measurement.space.level, measurement.geometry.x, measurement.geometry.y,
                              permissions=set())
-        space_slug = measurement.space.get_slug()
+        space_slug = measurement.space.effective_slug
         level_label = measurement.space.level.short_label
         grid_square = pos.grid_square if grid.enabled else None
         measurement_lookup[pos.pk] = (measurement.pk, grid_square, space_slug, level_label)
@@ -143,23 +143,23 @@ def convert_location(data):
         location = location.get_child()
         if isinstance(location, LocationRedirect):
             continue
-        result['locations']['by_type'].setdefault(location.__class__.__name__.lower(), {})[location.get_slug()] = 0
-        location_slugs[location.pk] = location.get_slug()
+        result['locations']['by_type'].setdefault(location.__class__.__name__.lower(), {})[location.effective_slug] = 0
+        location_slugs[location.pk] = location.effective_slug
         if isinstance(location, Level):
             result['locations']['by_level'][location.short_label] = 0
             result['coordinates']['by_level'][location.short_label] = 0
             level_labels[location.pk] = location.short_label
         if isinstance(location, Space):
-            result['locations']['by_space'][location.get_slug()] = 0
-            result['coordinates']['by_space'][location.get_slug()] = 0
+            result['locations']['by_space'][location.effective_slug] = 0
+            result['coordinates']['by_space'][location.effective_slug] = 0
         if isinstance(location, Area):
             if getattr(location, 'can_search', False) or getattr(location, 'can_describe', False):
-                result['coordinates']['by_area'][location.get_slug()] = 0
+                result['coordinates']['by_area'][location.effective_slug] = 0
         if isinstance(location, POI):
             if getattr(location, 'can_search', False) or getattr(location, 'can_describe', False):
-                result['coordinates']['by_poi'][location.get_slug()] = 0
+                result['coordinates']['by_poi'][location.effective_slug] = 0
         if isinstance(location, LocationGroup):
-            result['locations']['by_group'][location.get_slug()] = 0
+            result['locations']['by_group'][location.effective_slug] = 0
 
     for name, value in data:
         if name[0] != 'pk' or name[0] == 'c:anywhere':
@@ -187,7 +187,7 @@ def convert_location(data):
             result['locations']['total'] += value
             location = getattr(location, 'target', location)
             result['locations']['by_type'].setdefault(location.__class__.__name__.lower(),
-                                                      {})[location.get_slug()] += value
+                                                      {})[location.effective_slug] += value
             if hasattr(location, 'space_id'):
                 result['locations']['by_space'][location_slugs[location.space_id]] += value
             if hasattr(location, 'level_id'):
