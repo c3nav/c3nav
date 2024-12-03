@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
-FROM ubuntu:lunar-20231128@sha256:5a828e28de105c3d7821c4442f0f5d1c52dc16acf4999d5f31a3bc0f03f06edd as base
-ARG BASE_IMAGE_NAME=ubuntu:lunar-20231128
-ARG BASE_IMAGE_DIGEST=sha256:5a828e28de105c3d7821c4442f0f5d1c52dc16acf4999d5f31a3bc0f03f06edd
+FROM ubuntu:noble-20241118.1@sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab as base
+ARG BASE_IMAGE_NAME=ubuntu:noble-20241118.1
+ARG BASE_IMAGE_DIGEST=sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
@@ -15,27 +15,30 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.11=3.11.4-1~23.04.2 \
-    # renovate: srcname=python3.11
-    libpython3.11=3.11.4-1~23.04.2 \
-    # renovate: srcname=python3.11
-    python3.11-venv=3.11.4-1~23.04.2 \
+    python3.12=3.12.3-1ubuntu0.3 \
+    # renovate: srcname=python3.12
+    libpython3.12=3.12.3-1ubuntu0.3 \
+    # renovate: srcname=python3.12
+    python3.12-venv=3.12.3-1ubuntu0.3 \
     # renovate: srcname=python-pip
-    python3-pip=23.0.1+dfsg-1ubuntu0.2 \
-    curl=7.88.1-8ubuntu2.4 \
-    libpcre3=2:8.39-15 \
-    tzdata=2023d-0ubuntu0.23.04 \
-    ca-certificates=20230311ubuntu0.23.04.1 \
-    zstd=1.5.4+dfsg2-4
+    python3-pip=24.0+dfsg-1ubuntu1.1 \
+    curl=8.5.0-2ubuntu10.5 \
+    # renovate: srcname=pcre3
+    libpcre3=2:8.39-15build1 \
+    tzdata=2024a-3ubuntu1.1 \
+    ca-certificates=20240203 \
+    zstd=1.5.5+dfsg2-2build1.1
 
 
 FROM base as builder
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     apt-get update && apt-get install -y --no-install-recommends \
-    build-essential=12.9ubuntu3 \
-    # renovate: srcname=python3.11
-    python3.11-dev=3.11.4-1~23.04.2 \
-    libpcre3-dev=2:8.39-15
+    build-essential=12.10ubuntu1 \
+    # renovate: srcname=python3.12
+    python3.12-dev=3.12.3-1ubuntu0.3 \
+    libpcre3-dev=2:8.39-15build1 \
+    # renovate: srcname=libmemcached \
+    libmemcached-dev=1.1.4-1.1build3
 
 
 RUN mkdir /app
@@ -43,7 +46,7 @@ WORKDIR /app
 
 RUN --mount=type=cache,target=/pip-cache \
     --mount=type=bind,source=/src/requirements-tileserver.txt,target=/app/requirements-tileserver.txt \
-    python3.11 -m venv env && \
+    python3.12 -m venv env && \
     . /app/env/bin/activate && \
     pip install --cache-dir /pip-cache --upgrade pip wheel && \
     pip install --cache-dir /pip-cache -r requirements-tileserver.txt && \
