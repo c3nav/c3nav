@@ -577,6 +577,7 @@ class SlimLocationMixin(BaseSchema):
     can_search: ClassVar[None]
     can_describe: ClassVar[None]
     groups: ClassVar[None]
+    groups_by_category: ClassVar[None]
 
 
 class SlimLevelLocationSchema(SlimLocationMixin, FullLevelLocationSchema):

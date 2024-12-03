@@ -195,7 +195,8 @@ class SpecificLocation(Location, models.Model):
             if grid_square is not None:
                 result['grid_square'] = grid_square or None
         if detailed:
-            result['groups'] = self.groups_by_category
+            result["groups"] = [g.pk for g in self.groups.all()]
+            result['groups_by_category'] = self.groups_by_category
 
         result["label_settings"] = self.label_settings_id
         effective_label_settings = self.effective_label_settings
