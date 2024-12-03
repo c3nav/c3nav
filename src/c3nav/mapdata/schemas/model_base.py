@@ -225,7 +225,7 @@ class WithGeometrySchema(BaseSchema):
     @classmethod
     def get_overrides(cls, value) -> dict:
         value: GeometryMixin
-        if "geometry" in value.get_deferred_fields():
+        if "geometry" in value.get_deferred_fields() or value.geometry is None:
             return {
                 **super().get_overrides(value),
                 "geometry": None,

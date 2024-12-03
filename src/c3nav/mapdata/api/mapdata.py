@@ -9,7 +9,7 @@ from pydantic import PositiveInt
 from c3nav.api.auth import auth_responses, validate_responses
 from c3nav.api.exceptions import API404
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.api.base import api_etag, optimize_query
+from c3nav.mapdata.api.base import api_etag, optimize_query, can_access_geometry
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
                                   Space, Stair, DataOverlay, DataOverlayFeature)
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
@@ -54,9 +54,12 @@ def mapdata_list_endpoint(request,
 
 def mapdata_retrieve_endpoint(request, model: Type[Model], **lookups):
     try:
-        return optimize_query(
+        obj = optimize_query(
             model.qs_for_request(request) if hasattr(model, 'qs_for_request') else model.objects.all()
         ).get(**lookups)
+        if not can_access_geometry(request, obj):
+            obj.geometry = None
+        return obj
     except model.DoesNotExist:
         raise API404("%s not found" % model.__name__.lower())
 
