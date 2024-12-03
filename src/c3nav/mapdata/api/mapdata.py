@@ -42,7 +42,7 @@ def mapdata_list_endpoint(request,
         model.qs_for_request(request) if hasattr(model, 'qs_for_request') else model.objects.all()
     )
     if filters:
-        qs = filters.filter_qs(qs)
+        qs = filters.filter_qs(request, qs)
 
     # order_by
     qs = qs.order_by(*order_by)

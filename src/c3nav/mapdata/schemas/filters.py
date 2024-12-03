@@ -39,7 +39,7 @@ def assert_valid_value(request, model: Type[Model], key: str, values: set):
 
 
 class FilterSchema(BaseSchema):
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         return qs
 
     def validate(self, request):
@@ -58,10 +58,10 @@ class ByLevelFilter(FilterSchema):
         if self.level is not None:
             assert_valid_value(request, Level, "pk", {self.level})
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.level is not None:
             qs = qs.filter(level_id=self.level)
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class BySpaceFilter(FilterSchema):
@@ -76,10 +76,10 @@ class BySpaceFilter(FilterSchema):
         if self.space is not None:
             assert_valid_value(request, Space, "pk", {self.space})
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.space is not None:
             qs = qs.filter(groups=self.space)
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class ByCategoryFilter(FilterSchema):
@@ -94,10 +94,10 @@ class ByCategoryFilter(FilterSchema):
         if self.category is not None:
             assert_valid_value(request, LocationGroupCategory, "pk", {self.category})
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.category is not None:
             qs = qs.filter(category=self.category)
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class ByGroupFilter(FilterSchema):
@@ -112,10 +112,10 @@ class ByGroupFilter(FilterSchema):
         if self.group is not None:
             assert_valid_value(request, LocationGroup, "pk", {self.group})
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.group is not None:
             qs = qs.filter(groups=self.group)
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class ByOnTopOfFilter(FilterSchema):
@@ -130,10 +130,10 @@ class ByOnTopOfFilter(FilterSchema):
         if self.group is not None and self.group != "null":
             assert_valid_value(request, Level, "pk", {self.on_top_of})
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.on_top_of is not None:
             qs = qs.filter(on_top_of_id=None if self.on_top_of == "null" else self.on_top_of)
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class ByOverlayFilter(FilterSchema):
@@ -147,10 +147,10 @@ class ByOverlayFilter(FilterSchema):
         if self.overlay is not None:
             assert_valid_value(request, Level, "pk", {self.overlay})
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.overlay is not None:
             qs = qs.filter(overlay=self.overlay)
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class BySearchableFilter(FilterSchema):
@@ -160,10 +160,10 @@ class BySearchableFilter(FilterSchema):
         description='only show locations that should show up in search'
     )
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.searchable is not None:
             qs = qs.filter(can_search=True)
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class RemoveGeometryFilter(FilterSchema):
@@ -175,10 +175,11 @@ class RemoveGeometryFilter(FilterSchema):
 
     # todo: validated true as invalid if not avaiilable for this model
 
-    def filter_qs(self, qs: QuerySet) -> QuerySet:
-        if qs.model in (Building, Space, Door) or not self.geometry:
+    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
+        if ((qs.model in (Building, Space, Door) and not request.user_permissions.can_access_base_mapdata)
+                or not self.geometry):
             qs = qs.defer('geometry')
-        return super().filter_qs(qs)
+        return super().filter_qs(request, qs)
 
 
 class LevelGeometryFilter(ByLevelFilter, RemoveGeometryFilter):
