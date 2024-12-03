@@ -1,6 +1,7 @@
 import json
 from typing import Annotated, Union
 
+from celery import chain
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Prefetch
 from django.shortcuts import redirect
@@ -16,6 +17,7 @@ from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidati
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup
@@ -26,12 +28,31 @@ from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableL
                                           LocationDisplay, ProjectionPipelineSchema, ProjectionSchema,
                                           SlimListableLocationSchema, SlimLocationSchema, all_location_definitions,
                                           listable_location_definitions, LegendSchema, LegendItemSchema)
-from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema
+from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
+
+
+@map_api_router.get('/settings/', summary="get map settings",
+                    description="get useful/required settings for displaying the map",
+                    response={200: MapSettingsSchema, **auth_responses})
+@api_etag(permissions=False)
+def map_settings(request):
+    initial_bounds = settings.INITIAL_BOUNDS
+    if not initial_bounds:
+        initial_bounds = tuple(chain(*Source.max_bounds()))
+    else:
+        initial_bounds = (tuple(settings.INITIAL_BOUNDS)[:2], tuple(settings.INITIAL_BOUNDS)[2:])
+
+    return MapSettingsSchema(
+        initial_bounds=initial_bounds,
+        initial_level=settings.INITIAL_LEVEL or None,
+        grid=grid.serialize().model_dump() if grid else None,
+        tile_server=settings.TILE_CACHE_SERVER,
+    )
 
 
 @map_api_router.get('/bounds/', summary="get boundaries",

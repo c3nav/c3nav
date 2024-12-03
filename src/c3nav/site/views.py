@@ -217,12 +217,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
     }
 
     if grid.enabled:
-        ctx['grid'] = json.dumps({
-            'rows': grid.rows,
-            'cols': grid.cols,
-            'invert_x': grid.invert_x,
-            'invert_y': grid.invert_y,
-        }, separators=(',', ':'), cls=DjangoJSONEncoder)
+        ctx['grid'] = json.dumps(grid.serialize().model_dump(), separators=(',', ':'), cls=DjangoJSONEncoder)
 
     csrf.get_token(request)
 

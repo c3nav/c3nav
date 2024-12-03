@@ -1,9 +1,11 @@
 import bisect
 import string
 from abc import ABC, abstractmethod
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, ClassVar, Sequence
 
 from django.conf import settings
+from ninja import Schema
 
 
 class AbstractGrid(ABC):
@@ -16,6 +18,13 @@ class AbstractGrid(ABC):
     @abstractmethod
     def get_squares_for_bounds(self, bounds) -> Optional[str]:
         pass
+
+
+class GridSchema(Schema):
+    rows: Sequence[float]
+    cols: Sequence[float]
+    invert_x: bool
+    invert_y: bool
 
 
 class Grid(AbstractGrid):
@@ -40,6 +49,14 @@ class Grid(AbstractGrid):
             self.invert_x = True
         else:
             raise ValueError('column coordinates are not ordered')
+
+    def serialize(self) -> GridSchema:
+        return GridSchema(
+            rows=self.rows,
+            cols=self.cols,
+            invert_x=self.invert_y,
+            invert_y=self.invert_y,
+        )
 
     def get_square_for_point(self, x, y):
         x = bisect.bisect(self.cols, x)
