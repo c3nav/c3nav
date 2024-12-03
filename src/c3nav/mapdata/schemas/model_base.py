@@ -1,3 +1,4 @@
+import math
 import re
 from typing import Annotated, Optional, Union
 
@@ -6,6 +7,9 @@ from pydantic import PositiveInt
 
 from c3nav.api.schema import BaseSchema, LineStringSchema, PointSchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
+from c3nav.mapdata.models.geometry.base import GeometryMixin
+from c3nav.mapdata.utils.geometry import smart_mapping
+from c3nav.mapdata.utils.json import format_geojson
 
 
 def schema_description(schema):
@@ -217,7 +221,28 @@ class SpecificLocationSchema(LocationSchema):
     )
 
 
-class WithPolygonGeometrySchema(BaseSchema):
+class WithGeometrySchema(BaseSchema):
+    @classmethod
+    def get_overrides(cls, value) -> dict:
+        value: GeometryMixin
+        if "geometry" in value.get_deferred_fields():
+            return {
+                **super().get_overrides(value),
+                "geometry": None,
+                "point": None,
+                "bounds": None,
+            }
+        minx, miny, maxx, maxy = value.geometry.bounds
+        return {
+            **super().get_overrides(value),
+            "geometry": format_geojson(smart_mapping(value.geometry), rounded=False),
+            "point": (value.level_id,) + tuple(round(i, 2) for i in value.point.coords[0]),
+            "bounds": ((int(math.floor(minx)), int(math.floor(miny))),
+                       (int(math.ceil(maxx)), int(math.ceil(maxy))))
+        }
+
+
+class WithPolygonGeometrySchema(WithGeometrySchema):
     geometry: Union[
         PolygonSchema,
         Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
@@ -228,7 +253,7 @@ class WithPolygonGeometrySchema(BaseSchema):
     )
 
 
-class WithLineStringGeometrySchema(BaseSchema):
+class WithLineStringGeometrySchema(WithGeometrySchema):
     geometry: Union[
         LineStringSchema,
         Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
@@ -239,7 +264,7 @@ class WithLineStringGeometrySchema(BaseSchema):
     )
 
 
-class WithPointGeometrySchema(BaseSchema):
+class WithPointGeometrySchema(WithGeometrySchema):
     geometry: Union[
         PointSchema,
         Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]

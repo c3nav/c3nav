@@ -106,6 +106,8 @@ class Building(LevelGeometryMixin, models.Model):
     """
     The outline of a building on a specific level
     """
+    new_serialize = True
+
     geometry = GeometryField('polygon')
 
     class Meta:
