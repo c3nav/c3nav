@@ -45,7 +45,7 @@
         "(#\\s*renovate:\\s*srcname=(?<srcname>.*?)( datasource=(?<datasource>.*?))?( versioning=(?<versioning>.*?))?)?\\s+(?<package>[a-z0-9][a-z0-9-.]+)=(?<currentValue>[a-z0-9-:_+~.]+)\\s+"
       ],
       "datasourceTemplate": "repology",
-      "depNameTemplate": "{{#if datasource}}{{{datasource}}}{{else}}ubuntu_23_04{{/if}}/{{#if srcname}}{{{srcname}}}{{else}}{{{package}}}{{/if}}",
+      "depNameTemplate": "{{#if datasource}}{{{datasource}}}{{else}}ubuntu_24_04{{/if}}/{{#if srcname}}{{{srcname}}}{{else}}{{{package}}}{{/if}}",
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}deb{{/if}}"
     }
   ],
