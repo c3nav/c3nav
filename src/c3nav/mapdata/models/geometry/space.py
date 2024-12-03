@@ -126,6 +126,8 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
     """
     An area in a space.
     """
+    new_serialize = True
+
     geometry = GeometryField('polygon')
     slow_down_factor = models.DecimalField(_('slow down factor'), max_digits=6, decimal_places=2, default=1,
                                            validators=[MinValueValidator(Decimal('0.01'))],
@@ -137,11 +139,6 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
         verbose_name = _('Area')
         verbose_name_plural = _('Areas')
         default_related_name = 'areas'
-
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result["slow_down_factor"] = float(self.slow_down_factor)
-        return result
 
     @property
     def grid_square(self):
@@ -160,6 +157,8 @@ class Stair(SpaceGeometryMixin, models.Model):
     """
     A stair
     """
+    new_serialize = True
+
     geometry = GeometryField('linestring')
 
     class Meta:
@@ -172,6 +171,8 @@ class Ramp(SpaceGeometryMixin, models.Model):
     """
     A ramp
     """
+    new_serialize = True
+
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -342,6 +343,8 @@ class Hole(SpaceGeometryMixin, models.Model):
     """
     A hole in the ground of a space, e.g. for stairs.
     """
+    new_serialize = True
+
     geometry = GeometryField('polygon')
 
     class Meta:
