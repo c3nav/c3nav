@@ -544,7 +544,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
     class Meta:
         verbose_name = _('Dynamic location')
         verbose_name_plural = _('Dynamic locations')
-        default_related_name = 'dynamic_locations'
+        default_related_name = 'dynamiclocations'
 
     def _serialize(self, **kwargs):
         """custom_location = self.get_custom_location()
