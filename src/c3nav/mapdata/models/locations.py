@@ -117,7 +117,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
-                      'locations', 'on_top_of', 'label_settings', 'label_override', 'add_search', 'dynamic',
+                      'locations', 'on_top_of', 'effective_label_settings', 'label_override', 'add_search', 'dynamic',
                       'locationtype', 'geometry')
             result = {name: result[name] for name in fields if name in result}
         return result
