@@ -319,11 +319,16 @@ class DynamicLocationSchema(SpecificLocationSchema, DjangoModelSchema):
 
 
 class DataOverlaySchema(TitledSchema, DjangoModelSchema):
-    # TODO
+    """
+    Represents a collection of geometries to be displayed as an optional overlay to the map.
+    """
     pass
 
 
 class DataOverlayFeatureSchema(TitledSchema, DjangoModelSchema):
+    """
+    A feature (any kind of geometry) to be displayed as part of a data overlay.
+    """
     geometry: AnyGeometrySchema
     level_id: PositiveInt
     stroke_color: Optional[str]
@@ -336,7 +341,6 @@ class DataOverlayFeatureSchema(TitledSchema, DjangoModelSchema):
     external_url: Optional[str]
     extra_data: Optional[dict[str, str]]
     # TODO
-    pass
 
 
 class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):

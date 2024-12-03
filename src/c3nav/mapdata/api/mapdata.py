@@ -17,7 +17,7 @@ from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, 
                                                  Obstacle, Ramp)
 from c3nav.mapdata.models.locations import DynamicLocation
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
-                                           LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter)
+                                           LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter, ByOverlayFilter)
 from c3nav.mapdata.schemas.model_base import schema_description
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
                                           BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
@@ -143,6 +143,7 @@ class MapdataAPIBuilder:
             call_func=mapdata_retrieve_endpoint,
             add_call_params={"model": endpoint.model.__name__, "pk": id_field}
         )
+        list_func.__name__ = f"{endpoint.model_name}_by_id"
 
         self.router.get(f'/{endpoint.model_name_plural}/{{{id_field}}}/', summary=f"{endpoint.model_name} by ID",
                         tags=[f"mapdata-{tag}"], description=schema_description(endpoint.schema),
@@ -194,6 +195,15 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
         MapdataEndpoint(
             model=DynamicLocation,
             schema=DynamicLocationSchema,
+        ),
+        MapdataEndpoint(
+            model=DataOverlay,
+            schema=DataOverlaySchema,
+        ),
+        MapdataEndpoint(
+            model=DataOverlayFeature,
+            schema=DataOverlayFeatureSchema,
+            filters=ByOverlayFilter,
         ),
     ],
     "level": [
@@ -269,35 +279,3 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
 
 
 MapdataAPIBuilder(router=mapdata_api_router).build_all_endpoints(mapdata_endpoints)
-
-
-"""
-Data overlays
-"""
-
-
-# todo: this wants to move into a MapDataEndpoint
-@mapdata_api_router.get('/overlays/', summary="data overlay list",
-                        tags=["mapdata-root"], description=schema_description(DynamicLocationSchema),
-                        response={200: list[DataOverlaySchema], **auth_responses})
-@api_etag()
-def dataoverlay_list(request):
-    return mapdata_list_endpoint(request, model=DataOverlay)
-
-
-# todo: this wants to move into a MapDataEndpoint
-@mapdata_api_router.get('/overlays/{overlay_id}/', summary="features for overlay by overlay ID",
-                        tags=["mapdata-root"], description=schema_description(DynamicLocationSchema),
-                        response={200: list[DataOverlayFeatureSchema], **API404.dict(), **auth_responses})
-# @api_etag()
-def dataoverlay_by_id(request, overlay_id: int):
-    qs = optimize_query(
-        DataOverlayFeature.qs_for_request(request)
-    )
-
-    qs = qs.filter(overlay_id=overlay_id)
-
-    # order_by
-    qs = qs.order_by('pk')
-
-    return qs

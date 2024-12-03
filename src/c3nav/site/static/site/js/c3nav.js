@@ -2841,7 +2841,7 @@ class DataOverlay {
     }
 
     async create() {
-        const features = await c3nav_api.get(`mapdata/overlays/${this.id}/`);
+        const features = await c3nav_api.get(`mapdata/dataoverlayfeatures/?overlay=${this.id}`);
 
         const levels = {};
         for (const feature of features) {

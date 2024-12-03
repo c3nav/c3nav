@@ -136,6 +136,23 @@ class ByOnTopOfFilter(FilterSchema):
         return super().filter_qs(qs)
 
 
+class ByOverlayFilter(FilterSchema):
+    overlay: int = APIField(
+        title='filter by data overlay',
+        description='only show overlay features belonging to this overlay'
+    )
+
+    def validate(self, request):
+        super().validate(request)
+        if self.overlay is not None:
+            assert_valid_value(request, Level, "pk", {self.overlay})
+
+    def filter_qs(self, qs: QuerySet) -> QuerySet:
+        if self.overlay is not None:
+            qs = qs.filter(overlay=self.overlay)
+        return super().filter_qs(qs)
+
+
 class BySearchableFilter(FilterSchema):
     searchable: bool = APIField(
         False,
