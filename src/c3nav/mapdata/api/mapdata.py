@@ -104,10 +104,14 @@ class MapdataAPIBuilder:
         )
         method_code = "\n".join((
             f"def gen_func({", ".join((f"{name}: {hint}" if hint else name) for name, hint in view_params.items())}):",
-            f"    call_func({", ".join(call_params)})",
+            f"    return call_func({", ".join(call_params)})",
         ))
-        exec(method_code, globals())
-        return gen_func  # noqa
+        g = {
+            **globals(),
+            "call_func": call_func,
+        }
+        exec(method_code, g)
+        return g["gen_func"]  # noqa
 
     def add_list_endpoint(self, endpoint: MapdataEndpoint, tag: str):
         view_params = self.common_params(endpoint)
