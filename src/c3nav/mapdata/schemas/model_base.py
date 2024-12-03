@@ -121,6 +121,7 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
 
     @classmethod
     def get_overrides(cls, value) -> dict:
+        # todo: move into model
         return {
             "locationtype": value._meta.model_name,
         }
@@ -231,6 +232,7 @@ class SpecificLocationSchema(LocationSchema):
 class WithGeometrySchema(BaseSchema):
     @classmethod
     def get_overrides(cls, value) -> dict:
+        # todo: move into model
         value: GeometryMixin
         if "geometry" in value.get_deferred_fields() or value.geometry is None:
             return {
