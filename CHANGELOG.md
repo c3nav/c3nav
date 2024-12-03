@@ -10,6 +10,8 @@ and potential backwards incompatibilities.
 
 - data overlay support
 - complete rewrite of editor changesets as a base for a more modern editor – you will lose all changesets!
+- new map settings API endpoint
+- some API mapdata endpoints were moved, some lesser used properties renamed
 
 # Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 
