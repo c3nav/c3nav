@@ -120,6 +120,8 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
+    new_serialize = True
+
     geometry = GeometryField('polygon')
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, null=True, blank=True,
                                  validators=[MinValueValidator(Decimal('0'))])
@@ -132,12 +134,6 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
         verbose_name = _('Space')
         verbose_name_plural = _('Spaces')
         default_related_name = 'spaces'
-
-    def _serialize(self, geometry=True, **kwargs):
-        result = super()._serialize(geometry=geometry, **kwargs)
-        result['outside'] = self.outside
-        result['height'] = None if self.height is None else float(str(self.height))
-        return result
 
     @property
     def grid_square(self):
@@ -160,6 +156,8 @@ class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     A connection between two spaces
     """
+    new_serialize = True
+
     geometry = GeometryField('polygon')
 
     class Meta:
