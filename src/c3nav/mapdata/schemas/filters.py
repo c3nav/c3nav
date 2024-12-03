@@ -6,7 +6,7 @@ from pydantic import Field as APIField
 
 from c3nav.api.exceptions import APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space
+from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, Door, Building
 from c3nav.mapdata.models.access import AccessPermission
 
 
@@ -173,8 +173,10 @@ class RemoveGeometryFilter(FilterSchema):
         description='by default, geometry will be ommited. set to true to include it (if available)'
     )
 
+    # todo: validated true as invalid if not avaiilable for this model
+
     def filter_qs(self, qs: QuerySet) -> QuerySet:
-        if not self.geometry:
+        if qs.model in (Building, Space, Door) or not self.geometry:
             qs = qs.defer('geometry')
         return super().filter_qs(qs)
 
