@@ -113,14 +113,9 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
         title="can describe locations",
         description="if `true`, this object can be used to describe other locations (e.g. in their subtitle)",
     )
-    add_search: Union[
-        Annotated[str, APIField(title="search terms", description="set when looking for searchable locations")],
-        Annotated[None, APIField(title="null", description="when not looking for searchable locations")],
-    ] = APIField(
-        None,
+    add_search: str = APIField(
         title="additional search terms",
-        description="more data for the search index separated by spaces, "
-                    "only set when looking for searchable locations",
+        description="more data for the search index separated by spaces",
         example="more search terms",
     )
 
