@@ -302,41 +302,6 @@ class CustomLocation:
             'coordinates': (self.x, self.y)
         }
 
-    def serialize(self, include_type=False, simple_geometry=False, geometry=True, **kwargs):
-        result = OrderedDict((
-            ('id', self.pk),
-            ('slug', self.pk),
-            ('coordinates', self.pk),
-            ('icon', self.icon),
-            ('title', self.title),
-            ('subtitle', self.subtitle),
-            ('level', self.level.pk),
-            ('space', self.space.pk if self.space else None),
-            ('areas', tuple(area.pk for area in self.areas)),
-            ('grid_square', self.grid_square),
-            ('near_area', self.near_area.pk if self.near_area else None),
-            ('near_poi', self.near_poi.pk if self.near_poi else None),
-            ('nearby', tuple(location.pk for location in self.nearby)),
-            ('altitude', None if self.altitude is None else round(self.altitude, 2)),
-            ('locationtype', 'customlocation'),
-        ))
-        if hasattr(self, 'score'):
-            result['score'] = self.score
-        if not grid.enabled:
-            result.pop('grid_square')
-        if include_type:
-            result['type'] = 'custom'
-            result.move_to_end('type', last=False)
-        if simple_geometry:
-            result['point'] = (self.level.pk, self.x, self.y)
-            result['bounds'] = ((int(math.floor(self.x)), int(math.floor(self.y))),
-                                (int(math.ceil(self.x)), int(math.ceil(self.y))))
-
-        if geometry:
-            result['geometry'] = self.serialized_geometry
-
-        return result
-
     @property
     def point(self):
         return (self.level.pk, self.x, self.y)

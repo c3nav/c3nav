@@ -510,11 +510,13 @@ class CustomLocationSchema(BaseSchema):
 
     @classmethod
     def get_overrides(cls, value):
+        from c3nav.mapdata.grid import grid
         return {
             "id": value.pk,
             "space": value.space.pk if value.space else None,
             "level": value.level.pk,
             "geometry": value.serialized_geometry,
+            "grid_square": value.grid_square if grid.enabled else None
         }
 
 
