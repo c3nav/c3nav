@@ -21,6 +21,7 @@ from c3nav.mapdata.render.engines import ImageRenderEngine
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
+from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
 
@@ -219,11 +220,13 @@ def preview_route(request, slug, slug2):
     from c3nav.mapdata.utils.geometry import unwrap_geom
     origin = check_location(slug, None)
     destination = check_location(slug2, None)
+    visible_locations = visible_locations_for_request(request)
     try:
         route = Router.load().get_route(origin=origin,
                                         destination=destination,
                                         permissions=set(),
-                                        options=RouteOptions())
+                                        options=RouteOptions(),
+                                        visible_locations=visible_locations)
     except NotYetRoutable:
         raise Http404()
     except LocationUnreachable:

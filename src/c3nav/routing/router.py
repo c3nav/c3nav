@@ -484,7 +484,7 @@ class Router:
             pk: restriction for pk, restriction in self.restrictions.items() if pk not in permissions
         })
 
-    def get_route(self, origin, destination, permissions, options):
+    def get_route(self, origin, destination, permissions, options, visible_locations):
         restrictions = self.get_restrictions(permissions)
 
         # get possible origins and destinations
@@ -527,7 +527,8 @@ class Router:
         destination_xyz = destination.xyz if isinstance(destination, RouterPoint) else None
 
         return Route(self, origin, destination, path_nodes, options,
-                     origin_addition, destination_addition, origin_xyz, destination_xyz)
+                     origin_addition, destination_addition, origin_xyz, destination_xyz,
+                     visible_locations)
 
 
 CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude',

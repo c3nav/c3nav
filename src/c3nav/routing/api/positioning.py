@@ -52,7 +52,7 @@ def get_position(request, parameters: LocateRequestSchema):
         raise
 
     return {
-        "location": location.serialize(simple_geometry=True) if location else None,
+        "location": location
     }
 
 
@@ -94,7 +94,7 @@ def locate_test(request):
     return {
         "ranges": msg.parsed.model_dump(mode="json")["ranges"],
         "datetime": msg.datetime,
-        "location": location.serialize(simple_geometry=True) if location else None
+        "location": location
     }
 
 

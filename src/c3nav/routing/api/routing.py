@@ -3,6 +3,7 @@ from typing import Annotated, Any, Optional, Union
 
 from django.core.exceptions import ValidationError
 from django.conf import settings
+from django.db.models import Model
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from ninja import Field as APIField
@@ -212,11 +213,14 @@ def get_route(request, parameters: RouteParametersSchema):
     if parameters.options_override is not None:
         _new_update_route_options(options, parameters.options_override)
 
+    visible_locations = visible_locations_for_request(request)
+
     try:
         route = Router.load().get_route(origin=form.cleaned_data['origin'],
                                         destination=form.cleaned_data['destination'],
                                         permissions=AccessPermission.get_for_request(request),
-                                        options=options)
+                                        options=options,
+                                        visible_locations=visible_locations)
     except NotYetRoutable:
         return NoRouteResponse(
             request=parameters,
@@ -256,7 +260,7 @@ def get_route(request, parameters: RouteParametersSchema):
             'destination': parameters.destination,
             'options': options.serialize_string(),
         }),
-        result=route.serialize(locations=visible_locations_for_request(request)),
+        result=route.serialize(),
     )
 
 

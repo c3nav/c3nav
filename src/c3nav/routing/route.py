@@ -21,7 +21,8 @@ def describe_location(location, locations):
 
 class Route:
     def __init__(self, router, origin, destination, path_nodes, options,
-                 origin_addition, destination_addition, origin_xyz, destination_xyz):
+                 origin_addition, destination_addition, origin_xyz, destination_xyz,
+                 visible_locations):
         self.router = router
         self.origin = origin
         self.destination = destination
@@ -31,8 +32,9 @@ class Route:
         self.destination_addition = destination_addition
         self.origin_xyz = origin_xyz
         self.destination_xyz = destination_xyz
+        self.visible_locations = visible_locations
 
-    def serialize(self, locations):
+    def serialize(self):  # todo: move this into schema
         nodes = [[node, None] for node in self.path_nodes]
         if self.origin_addition and any(self.origin_addition):
             nodes.insert(0, (self.origin_addition[0], None))
@@ -161,6 +163,20 @@ class Route:
         distance_str = '%d m' % distance
         summary = '%s (%s)' % (duration_str, distance_str)
 
+        return OrderedDict((
+            ('origin', describe_location(self.origin, self.visible_locations)),
+            ('destination', describe_location(self.destination, self.visible_locations)),
+            ('distance', round(distance, 2)),
+            ('duration', round(duration)),
+            ('distance_str', distance_str),
+            ('duration_str', duration_str),
+            ('summary', summary),
+            ('options_summary', self.options_summary),
+            ('items', tuple(item.serialize(locations=self.visible_locations) for item in items)),
+        ))
+
+    @property
+    def options_summary(self):
         options_summary = [
             {
                 'fastest': _('fastest route'),
@@ -183,19 +199,7 @@ class Route:
         if len(options_summary) == 1:
             options_summary.append(_('default options'))
 
-        options_summary = ', '.join(str(s) for s in options_summary)
-
-        return OrderedDict((
-            ('origin', describe_location(self.origin, locations)),
-            ('destination', describe_location(self.destination, locations)),
-            ('distance', round(distance, 2)),
-            ('duration', round(duration)),
-            ('distance_str', distance_str),
-            ('duration_str', duration_str),
-            ('summary', summary),
-            ('options_summary', options_summary),
-            ('items', tuple(item.serialize(locations=locations) for item in items)),
-        ))
+        return ', '.join(str(s) for s in options_summary)
 
 
 class RouteItem:
@@ -232,7 +236,7 @@ class RouteItem:
     def new_level(self):
         return not self.last_item or self.level.pk != self.last_item.level.pk
 
-    def serialize(self, locations):
+    def serialize(self):  # todo: move this into schema
         result = OrderedDict((
             ('id', self.node.pk),
             ('coordinates', (self.node.x, self.node.y, self.node.altitude)),
@@ -243,10 +247,10 @@ class RouteItem:
             result['waytype'] = self.waytype.serialize(detailed=False)
 
         if self.new_space:
-            result['space'] = describe_location(self.space, locations)
+            result['space'] = describe_location(self.space, self.route.visible_locations)
 
         if self.new_level:
-            result['level'] = describe_location(self.level, locations)
+            result['level'] = describe_location(self.level, self.route.visible_locations)
 
         result['descriptions'] = [(icon, instruction) for (icon, instruction) in self.descriptions]
         return result
