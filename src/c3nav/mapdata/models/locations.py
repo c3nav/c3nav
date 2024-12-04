@@ -445,22 +445,19 @@ class LocationGroup(Location, models.Model):
 
 
 class LocationRedirect(LocationSlug):
+    new_serialize = True
+
     target = models.ForeignKey(LocationSlug, related_name='redirects', on_delete=models.CASCADE,
                                verbose_name=_('target'))
 
-    def _serialize(self, include_type=True, **kwargs):
-        result = super()._serialize(include_type=include_type, **kwargs)
-        if type(self.target) == LocationSlug:
-            result['target'] = self.target.get_child().slug
-        else:
-            result['target'] = self.target.slug
-        if include_type:
-            result['type'] = 'redirect'
-        result.pop('id')
-        return result
+    @property
+    def target_slug(self):
+        if type(self.target) is LocationSlug:
+            return self.target.get_child().effective_slug
+        return self.target.effective_slug
 
     class Meta:
-        default_related_name = 'redirect'
+        default_related_name = 'locationredirects'
 
 
 class LabelSettings(SerializableMixin, models.Model):

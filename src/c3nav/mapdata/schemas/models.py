@@ -16,7 +16,7 @@ from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, Cust
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema, schema_definitions,
-                                              schema_description)
+                                              schema_description, LocationSlugSchema)
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -270,6 +270,27 @@ class LocationGroupSchema(LocationSchema, DjangoModelSchema):
     ] = APIField(
         title="color",
         description="an optional color for spaces and areas with this group"
+    )
+
+
+class LocationRedirectSchema(LocationSlugSchema, DjangoModelSchema):
+    """
+    A location group redirect describes a slug that, when used redirects to another location
+    """
+    slug: NonEmptyStr = APIField(  # todo: copy from somewhere?
+        title="location slug",
+        description="a slug is a unique way to refer to a location. while locations have a shared ID space, slugs"
+                    "are meants to be human-readable and easy to remember.",
+        example="entrance",
+    )
+    target: PositiveInt = APIField(
+        title="target",
+        description="location to redirect to",
+    )
+    target_slug: NonEmptyStr = APIField(
+        title="effective target location slug",
+        description="effective slug of the target location",
+        example="lobby",
     )
 
 

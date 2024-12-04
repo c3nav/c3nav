@@ -15,7 +15,7 @@ from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGro
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
-from c3nav.mapdata.models.locations import DynamicLocation, LabelSettings
+from c3nav.mapdata.models.locations import DynamicLocation, LabelSettings, LocationRedirect
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter, ByOverlayFilter)
 from c3nav.mapdata.schemas.model_base import schema_description, LabelSettingsSchema
@@ -24,7 +24,7 @@ from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRe
                                           DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
                                           LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
                                           ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
-                                          DataOverlaySchema, DataOverlayFeatureSchema)
+                                          DataOverlaySchema, DataOverlayFeatureSchema, LocationRedirectSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 
@@ -190,6 +190,10 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
         MapdataEndpoint(
             model=LocationGroupCategory,
             schema=LocationGroupCategorySchema,
+        ),
+        MapdataEndpoint(
+            model=LocationRedirect,
+            schema=LocationRedirectSchema,
         ),
         MapdataEndpoint(
             model=Source,
