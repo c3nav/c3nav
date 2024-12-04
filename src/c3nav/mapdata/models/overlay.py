@@ -12,8 +12,6 @@ from c3nav.mapdata.utils.json import format_geojson
 
 
 class DataOverlay(TitledMixin, models.Model):
-    new_serialize = True
-
     description = models.TextField(blank=True, verbose_name=_('Description'))
     stroke_color = models.TextField(blank=True, null=True, verbose_name=_('default stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('default stroke width'))
@@ -30,8 +28,6 @@ class DataOverlay(TitledMixin, models.Model):
 
 
 class DataOverlayFeature(TitledMixin, GeometryMixin, models.Model):
-    new_serialize = True
-
     overlay = models.ForeignKey('mapdata.DataOverlay', on_delete=models.CASCADE, verbose_name=_('Overlay'), related_name='features')
     geometry = GeometryField()
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'), related_name='data_overlay_features')

@@ -73,7 +73,7 @@ class BaseSchema(Schema):
     @classmethod
     def _run_root_validator(cls, values: Any, handler: ModelWrapValidatorHandler[Schema], info: ValidationInfo) -> Any:
         """ overwriting this, we need to call serialize to get the correct data """
-        if hasattr(values, 'serialize') and callable(values.serialize) and not getattr(values, 'new_serialize', False):
+        if hasattr(values, 'serialize') and callable(values.serialize):
             converted = make_serializable(values.serialize())
         elif isinstance(values, Model):
             converted = ModelDataForwarder(

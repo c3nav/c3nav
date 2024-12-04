@@ -100,8 +100,6 @@ class Building(LevelGeometryMixin, models.Model):
     """
     The outline of a building on a specific level
     """
-    new_serialize = True
-
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -114,8 +112,6 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
-    new_serialize = True
-
     geometry = GeometryField('polygon')
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, null=True, blank=True,
                                  validators=[MinValueValidator(Decimal('0'))])
@@ -150,8 +146,6 @@ class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     A connection between two spaces
     """
-    new_serialize = True
-
     geometry = GeometryField('polygon')
 
     class Meta:

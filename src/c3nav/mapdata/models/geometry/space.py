@@ -108,8 +108,6 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     An column in a space, also used to be able to create rooms within rooms.
     """
-    new_serialize = True
-
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -122,8 +120,6 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
     """
     An area in a space.
     """
-    new_serialize = True
-
     geometry = GeometryField('polygon')
     slow_down_factor = models.DecimalField(_('slow down factor'), max_digits=6, decimal_places=2, default=1,
                                            validators=[MinValueValidator(Decimal('0.01'))],
@@ -153,8 +149,6 @@ class Stair(SpaceGeometryMixin, models.Model):
     """
     A stair
     """
-    new_serialize = True
-
     geometry = GeometryField('linestring')
 
     class Meta:
@@ -167,8 +161,6 @@ class Ramp(SpaceGeometryMixin, models.Model):
     """
     A ramp
     """
-    new_serialize = True
-
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -210,8 +202,6 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle
     """
-    new_serialize = True
-
     group = models.ForeignKey(ObstacleGroup, null=True, blank=True, on_delete=models.SET_NULL)
     geometry = GeometryField('polygon')
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
@@ -250,8 +240,6 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle that is a line with a specific width
     """
-    new_serialize = True
-
     group = models.ForeignKey(ObstacleGroup, null=True, blank=True, on_delete=models.SET_NULL)
     geometry = GeometryField('linestring')
     width = models.DecimalField(_('width'), max_digits=4, decimal_places=2, default=0.15)
@@ -302,8 +290,6 @@ class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
     """
     A point of interest
     """
-    new_serialize = True
-
     geometry = GeometryField('point')
 
     class Meta:
@@ -336,8 +322,6 @@ class Hole(SpaceGeometryMixin, models.Model):
     """
     A hole in the ground of a space, e.g. for stairs.
     """
-    new_serialize = True
-
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -372,8 +356,6 @@ class LeaveDescription(SerializableMixin):
     """
     A description for leaving a space to another space
     """
-    new_serialize = True
-
     space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     target_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('target space'),
                                      related_name='enter_descriptions')
@@ -403,8 +385,6 @@ class CrossDescription(SerializableMixin):
     """
     A description for crossing a space from one space to another space
     """
-    new_serialize = True
-
     space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     origin_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('origin space'),
                                      related_name='leave_cross_descriptions')

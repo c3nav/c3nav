@@ -17,8 +17,6 @@ from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 
 
 class AccessRestriction(TitledMixin, models.Model):
-    new_serialize = True
-
     """
     An access restriction
     """
@@ -59,8 +57,6 @@ class AccessRestriction(TitledMixin, models.Model):
 
 
 class AccessRestrictionGroup(TitledMixin, models.Model):
-    new_serialize = True
-
     """
     An access restriction group
     """

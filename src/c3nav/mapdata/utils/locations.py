@@ -275,8 +275,6 @@ def get_custom_location_for_request(slug: str, request):
 
 @dataclass
 class CustomLocation:
-    new_serialize: ClassVar = True
-
     locationtype: ClassVar = "customlocation"
 
     can_search = True

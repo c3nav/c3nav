@@ -254,8 +254,6 @@ class SpecificLocation(Location, models.Model):
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
-    new_serialize = True
-
     name = models.SlugField(_('Name'), unique=True, max_length=50)
     single = models.BooleanField(_('single selection'), default=False)
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
@@ -303,8 +301,6 @@ class LocationGroupManager(models.Manager):
 
 
 class LocationGroup(Location, models.Model):
-    new_serialize = True
-
     class CanReportMissing(models.TextChoices):
         DONT_OFFER = "dont_offer", _("don't offer")
         REJECT = "reject", _("offer in first step, then reject")
@@ -411,8 +407,6 @@ class LocationGroup(Location, models.Model):
 
 
 class LocationRedirect(LocationSlug):
-    new_serialize = True
-
     target = models.ForeignKey(LocationSlug, related_name='redirects', on_delete=models.CASCADE,
                                verbose_name=_('target'))
 
@@ -427,8 +421,6 @@ class LocationRedirect(LocationSlug):
 
 
 class LabelSettings(SerializableMixin, models.Model):
-    new_serialize = True
-
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
     min_zoom = models.DecimalField(_('min zoom'), max_digits=3, decimal_places=1, default=-10,
                                    validators=[MinValueValidator(Decimal('-10')),
@@ -474,8 +466,6 @@ class CustomLocationProxyMixin:
 
 
 class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
-    new_serialize = True
-
     position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
 
     class Meta:

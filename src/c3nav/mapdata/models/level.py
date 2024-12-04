@@ -18,8 +18,6 @@ class Level(SpecificLocation, models.Model):
 
     A level is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
-    new_serialize = True
-
     base_altitude = models.DecimalField(_('base altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
     default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0,
                                          validators=[MinValueValidator(Decimal('0'))])
