@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Annotated, ClassVar, Literal, Optional, Union, Any
 
 from django.db.models import Model
@@ -545,6 +546,14 @@ class TrackablePositionSchema(BaseSchema):
         example="Near Bällebad"
     )
 
+    @classmethod
+    def get_overrides(cls, value) -> dict:
+        from c3nav.mapdata.models.locations import Position
+        value: Position
+        return {
+            "id": value.slug,
+        }
+
 
 class LocationTypeSchema(BaseSchema):
     locationtype: str = APIField(title="location type",
@@ -695,6 +704,8 @@ class SlimDynamicLocationLocationSchema(SlimLocationMixin, FullDynamicLocationLo
 def get_locationtype(v: Any):
     if isinstance(v, Model):
         return v._meta.model_name
+    with suppress(AttributeError):
+        return v.locationtype
     return v["locationtype"]
 
 

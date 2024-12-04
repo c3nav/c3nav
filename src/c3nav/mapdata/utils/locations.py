@@ -40,7 +40,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
     conditions = []
     for model in get_submodels(Location):
         related_name = model._meta.default_related_name
-        for prefix in ('', 'redirect__target__'):
+        for prefix in ('', 'locationredirects__target__'):
             condition = Q(**{prefix + related_name + '__isnull': False})
             # noinspection PyUnresolvedReferences
             condition &= model.q_for_request(request, prefix=prefix + related_name + '__')
@@ -52,7 +52,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
         )
 
     locations = locations.filter(reduce(operator.or_, conditions))
-    locations = locations.select_related('redirect', 'locationgroups__category')
+    locations = locations.select_related('locationredirects', 'locationgroups__category')
 
     # prefetch locationgroups
     base_qs = LocationGroup.qs_for_request(request).select_related('category', 'label_settings')
@@ -275,6 +275,8 @@ def get_custom_location_for_request(slug: str, request):
 
 @dataclass
 class CustomLocation:
+    new_serialize: ClassVar = True
+
     locationtype: ClassVar = "customlocation"
 
     can_search = True

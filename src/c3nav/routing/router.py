@@ -534,6 +534,7 @@ CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'a
                                                                      'areas', 'near_area', 'near_poi', 'nearby'))
 
 
+# todo: make generic
 class BaseRouterProxy:
     def __init__(self, src):
         self.src = src

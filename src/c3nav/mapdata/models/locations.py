@@ -48,8 +48,9 @@ class LocationSlugManager(models.Manager):
         if self.model != LocationSlug:
             raise TypeError
         qs = self.get_queryset()
-        qs = qs.select_related('redirect__target', *('redirect__target__'+model._meta.default_related_name
-                                                     for model in get_submodels(Location) + [LocationRedirect]))
+        qs = qs.select_related('locationredirects__target',
+                               *('locationredirects__target__'+model._meta.default_related_name
+                                 for model in get_submodels(Location) + [LocationRedirect]))
         return qs
 
 
@@ -107,15 +108,6 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
     class Meta:
         abstract = True
-
-    def serialize(self, detailed=True, **kwargs):
-        result = super().serialize(detailed=detailed, **kwargs)
-        if not detailed:
-            fields = ('id', 'type', 'slug', 'effective_slug', 'title', 'subtitle', 'icon', 'point', 'bounds',
-                      'grid_square', 'locations', 'on_top_of', 'effective_label_settings', 'label_override',
-                      'add_search', 'dynamic', 'locationtype', 'geometry')
-            result = {name: result[name] for name in fields if name in result}
-        return result
 
     @property
     def add_search(self):
@@ -495,6 +487,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
         pass
 
     def serialize_position(self, request=None):
+        # todo: make this pretty
         custom_location = self.get_custom_location(request=request)
         if custom_location is None:
             return {
@@ -505,7 +498,8 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
                 'title': str(self.title),
                 'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
             }
-        result = custom_location.serialize(simple_geometry=True)
+        from c3nav.mapdata.schemas.models import CustomLocationSchema
+        result = CustomLocationSchema.model_validate(custom_location).model_dump()
         result.update({
             'available': True,
             'id': self.pk,
@@ -586,6 +580,7 @@ class Position(CustomLocationProxyMixin, models.Model):
         return result
 
     def serialize_position(self, request=None):
+        # todo: make this pretty
         custom_location = self.get_custom_location(request=request)
         if custom_location is None:
             return {
@@ -596,7 +591,8 @@ class Position(CustomLocationProxyMixin, models.Model):
                 'title': self.name,
                 'subtitle': _('currently unavailable'),
             }
-        result = custom_location.serialize(simple_geometry=True)
+        from c3nav.mapdata.schemas.models import CustomLocationSchema
+        result = CustomLocationSchema.model_validate(custom_location).model_dump()
         result.update({
             'available': True,
             'id': 'p:%s' % self.secret,
@@ -620,18 +616,20 @@ class Position(CustomLocationProxyMixin, models.Model):
         return 'p:%s' % self.secret
 
     @property
+    def subtitle(self):
+        return _('Position')
+
+    @property
+    def icon(self):
+        return 'my_location'
+
+    @property
+    def effective_icon(self):
+        return self.icon
+
+    @property
     def effective_slug(self):
         return self.slug
-
-    def serialize(self, *args, **kwargs):
-        return {
-            'dynamic': True,
-            'id': 'p:%s' % self.secret,
-            'slug': 'p:%s' % self.secret,
-            'icon': 'my_location',
-            'title': self.name,
-            'subtitle': _('Position'),
-        }
 
     def details_display(self, **kwargs):
         return {
