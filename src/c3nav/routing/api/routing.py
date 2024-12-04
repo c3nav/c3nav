@@ -260,7 +260,7 @@ def get_route(request, parameters: RouteParametersSchema):
             'destination': parameters.destination,
             'options': options.serialize_string(),
         }),
-        result=route.serialize(),
+        result=route,
     )
 
 

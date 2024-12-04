@@ -172,7 +172,7 @@ class Route:
             ('duration_str', duration_str),
             ('summary', summary),
             ('options_summary', self.options_summary),
-            ('items', tuple(item.serialize(locations=self.visible_locations) for item in items)),
+            ('items', items),
         ))
 
     @property
