@@ -36,6 +36,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=cairo
     libcairo2=1.18.0-3build1 \
     libgirepository-1.0-1=1.80.1-1 \
+    # renovate: srcname=libmemcached
+    libmemcached11t64=1.1.4-1.1build3 \
     gettext \
     tzdata=2024a-3ubuntu1.1 \
     ca-certificates=20240203 \

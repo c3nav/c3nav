@@ -25,6 +25,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     curl=8.5.0-2ubuntu10.5 \
     # renovate: srcname=pcre3
     libpcre3=2:8.39-15build1 \
+    # renovate: srcname=libmemcached
+    libmemcached11t64=1.1.4-1.1build3 \
     tzdata=2024a-3ubuntu1.1 \
     ca-certificates=20240203 \
     zstd=1.5.5+dfsg2-2build1.1
