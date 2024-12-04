@@ -85,13 +85,6 @@ class LocationSlug(SerializableMixin, models.Model):
     def effective_slug(self):
         return self.slug
 
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result["locationtype"] = self.__class__.__name__.lower()
-        result['slug'] = self.slug
-        result['effective_slug'] = self.effective_slug
-        return result
-
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].insert(2, (_('Slug'), self.effective_slug))
@@ -185,25 +178,6 @@ class SpecificLocation(Location, models.Model):
 
     class Meta:
         abstract = True
-
-    def _serialize(self, detailed=True, **kwargs):
-        result = super()._serialize(detailed=detailed, **kwargs)
-        if grid.enabled:
-            grid_square = self.grid_square
-            if grid_square is not None:
-                result['grid_square'] = grid_square or None
-        if detailed:
-            result["groups"] = [g.pk for g in self.groups.all()]
-            result['groups_by_category'] = self.groups_by_category
-
-        result["label_settings"] = self.label_settings_id
-        effective_label_settings = self.effective_label_settings
-        if effective_label_settings:
-            result['effective_label_settings'] = effective_label_settings.serialize(detailed=False)
-        if self.label_overrides:
-            # todo: what if only one language is set?
-            result['label_override'] = self.label_override
-        return result
 
     @property
     def effective_label_settings(self):

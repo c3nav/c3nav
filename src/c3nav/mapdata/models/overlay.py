@@ -12,6 +12,8 @@ from c3nav.mapdata.utils.json import format_geojson
 
 
 class DataOverlay(TitledMixin, models.Model):
+    new_serialize = True
+
     description = models.TextField(blank=True, verbose_name=_('Description'))
     stroke_color = models.TextField(blank=True, null=True, verbose_name=_('default stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('default stroke width'))
@@ -28,6 +30,8 @@ class DataOverlay(TitledMixin, models.Model):
 
 
 class DataOverlayFeature(TitledMixin, GeometryMixin, models.Model):
+    new_serialize = True
+
     overlay = models.ForeignKey('mapdata.DataOverlay', on_delete=models.CASCADE, verbose_name=_('Overlay'), related_name='features')
     geometry = GeometryField()
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'), related_name='data_overlay_features')
@@ -63,23 +67,6 @@ class DataOverlayFeature(TitledMixin, GeometryMixin, models.Model):
 
     def get_geojson_key(self):
         return 'dataoverlayfeature', self.id
-
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result.update({
-            'level_id': self.level_id,
-            'stroke_color': self.stroke_color,
-            'stroke_width': self.stroke_width,
-            'fill_color': self.fill_color,
-            'show_label': self.show_label,
-            'show_geometry': self.show_geometry,
-            'interactive': self.interactive,
-            'point_icon': self.point_icon,
-            'external_url': self.external_url,
-            'extra_data': self.extra_data,
-        })
-        result['level_id'] = self.level_id
-        return result
 
     class Meta:
         default_related_name = "dataoverlayfeatures"

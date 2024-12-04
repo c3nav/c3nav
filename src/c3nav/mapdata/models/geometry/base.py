@@ -82,19 +82,6 @@ class GeometryMixin(SerializableMixin):
             raise ValueError
         return good_representative_point(self.geometry)
 
-    def _serialize(self, geometry=True, simple_geometry=False, **kwargs):
-        result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
-        if geometry and "geometry" not in self.get_deferred_fields():
-            result['geometry'] = format_geojson(smart_mapping(self.geometry), rounded=False)
-        if simple_geometry and "geometry" not in self.get_deferred_fields():
-            result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
-            if not isinstance(self.geometry, Point):
-                self.geometry: BaseGeometry
-                minx, miny, maxx, maxy = self.geometry.bounds
-                result['bounds'] = ((int(math.floor(minx)), int(math.floor(miny))),
-                                    (int(math.ceil(maxx)), int(math.ceil(maxy))))
-        return result
-
     def details_display(self, detailed_geometry=True, **kwargs):
         result = super().details_display(**kwargs)
         result['geometry'] = self.get_geometry(detailed_geometry=detailed_geometry)

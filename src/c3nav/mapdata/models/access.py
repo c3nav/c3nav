@@ -408,11 +408,6 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
     class Meta:
         abstract = True
 
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['access_restriction'] = self.access_restriction_id
-        return result
-
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].extend([

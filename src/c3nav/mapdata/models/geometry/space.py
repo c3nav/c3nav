@@ -50,12 +50,6 @@ class SpaceGeometryMixin(GeometryMixin):
             result['opacity'] = self.opacity
         return result
 
-    def _serialize(self, space=True, **kwargs):
-        result = super()._serialize(**kwargs)
-        if space:
-            result['space'] = self.space_id
-        return result
-
     @property
     def subtitle(self):
         base_subtitle = super().subtitle
@@ -278,17 +272,6 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         color = self.get_color(ColorManager.for_theme(None))
         if color:
             result['color'] = color
-        return result
-
-    def _serialize(self, geometry=True, **kwargs):
-        result = super()._serialize(geometry=geometry, **kwargs)
-        result['width'] = float(str(self.width))
-        result['height'] = float(str(self.height))
-        result['altitude'] = float(str(self.altitude))
-        from c3nav.mapdata.render.theme import ColorManager
-        result['color'] = self.get_color(ColorManager.for_theme(None))
-        if geometry:
-            result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result
 
     @property

@@ -52,12 +52,6 @@ class LevelGeometryMixin(GeometryMixin):
             result['opacity'] = self.opacity
         return result
 
-    def _serialize(self, level=True, **kwargs):
-        result = super()._serialize(**kwargs)
-        if level:
-            result['level'] = self.level_id
-        return result
-
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].insert(3, (

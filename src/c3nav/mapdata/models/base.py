@@ -16,9 +16,6 @@ class SerializableMixin(models.Model):
     class Meta:
         abstract = True
 
-    def serialize(self, **kwargs):
-        return self._serialize(**kwargs)
-
     @classmethod
     def serialize_type(cls, **kwargs):
         return OrderedDict((
@@ -27,13 +24,6 @@ class SerializableMixin(models.Model):
             ('title', str(cls._meta.verbose_name)),
             ('title_plural', str(cls._meta.verbose_name_plural)),
         ))
-
-    def _serialize(self, include_type=False, **kwargs):
-        result = {}
-        if include_type:
-            result['type'] = self.__class__.__name__.lower()
-        result['id'] = self.pk
-        return result
 
     def details_display(self, **kwargs):
         return {
@@ -65,17 +55,6 @@ class TitledMixin(SerializableMixin, models.Model):
 
     class Meta:
         abstract = True
-
-    def serialize(self, **kwargs):
-        result = super().serialize(**kwargs)
-        return result
-
-    def _serialize(self, detailed=True, **kwargs):
-        result = super()._serialize(detailed=detailed, **kwargs)
-        if detailed:
-            result['titles'] = self.titles
-        result['title'] = self.title
-        return result
 
     @property
     def other_titles(self):
@@ -112,11 +91,6 @@ class BoundsMixin(SerializableMixin, models.Model):
         result = ((float(result['left__min'] or 0), float(result['bottom__min'] or 0)),
                   (float(result['right__max'] or 10), float(result['top__max'] or 10)))
         cache.set(cache_key, result, 900)
-        return result
-
-    def _serialize(self, level=True, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['bounds'] = self.bounds
         return result
 
     @property
