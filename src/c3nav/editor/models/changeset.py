@@ -20,6 +20,9 @@ from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
 
 
+def _changed_object_collection_default() -> ChangedObjectCollection:
+    return ChangedObjectCollection()
+
 class ChangeSet(models.Model):
     STATES = (
         ('unproposed', _('unproposed')),
@@ -46,7 +49,7 @@ class ChangeSet(models.Model):
     map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset',
                                       verbose_name=_('map update'), on_delete=models.PROTECT)
     changes: ChangedObjectCollection = SchemaField(schema=ChangedObjectCollection,
-                                                   default=lambda: ChangedObjectCollection)
+                                                   default=_changed_object_collection_default)
 
     class Meta:
         verbose_name = _('Change Set')
