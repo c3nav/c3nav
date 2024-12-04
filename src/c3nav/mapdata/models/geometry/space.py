@@ -114,6 +114,8 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     An column in a space, also used to be able to create rooms within rooms.
     """
+    new_serialize = True
+
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -387,10 +389,12 @@ class LeaveDescription(SerializableMixin):
     """
     A description for leaving a space to another space
     """
+    new_serialize = True
+
     space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     target_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('target space'),
                                      related_name='enter_descriptions')
-    description = I18nField(_('description'))
+    description = I18nField(_('description'), plural_name='descriptions')
 
     class Meta:
         verbose_name = _('Leave description')
@@ -399,14 +403,6 @@ class LeaveDescription(SerializableMixin):
         unique_together = (
             ('space', 'target_space')
         )
-
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['space'] = self.space_id
-        result['target_space'] = self.target_space_id
-        result['descriptions'] = self.description_i18n
-        result['description'] = self.description
-        return result
 
     @cached_property
     def title(self):
@@ -424,12 +420,14 @@ class CrossDescription(SerializableMixin):
     """
     A description for crossing a space from one space to another space
     """
+    new_serialize = True
+
     space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     origin_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('origin space'),
                                      related_name='leave_cross_descriptions')
     target_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('target space'),
                                      related_name='cross_enter_descriptions')
-    description = I18nField(_('description'))
+    description = I18nField(_('description'), plural_name='descriptions')
 
     class Meta:
         verbose_name = _('Cross description')
@@ -438,15 +436,6 @@ class CrossDescription(SerializableMixin):
         unique_together = (
             ('space', 'origin_space', 'target_space')
         )
-
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['space'] = self.space_id
-        result['origin_space'] = self.origin_space_id
-        result['target_space'] = self.target_space_id
-        result['descriptions'] = self.description_i18n
-        result['description'] = self.description
-        return result
 
     @cached_property
     def title(self):
