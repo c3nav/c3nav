@@ -50,14 +50,6 @@ class Grid(AbstractGrid):
         else:
             raise ValueError('column coordinates are not ordered')
 
-    def serialize(self) -> GridSchema:
-        return GridSchema(
-            rows=self.rows,
-            cols=self.cols,
-            invert_x=self.invert_y,
-            invert_y=self.invert_y,
-        )
-
     def get_square_for_point(self, x, y):
         x = bisect.bisect(self.cols, x)
         if x <= 0 or x >= len(self.cols):

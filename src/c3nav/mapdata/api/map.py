@@ -50,7 +50,7 @@ def map_settings(request):
     return MapSettingsSchema(
         initial_bounds=initial_bounds,
         initial_level=settings.INITIAL_LEVEL or None,
-        grid=grid.serialize().model_dump() if grid else None,
+        grid=grid if grid else None,
         tile_server=settings.TILE_CACHE_SERVER,
     )
 

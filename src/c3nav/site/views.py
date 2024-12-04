@@ -31,7 +31,7 @@ from django.views.i18n import LANGUAGE_QUERY_PARAMETER, set_language
 from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
-from c3nav.mapdata.grid import grid
+from c3nav.mapdata.grid import grid, GridSchema
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import (LocationGroup, LocationRedirect, Position, SpecificLocation,
@@ -217,7 +217,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
     }
 
     if grid.enabled:
-        ctx['grid'] = json.dumps(grid.serialize().model_dump(), separators=(',', ':'), cls=DjangoJSONEncoder)
+        ctx['grid'] = json.dumps(GridSchema.model_validate(grid).model_dump(), separators=(',', ':'), cls=DjangoJSONEncoder)
 
     csrf.get_token(request)
 
