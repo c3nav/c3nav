@@ -390,7 +390,7 @@ class AccessRestrictionSchema(TitledSchema, DjangoModelSchema):
 
     If they do, you can only see them if you have a permission to see objects with this access retriction.
     """
-    open: bool
+    public: bool
     groups: list[PositiveInt] = APIField(
         title="access restriction groups"
     )

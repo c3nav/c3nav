@@ -17,6 +17,8 @@ from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 
 
 class AccessRestriction(TitledMixin, models.Model):
+    new_serialize = True
+
     """
     An access restriction
     """
@@ -27,11 +29,6 @@ class AccessRestriction(TitledMixin, models.Model):
         verbose_name = _('Access Restriction')
         verbose_name_plural = _('Access Restrictions')
         default_related_name = 'accessrestrictions'
-
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['groups'] = tuple(group.pk for group in self.groups.all())
-        return result
 
     @classmethod
     def qs_for_request(cls, request):
@@ -62,6 +59,8 @@ class AccessRestriction(TitledMixin, models.Model):
 
 
 class AccessRestrictionGroup(TitledMixin, models.Model):
+    new_serialize = True
+
     """
     An access restriction group
     """
@@ -188,7 +187,6 @@ class AccessPermissionToken(models.Model):
 
 
 class AccessPermissionSSOGrant(models.Model):
-
     provider = models.CharField(max_length=32, verbose_name=_('SSO Backend'))
     group = models.CharField(max_length=64, verbose_name=_('SSO Group'))
     access_restriction = models.ForeignKey(AccessRestriction, on_delete=models.CASCADE, null=True, blank=True)
