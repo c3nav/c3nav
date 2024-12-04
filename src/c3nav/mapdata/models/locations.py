@@ -464,6 +464,8 @@ class LocationRedirect(LocationSlug):
 
 
 class LabelSettings(SerializableMixin, models.Model):
+    new_serialize = True
+
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
     min_zoom = models.DecimalField(_('min zoom'), max_digits=3, decimal_places=1, default=-10,
                                    validators=[MinValueValidator(Decimal('-10')),
@@ -474,17 +476,6 @@ class LabelSettings(SerializableMixin, models.Model):
     font_size = models.IntegerField(_('font size'), default=12,
                                     validators=[MinValueValidator(12),
                                                 MaxValueValidator(30)])
-
-    def _serialize(self, detailed=True, **kwargs):
-        result = super()._serialize(detailed=detailed, **kwargs)
-        if detailed:
-            result['titles'] = self.titles
-        if self.min_zoom > -10:
-            result['min_zoom'] = self.min_zoom
-        if self.max_zoom < 10:
-            result['max_zoom'] = self.max_zoom
-        result['font_size'] = self.font_size
-        return result
 
     class Meta:
         verbose_name = _('Label Settings')
@@ -528,17 +519,6 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
         verbose_name = _('Dynamic location')
         verbose_name_plural = _('Dynamic locations')
         default_related_name = 'dynamiclocations'
-
-    def _serialize(self, **kwargs):
-        """custom_location = self.get_custom_location()
-        print(custom_location)
-        result = {} if custom_location is None else custom_location.serialize(**kwargs)
-        super_result = super()._serialize(**kwargs)
-        super_result['subtitle'] = '%s %s, %s' % (_('(moving)'), result['title'], result['subtitle'])
-        result.update(super_result)"""
-        result = super()._serialize(**kwargs)
-        result['dynamic'] = True
-        return result
 
     def register_change(self, force=False):
         pass

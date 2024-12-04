@@ -1,6 +1,6 @@
 import math
 import re
-from typing import Annotated, Optional, Union, Literal
+from typing import Annotated, Optional, Union, Literal, ClassVar
 
 from pydantic import Field as APIField
 from pydantic import PositiveInt
@@ -127,7 +127,7 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
         }
 
 
-class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
+class LabelSettingsSchema(TitledSchema, DjangoModelSchema):  # todo: add titles back in here
     """
     Settings preset for how and when to display a label. Reusable between objects.
     The title describes the title of this preset, not the displayed label.
@@ -147,6 +147,15 @@ class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
         description="font size of the label",
         example=12,
     )
+
+
+class EffectiveLabelSettingsSchema(LabelSettingsSchema):
+    """
+    Settings preset for how and when to display a label.
+    """
+    id: ClassVar[None]
+    title: ClassVar[None]
+    titles: ClassVar[None]
 
 
 class SpecificLocationSchema(LocationSchema):
@@ -199,24 +208,24 @@ class SpecificLocationSchema(LocationSchema):
         title="label settings",
         description=(
                 schema_description(LabelSettingsSchema) +
-                "\n\nif not set, label settings of location groups might be used"
+                "\n\nif not set, label settings of location groups should be used"
         )
     )
     effective_label_settings: Union[
-        Annotated[LabelSettingsSchema, APIField(
+        Annotated[EffectiveLabelSettingsSchema, APIField(
             title="label settings",
             description="label settings to use",
         )],
         Annotated[None, APIField(
             title="null",
-            description="label settings from location group will be used, if available"
+            description="don't display a label"
         )],
     ] = APIField(
         default=None,
         title="label settings",
         description=(
             schema_description(LabelSettingsSchema) +
-            "\n\nif not set, label settings of location groups might be used"
+            "\n\neffective label settings to use for this location"
         )
     )
     label_override: Union[

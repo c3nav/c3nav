@@ -15,10 +15,10 @@ from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGro
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
-from c3nav.mapdata.models.locations import DynamicLocation
+from c3nav.mapdata.models.locations import DynamicLocation, LabelSettings
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter, ByOverlayFilter)
-from c3nav.mapdata.schemas.model_base import schema_description
+from c3nav.mapdata.schemas.model_base import schema_description, LabelSettingsSchema
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
                                           BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
                                           DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
@@ -206,6 +206,10 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
         MapdataEndpoint(
             model=DynamicLocation,
             schema=DynamicLocationSchema,
+        ),
+        MapdataEndpoint(
+            model=LabelSettings,
+            schema=LabelSettingsSchema,
         ),
         MapdataEndpoint(
             model=DataOverlay,
