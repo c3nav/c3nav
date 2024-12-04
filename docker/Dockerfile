@@ -69,7 +69,7 @@ RUN --mount=type=cache,target=/pip-cache \
     -r requirements/postgres.txt \
     -r requirements/redis.txt \
     -r requirements/memcached.txt \
-    -r requirements/rsvg.txt \
+    -r requirements/rsvg-pygobject.txt \
     -r requirements/sentry.txt \
     -r requirements/metrics.txt \
     -r requirements/uwu.txt \
