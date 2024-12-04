@@ -12,10 +12,11 @@ def describe_location(location, locations):
         final_location = locations.get(location.pk)
         if final_location is not None:
             location = final_location
-    result = location.serialize(include_type=True, detailed=False, simple_geometry=True)
-    if hasattr(location, 'serialize_position'):
-        result.update(location.serialize_position())
-    return result
+    # todo: oh my god this needs to be improved
+    from c3nav.routing.router import BaseRouterProxy
+    if isinstance(location, BaseRouterProxy):
+        location = location.src
+    return location
 
 
 class Route:

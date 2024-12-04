@@ -27,6 +27,7 @@ from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 from django.views.i18n import LANGUAGE_QUERY_PARAMETER, set_language
+from pydantic.type_adapter import TypeAdapter
 
 from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
@@ -37,6 +38,7 @@ from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import (LocationGroup, LocationRedirect, Position, SpecificLocation,
                                             get_position_secret)
 from c3nav.mapdata.models.report import Report, ReportUpdate
+from c3nav.mapdata.schemas.models import SlimLocationSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            levels_by_short_label_for_request)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
@@ -122,9 +124,9 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     state = {
         'routing': routing,
-        'origin': (origin.serialize(detailed=False, simple_geometry=True, geometry=False)
+        'origin': (TypeAdapter(SlimLocationSchema).validate_python(origin).model_dump()
                    if origin else None),
-        'destination': (destination.serialize(detailed=False, simple_geometry=True, geometry=False)
+        'destination': (TypeAdapter(SlimLocationSchema).validate_python(destination).model_dump()
                         if destination else None),
         'sidebar': routing or destination is not None,
         'details': True if details else False,

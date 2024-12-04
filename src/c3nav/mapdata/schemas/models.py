@@ -651,7 +651,6 @@ class SlimLocationMixin(BaseSchema):
     groups: ClassVar[None]
     groups_by_category: ClassVar[None]
     geometry: ClassVar[None]
-    point: ClassVar[None]
 
 
 class SlimLevelLocationSchema(SlimLocationMixin, FullLevelLocationSchema):

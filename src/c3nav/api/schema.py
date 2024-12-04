@@ -4,7 +4,7 @@ from types import NoneType
 from typing import Annotated, Any, Literal, Union, ClassVar
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import Model, ManyToManyField
+from django.db.models import Model
 from django.utils.functional import Promise
 from ninja import Schema
 from pydantic import Discriminator

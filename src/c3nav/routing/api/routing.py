@@ -18,6 +18,8 @@ from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D
+from c3nav.mapdata.schemas.models import SlimLocationSchema, SpaceSchema, LevelSchema, SlimSpaceLocationSchema, \
+    SlimLevelLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
@@ -128,11 +130,17 @@ class RouteItemSchema(BaseSchema):
         Annotated[None, APIField(title="null", description="no waytype (normal walking)")],
     ] = APIField(None, title="waytype")
     space: Union[
-        Annotated[dict, APIField(title="space", descripiton="new space that is being entered")],
+        Annotated[
+            SlimSpaceLocationSchema,
+            APIField(title="space", descripiton="new space that is being entered")
+        ],
         Annotated[None, APIField(title="null", description="staying in the same space")],
     ] = APIField(None, description="new space being entered")
     level: Union[
-        Annotated[dict, APIField(title="level", descripiton="new level that is being entered")],
+        Annotated[
+            SlimLevelLocationSchema,
+            APIField(title="level", descripiton="new level that is being entered")
+        ],
         Annotated[None, APIField(title="null", description="staying in the same level")],
     ] = APIField(None, description="new level being entered")
     descriptions: list[tuple[
@@ -148,8 +156,8 @@ class RouteItemSchema(BaseSchema):
 
 
 class RouteSchema(BaseSchema):
-    origin: dict  # todo: improve this
-    destination: dict  # todo: improve this
+    origin: SlimLocationSchema  # todo: is this fine? works? no issues?
+    destination: SlimLocationSchema  # todo: is this fine? works? no issues?
     distance: float
     duration: int
     distance_str: NonEmptyStr
