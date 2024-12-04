@@ -337,6 +337,15 @@ class CustomLocation:
 
         return result
 
+    @property
+    def point(self):
+        return (self.level.pk, self.x, self.y)
+
+    @property
+    def bounds(self):
+        return ((int(math.floor(self.x)), int(math.floor(self.y))),
+                (int(math.ceil(self.x)), int(math.ceil(self.y))))
+
     def details_display(self, **kwargs):
         result = {
             'id': self.pk,

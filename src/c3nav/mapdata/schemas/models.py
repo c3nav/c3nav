@@ -504,13 +504,18 @@ class CustomLocationSchema(BaseSchema):
         title="ground altitude",
         description="ground altitude (in the map-wide coordinate system)"
     )
-    geometry: Union[
-        PointSchema,
-        Annotated[None, APIField(title="null", description="geometry excluded from endpoint")]
-    ] = APIField(
-        None,
+    geometry: PointSchema = APIField(
         description="point geometry for this custom location",
     )
+
+    @classmethod
+    def get_overrides(cls, value):
+        return {
+            "id": value.pk,
+            "space": value.space.pk if value.space else None,
+            "level": value.level.pk,
+            "geometry": value.serialized_geometry,
+        }
 
 
 class TrackablePositionSchema(BaseSchema):

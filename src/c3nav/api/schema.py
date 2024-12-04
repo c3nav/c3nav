@@ -1,5 +1,5 @@
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass
 from types import NoneType
 from typing import Annotated, Any, Literal, Union, ClassVar
 
@@ -27,12 +27,25 @@ def make_serializable(values: Any):
             for key, val in values.items()
         }
     if isinstance(values, (list, tuple, set, frozenset)):
-        if values and isinstance(next(iter(values)), Model):
+        from c3nav.routing.router import BaseRouterProxy
+        if values and isinstance(next(iter(values)), (Model, BaseRouterProxy)):
             return type(values)(val.pk for val in values)
         return type(values)(make_serializable(val) for val in values)
     if isinstance(values, Promise):
         return str(values)
     return values
+
+
+@dataclass
+class DataclassForwarder:
+    obj: Any
+    overrides: dict
+
+    def __getattr__(self, key):
+        # noinspection PyUnusedLocal
+        with suppress(KeyError):
+            return make_serializable(self.overrides[key])
+        return make_serializable(getattr(self.obj, key))
 
 
 @dataclass
@@ -64,6 +77,11 @@ class BaseSchema(Schema):
             converted = make_serializable(values.serialize())
         elif isinstance(values, Model):
             converted = ModelDataForwarder(
+                obj=values,
+                overrides=cls.get_overrides(values),
+            )
+        elif is_dataclass(values):
+            converted = DataclassForwarder(
                 obj=values,
                 overrides=cls.get_overrides(values),
             )
