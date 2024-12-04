@@ -169,6 +169,7 @@ class Ramp(SpaceGeometryMixin, models.Model):
         default_related_name = 'ramps'
 
 
+# todo: move to other file? this is NOT a geometry!
 class ObstacleGroup(TitledMixin, models.Model):
     color = models.CharField(max_length=32, null=True, blank=True)
     in_legend = models.BooleanField(default=False, verbose_name=_('show in legend (if color set)'))
