@@ -437,6 +437,9 @@ class CustomLocationSchema(BaseSchema):
     slug: CustomLocationID = APIField(
         description="slug, identical to ID"
     )
+    effective_slug: CustomLocationID = APIField(
+        description="slug, identical to ID"
+    )
     icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
         title="set icon name",
         description="as set in the object specifically (any material design icon name)",
