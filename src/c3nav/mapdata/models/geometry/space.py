@@ -214,6 +214,8 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle
     """
+    new_serialize = True
+
     group = models.ForeignKey(ObstacleGroup, null=True, blank=True, on_delete=models.SET_NULL)
     geometry = GeometryField('polygon')
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
@@ -235,13 +237,10 @@ class Obstacle(SpaceGeometryMixin, models.Model):
             result['color'] = color
         return result
 
-    def _serialize(self, geometry=True, **kwargs):
-        result = super()._serialize(geometry=geometry, **kwargs)
-        result['height'] = float(str(self.height))
-        result['altitude'] = float(str(self.altitude))
+    @property
+    def color(self):
         from c3nav.mapdata.render.theme import ColorManager
-        result['color'] = self.get_color(ColorManager.for_theme(None))
-        return result
+        return self.get_color(ColorManager.for_theme(None))
 
     def get_color(self, color_manager: 'ThemeColorManager'):
         return (
@@ -255,6 +254,8 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle that is a line with a specific width
     """
+    new_serialize = True
+
     group = models.ForeignKey(ObstacleGroup, null=True, blank=True, on_delete=models.SET_NULL)
     geometry = GeometryField('linestring')
     width = models.DecimalField(_('width'), max_digits=4, decimal_places=2, default=0.15)
@@ -287,6 +288,11 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         if geometry:
             result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result
+
+    @property
+    def color(self):
+        from c3nav.mapdata.render.theme import ColorManager
+        return self.get_color(ColorManager.for_theme(None))
 
     def get_color(self, color_manager: 'ThemeColorManager'):
         # TODO: should line obstacles use border color?

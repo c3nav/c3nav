@@ -5,9 +5,10 @@ from pydantic import Discriminator, Tag
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
-from c3nav.api.schema import BaseSchema, GeometrySchema, PointSchema, AnyGeometrySchema
+from c3nav.api.schema import BaseSchema, GeometrySchema, PointSchema, AnyGeometrySchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import LocationGroup
+from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
                                               LabelSettingsSchema, LocationSchema, PositionID,
                                               SimpleGeometryLocationsSchema, SimpleGeometryPointAndBoundsSchema,
@@ -16,6 +17,8 @@ from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, Cust
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema, schema_definitions,
                                               schema_description)
+from c3nav.mapdata.utils.geometry import smart_mapping
+from c3nav.mapdata.utils.json import format_geojson
 
 
 class LevelSchema(SpecificLocationSchema, DjangoModelSchema):
@@ -141,10 +144,36 @@ class LineObstacleSchema(WithLineStringGeometrySchema, BaseObstacleSchema):
     """
     An obstacle to be subtracted from the accessible surface of a space, defined as a line with width.
     """
+    buffered_geometry: Union[
+        PolygonSchema,
+        Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
+    ] = APIField(
+        None,
+        title="buffered geometry",
+        description="line turned into a polygon with the given width, "
+                    "can be null if not available or excluded from endpoint",
+    )
     width: PositiveFloat = APIField(
         title="width",
         description="width of the line"
     )
+
+    @classmethod
+    def get_overrides(cls, value) -> dict:
+        # todo: move into model
+        value: GeometryMixin
+        if "geometry" in value.get_deferred_fields() or value.geometry is None:
+            return {
+                **super().get_overrides(value),
+                "buffered_geometry": None,
+            }
+        return {
+            **super().get_overrides(value),
+            "buffered_geometry": (
+                format_geojson(smart_mapping(value.buffered_geometry), rounded=False)
+                if not getattr(value, '_hide_geometry', False) else None
+            ),
+        }
 
 
 class ColumnSchema(WithPolygonGeometrySchema, WithSpaceSchema, DjangoModelSchema):
