@@ -33,6 +33,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     librsvg2-2=2.58.0+dfsg-1build1 \
     # renovate: srcname=librsvg
     gir1.2-rsvg-2.0=2.58.0+dfsg-1build1 \
+    # renovate: srcname=cairo
+    libcairo2=1.18.0-3build1 \
     libgirepository-1.0-1=1.80.1-1 \
     gettext \
     tzdata=2024a-3ubuntu1.1 \
@@ -50,6 +52,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libpcre3-dev=2:8.39-15build1 \
     # renovate: srcname=postgresql-16
     libpq-dev=16.6-0ubuntu0.24.04.1 \
+    # renovate: srcname=cairo
+    libcairo2-dev=1.18.0-3build1 \
     libgirepository1.0-dev=1.80.1-1 \
     # renovate: srcname=libmemcached \
     libmemcached-dev=1.1.4-1.1build3
