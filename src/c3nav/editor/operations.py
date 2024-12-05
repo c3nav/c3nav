@@ -129,7 +129,7 @@ class CreateMultipleObjectsOperation(BaseSchema):
         # todo: actually do a create_multiple!, let's not forget about register_changed_geometries etc
         for instance in instances:
             # .object. to make sure our own .save() function is called!
-            instance.object.save(save_m2m=False)
+            instance.object.save()
         return {ref: instances[i] for ref, i in indexes.items()}
 
 
@@ -166,7 +166,7 @@ class UpdateObjectOperation(BaseOperation):
         })
         instances = list(serializers.deserialize("json", json.dumps(data)))
         for instance in instances:
-            instance.save(save_m2m=False)
+            instance.save()
         return instances[-1].object
 
 
