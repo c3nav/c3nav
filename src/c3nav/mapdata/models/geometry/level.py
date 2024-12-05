@@ -78,7 +78,7 @@ class LevelGeometryMixin(GeometryMixin):
 
     def register_change(self, force=False):
         force = force or self.all_geometry_changed
-        if force or self.geometry_changed:
+        if force or self.geometry_changed or self.pk is None:
             changed_geometries.register(self.level_id, self.geometry if force else self.get_changed_geometry())
 
     def register_delete(self):

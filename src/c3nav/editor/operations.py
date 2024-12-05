@@ -1,4 +1,5 @@
 import json
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Annotated, Literal, Union, TypeAlias, Any, Self, Iterator
 
@@ -165,8 +166,15 @@ class UpdateObjectOperation(BaseOperation):
             "fields": values,
         })
         instances = list(serializers.deserialize("json", json.dumps(data)))
-        for instance in instances:
-            instance.object.save()
+        for i in instances:
+            instance = i.object
+            if "geometry" in self.fields:
+                with suppress(AttributeError):
+                    instance.register_change()
+            with suppress(AttributeError):
+                # todo: this is overkill, not always needed, we should do this differently anyways
+                instance.register_changed_geometries()
+            instance.save()
         return instances[-1].object
 
 
@@ -189,6 +197,8 @@ class UpdateManyToManyOperation(BaseOperation):
         field_manager = getattr(instance, self.field)
         field_manager.add(*self.add_values)
         field_manager.remove(*self.remove_values)
+        with suppress(AttributeError):
+            instance.register_change(force=True)
         return instance
 
 
@@ -199,6 +209,8 @@ class ClearManyToManyOperation(BaseOperation):
     def apply(self, values: FieldValuesDict, instance: Model) -> Model:
         values[self.field] = []
         getattr(instance, self.field).clear()
+        with suppress(AttributeError):
+            instance.register_change(force=True)
         return instance
 
 

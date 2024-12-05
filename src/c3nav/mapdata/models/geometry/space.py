@@ -76,7 +76,7 @@ class SpaceGeometryMixin(GeometryMixin):
     def register_change(self, force=False):
         space = self.space
         force = force or self.all_geometry_changed
-        if force or self.geometry_changed:
+        if force or self.geometry_changed or self.pk is None:
             changed_geometries.register(space.level_id, space.geometry.intersection(
                 unwrap_geom(self.geometry if force else self.get_changed_geometry())
             ))
