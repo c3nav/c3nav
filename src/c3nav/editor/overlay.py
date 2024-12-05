@@ -88,11 +88,12 @@ class DatabaseOverlayManager:
     def handle_post_save(self, instance: Model, created: bool, update_fields: set | None, **kwargs):
         field_values = self.get_model_field_values(instance)
 
-        ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
-
         if created:
+            ref = ObjectReference.from_instance(instance)
             self.operations.append(CreateObjectOperation(obj=ref, fields=field_values))
             return
+
+        ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
 
         if update_fields:
             field_values = {name: value for name, value in field_values.items() if name in update_fields}

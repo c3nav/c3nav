@@ -227,8 +227,13 @@ class ChangedObjectCollection(BaseSchema):
         for operation in operations:
             changed_object = self.objects.setdefault(operation.obj.model, {}).get(operation.obj.id, None)
             if changed_object is None:
-                changed_object = ChangedObject(obj=operation.obj,
-                                               titles=self.prev.get(operation.obj).titles)
+                # todo: titles should be better, probably
+                titles = (
+                    operation.fields.get("titles", {})
+                    if isinstance(operation, CreateObjectOperation)
+                    else self.prev.get(operation.obj).titles
+                )
+                changed_object = ChangedObject(obj=operation.obj, titles=titles)
                 self.objects[operation.obj.model][operation.obj.id] = changed_object
             if isinstance(operation, CreateObjectOperation):
                 changed_object.created = True
