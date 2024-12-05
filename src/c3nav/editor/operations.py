@@ -130,6 +130,9 @@ class CreateMultipleObjectsOperation(BaseSchema):
         return {ref: instances[i] for ref, i in indexes.items()}
 
 
+# todo: delete multiple objects
+
+
 class UpdateObjectOperation(BaseOperation):
     type: Literal["update"] = "update"
     fields: FieldValuesDict
