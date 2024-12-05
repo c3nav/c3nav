@@ -250,7 +250,7 @@ class ChangedObjectCollection(BaseSchema):
                     else:
                         changed_object.fields[field_name] = value
             elif isinstance(operation, DeleteObjectOperation):
-                changed_object.deleted = False
+                changed_object.deleted = True
             else:
                 changed_m2m = changed_object.m2m_changes.get(operation.field, None)
                 if changed_m2m is None:
@@ -470,7 +470,7 @@ class ChangedObjectCollection(BaseSchema):
             # don't check this for objects that don't exist anymore
             ids -= start_situation.missing_objects.get(model, set())
             for field in apps.get_model('mapdata', model)._meta.get_fields():
-                if isinstance(field, (ManyToOneRel, OneToOneRel)) or field.model._meta.app_label != "mapdata":
+                if not isinstance(field, (ManyToOneRel, OneToOneRel)) or field.model._meta.app_label != "mapdata":
                     continue
                 potential_fields.setdefault(field.related_model._meta.model_name,
                                             {}).setdefault(field.field.attname, {})[model] = ids
