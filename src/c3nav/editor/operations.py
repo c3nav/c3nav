@@ -110,7 +110,8 @@ class CreateObjectOperation(BaseOperation):
         data = self.get_data()
         instances = list(serializers.deserialize("json", json.dumps(data)))
         for instance in instances:
-            instance.save(save_m2m=False)
+            # .object. to make sure our own .save() function is called!
+            instance.object.save(save_m2m=False)
         return {self.obj: instances[-1].object}
 
 
@@ -125,8 +126,10 @@ class CreateMultipleObjectsOperation(BaseSchema):
             data.extend(obj.get_data())
             indexes[obj.obj] = len(data)-1
         instances = list(serializers.deserialize("json", json.dumps(data)))
+        # todo: actually do a create_multiple!, let's not forget about register_changed_geometries etc
         for instance in instances:
-            instance.save(save_m2m=False)
+            # .object. to make sure our own .save() function is called!
+            instance.object.save(save_m2m=False)
         return {ref: instances[i] for ref, i in indexes.items()}
 
 
