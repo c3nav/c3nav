@@ -700,7 +700,7 @@ class ChangedObjectCollection(BaseSchema):
                         if field.unique:
                             # unique field was changed? remove unique value entry [might be readded below]
                             occupied_unique_values[field_name] = {
-                                val: pk for val, pk in occupied_unique_values[field_name].items()
+                                val: pk for val, pk in occupied_unique_values.get(field_name, {}).items()
                                 if pk != new_operation.obj.model
                             }
                         if field.is_relation:
