@@ -139,9 +139,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         model = apps.get_model(app_label="mapdata", model_name=model)
 
     changeset_exceeded = get_changeset_exceeded(request)
-    model_changes = {}
-    if changeset_exceeded:
-        model_changes = request.changeset.get_changed_objects_by_model(model)
 
     related_name = model._meta.default_related_name
 
@@ -270,7 +267,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 level='error', message=_('You can not create new objects because your changeset is full.'),
                 redirect_to=ctx['back_url'], status_code=409,
             )
-        elif obj.pk not in model_changes:
+        elif obj.pk not in request.changeset.changes.objects.get(obj._meta.model_name, {}):
             messages.warning(request, _('You can not edit this object because your changeset is full.'))
             nosave = True
 
@@ -542,9 +539,6 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form):
         raise PermissionDenied
 
     changeset_exceeded = get_changeset_exceeded(request)
-    graphedge_changes = {}
-    if changeset_exceeded:
-        graphedge_changes = request.changeset.get_changed_objects_by_model('GraphEdge')
 
     new_connections = []
     new_connections.append((active_node, clicked_node, False))
@@ -554,7 +548,9 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form):
     instance = edge_settings_form.instance
     for from_node, to_node, is_reverse in new_connections:
         existing = from_node.edges_from_here.filter(to_node=to_node).first()
-        if changeset_exceeded and (not existing or existing.pk not in graphedge_changes):
+
+        if (changeset_exceeded and
+                (not existing or existing.pk not in request.changeset.changes.objects.get('graphedge', {}))):
             messages.error(request, _('Could not edit edge because your changeset is full.'))
             return
         if existing is None:
@@ -616,15 +612,12 @@ def graph_edit(request, level=None, space=None):
 
     if request.method == 'POST':
         changeset_exceeded = get_changeset_exceeded(request)
-        graphnode_changes = {}
-        if changeset_exceeded:
-            graphnode_changes = request.changeset.get_changed_objects_by_model('GraphNode')
 
         if request.POST.get('delete') == '1':
             # Delete this graphnode!
             node = get_object_or_404(GraphNode, pk=request.POST.get('pk'))
 
-            if changeset_exceeded and node.pk not in graphnode_changes:
+            if changeset_exceeded and node.pk not in request.changeset.changes.objects.get('graphnode', {}):
                 messages.error(request, _('You can not delete this graph node because your changeset is full.'))
                 return redirect(request.path)
 

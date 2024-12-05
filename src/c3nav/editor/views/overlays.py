@@ -89,9 +89,6 @@ def overlay_features(request, level, pk):
 @sidebar_view(api_hybrid=True)
 def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     changeset_exceeded = get_changeset_exceeded(request)
-    model_changes = {}
-    if changeset_exceeded:
-        model_changes = request.changeset.get_changed_objects_by_model('DataOverlayFeature')
 
     Level = request.changeset.wrap_model('Level')
     DataOverlay = request.changeset.wrap_model('DataOverlay')
@@ -155,7 +152,7 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
                 level='error', message=_('You can not create new objects because your changeset is full.'),
                 redirect_to=ctx['back_url'], status_code=409,
             )
-        elif obj.pk not in model_changes:
+        elif obj.pk not in request.changeset.changes.objects.get(obj._meta.model_name, {}):
             messages.warning(request, _('You can not edit this object because your changeset is full.'))
             nosave = True
 
