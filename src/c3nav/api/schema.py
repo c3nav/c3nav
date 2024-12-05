@@ -32,6 +32,12 @@ def make_serializable(values: Any):
             return type(values)(val.pk for val in values)
         return type(values)(make_serializable(val) for val in values)
     if isinstance(values, Promise):
+        # This is needed for lazy attributes that evaluate to `None` to be serialized properly.
+        # Without this `None` is returned as the string 'None'.
+        # It can't be `is None` as the left side is a Proxy and not actually `None`.
+        # Needed by at least the I18nField
+        if values == None:
+            return None
         return str(values)
     return values
 
