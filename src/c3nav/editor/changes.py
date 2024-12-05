@@ -491,7 +491,7 @@ class ChangedObjectCollection(BaseSchema):
                     target_model = targets_reverse[field][target_id]
                     start_situation.obj_references.setdefault(target_model, {}).setdefault(target_id, set()).add(
                         FoundObjectReference(obj=source_ref, field=field,
-                                             on_delete=model_cls._meta.get_field(field).on_delete.__name__)
+                                             on_delete=model_cls._meta.get_field(field).remote_field.on_delete.__name__)
                     )
 
         return self.CreateStartOperationResult(
@@ -743,7 +743,7 @@ class ChangedObjectCollection(BaseSchema):
                                 FoundObjectReference(
                                     obj=new_operation.obj,
                                     field=field_name,
-                                    on_delete=field.on_delete.__name__,
+                                    on_delete=field.remote_field.on_delete.__name__,
                                 )
                             )
 
