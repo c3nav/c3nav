@@ -106,7 +106,10 @@ class GeometryMixin(SerializableMixin):
 
     @property
     def geometry_changed(self):
-        if self._orig_geometry is None:
+        try:
+            if self._orig_geometry is None:
+                return True
+        except AttributeError:
             return True
         if self.geometry is self._orig_geometry:
             return False
@@ -121,7 +124,10 @@ class GeometryMixin(SerializableMixin):
     def get_changed_geometry(self):
         field = self._meta.get_field('geometry')
         new_geometry = field.get_final_value(self.geometry)
-        if self._orig_geometry is None:
+        try:
+            if self._orig_geometry is None:
+                return new_geometry
+        except AttributeError:
             return new_geometry
         difference = new_geometry.symmetric_difference(unwrap_geom(self._orig_geometry))
         if self._meta.get_field('geometry').geomtype in ('polygon', 'multipolygon'):
