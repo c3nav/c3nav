@@ -48,6 +48,8 @@ def changeset_detail(request, pk):
                     messages.error(request, _("Can't restore this object because it wasn't deleted"))
                 else:
                     changed_object.deleted = False
+                    if not changed_object:
+                        changeset.changes.objects[changed_object.obj.model].pop(changed_object.obj.id)
                     update = changeset.updates.create(user=request.user, objects_changed=True)
                     changeset.last_update = update
                     changeset.last_change = update

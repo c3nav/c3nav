@@ -26,6 +26,10 @@ class ChangedManyToMany(BaseSchema):
     added: list[ObjectID] = []
     removed: list[ObjectID] = []
 
+    @property
+    def __bool__(self):
+        return not (self.cleared or self.added or self.removed)
+
 
 class ChangedObject(BaseSchema):
     obj: ObjectReference
@@ -34,6 +38,9 @@ class ChangedObject(BaseSchema):
     deleted: bool = False
     fields: FieldValuesDict = {}
     m2m_changes: dict[FieldName, ChangedManyToMany] = {}
+
+    def __bool__(self):
+        return self.created or self.deleted or self.fields or any(self.m2m_changes.values())
 
 
 class OperationDependencyObjectExists(BaseSchema):
