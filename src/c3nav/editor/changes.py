@@ -237,7 +237,7 @@ class ChangedObjectCollection(BaseSchema):
             if changed_object is None:
                 # todo: titles should be better, probably
                 titles = (
-                    operation.fields.get("titles", {})
+                    operation.fields.get("title", {})
                     if isinstance(operation, CreateObjectOperation)
                     else self.prev.get(operation.obj).titles
                 )
