@@ -76,7 +76,7 @@ class SpaceGeometryMixin(GeometryMixin):
     def register_change(self, force=False):
         space = self.space
         force = force or self.all_geometry_changed
-        if force or self.geometry_changed or self.pk is None:
+        if force or self._state.adding or self.geometry_changed:
             changed_geometries.register(space.level_id, space.geometry.intersection(
                 unwrap_geom(self.geometry if force else self.get_changed_geometry())
             ))
@@ -184,7 +184,7 @@ class ObstacleGroup(TitledMixin, models.Model):
         self._orig = {"color": self.color}
 
     def save(self, *args, **kwargs):
-        if self.pk and any(getattr(self, attname) != value for attname, value in self._orig.items()):
+        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 

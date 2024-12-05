@@ -290,7 +290,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
             group.register_changed_geometries(do_query=False)
 
     def save(self, *args, **kwargs):
-        if self.pk and any(getattr(self, attname) != value for attname, value in self._orig.items()):
+        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 
@@ -396,7 +396,7 @@ class LocationGroup(Location, models.Model):
         return (1, self.category.priority, self.priority)
 
     def save(self, *args, **kwargs):
-        if self.pk and any(getattr(self, attname) != value for attname, value in self._orig.items()):
+        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 
