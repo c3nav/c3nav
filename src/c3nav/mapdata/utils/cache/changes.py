@@ -75,10 +75,6 @@ class GeometryChangeTracker:
 changed_geometries = GeometryChangeTracker()  # todo: no longer needed if we use the overlay stuff
 
 
-def geometry_deleted(sender, instance, **kwargs):
-    instance.register_delete()
-
-
 def locationgroup_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
     if action not in ('post_add', 'post_remove', 'post_clear'):
         return
@@ -97,10 +93,6 @@ def locationgroup_changed(sender, instance, action, reverse, model, pk_set, usin
 
 
 def register_signals():
-    from c3nav.mapdata.models.geometry.base import GeometryMixin
-    for model in get_submodels(GeometryMixin):
-        post_delete.connect(geometry_deleted, sender=model)
-
     from c3nav.mapdata.models.locations import SpecificLocation
     for model in get_submodels(SpecificLocation):
         m2m_changed.connect(locationgroup_changed, sender=model.groups.through)

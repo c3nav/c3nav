@@ -92,8 +92,11 @@ class LevelGeometryMixin(GeometryMixin):
             Level.q_for_request(request, prefix=prefix+'level__', allow_none=allow_none)
         )
 
-    def save(self, *args, **kwargs):
+    def pre_save_changed_geometries(self):
         self.register_change()
+
+    def save(self, *args, **kwargs):
+        self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
 
 

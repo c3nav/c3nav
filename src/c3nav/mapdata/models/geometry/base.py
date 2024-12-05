@@ -133,3 +133,10 @@ class GeometryMixin(SerializableMixin):
         if self._meta.get_field('geometry').geomtype in ('polygon', 'multipolygon'):
             difference = unary_union(assert_multipolygon(difference))
         return difference
+
+    def pre_delete_changed_geometries(self):
+        self.register_delete()
+
+    def delete(self, *args, **kwargs):
+        self.pre_delete_changed_geometries()
+        super().delete(*args, **kwargs)

@@ -87,33 +87,19 @@ class CreateObjectOperation(BaseOperation):
     fields: FieldValuesDict
 
     def get_data(self):
-        model = apps.get_model('mapdata', self.obj.model)
-        data = []
-        if issubclass(model, LocationSlug):
-            data.append({
-                "model": f"mapdata.locationslug",
-                "pk": self.obj.id,
-                "fields": {
-                    "slug": self.fields.get("slug", None)
-                },
-            })
-            values = {key: val for key, val in self.fields.items() if key != "slug"}
-        else:
-            values = self.fields
-        data.append({
+        return [{
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
-            "fields": values,
-        })
-        return data
+            "fields": self.fields,
+        }]
 
     def apply_create(self) -> dict[ObjectReference, Model]:
         data = self.get_data()
-        instances = list(serializers.deserialize("json", json.dumps(data)))
-        for instance in instances:
+        instances = [item.object for item in serializers.deserialize("json", json.dumps(data))]
+        for instance in instances[-1:]:
             # .object. to make sure our own .save() function is called!
-            instance.object.save()
-        return {self.obj: instances[-1].object}
+            instance.save()
+        return {self.obj: instances[-1]}
 
 
 class CreateMultipleObjectsOperation(BaseSchema):
@@ -126,11 +112,12 @@ class CreateMultipleObjectsOperation(BaseSchema):
         for obj in self.objects:
             data.extend(obj.get_data())
             indexes[obj.obj] = len(data)-1
-        instances = list(serializers.deserialize("json", json.dumps(data)))
-        # todo: actually do a create_multiple!, let's not forget about register_changed_geometries etc
-        for instance in instances:
-            # .object. to make sure our own .save() function is called!
-            instance.object.save()
+        instances = [item.object for item in serializers.deserialize("json", json.dumps(data))]
+        if hasattr(instances[-1], "pre_save_changed_geometries"):
+            for instance in instances:
+                instance.pre_save_changed_geometries()
+        model = apps.get_model('mapdata', self.objects[0].obj.model)
+        model.objects.bulk_create(instances)
         return {ref: instances[i] for ref, i in indexes.items()}
 
 

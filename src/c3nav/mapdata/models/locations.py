@@ -289,10 +289,20 @@ class LocationGroupCategory(SerializableMixin, models.Model):
         for group in query:
             group.register_changed_geometries(do_query=False)
 
-    def save(self, *args, **kwargs):
+    def pre_save_changed_geometries(self):
         if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
+
+    def save(self, *args, **kwargs):
+        self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
+
+    def pre_delete_changed_geometries(self):
+        self.register_changed_geometries()
+
+    def delete(self, *args, **kwargs):
+        self.pre_delete_changed_geometries()
+        super().delete(*args, **kwargs)
 
 
 class LocationGroupManager(models.Manager):
@@ -395,13 +405,19 @@ class LocationGroup(Location, models.Model):
     def order(self):
         return (1, self.category.priority, self.priority)
 
-    def save(self, *args, **kwargs):
+    def pre_save_changed_geometries(self):
         if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
+
+    def save(self, *args, **kwargs):
+        self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
+    def pre_delete_changed_geometries(self):
         self.register_changed_geometries()
+
+    def delete(self, *args, **kwargs):
+        self.pre_delete_changed_geometries()
         super().delete(*args, **kwargs)
 
 

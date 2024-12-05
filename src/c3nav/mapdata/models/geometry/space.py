@@ -98,8 +98,11 @@ class SpaceGeometryMixin(GeometryMixin):
         space = self.space
         changed_geometries.register(space.level_id, space.geometry.intersection(unwrap_geom(self.geometry)))
 
-    def save(self, *args, **kwargs):
+    def pre_save_changed_geometries(self):
         self.register_change()
+
+    def save(self, *args, **kwargs):
+        self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
 
 
@@ -182,20 +185,26 @@ class ObstacleGroup(TitledMixin, models.Model):
         super().__init__(*args, **kwargs)
         self._orig = {"color": self.color}
 
-    def save(self, *args, **kwargs):
-        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
-            self.register_changed_geometries()
-        super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        self.register_changed_geometries()
-        super().delete(*args, **kwargs)
-
     def register_changed_geometries(self):
         for obj in self.obstacles.select_related('space'):
             obj.register_change(force=True)
         for obj in self.lineobstacles.select_related('space'):
             obj.register_change(force=True)
+
+    def pre_save_changed_geometries(self):
+        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
+            self.register_changed_geometries()
+
+    def save(self, *args, **kwargs):
+        self.pre_save_changed_geometries()
+        super().save(*args, **kwargs)
+
+    def pre_delete_changed_geometries(self):
+        self.register_changed_geometries()
+
+    def delete(self, *args, **kwargs):
+        self.pre_delete_changed_geometries()
+        super().delete(*args, **kwargs)
 
 
 class Obstacle(SpaceGeometryMixin, models.Model):

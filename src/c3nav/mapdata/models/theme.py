@@ -95,12 +95,18 @@ class ThemeLocationGroupBackgroundColor(models.Model):
     fill_color = models.CharField(max_length=32, null=True, blank=True)
     border_color = models.CharField(max_length=32, null=True, blank=True)
 
-    def save(self, *args, **kwargs):
+    def pre_save_changed_geometries(self):
         self.location_group.register_changed_geometries()
+
+    def save(self, *args, **kwargs):
+        self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
 
-    def delete(self, *args, **kwargs):
+    def pre_delete_changed_geometries(self):
         self.location_group.register_changed_geometries()
+
+    def delete(self, *args, **kwargs):
+        self.pre_delete_changed_geometries()
         super().delete(*args, **kwargs)
 
 

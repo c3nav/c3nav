@@ -655,10 +655,19 @@ class ChangedObjectCollection(BaseSchema):
                 # construct new situation
                 new_situation = situation.model_copy(deep=True)
 
-                if isinstance(new_operation, CreateObjectOperation) and new_situation.operations:
+                model = apps.get_model('mapdata', new_operation.obj.model)
+                for parent in model._meta.get_parent_list():
+                    if parent._meta.concrete_model is not model._meta.concrete_model:
+                        is_multi_inheritance = True
+                        break
+                else:
+                    is_multi_inheritance = False
+
+                if (isinstance(new_operation, CreateObjectOperation)
+                        and new_situation.operations and not is_multi_inheritance):
                     last_operation = new_situation.operations[-1]
-                    if (isinstance(last_operation, CreateObjectOperation) and
-                            last_operation.obj.model == new_operation.obj.model):
+                    if (isinstance(last_operation, CreateObjectOperation)
+                            and last_operation.obj.model == new_operation.obj.model):
                         new_situation.operations[-1] = CreateMultipleObjectsOperation(
                             objects=[last_operation, new_operation],
                         )

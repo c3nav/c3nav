@@ -233,6 +233,7 @@ def changeset_detail(request, pk):
         'can_unreject': changeset.can_unreject(request),
         'can_apply': changeset.can_apply(request),
         'active': active,
+        'operations': changeset.as_operations,
     }
 
     cache_key = '%s:%s:%s:view_data' % (changeset.cache_key_by_changes,
