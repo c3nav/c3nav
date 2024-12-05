@@ -477,7 +477,8 @@ class ChangedObjectCollection(BaseSchema):
             # don't check this for objects that don't exist anymore
             ids -= start_situation.missing_objects.get(model, set())
             for field in apps.get_model('mapdata', model)._meta.get_fields():
-                if not isinstance(field, (ManyToOneRel, OneToOneRel)) or field.model._meta.app_label != "mapdata":
+                if (not isinstance(field, (ManyToOneRel, OneToOneRel))
+                        or field.related_model._meta.app_label != "mapdata"):
                     continue
                 potential_fields.setdefault(field.related_model._meta.model_name,
                                             {}).setdefault(field.field.attname, {})[model] = ids
@@ -490,8 +491,8 @@ class ChangedObjectCollection(BaseSchema):
             for field_name, targets in fields.items():
                 ids = reduce(operator.or_, targets.values(), set())
                 q |= Q(**{f'{field_name}__in': ids})
-                targets_reverse[field_name] = dict(chain(*(((id_, target_model) for id_, in target_ids)
-                                                           for target_model, target_ids in targets)))
+                targets_reverse[field_name] = dict(chain(*(((id_, target_model) for id_ in target_ids)
+                                                           for target_model, target_ids in targets.items())))
             for result in model_cls.objects.filter(q).values("id", *fields.keys()):
                 source_ref = ObjectReference(model=model, id=result.pop("id"))
                 for field, target_id in result.items():
@@ -726,8 +727,8 @@ class ChangedObjectCollection(BaseSchema):
                     # all references that came from it, will no longer exist
                     for model_name, references in tuple(new_situation.obj_references.items()):
                         new_situation.obj_references[model_name] = {
-                            pk: ref for pk, ref in references.items()
-                            if ref.obj != new_operation.obj
+                            pk: {ref for ref in refs if ref.obj != new_operation.obj}
+                            for pk, refs in references.items()
                         }
 
                     # todo: we ignore cascading for now, do we want to keep it that way?
