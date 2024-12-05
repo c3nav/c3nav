@@ -111,7 +111,7 @@ class CreateObjectOperation(BaseOperation):
         instances = list(serializers.deserialize("json", json.dumps(data)))
         for instance in instances:
             # .object. to make sure our own .save() function is called!
-            instance.object.save(save_m2m=False)
+            instance.object.save()
         return {self.obj: instances[-1].object}
 
 
@@ -166,7 +166,7 @@ class UpdateObjectOperation(BaseOperation):
         })
         instances = list(serializers.deserialize("json", json.dumps(data)))
         for instance in instances:
-            instance.save()
+            instance.object.save()
         return instances[-1].object
 
 
