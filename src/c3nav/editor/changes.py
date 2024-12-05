@@ -408,9 +408,6 @@ class ChangedObjectCollection(BaseSchema):
     def create_start_operation_situation(self) -> CreateStartOperationResult:
         operations_with_dependencies, problems = self.as_operations_with_dependencies
 
-        from pprint import pprint
-        pprint(operations_with_dependencies)
-
         start_situation = OperationSituation(
             remaining_operations_with_dependencies=operations_with_dependencies.obj_operations
         )
