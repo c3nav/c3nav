@@ -672,6 +672,7 @@ class ChangedObjectCollection(BaseSchema):
                             objects=[last_operation, new_operation],
                         )
                     elif (isinstance(last_operation, CreateMultipleObjectsOperation) and
+                            len(last_operation.objects) < 25 and
                             last_operation.objects[-1].obj.model == new_operation.obj.model):
                         last_operation.objects.append(new_operation)
                     else:

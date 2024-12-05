@@ -128,7 +128,7 @@ def space_detail(request, level, pk):
 
 
 def get_changeset_exceeded(request):
-    return request.user_permissions.max_changeset_changes <= len(request.changeset.changes)
+    return request.user_permissions.max_changeset_changes <= len(request.changeset.as_operations)
 
 
 @etag(editor_etag_func)
