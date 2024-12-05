@@ -137,8 +137,9 @@ class OperationSituation(BaseSchema):
             )
 
         if isinstance(dependency, OperationDependencyUniqueValue):
-            return dependency.value not in self.occupied_unique_values.get(dependency.obj.model,
-                                                                           {}).get(dependency.field, set())
+            return dependency.value not in self.occupied_unique_values.get(dependency.model, {}).get(
+                dependency.field, set()
+            )
 
         raise ValueError
 
@@ -422,9 +423,9 @@ class ChangedObjectCollection(BaseSchema):
                 if isinstance(dependency, OperationDependencyObjectExists):
                     referenced_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
                 elif isinstance(dependency, OperationDependencyUniqueValue):
-                    unique_values_needed.setdefault(
-                        dependency.obj.model, {}
-                    ).setdefault(dependency.field, set()).add(dependency.value)
+                    unique_values_needed.setdefault(dependency.model, {}).setdefault(
+                        dependency.field, set()
+                    ).add(dependency.value)
                 elif isinstance(dependency, OperationDependencyNoProtectedReference):
                     deleted_existing_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
 
