@@ -4,6 +4,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist, FieldDoesNotExist
 from django.db.models.fields.related import ManyToManyField
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -392,12 +393,42 @@ def changeset_detail(request, pk):
                             'title': format_lazy(_('remove {field_title}'), field_title=field_title),
                         })
                     else:
-                        # todo: if this is a reference, we wanna not show the id but something betterẞ
                         # todo: display if dummy value was used or other problem exists with this field
                         change_data.update({
                             'title': field_title,
                             'value': value,
                         })
+
+                        if field.is_relation:
+                            # todo: super imperformant, we should do this via prev etc
+                            try:
+                                related_obj = field.related_model.objects.get(pk=value)
+                            except ObjectDoesNotExist:
+                                related_model_name = field.related_model._meta.verbose_name
+                                change_data["value"] = f"{related_model_name} #{value}"
+                            else:
+                                change_data["value"] = related_obj.title
+                                reverse_kwargs = {'pk': changed_object.obj.id}
+                                try:
+                                    field.related_model._meta.get_field("space")
+                                except FieldDoesNotExist:
+                                    try:
+                                        field.related_model._meta.get_field("space")
+                                    except FieldDoesNotExist:
+                                        pass
+                                    else:
+                                        reverse_kwargs["level"] = related_obj.level_id
+                                else:
+                                    reverse_kwargs["space"] = related_obj.space_id
+
+                                try:
+                                    related_url = reverse('editor.' + related_obj._meta.default_related_name + '.edit',
+                                                          kwargs=reverse_kwargs)
+                                except NoReverseMatch:
+                                    pass
+                                else:
+                                    change_data["url"] = related_url
+
                     order = 5
                     if name == 'slug':
                         order = 1

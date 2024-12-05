@@ -110,7 +110,11 @@
                     <td{% if obj.deleted and change.icon != 'minus' %} class="text-muted"{% endif %}>
                         {% if change.missing_dependency or change.unique_collision %}<i class="glyphicon glyphicon-alert pull-right text-warning"></i>{% endif %}
                         {% if change.empty %}<em>{% else %}<u>{% endif %}{{ change.title }}{% if not change.empty %}</u>:{% else %}</em>{% endif %}
-                        {{ change.value }}
+                        {% if change.url %}
+                            <a href="{{ change.url }}">{{ change.value }}</a>
+                        {% else %}
+                            {{ change.value }}
+                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}
