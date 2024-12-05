@@ -268,7 +268,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.orig_priority = self.priority
+        self._orig = {"priority": self.priority}
 
     class Meta:
         verbose_name = _('Location Group Category')
@@ -290,7 +290,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
             group.register_changed_geometries(do_query=False)
 
     def save(self, *args, **kwargs):
-        if self.pk and self.priority != self.orig_priority:
+        if self.pk and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 
@@ -338,10 +338,12 @@ class LocationGroup(Location, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.orig_priority = self.priority
-        self.orig_hierarchy = self.hierarchy
-        self.orig_category_id = self.category_id
-        self.orig_color = self.color
+        self._orig = {
+            "priority": self.priority,
+            "hierarchy": self.hierarchy,
+            "category": self.category,
+            "color": self.color,
+        }
 
     locations = []
 
@@ -394,10 +396,7 @@ class LocationGroup(Location, models.Model):
         return (1, self.category.priority, self.priority)
 
     def save(self, *args, **kwargs):
-        if self.pk and (self.orig_color != self.color or
-                        self.priority != self.orig_priority or
-                        self.hierarchy != self.orig_hierarchy or
-                        self.category_id != self.orig_category_id):
+        if self.pk and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 

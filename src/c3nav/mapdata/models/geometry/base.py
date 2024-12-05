@@ -32,7 +32,7 @@ class GeometryMixin(SerializableMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.no_orig:
-            self.orig_geometry = None if 'geometry' in self.get_deferred_fields() else self.geometry
+            self._orig_geometry = None if 'geometry' in self.get_deferred_fields() else self.geometry
             self._orig = {field.attname: (None if field.attname in self.get_deferred_fields()
                                           else getattr(self, field.attname))
                           for field in self._meta.get_fields()
@@ -106,24 +106,24 @@ class GeometryMixin(SerializableMixin):
 
     @property
     def geometry_changed(self):
-        if self.orig_geometry is None:
+        if self._orig_geometry is None:
             return True
-        if self.geometry is self.orig_geometry:
+        if self.geometry is self._orig_geometry:
             return False
-        if not self.geometry.equals_exact(unwrap_geom(self.orig_geometry), 0.05):
+        if not self.geometry.equals_exact(unwrap_geom(self._orig_geometry), 0.05):
             return True
         field = self._meta.get_field('geometry')
         rounded = field.to_python(field.get_prep_value(self.geometry))
-        if not rounded.equals_exact(unwrap_geom(self.orig_geometry), 0.005):
+        if not rounded.equals_exact(unwrap_geom(self._orig_geometry), 0.005):
             return True
         return False
 
     def get_changed_geometry(self):
         field = self._meta.get_field('geometry')
         new_geometry = field.get_final_value(self.geometry)
-        if self.orig_geometry is None:
+        if self._orig_geometry is None:
             return new_geometry
-        difference = new_geometry.symmetric_difference(unwrap_geom(self.orig_geometry))
+        difference = new_geometry.symmetric_difference(unwrap_geom(self._orig_geometry))
         if self._meta.get_field('geometry').geomtype in ('polygon', 'multipolygon'):
             difference = unary_union(assert_multipolygon(difference))
         return difference

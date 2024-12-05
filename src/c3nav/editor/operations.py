@@ -167,14 +167,12 @@ class UpdateObjectOperation(BaseOperation):
         })
         instances = list(serializers.deserialize("json", json.dumps(data)))
         for i in instances:
-            instance = i.object
-            if "geometry" in self.fields:
-                with suppress(AttributeError):
-                    instance.register_change()
-            with suppress(AttributeError):
-                # todo: this is overkill, not always needed, we should do this differently anyways
-                instance.register_changed_geometries()
-            instance.save()
+            new_instance = i.object
+            if hasattr(instance, "_orig") and not hasattr(new_instance, "_orig"):
+                new_instance._orig = instance._orig
+            if hasattr(instance, "_orig_geometry") and not hasattr(new_instance, "_orig_geometry"):
+                new_instance._orig_geometry = instance._orig_geometry
+            new_instance.save()
         return instances[-1].object
 
 

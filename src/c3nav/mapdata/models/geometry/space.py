@@ -181,10 +181,10 @@ class ObstacleGroup(TitledMixin, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.orig_color = self.color
+        self._orig = {"color": self.color}
 
     def save(self, *args, **kwargs):
-        if self.pk and (self.orig_color != self.color):
+        if self.pk and any(getattr(self, attname) != value for attname, value in self._orig.items()):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 

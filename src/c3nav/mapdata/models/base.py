@@ -10,6 +10,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import MapUpdate
 
 
+# todo: get rid of this?
 class SerializableMixin(models.Model):
     _affected_by_changeset = None
 
