@@ -41,13 +41,17 @@ def changeset_detail(request, pk):
         restore_model, restore_id = (request.POST.get('restore', '') + '-').split('-')[:2]
         if restore_model and restore_id and restore_id.isdigit():
             if request.changeset.can_edit(request):
-                changed_object = changeset.changes.objects.get(restore_model, {}).get(restore_id)
+                changed_object = changeset.changes.objects.get(restore_model, {}).get(int(restore_id))
                 if changed_object is None:
                     messages.error(request, _("Can't find this changed object"))
                 elif not changed_object.deleted:
                     messages.error(request, _("Can't restore this object because it wasn't deleted"))
                 else:
                     changed_object.deleted = False
+                    update = changeset.updates.create(user=request.user, objects_changed=True)
+                    changeset.last_update = update
+                    changeset.last_change = update
+                    changeset.save()
                     messages.success(request, _('Object has been successfully restored.'))
             else:
                 messages.error(request, _('You can not edit changes on this change set.'))
