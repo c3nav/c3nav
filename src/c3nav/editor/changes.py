@@ -342,7 +342,7 @@ class ChangedObjectCollection(BaseSchema):
                         continue
                     dependencies = base_dependencies.copy()
                     # todo: prev
-                    if field.is_relation:
+                    if field.is_relation and not field.many_to_many:
                         dependencies.add(OperationDependencyObjectExists(obj=ObjectReference(
                             model=field.related_model._meta.model_name,
                             id=value,
