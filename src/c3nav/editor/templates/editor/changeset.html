@@ -116,6 +116,8 @@
             {% endfor %}
         </tbody>
     </table>
+{% empty %}
+    <p><em>{% trans 'This changeset contains no changes.' %}</em></p>
 {% endfor %}
 
 {% buttons %}
