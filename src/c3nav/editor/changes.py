@@ -741,7 +741,7 @@ class ChangedObjectCollection(BaseSchema):
                             new_situation.occupied_unique_values.setdefault(
                                 new_operation.obj.model, {}
                             ).setdefault(field_name, {})[value] = new_operation.obj.id
-                        if field.is_relation:
+                        if field.is_relation and not field.many_to_many:
                             # relation field was changed? add foundobjectreference
                             new_situation.obj_references.setdefault(
                                 field.related_model._meta.model_name, {}
