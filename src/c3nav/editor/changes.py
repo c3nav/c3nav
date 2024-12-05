@@ -681,7 +681,6 @@ class ChangedObjectCollection(BaseSchema):
                 if not new_situation.remaining_operations_with_dependencies:
                     # nothing left to do, congratulations we did it!
                     done_situation = new_situation
-                    print('DONE SITUATION:', done_situation)
                     break
 
                 if best_uids.get(new_situation.operation_uids, 1000000) <= len(new_situation.operations):
