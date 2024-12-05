@@ -304,16 +304,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
         if not new and ((request.POST.get('delete') == '1' and delete is not False) or delete):
             # Delete this mapitem!
-            try:
-                if not request.changeset.get_changed_object(obj).can_delete():
-                    raise PermissionError
-            except (ObjectDoesNotExist, PermissionError):
-                return APIHybridMessageRedirectResponse(
-                    level='error',
-                    message=_('You can not delete this object because other objects still depend on it.'),
-                    redirect_to=request.path, status_code=409,
-                )
-
             if request.POST.get('delete_confirm') == '1' or delete:
                 if request.changeset.can_edit(request):  # todo: move this somewhere else
                     obj.delete()
