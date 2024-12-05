@@ -120,6 +120,9 @@ class DatabaseOverlayManager:
         self.operations.append(UpdateObjectOperation(obj=ref, fields=field_values))
 
     def handle_post_delete(self, instance: Model, **kwargs):
+        # not isinstance() cause it would match submodels
+        if instance._meta.model is LocationSlug:
+            return
         ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
         self.operations.append(DeleteObjectOperation(obj=ref))
 
