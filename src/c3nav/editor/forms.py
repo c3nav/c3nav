@@ -402,7 +402,7 @@ def create_editor_form(editor_model):
                        'icon_name', 'base_altitude', 'waytype', 'access_restriction', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
                        'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor', 'groundaltitude',
-                       'node_number', 'wifi_bssid', 'bluetooth_address',
+                       'node_number', 'wifi_bssid', 'bluetooth_address', "group",
                        'ibeacon_uuid', 'ibeacon_major', 'ibeacon_minor', 'uwb_address',
                        'extra_seconds', 'speed', 'can_report_missing', 'description', 'speed_up', 'description_up',
                        'report_help_text', 'enter_description', 'level_change_description', 'base_mapdata_accessible',
