@@ -559,7 +559,7 @@ class ChangedObjectCollection(BaseSchema):
                 # determine changes to state
                 new_operation = remaining_operation.main_op.operation
                 new_remaining_operations = []
-                uids_to_add: set[tuple] = set(remaining_operation.main_op.uid)
+                uids_to_add: set[tuple] = {remaining_operation.main_op.uid}
                 if isinstance(remaining_operation, MergableOperationsWithDependencies):
                     # sub_ops to be merged into this one or become pending operations
                     new_operation: Union[CreateObjectOperation, UpdateObjectOperation]
