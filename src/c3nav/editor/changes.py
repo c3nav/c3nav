@@ -765,7 +765,8 @@ class ChangedObjectCollection(BaseSchema):
                             )
 
                 # finally insert new situation
-                bisect.insort(open_situations, new_situation, key=lambda s: len(s.operations))
+                bisect.insort(open_situations, new_situation,
+                              key=lambda s: (-len(s.operation_uids), len(s.operations)))
                 best_uids[new_situation.operation_uids] = len(new_situation.operations)
 
             if not continued:
