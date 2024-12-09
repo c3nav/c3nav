@@ -124,18 +124,43 @@ class OperationSituation(BaseSchema):
     # remaining operations still to do
     remaining_operations_with_dependencies: list[OperationWithDependencies] = []
 
-    # objects that still need to be created before some remaining operation (or that were simply deleted in this run)
-    missing_objects: dict[ModelName, set[ObjectID]] = {}
+    # objects that still need to be created before some remaining operation (True = missing)
+    missing_objects: dict[ModelName, dict[ObjectID, bool]] = {}
 
     # unique values relevant for these operations that are currently not free
-    occupied_unique_values: dict[ModelName, dict[FieldName, dict[Any, ObjectID]]] = {}
+    occupied_unique_values: dict[ModelName, dict[FieldName, dict[Any, ObjectID | None]]] = {}
 
     # references to objects that need to be removed for in this run
     obj_references: dict[ModelName, dict[ObjectID, set[FoundObjectReference]]] = {}
 
+    @property
+    def dependency_snapshot(self):
+        return (
+            frozenset(chain(*(
+                ((model_name, pk) for pk, missing in objects.items() if missing)
+                for model_name, objects in self.missing_objects.items()
+            ))),
+            frozenset(
+                chain(*(
+                    chain(*(
+                        ((model_name, field_name, field_value) for field_value, pk in values.items() if pk is not None)
+                        for field_name, values in fields.items()
+                    )) for model_name, fields in self.occupied_unique_values.items()
+                ))
+            ),
+            frozenset(
+                chain(*(
+                    chain(*(
+                        ((model_name, pk, found_ref) for found_ref in found_refs)
+                        for pk, found_refs in objects.items()
+                    )) for model_name, objects in self.obj_references.items()
+                ))
+            )
+        )
+
     def fulfils_dependency(self, dependency: OperationDependency) -> bool:
         if isinstance(dependency, OperationDependencyObjectExists):
-            return dependency.obj.id not in self.missing_objects.get(dependency.obj.model, set())
+            return not self.missing_objects.get(dependency.obj.model, {}).get(dependency.obj.id, False)
 
         if isinstance(dependency, OperationDependencyNoProtectedReference):
             return not any(
@@ -144,9 +169,9 @@ class OperationSituation(BaseSchema):
             )
 
         if isinstance(dependency, OperationDependencyUniqueValue):
-            return dependency.value not in self.occupied_unique_values.get(dependency.model, {}).get(
-                dependency.field, set()
-            )
+            return self.occupied_unique_values.get(dependency.model, {}).get(
+                dependency.field, {}
+            ).get(dependency.value, None) is None
 
         raise ValueError
 
@@ -456,26 +481,30 @@ class ChangedObjectCollection(BaseSchema):
         for model, ids in referenced_objects.items():
             model_cls = apps.get_model('mapdata', model)
             ids_found = set(model_cls.objects.filter(pk__in=ids).values_list('pk', flat=True))
-            start_situation.missing_objects[model] = {id_ for id_ in ids if id_ not in ids_found}
+            start_situation.missing_objects[model] = {id_: (id_ not in ids_found) for id_ in ids}
 
         # let's find which unique values are actually occupied right now
         for model, fields in unique_values_needed.items():
             model_cls = apps.get_model('mapdata', model)
             q = Q()
+            start_situation.occupied_unique_values[model] = {}
             for field_name, values in fields.items():
                 q |= Q(**{f'{field_name}__in': values})
+                start_situation.occupied_unique_values[model][field_name] = {value: None for value in values}
             start_situation.occupied_unique_values[model] = {}
             for result in model_cls.objects.filter(q).values("id", *fields.keys()):
                 pk = result.pop("id")
                 for field_name, value in result.items():
                     if value in fields[field_name]:
-                        start_situation.occupied_unique_values[model].setdefault(field_name, {})[value] = pk
+                        field_occupied_values = start_situation.occupied_unique_values[model].get(field_name, {})
+                        if value in field_occupied_values:
+                            field_occupied_values[value] = pk
 
         # let's find which protected references to objects we want to delete have
         potential_fields: dict[ModelName, dict[FieldName, dict[ModelName, set[ObjectID]]]] = {}
         for model, ids in deleted_existing_objects.items():
             # don't check this for objects that don't exist anymore
-            ids -= start_situation.missing_objects.get(model, set())
+            ids -= set(start_situation.missing_objects.get(model, {}).keys())
             for field in apps.get_model('mapdata', model)._meta.get_fields():
                 if (not isinstance(field, (ManyToOneRel, OneToOneRel))
                         or field.related_model._meta.app_label != "mapdata"):
@@ -539,6 +568,9 @@ class ChangedObjectCollection(BaseSchema):
         # situations already encountered by set of operation uuids included, values are number of operations
         best_uids:  dict[frozenset[tuple], int] = {}
 
+        # best way to get to a certain dependency snapshot, values are number of operations
+        best_dependency_snapshots: dict[tuple, int] = {}
+
         # unique values in db [only want to check for them once]
         dummy_unique_value_avoid: dict[ModelName, dict[FieldName, frozenset]] = {}
         available_model_ids: dict[ModelName, frozenset] = {}
@@ -586,7 +618,7 @@ class ChangedObjectCollection(BaseSchema):
                                         field.related_model.objects.values_list('pk', flat=True)
                                     )
                                 if field.unique:
-                                    # if the field is unique we need to fin a value that isn't occupied
+                                    # if the field is unique we need to find a value that isn't occupied
                                     # and, to be sure, that we haven't used as a dummyvalue before
                                     if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(field_name) is None:
                                         dummy_unique_value_avoid.setdefault(
@@ -598,9 +630,9 @@ class ChangedObjectCollection(BaseSchema):
                                     choices = (
                                         available_model_ids[field.related_model._meta.model_name] -
                                         dummy_unique_value_avoid[new_operation.obj.model][field_name] -
-                                        set(
-                                            situation.occupied_unique_values[new_operation.obj.model][field_name].keys()
-                                        )
+                                        set(val for val, id_ in situation.occupied_unique_values[
+                                                new_operation.obj.model
+                                            ][field_name].items() if id_ is not None)
                                     )
                                 else:
                                     choices = available_model_ids[field.related_model._meta.model_name]
@@ -619,9 +651,9 @@ class ChangedObjectCollection(BaseSchema):
                                         ) | unique_values_needed.get(new_operation.obj.model, {}).get(field_name, set())
                                     occupied = (
                                         dummy_unique_value_avoid[new_operation.obj.model][field_name] -
-                                        set(
-                                            situation.occupied_unique_values[new_operation.obj.model][field_name].keys()
-                                        )
+                                        set(val for val, id_ in situation.occupied_unique_values[
+                                            new_operation.obj.model
+                                        ][field_name].items() if id_ is not None)
                                     )
                                 else:
                                     # this shouldn't happen, because dummy values are only used by non-relation fields
@@ -694,13 +726,17 @@ class ChangedObjectCollection(BaseSchema):
                     done_situation = new_situation
                     break
 
-                if best_uids.get(new_situation.operation_uids, 1000000) <= len(new_situation.operations):
-                    # we already reached this situation with the same or less amount of operations
+                dependency_snapshot = (new_situation.dependency_snapshot, len(new_situation.operation_uids))
+                if best_dependency_snapshots.get(dependency_snapshot, 1000000) <= len(new_situation.operations):
+                    # we already reached this dependency snapshot with the same number of operations
+                    # in a better way
                     continue
 
                 if isinstance(new_operation, CreateObjectOperation):
                     # if an object was created it's no longer missing
-                    new_situation.missing_objects.get(new_operation.obj.model, set()).discard(new_operation.obj.id)
+                    missing_objects = new_situation.missing_objects.get(new_operation.obj.model, {})
+                    if new_operation.obj.id in missing_objects:
+                        missing_objects[new_operation.obj.id] = False
 
                 if isinstance(new_operation, UpdateObjectOperation):
                     occupied_unique_values = new_situation.occupied_unique_values.get(new_operation.obj.model, {})
@@ -710,8 +746,8 @@ class ChangedObjectCollection(BaseSchema):
                         if field.unique:
                             # unique field was changed? remove unique value entry [might be readded below]
                             occupied_unique_values[field_name] = {
-                                val: pk for val, pk in occupied_unique_values.get(field_name, {}).items()
-                                if pk != new_operation.obj.model
+                                val: (None if new_operation.obj.id == pk else pk)
+                                for val, pk in occupied_unique_values.get(field_name, {}).items()
                             }
                         if field.is_relation:
                             relations_changed.add(field_name)
@@ -726,13 +762,15 @@ class ChangedObjectCollection(BaseSchema):
 
                 if isinstance(new_operation, DeleteObjectOperation):
                     # if an object was deleted it will now be missing
-                    new_situation.missing_objects.get(new_operation.obj.model, set()).add(new_operation.obj.id)
+                    missing_objects = new_situation.missing_objects.get(new_operation.obj.model, {})
+                    if new_operation.obj.id in missing_objects:
+                        missing_objects[new_operation.obj.id] = True
 
                     # all unique values it occupied will no longer be occupied
                     occupied_unique_values = new_situation.occupied_unique_values.get(new_operation.obj.model, {})
                     for field_name, values in tuple(occupied_unique_values.items()):
-                        occupied_unique_values[field_name] = {val: pk for val, pk in values.items()
-                                                              if pk != new_operation.obj.model}
+                        occupied_unique_values[field_name] = {val: (None if new_operation.obj.id == pk else pk)
+                                                              for val, pk in values.items()}
 
                     # all references that came from it, will no longer exist
                     for model_name, references in tuple(new_situation.obj_references.items()):
@@ -741,7 +779,7 @@ class ChangedObjectCollection(BaseSchema):
                             for pk, refs in references.items()
                         }
 
-                    # todo: we ignore cascading for now, do we want to keep it that way?
+                    # todo: we ignore cascading for now, do we want to keep it that way? probably not!
                 else:
                     for field_name, value in new_operation.fields.items():
                         field = model_cls._meta.get_field(field_name)
@@ -749,25 +787,28 @@ class ChangedObjectCollection(BaseSchema):
                             continue
                         if field.unique:
                             # unique field was changed? add unique value entry
-                            new_situation.occupied_unique_values.setdefault(
+                            field_occupied_values = new_situation.occupied_unique_values.get(
                                 new_operation.obj.model, {}
-                            ).setdefault(field_name, {})[value] = new_operation.obj.id
+                            ).get(field_name, {})
+                            if value in field_occupied_values:
+                                field_occupied_values[value] = new_operation.obj.id
                         if field.is_relation and not field.many_to_many:
                             # relation field was changed? add foundobjectreference
-                            new_situation.obj_references.setdefault(
-                                field.related_model._meta.model_name, {}
-                            ).setdefault(value, set()).add(
-                                FoundObjectReference(
-                                    obj=new_operation.obj,
-                                    field=field_name,
-                                    on_delete=field.remote_field.on_delete.__name__,
+                            model_refs = new_situation.obj_references.get(field.related_model._meta.model_name, {})
+                            if value in model_refs:
+                                model_refs[value].add(
+                                    FoundObjectReference(
+                                        obj=new_operation.obj,
+                                        field=field_name,
+                                        on_delete=field.remote_field.on_delete.__name__,
+                                    )
                                 )
-                            )
 
                 # finally insert new situation
                 bisect.insort(open_situations, new_situation,
-                              key=lambda s: (-len(s.operation_uids), len(s.operations)))
-                best_uids[new_situation.operation_uids] = len(new_situation.operations)
+                              key=lambda s: (len(s.operations), ))
+
+                best_dependency_snapshots[dependency_snapshot] = len(new_situation.operations)
 
             if not continued:
                 ended_situations.append(situation)
@@ -786,7 +827,7 @@ class ChangedObjectCollection(BaseSchema):
             model_cls = apps.get_model("mapdata", remaining_operation.main_op.obj.model)
             obj = remaining_operation.main_op.obj
             problem_obj = problems.get_object(obj)
-            if obj.id in done_situation.missing_objects.get(obj.model, set()):
+            if done_situation.missing_objects.get(obj.model, {}).get(obj.id):
                 problem_obj.obj_does_not_exist = True
                 continue
 
@@ -810,7 +851,8 @@ class ChangedObjectCollection(BaseSchema):
                 if isinstance(sub_op, UpdateManyToManyOperation):
                     related_model_name = model_cls._meta.get_field(sub_op.field).related_model._meta.model_name
                     missing_ids = (
-                        done_situation.missing_objects.get(related_model_name, set()) &
+                        set(id_ for id_, missing in done_situation.missing_objects.get(related_model_name, {}).items()
+                            if missing) &
                         (sub_op.add_values | sub_op.remove_values)
                     )
                     if missing_ids:
