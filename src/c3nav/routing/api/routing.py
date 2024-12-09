@@ -18,7 +18,7 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
-from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D
+from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D, TitledSchema, DjangoModelSchema
 from c3nav.mapdata.schemas.models import SlimLocationSchema, SpaceSchema, LevelSchema, SlimSpaceLocationSchema, \
     SlimLevelLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -123,11 +123,15 @@ class RouteParametersSchema(BaseSchema):
     )
 
 
+class ShortWayTypeSchema(DjangoModelSchema):
+    pass
+
+
 class RouteItemSchema(BaseSchema):
     id: PositiveInt
     coordinates: Coordinates3D
     waytype: Union[
-        Annotated[dict, APIField(title="waytype", descripiton="waytype used for this segment")],
+        Annotated[ShortWayTypeSchema, APIField(title="waytype", descripiton="waytype used for this segment")],
         Annotated[None, APIField(title="null", description="no waytype (normal walking)")],
     ] = APIField(None, title="waytype")
     space: Union[

@@ -6,6 +6,8 @@ import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.routing.api.routing import ShortWayTypeSchema
+
 
 def describe_location(location, locations):
     if location.can_describe:
@@ -240,7 +242,7 @@ class RouteItem:
         result = OrderedDict((
             ('id', self.node.pk),
             ('coordinates', (self.node.x, self.node.y, self.node.altitude)),
-            ('waytype', (self.route.router.waytypes[self.edge.waytype].serialize(detailed=False)
+            ('waytype', (ShortWayTypeSchema.model_validate(self.route.router.waytypes[self.edge.waytype]).model_dump()
                          if self.edge and self.edge.waytype else None)),
         ))
         if self.waytype:
