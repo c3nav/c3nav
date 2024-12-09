@@ -87,16 +87,30 @@ class CreateObjectOperation(BaseOperation):
     fields: FieldValuesDict
 
     def get_data(self):
-        return [{
+        model = apps.get_model('mapdata', self.obj.model)
+        data = []
+        if issubclass(model, LocationSlug):
+            data.append({
+                "model": f"mapdata.locationslug",
+                "pk": self.obj.id,
+                "fields": {
+                    "slug": self.fields.get("slug", None)
+                },
+            })
+            values = {key: val for key, val in self.fields.items() if key != "slug"}
+        else:
+            values = self.fields
+        data.append({
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
-            "fields": self.fields,
-        }]
+            "fields": values,
+        })
+        return data
 
     def apply_create(self) -> dict[ObjectReference, Model]:
         data = self.get_data()
         instances = [item.object for item in serializers.deserialize("json", json.dumps(data))]
-        for instance in instances[-1:]:
+        for instance in instances:
             # .object. to make sure our own .save() function is called!
             instance.save()
         return {self.obj: instances[-1]}
