@@ -26,11 +26,13 @@ def make_serializable(values: Any):
             key: make_serializable(val)
             for key, val in values.items()
         }
+    from c3nav.routing.router import BaseRouterProxy
     if isinstance(values, (list, tuple, set, frozenset)):
-        from c3nav.routing.router import BaseRouterProxy
         if values and isinstance(next(iter(values)), (Model, BaseRouterProxy)):
             return type(values)(val.pk for val in values)
         return type(values)(make_serializable(val) for val in values)
+    if isinstance(values, BaseRouterProxy):
+        return values.pk
     if isinstance(values, Promise):
         # This is needed for lazy attributes that evaluate to `None` to be serialized properly.
         # Without this `None` is returned as the string 'None'.
