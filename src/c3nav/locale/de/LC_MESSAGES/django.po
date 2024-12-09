@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-09-17 14:37+0200\n"
-"PO-Revision-Date: 2024-09-17 14:45+0200\n"
+"POT-Creation-Date: 2024-12-09 16:08+0100\n"
+"PO-Revision-Date: 2024-12-09 16:19+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -354,6 +354,7 @@ msgstr "Aktiv bis"
 #: c3nav/control/templates/control/announcements.html
 #: c3nav/editor/templates/editor/changeset.html
 #: c3nav/editor/templates/editor/list.html
+#: c3nav/editor/templates/editor/overlay_features.html
 msgid "Edit"
 msgstr "Bearbeiten"
 
@@ -702,11 +703,11 @@ msgstr ""
 
 #: c3nav/editor/forms.py
 msgid "WiFi scan data is missing."
-msgstr "WiFI Scandaten fehlen"
+msgstr "WiFI Scandaten fehlen."
 
 #: c3nav/editor/forms.py
 msgid "WiFi scan data is not a list."
-msgstr "WifFi Scandaten sind keine Liste"
+msgstr "WifFi Scandaten sind keine Liste."
 
 #: c3nav/editor/forms.py
 msgid "Final rejection"
@@ -719,44 +720,6 @@ msgstr "Kante nur in eine Richtung erstellen"
 #: c3nav/editor/forms.py
 msgid "activate next node after connecting"
 msgstr "nächsten Knoten nach dem Verbinden aktivieren"
-
-#: c3nav/editor/models/changedobject.py c3nav/editor/models/changeset.py
-msgid "Change Set"
-msgstr "Änderungsset"
-
-#: c3nav/editor/models/changedobject.py c3nav/editor/models/changeset.py
-#: c3nav/editor/views/changes.py c3nav/mapdata/models/report.py
-#: c3nav/site/models.py
-msgid "created"
-msgstr "erstellt"
-
-#: c3nav/editor/models/changedobject.py
-msgid "id of existing object"
-msgstr "ID eines existierenden Objects"
-
-#: c3nav/editor/models/changedobject.py
-msgid "updated fields"
-msgstr "geänderte Felder"
-
-#: c3nav/editor/models/changedobject.py
-msgid "added m2m values"
-msgstr "hinzugefügte m2m-Werte"
-
-#: c3nav/editor/models/changedobject.py
-msgid "removed m2m values"
-msgstr "entfernte m2m-Werte"
-
-#: c3nav/editor/models/changedobject.py
-msgid "object was deleted"
-msgstr "Object wurde gelöscht"
-
-#: c3nav/editor/models/changedobject.py
-msgid "Changed object"
-msgstr "Geändertes Objekt"
-
-#: c3nav/editor/models/changedobject.py
-msgid "Changed objects"
-msgstr "Geänderte Objekte"
 
 #: c3nav/editor/models/changeset.py
 msgid "unproposed"
@@ -786,6 +749,11 @@ msgstr "endgültig abgelehnt"
 msgid "accepted and applied"
 msgstr "akzeptiert und angewendet"
 
+#: c3nav/editor/models/changeset.py c3nav/editor/views/changes.py
+#: c3nav/mapdata/models/report.py c3nav/site/models.py
+msgid "created"
+msgstr "erstellt"
+
 #: c3nav/editor/models/changeset.py
 msgid "last object change"
 msgstr "letzte Änderung eines Objects"
@@ -804,7 +772,8 @@ msgstr "letzte Statusänderung"
 msgid "Title"
 msgstr "Titel"
 
-#: c3nav/editor/models/changeset.py c3nav/mapdata/models/theme.py
+#: c3nav/editor/models/changeset.py c3nav/mapdata/models/overlay.py
+#: c3nav/mapdata/models/theme.py
 msgid "Description"
 msgstr "Beschreibung"
 
@@ -815,6 +784,10 @@ msgstr "zugewiesen"
 #: c3nav/editor/models/changeset.py
 msgid "map update"
 msgstr "Kartenänderung"
+
+#: c3nav/editor/models/changeset.py
+msgid "Change Set"
+msgstr "Änderungsset"
 
 #: c3nav/editor/models/changeset.py
 msgid "Change Sets"
@@ -990,8 +963,19 @@ msgstr ""
 "href=\"%(user_url)s\">in deinem Profil</a> tun."
 
 #: c3nav/editor/templates/editor/changeset.html
+#, python-format
+msgid "(%(counter)s operation in total)"
+msgid_plural "(%(counter)s operations in total)"
+msgstr[0] "(%(counter)s Schritt insgesamt)"
+msgstr[1] "(%(counter)s Schritte insgesamt)"
+
+#: c3nav/editor/templates/editor/changeset.html
 msgid "Restore"
 msgstr "Wiederherstellen"
+
+#: c3nav/editor/templates/editor/changeset.html
+msgid "This changeset contains no changes."
+msgstr "Dieses Änderungsset enthält keine Änderungen."
 
 #: c3nav/editor/templates/editor/changeset.html
 msgid "Unpropose"
@@ -1001,9 +985,13 @@ msgstr "Zurücknehmen"
 msgid "Unreject"
 msgstr "Ablehnung zurücknehmen"
 
-#: c3nav/editor/templates/editor/changeset.html
+#: c3nav/editor/templates/editor/changeset.html c3nav/editor/views/changes.py
 msgid "Propose"
 msgstr "Vorschlagen"
+
+#: c3nav/editor/templates/editor/changeset.html c3nav/editor/views/changes.py
+msgid "Apply"
+msgstr "Anwenden"
 
 #: c3nav/editor/templates/editor/changeset.html
 #: c3nav/editor/templates/editor/changeset_reject.html
@@ -1094,6 +1082,10 @@ msgstr "(kein Titel)"
 msgid "Graph"
 msgstr "Graph"
 
+#: c3nav/editor/templates/editor/fragment_child_models.html
+msgid "Overlays"
+msgstr "Overlays"
+
 #: c3nav/editor/templates/editor/fragment_modal_close.html
 msgid "close dialog"
 msgstr "Dialog schließen"
@@ -1117,6 +1109,7 @@ msgstr "im Raum %(space_title)s"
 
 #: c3nav/editor/templates/editor/graph.html
 #: c3nav/editor/templates/editor/list.html
+#: c3nav/editor/templates/editor/overlay_features.html
 #, python-format
 msgid "on level %(level_title)s"
 msgstr "in der Etage %(level_title)s"
@@ -1176,6 +1169,23 @@ msgstr "Karte zeigen"
 #: c3nav/editor/templates/editor/map.html
 msgid "Show details"
 msgstr "Details anzeigen"
+
+#: c3nav/editor/templates/editor/overlay_features.html
+#, python-format
+msgid "Overlay \"%(title)s\""
+msgstr "Overlay „%(title)s“"
+
+#: c3nav/editor/templates/editor/overlay_features.html
+msgid "New feature"
+msgstr "Neuer Eintrag"
+
+#: c3nav/editor/templates/editor/overlays.html c3nav/mapdata/models/overlay.py
+msgid "Data Overlays"
+msgstr "Daten-Overlays"
+
+#: c3nav/editor/templates/editor/overlays.html c3nav/editor/views/edit.py
+msgid "back to level"
+msgstr "zurück zur Etage"
 
 #: c3nav/editor/templates/editor/user.html
 msgid "That's you!"
@@ -1265,16 +1275,17 @@ msgid "Log in required."
 msgstr "Login erforderlich."
 
 #: c3nav/editor/views/changes.py
-msgid "Object has been successfully restored."
-msgstr "Objekt wurde erfolgreich wiederhergestellt."
+msgid "Can't find this changed object"
+msgstr "Geändertes Objekt nicht gefunden."
 
 #: c3nav/editor/views/changes.py
-msgid ""
-"You cannot restore this object, because it depends on a deleted object or it "
-"would violate a unique contraint."
+msgid "Can't restore this object because it wasn't deleted"
 msgstr ""
-"Du kannst dieses Objekt nicht wiederherstellen weil es ein anderes Objekt "
-"benötigt oder weil es einer Eindeutigen Beschränkung wiedersprechen würde."
+"Du kannst dieses Objekt nicht wiederherstellen, da es nicht gelöscht wurde."
+
+#: c3nav/editor/views/changes.py
+msgid "Object has been successfully restored."
+msgstr "Objekt wurde erfolgreich wiederhergestellt."
 
 #: c3nav/editor/views/changes.py
 msgid "You can not edit changes on this change set."
@@ -1293,10 +1304,8 @@ msgid "You need to log in to propose changes."
 msgstr "Du musst dich anmelden um Änderungen vorzuschlagen."
 
 #: c3nav/editor/views/changes.py
-msgid "You need to add a title an a description to propose this change set."
-msgstr ""
-"Du musst einen Titel und eine Beschreibung hinzufügen, um dieses "
-"Änderungsset vorzuschlagen."
+msgid "You need to add a title to propose this change set."
+msgstr "Du musst einen Titel hinzufügen, um dieses Änderungsset vorzuschlagen."
 
 #: c3nav/editor/views/changes.py
 msgid "You proposed your changes."
@@ -1305,6 +1314,22 @@ msgstr "Du hast deine Änderungen vorgeschlagen."
 #: c3nav/editor/views/changes.py
 msgid "You cannot propose this change set."
 msgstr "Du kannst dieses Änderungsset nicht vorschlagen."
+
+#: c3nav/editor/views/changes.py
+msgid "You need to log in to apply changes."
+msgstr "Du musst dich anmelden um Änderungen anzuwenden."
+
+#: c3nav/editor/views/changes.py
+msgid "You need to add a title to apply this change set."
+msgstr "Du musst einen Titel hinzufügen, um dieses Änderungsset anzuwenden."
+
+#: c3nav/editor/views/changes.py
+msgid "You applied your changes."
+msgstr "Du hast deine Änderungen angewendet."
+
+#: c3nav/editor/views/changes.py
+msgid "You cannot apply this change set."
+msgstr "Du kannst dieses Änderungsset nicht anwenden."
 
 #: c3nav/editor/views/changes.py
 msgid "You unproposed your changes."
@@ -1343,6 +1368,10 @@ msgid "You cannot accept and apply these changes."
 msgstr "Du kannst diese Änderungen nicht akzeptieren und anwenden."
 
 #: c3nav/editor/views/changes.py
+msgid "You cannot apply this changeset cause it has problems."
+msgstr "Du kannst dieses Änderungsset nicht anwenden, da es Probleme hat."
+
+#: c3nav/editor/views/changes.py
 msgid "You accepted and applied these changes."
 msgstr "Du hast diese Änderungen akzeptiert und angewendet."
 
@@ -1360,9 +1389,20 @@ msgid "{model} #{id}"
 msgstr "{model} Nr. {id}"
 
 #: c3nav/editor/views/changes.py
-#, python-brace-format
-msgid "{model} #{id} (deleted outside this changeset)"
-msgstr "{model} #{id} (außerhalb dieses Änderungssets gelöscht)"
+msgid "can't create this object"
+msgstr "Objekt kann nicht erstellt werden"
+
+#: c3nav/editor/views/changes.py
+msgid "no longer exists"
+msgstr "existiert nicht mehr"
+
+#: c3nav/editor/views/changes.py
+msgid "can't update this object because it no longer exists"
+msgstr "Objekt kann nicht gelöscht werden da es nicht mehr existiert"
+
+#: c3nav/editor/views/changes.py
+msgid "this field no longer exists"
+msgstr "Feld existiert nicht mehr"
 
 #: c3nav/editor/views/changes.py
 msgid "created geometry"
@@ -1399,15 +1439,19 @@ msgid "deleted"
 msgstr "gelöscht"
 
 #: c3nav/editor/views/changes.py
+msgid "can't delete this object because of protected references"
+msgstr "Kann objekt nicht löschen weil andere Objekte sich darauf beziehen."
+
+#: c3nav/editor/views/changes.py
 msgid "You cannot edit this change set."
 msgstr "Du kannst dieses Änderungsset nicht bearbeiten."
 
-#: c3nav/editor/views/edit.py
+#: c3nav/editor/views/edit.py c3nav/editor/views/overlays.py
 msgid "You can not create new objects because your changeset is full."
 msgstr ""
 "Du kannst keine neuen Objekte erstellen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py
+#: c3nav/editor/views/edit.py c3nav/editor/views/overlays.py
 msgid "You can not edit this object because your changeset is full."
 msgstr "Du kannst diese Objekt nicht löschen weil dein Änderungsset voll ist."
 
@@ -1415,32 +1459,21 @@ msgstr "Du kannst diese Objekt nicht löschen weil dein Änderungsset voll ist."
 msgid "You need to log in to create Beacon Measurements."
 msgstr "Du musst dich anmelden um Beacon Messungen zu erstellen."
 
-#: c3nav/editor/views/edit.py
+#: c3nav/editor/views/edit.py c3nav/editor/views/overlays.py
 msgid "You can not edit changes on this changeset."
 msgstr "Du kannst keine Änderungen dieses Änderungssets bearbeiten."
 
-#: c3nav/editor/views/edit.py
-msgid ""
-"You can not delete this object because other objects still depend on it."
-msgstr ""
-"Du kannst dieses Objekt nicht löschen weil andere Objekte sich darauf "
-"beziehen."
-
-#: c3nav/editor/views/edit.py
+#: c3nav/editor/views/edit.py c3nav/editor/views/overlays.py
 msgid "Object was successfully deleted."
 msgstr "Objekt wurde erfolgreich gelöscht."
 
-#: c3nav/editor/views/edit.py
+#: c3nav/editor/views/edit.py c3nav/editor/views/overlays.py
 msgid "Duplicate entry."
 msgstr "Doppelter Eintrag."
 
-#: c3nav/editor/views/edit.py
+#: c3nav/editor/views/edit.py c3nav/editor/views/overlays.py
 msgid "Object was successfully saved."
 msgstr "Objekt wurde erfolgreich gespeichert."
-
-#: c3nav/editor/views/edit.py
-msgid "back to level"
-msgstr "zurück zur Etage"
 
 #: c3nav/editor/views/edit.py
 msgid "back to space"
@@ -1493,6 +1526,17 @@ msgstr "Du kannst keine Graphknoten erstellen weil dein Änderungsset voll ist."
 #: c3nav/editor/views/edit.py
 msgid "New graph node created."
 msgstr "Neuer Graphknoten erstellt."
+
+#: c3nav/editor/views/overlays.py
+msgid "back to overlays"
+msgstr "Zurück zu Overlays"
+
+#: c3nav/editor/views/overlays.py
+msgid ""
+"You can not delete this object because other objects still depend on it."
+msgstr ""
+"Du kannst dieses Objekt nicht löschen weil andere Objekte sich darauf "
+"beziehen."
 
 #: c3nav/editor/views/users.py
 msgid "You deactivated your current changeset."
@@ -1819,7 +1863,7 @@ msgstr "rechte koordinate"
 msgid "import tag"
 msgstr "import tag"
 
-#: c3nav/mapdata/models/geometry/level.py
+#: c3nav/mapdata/models/geometry/level.py c3nav/mapdata/models/overlay.py
 msgid "level"
 msgstr "Etage"
 
@@ -2253,7 +2297,7 @@ msgstr "Labeleinstellungen"
 msgid "Label override"
 msgstr "Label überschreiben"
 
-#: c3nav/mapdata/models/locations.py
+#: c3nav/mapdata/models/locations.py c3nav/mapdata/models/overlay.py
 msgid "external URL"
 msgstr "externe URL"
 
@@ -2334,6 +2378,10 @@ msgid "offer if nothing in the first step matches, multiple choice"
 msgstr "anbieten falls nichts im ersten Schritt passt, multiple choice"
 
 #: c3nav/mapdata/models/locations.py
+msgid "reject for all locations with this group"
+msgstr "für alle Orte mit dieser Gruppe ablehnen"
+
+#: c3nav/mapdata/models/locations.py
 msgid "Category"
 msgstr "Kategorie"
 
@@ -2348,6 +2396,10 @@ msgstr "kann von Orten überschrieben werden"
 #: c3nav/mapdata/models/locations.py
 msgid "report missing location"
 msgstr "Fehlenden Ort melden"
+
+#: c3nav/mapdata/models/locations.py
+msgid "report mistakes"
+msgstr "Fehler melden"
 
 #: c3nav/mapdata/models/locations.py
 msgid "to aid with selection in the report form"
@@ -2473,6 +2525,82 @@ msgstr "Dynamische Position"
 msgid "Position"
 msgstr "Position"
 
+#: c3nav/mapdata/models/overlay.py
+msgid "default stroke color"
+msgstr "Standard-Konturfarbe"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "default stroke width"
+msgstr "Standardkonturdicke"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "default fill color"
+msgstr "Standardfüllfarbe"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "pull URL"
+msgstr "pull URL "
+
+#: c3nav/mapdata/models/overlay.py
+msgid "headers for pull http request (JSON object)"
+msgstr "Header für pull http request (JSON objekt)"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "pull interval"
+msgstr "Pullintervall"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "Data Overlay"
+msgstr "Datenoverlay"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "Overlay"
+msgstr "Overlay"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "stroke color"
+msgstr "Konturfarbe"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "stroke width"
+msgstr "randdicke"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "fill color"
+msgstr "Füllfarbe"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "show label"
+msgstr "Label anzeigen"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "show geometry"
+msgstr "Geoetries anzeigen"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "interactive"
+msgstr "interaktiv"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "disable to make this feature click-through"
+msgstr "abwählen um diesen Eintrag durchklickbar zu machen"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "point icon"
+msgstr "Punkticon"
+
+#: c3nav/mapdata/models/overlay.py
+msgid ""
+"use this material icon to display points, instead of drawing a small circle "
+"(only makes sense if the geometry is a point)"
+msgstr ""
+"Dieses Material Icon benutzen um Punkte darzustellen, statt einem kleinen "
+"Greis (macht nur sinn wenn die Geometrie ein Punkt ist)"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "extra data (JSON object)"
+msgstr "Extradaten (JSON object)"
+
 #: c3nav/mapdata/models/report.py
 msgid "location issue"
 msgstr "Ortfehler"
@@ -2572,6 +2700,7 @@ msgid "Sources"
 msgstr "Vorlagen"
 
 #: c3nav/mapdata/models/theme.py
+#, fuzzy
 msgid "Public"
 msgstr "öffentlich"
 
@@ -2658,6 +2787,14 @@ msgstr "CSS Route-punkte Schattenfarbe"
 #: c3nav/mapdata/models/theme.py
 msgid "Extra CSS"
 msgstr "Extra CSS"
+
+#: c3nav/mapdata/models/theme.py
+msgid "Root path for icon images"
+msgstr "Wurzelpfad für icon bilder"
+
+#: c3nav/mapdata/models/theme.py
+msgid "Leaflet marker config override"
+msgstr "Leaflet Marker config Überschreiben"
 
 #: c3nav/mapdata/models/theme.py
 msgid "wall fill color"
@@ -4038,6 +4175,10 @@ msgid "We do not accept reports for this type of location."
 msgstr "Wir akzeptieren aktuell keine Meldungen zu diesem Typ von Ort."
 
 #: c3nav/site/views.py
+msgid "We do not accept reports for this location."
+msgstr "Wir akzeptieren keine Meldungen zu diesem Ort."
+
+#: c3nav/site/views.py
 msgid "Your report was submitted."
 msgstr "Deine Meldung wurde abgesendet."
 
@@ -4087,6 +4228,38 @@ msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
 
+#~ msgid "id of existing object"
+#~ msgstr "ID eines existierenden Objects"
+
+#~ msgid "updated fields"
+#~ msgstr "geänderte Felder"
+
+#~ msgid "added m2m values"
+#~ msgstr "hinzugefügte m2m-Werte"
+
+#~ msgid "removed m2m values"
+#~ msgstr "entfernte m2m-Werte"
+
+#~ msgid "object was deleted"
+#~ msgstr "Object wurde gelöscht"
+
+#~ msgid "Changed object"
+#~ msgstr "Geändertes Objekt"
+
+#~ msgid "Changed objects"
+#~ msgstr "Geänderte Objekte"
+
+#~ msgid ""
+#~ "You cannot restore this object, because it depends on a deleted object or "
+#~ "it would violate a unique contraint."
+#~ msgstr ""
+#~ "Du kannst dieses Objekt nicht wiederherstellen weil es ein anderes Objekt "
+#~ "benötigt oder weil es einer Eindeutigen Beschränkung wiedersprechen würde."
+
+#, python-brace-format
+#~ msgid "{model} #{id} (deleted outside this changeset)"
+#~ msgstr "{model} #{id} (außerhalb dieses Änderungssets gelöscht)"
+
 #, fuzzy
 #~| msgid "Map update"
 #~ msgid "Mapupdate"
@@ -4130,9 +4303,6 @@ msgstr ""
 
 #~ msgid "can be used when reporting a missing location"
 #~ msgstr "kann beim melden eines fehlenden Ortges genutzt werden"
-
-#~ msgid "this field is required"
-#~ msgstr "Dieses Feld wird benötigt."
 
 #~ msgid ""
 #~ "I understand that if i report an issue related to an assembly, all that "
@@ -4252,9 +4422,6 @@ msgstr ""
 #~ msgid "Responsible for this website:"
 #~ msgstr "Verantwortlich für diese Webseite:"
 
-#~ msgid "Data privacy"
-#~ msgstr "Datenschutz"
-
 #~ msgid "We do not collect any personal data."
 #~ msgstr "Wir sammeln keine persönlichen Daten."
 
@@ -4292,9 +4459,6 @@ msgstr ""
 
 #~ msgid "Coming soon"
 #~ msgstr "Coming soon"
-
-#~ msgid "You can not edit this object."
-#~ msgstr "Du kannst dieses Objekt nicht bearbeiten."
 
 #~ msgid "Get the c3nav Android app!"
 #~ msgstr "Hol' dir die c3nav Android-App!"
