@@ -31,12 +31,6 @@ class Command(BaseCommand):
             return
 
         with transaction.atomic():
-            ChangeSet.objects.all().delete()
-            logger.info('Deleted all ChangeSets')
-
-            MapUpdate.objects.all().delete()
-            logger.info('Deleted all MapUpdates')
-
             AccessPermissionToken.objects.all().delete()
             logger.info('Deleted all AccessPermissionTokens')
 
