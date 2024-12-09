@@ -414,7 +414,7 @@ def changeset_detail(request, pk):
                                     field.related_model._meta.get_field("space")
                                 except FieldDoesNotExist:
                                     try:
-                                        field.related_model._meta.get_field("space")
+                                        field.related_model._meta.get_field("level")
                                     except FieldDoesNotExist:
                                         pass
                                     else:
