@@ -1,12 +1,9 @@
 # flake8: noqa
-import copy
 from collections import OrderedDict, deque
 
 import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-
-from c3nav.routing.api.routing import ShortWayTypeSchema
 
 
 def describe_location(location, locations):
@@ -242,8 +239,7 @@ class RouteItem:
         result = OrderedDict((
             ('id', self.node.pk),
             ('coordinates', (self.node.x, self.node.y, self.node.altitude)),
-            ('waytype', (ShortWayTypeSchema.model_validate(self.route.router.waytypes[self.edge.waytype]).model_dump()
-                         if self.edge and self.edge.waytype else None)),
+            ('waytype', (self.route.router.waytypes[self.edge.waytype] if self.edge and self.edge.waytype else None)),
         ))
         if self.waytype:
             result['waytype'] = self.waytype.serialize(detailed=False)
