@@ -369,6 +369,9 @@ def editor_etag_func(request, *args, **kwargs):
         changeset = ChangeSet.get_for_request(request)
         request.changeset = changeset
 
+    if len(get_messages(request)):
+        return None
+
     return (get_language() + ':' + changeset.raw_cache_key_by_changes + ':' +
             AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0)
             + ':' + str(int(request.user_permissions.can_access_base_mapdata))
