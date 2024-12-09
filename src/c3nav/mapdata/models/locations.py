@@ -317,6 +317,10 @@ class LocationGroup(Location, models.Model):
         SINGLE = "single", _("offer in first step, exclusive choice")
         MULTIPLE = "multiple", _("offer if nothing in the first step matches, multiple choice")
 
+    class CanReportMistake(models.TextChoices):
+        ALLOW = "allow", _("don't offer")
+        REJECT = "reject", _("reject for all locations with this group")
+
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
@@ -326,6 +330,8 @@ class LocationGroup(Location, models.Model):
                                        help_text=_('unless location specifies otherwise'))
     can_report_missing = models.CharField(_('report missing location'), choices=CanReportMissing.choices,
                                           default=CanReportMissing.DONT_OFFER, max_length=16)
+    can_report_mistake = models.CharField(_('report mistakes'), choices=CanReportMistake.choices,
+                                          default=CanReportMistake.ALLOW, max_length=16)
 
     description = I18nField(_('description'), plural_name='descriptions', blank=True, fallback_any=True,
                             fallback_value="", help_text=_('to aid with selection in the report form'))

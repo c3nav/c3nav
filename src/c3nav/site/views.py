@@ -643,6 +643,14 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
     elif location:
         report.category = 'location-issue'
         report.location = get_report_location_for_request(location, request)
+        for group in report.location.groups.all():
+            if group.can_report_mistake == LocationGroup.CanReportMistake.REJECT:
+                messages.error(request, format_html(
+                    '{}<br><br>{}',
+                    _('We do not accept reports for this location.'),
+                    group.report_help_text,
+                ))
+            return render(request, 'site/report_question.html', {})
         if report.location is None:
             raise Http404
         if not isinstance(report.location, SpecificLocation):
