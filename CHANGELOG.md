@@ -12,6 +12,7 @@ and potential backwards incompatibilities.
 - complete rewrite of editor changesets as a base for a more modern editor – you will lose all changesets!
 - new map settings API endpoint
 - some API mapdata endpoints were moved, some lesser used properties renamed
+- reports for wrong locations can now be auto-rejected based on location groups
 
 # Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 
@@ -33,6 +34,7 @@ and potential backwards incompatibilities.
 # Easterhegg 2024 ([eh2024](https://github.com/c3nav/c3nav/tree/eh2024))
 
 - theming support (introduces ObstacleGroups for colors, automatic data migration)
+- reports for missing locations can now be auto-rejected based on location groups
 - prometheus statistics export
 - more mesh support, still not done
 - create a step/question based report flow process
