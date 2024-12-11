@@ -65,6 +65,7 @@ class EditorGeometriesPropertiesSchema(BaseSchema):
     ] = None
     overlay: Optional[EditorID] = None
     opacity: Optional[float] = None   # todo: range
+    access_restriction: Optional[PositiveInt] = None
 
 
 class EditorGeometriesGraphEdgePropertiesSchema(BaseSchema):

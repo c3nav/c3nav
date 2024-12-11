@@ -21,7 +21,7 @@ from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateRespon
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
                                      editor_etag_func, sidebar_view, accesses_mapdata)
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.utils.user import can_access_editor
 
 
@@ -529,6 +529,14 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         'create_url': reverse(resolver_match.url_name[:-4] + 'create', kwargs=reverse_kwargs),
         'grouped_objects': grouped_objects,
     })
+
+    if model is AccessRestriction:
+        levels = list(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True))
+        ctx.update({
+            "levels": levels,
+            "level_geometry_urls": True,
+            "geometry_url": '/api/v2/editor/geometries/level/' + str(levels[0].pk)  # todo: resolve correctly,
+        })
 
     return APIHybridTemplateContextResponse('editor/list.html', ctx,
                                             fields=('can_create', 'create_url', 'objects'))

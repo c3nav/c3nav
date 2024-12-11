@@ -1045,8 +1045,15 @@ editor = {
             editor._line_geometries.push(layer);
             layer.length = Math.pow(Math.pow(layer._latlngs[0].lat - layer._latlngs[1].lat, 2) + Math.pow(layer._latlngs[0].lng - layer._latlngs[1].lng, 2), 0.5);
         }
-        if (feature.properties.type === editor._highlight_type) {
-            var list_elem = $('#sidebar').find('[data-list] tr[data-pk=' + String(feature.properties.id) + ']');
+        if (feature.properties.type === editor._highlight_type
+                || (editor._highlight_type == "accessrestriction" && feature.properties.access_restriction)) {
+            var highlight_id;
+            if (editor._highlight_type == "accessrestriction") {
+                highlight_id = feature.properties.access_restriction;
+            } else {
+                highlight_id = feature.properties.id;
+            }
+            var list_elem = $('#sidebar').find('[data-list] tr[data-pk=' + String(highlight_id) + ']');
             if (list_elem.length === 0) return;
             var highlight_layer = L.geoJSON(layer.feature, {
                 style: function () {
@@ -1060,7 +1067,8 @@ editor = {
                 pointToLayer: editor._point_to_layer
             }).getLayers()[0].addTo(editor._highlight_layer);
             highlight_layer.list_elem = list_elem;
-            editor._highlight_geometries[feature.properties.id] = highlight_layer;
+            if (!editor._highlight_geometries[highlight_id]) editor._highlight_geometries[highlight_id] = [];
+            editor._highlight_geometries[highlight_id].push(highlight_layer);
             highlight_layer.on('mouseover', editor._hover_geometry_layer)
                 .on('mouseout', editor._unhover_geometry_layer)
                 .on('click', editor._click_geometry_layer)
@@ -1139,9 +1147,13 @@ editor = {
     },
     _click_mapitem_row: function () {
         if (editor._loading_geometry) return;
-        var geometry = editor._highlight_geometries[parseInt($(this).parent().attr('data-pk'))];
-        if (geometry !== undefined) {
-            editor.map.flyToBounds(geometry.getBounds(), {
+        geometries = editor._highlight_geometries[parseInt($(this).parent().attr('data-pk'))];
+        if (geometries !== undefined) {
+            var bounds = geometries[0].getBounds();
+            for (let gemmetry of geometries.slice(1)) {
+                bounds = bounds.extend(geometry.getBounds());
+            }
+            editor.map.flyToBounds(bounds, {  // todo fly to combined bounds
                 maxZoom: 4,
                 duration: 0.5,
                 padding: [20, 20]
@@ -1151,12 +1163,12 @@ editor = {
     _hover_geometry_layer: function (e) {
         // hover callback for a geometry layer
         if (editor._loading_geometry) return;
-        editor._highlight_geometry(e.target.feature.properties.id);
+        editor._highlight_geometry((editor._highlight_type == "accessrestriction") ? e.target.feature.properties.access_restriction : e.target.feature.properties.id);
     },
     _unhover_geometry_layer: function (e) {
         // unhover callback for a geometry layer
         if (editor._loading_geometry) return;
-        editor._unhighlight_geometry(e.target.feature.properties.id);
+        editor._unhighlight_geometry((editor._highlight_type == "accessrestriction") ? e.target.feature.properties.access_restriction : e.target.feature.properties.id);
     },
     _click_geometry_layer: function (e) {
         // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
@@ -1172,26 +1184,30 @@ editor = {
     },
     _highlight_geometry: function (id) {
         // highlight a geometries layer and itemtable row if they both exist
-        var geometry = editor._highlight_geometries[id];
-        if (!geometry) return;
-        geometry.setStyle({
-            color: '#FFFFDD',
-            weight: 3,
-            opacity: 1,
-            fillOpacity: 0
-        });
-        geometry.list_elem.addClass('highlight');
+        var geometries = editor._highlight_geometries[id];
+        if (!geometries) return;
+        for (geometry of geometries) {
+            geometry.setStyle({
+                color: '#FFFFDD',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0
+            });
+            geometry.list_elem.addClass('highlight');
+        }
     },
     _unhighlight_geometry: function (id) {
         // unhighlight whatever is highlighted currently
-        var geometry = editor._highlight_geometries[id];
-        if (!geometry) return;
-        geometry.setStyle({
-            weight: 3,
-            opacity: 0,
-            fillOpacity: 0
-        });
-        geometry.list_elem.removeClass('highlight');
+        var geometries = editor._highlight_geometries[id];
+        if (!geometries) return;
+        for (geometry of geometries) {
+            geometry.setStyle({
+                weight: 3,
+                opacity: 0,
+                fillOpacity: 0
+            });
+            geometry.list_elem.removeClass('highlight');
+        }
     },
 
     // graph events

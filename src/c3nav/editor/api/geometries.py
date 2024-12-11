@@ -107,6 +107,7 @@ def conditional_geojson(obj, update_cache_key_match):
 
     result = obj.to_geojson()
     result['properties']['changed'] = obj._affected_by_changeset
+    result['properties']['access_restriction'] = getattr(obj, "access_restriction_id", None)
     return result
 
 
