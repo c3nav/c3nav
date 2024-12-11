@@ -535,7 +535,6 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         ctx.update({
             "levels": levels,
             "level_geometry_urls": True,
-            "geometry_url": '/api/v2/editor/geometries/level/' + str(levels[0].pk)  # todo: resolve correctly,
         })
 
     return APIHybridTemplateContextResponse('editor/list.html', ctx,

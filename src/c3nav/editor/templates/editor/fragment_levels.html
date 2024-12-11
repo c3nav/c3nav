@@ -1,5 +1,5 @@
 {% if levels %}
-    <ul data-levels>
+    <ul data-levels{% if level_geometry_urls %} data-level-geometry-urls{% endif %}>
         {% for l in levels %}
             <li>
                 <a data-id="{{ l.pk }}"

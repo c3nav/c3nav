@@ -183,12 +183,14 @@ editor = {
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
     },
-    _fill_level_control: function (level_control, level_list) {
+    _fill_level_control: function (level_control, level_list, geometryURLs) {
         var levels = level_list.find('a');
+        level_control.geometryURLs = !!geometryURLs;
         if (levels.length) {
+            console.log('FILLING!!');
             for (var i = 0; i < levels.length; i++) {
                 var level = $(levels[i]);
-                level_control.addLevel(level.attr('data-id'), level.text(), level.attr('href'), level.is('.current'));
+                level_control.addLevel(level.attr('data-id'), level.text(), level.attr('href'), geometryURLs ? (i==0) : level.is('.current'));
             }
             if (levels.length > 1) {
                 level_control.enable();
@@ -393,9 +395,16 @@ editor = {
         }
 
         var geometry_url = content.find('[data-geometry-url]');
+        var level_geometry_urls = content.find('[data-level-geometry-urls]');
         var $body = $('body');
         if (geometry_url.length) {
             geometry_url = geometry_url.attr('data-geometry-url');
+        } else if (level_geometry_urls.length) {
+            geometry_url = content.find('[data-levels]').find('a').first().attr('href');
+        } else {
+            geometry_url = null;
+        }
+        if (geometry_url) {
             var highlight_type = content.find('[data-list]');
             var editing_id = content.find('[data-editing]');
             if (editor._next_zoom === null) {
@@ -410,7 +419,7 @@ editor = {
             editor._level_control.clearLevels();
             editor._sublevel_control.clearLevels();
 
-            editor._fill_level_control(editor._level_control, content.find('[data-levels]'));
+            editor._fill_level_control(editor._level_control, content.find('[data-levels]'), level_geometry_urls.length);
             editor._fill_level_control(editor._sublevel_control, content.find('[data-sublevels]'));
 
             var level_control_offset = $(editor._level_control_container).position();
@@ -996,7 +1005,7 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
-        if (editor._level_control.current_level_id === editor._sublevel_control.current_level_id) {
+        if (editor._level_control.current_level_id === editor._sublevel_control.current_level_id || editor._sublevel_control.level_ids.length === 0) {
             if (editor._sublevel_control.level_ids.indexOf(feature.properties.level) >= 0 && editor._level_control.current_level_id !== feature.properties.level) {
                 style.stroke = true;
                 style.weight = 1;
@@ -1577,6 +1586,7 @@ LevelControl = L.Control.extend({
         this.level_ids = [];
         this._disabled = true;
         this._expanded = false;
+        this.geometryURLs = false;
         this.hide();
 
         if (!L.Browser.android) {
@@ -1650,8 +1660,16 @@ LevelControl = L.Control.extend({
             this.expand();
         } else if (!this._disabled) {
             $(e.target).addClass('current').siblings().removeClass('current');
-            editor._next_zoom = false;
-            editor.sidebar_get(e.target.href);
+            if (this.geometryURLs) {
+                editor.load_geometries(
+                    e.target.href,
+                    editor._highlight_type,
+                    editor._editing_id
+                );
+            } else {
+                editor._next_zoom = false;
+                editor.sidebar_get(e.target.href);
+            }
             this.collapse();
         }
     },
