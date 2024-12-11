@@ -21,7 +21,6 @@ class AccessRestriction(TitledMixin, models.Model):
     An access restriction
     """
     public = models.BooleanField(default=False, verbose_name=_('public'))
-    groups = models.ManyToManyField('mapdata.AccessRestrictionGroup', verbose_name=_('Groups'), blank=True)
 
     class Meta:
         verbose_name = _('Access Restriction')
@@ -60,6 +59,9 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
     """
     An access restriction group
     """
+    members = models.ManyToManyField('mapdata.AccessRestriction', verbose_name=_('Access Restrictions'), blank=True,
+                                     related_name="groups")
+
     class Meta:
         verbose_name = _('Access Restriction Group')
         verbose_name_plural = _('Access Restriction Groups')
@@ -77,7 +79,7 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
         permissions = AccessPermission.get_for_request(request)
         # now we filter out groups where the user doesn't have a permission for all members
         filter_perms = all_permissions - permissions
-        return ~Q(accessrestrictions__pk__in=filter_perms)
+        return ~Q(members__pk__in=filter_perms)
 
     @classmethod
     def qs_for_user(cls, user):
@@ -91,7 +93,7 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
         permissions = AccessPermission.get_for_user(user)
         # now we filter out groups where the user doesn't have a permission for all members
         filter_perms = all_permissions - permissions
-        return ~Q(accessrestrictions__pk__in=filter_perms)
+        return ~Q(members__pk__in=filter_perms)
 
 
 def default_valid_until():
@@ -288,7 +290,7 @@ class AccessPermission(models.Model):
         result = tuple(
             qs.select_related(
                 'access_restriction_group'
-            ).prefetch_related('access_restriction_group__accessrestrictions')
+            ).prefetch_related('access_restriction_group__members')
         )
 
         # collect permissions (can be multiple for one restriction)
@@ -297,7 +299,7 @@ class AccessPermission(models.Model):
             if permission.access_restriction_id:
                 permissions.setdefault(permission.access_restriction_id, set()).add(permission.expire_date)
             if permission.access_restriction_group_id:
-                for member in permission.access_restriction_group.accessrestrictions.all():
+                for member in permission.access_restriction_group.members.all():
                     permissions.setdefault(member.pk, set()).add(permission.expire_date)
 
         # get latest expire date for each permission

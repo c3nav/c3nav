@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Prefetch, Q
+from django.db.models.fields.reverse_related import ManyToManyRel
 from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, JSONField, ModelChoiceField,
                           ModelForm, MultipleChoiceField, Select, ValidationError)
 from django.forms.widgets import HiddenInput, TextInput
@@ -171,9 +172,9 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 self.fields.move_to_end('copy_from', last=False)
             self.fields.move_to_end('name', last=False)
 
-        if self._meta.model.__name__ == 'AccessRestriction':
-            self.fields['groups'].label_from_instance = lambda obj: obj.title
-            self.fields['groups'].queryset = AccessRestrictionGroup.qs_for_request(self.request)
+        if self._meta.model.__name__ == 'AccessRestrictionGroup':
+            self.fields['members'].label_from_instance = lambda obj: obj.title
+            self.fields['members'].queryset = AccessRestriction.qs_for_request(self.request)
 
         elif 'groups' in self.fields:
             kwargs = {'allow_'+self._meta.model._meta.default_related_name: True}
@@ -407,7 +408,7 @@ def create_editor_form(editor_model):
                        'extra_seconds', 'speed', 'can_report_missing', "can_report_mistake",
                        'description', 'speed_up', 'description_up',
                        'report_help_text', 'enter_description', 'level_change_description', 'base_mapdata_accessible',
-                       'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
+                       'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size', 'members',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations',
                        'left', 'top', 'right', 'bottom', 'import_tag', 'import_block_data', 'import_block_geom',
                        'public', 'default', 'dark', 'high_contrast', 'funky', 'randomize_primary_color', 'color_logo',
@@ -422,7 +423,8 @@ def create_editor_form(editor_model):
                        'stroke_color', 'stroke_width', 'fill_color', 'interactive', 'point_icon', 'extra_data',
                        'show_label', 'show_geometry', 'external_url',
                        ]
-    field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
+    field_names = [field.name for field in editor_model._meta.get_fields()
+                   if not field.one_to_many and not isinstance(field, ManyToManyRel)]
     existing_fields = [name for name in possible_fields if name in field_names]
 
     class EditorForm(EditorFormBase, ModelForm):
