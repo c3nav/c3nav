@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
@@ -21,6 +22,7 @@ class UserListView(ControlPanelMixin, ListView):
     template_name = "control/users.html"
     ordering = "id"
     context_object_name = "users"
+    user_permission = "view_users"
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -33,6 +35,9 @@ class UserListView(ControlPanelMixin, ListView):
 @login_required(login_url='site.login')
 @control_panel_view
 def user_detail(request, user):  # todo: make class based view
+    if not (request.user_permissions.view_users or user == request.user.pk):
+        raise PermissionDenied
+
     qs = User.objects.select_related(
         'permissions',
     ).prefetch_related(

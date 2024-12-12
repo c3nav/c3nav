@@ -26,6 +26,7 @@ class UserPermissions(models.Model):
     manage_map_updates = models.BooleanField(default=False, verbose_name=_('manage map updates'))
 
     control_panel = models.BooleanField(default=False, verbose_name=_('can access control panel'))
+    view_users = models.BooleanField(default=False, verbose_name=_('view user list in control panel'))
     grant_permissions = models.BooleanField(default=False, verbose_name=_('can grant control permissions'))
     manage_announcements = models.BooleanField(default=False, verbose_name=_('manage announcements'))
     grant_all_access = models.BooleanField(default=False, verbose_name=_('can grant access to everything'))

@@ -16,7 +16,9 @@
     <nav>
         <p>
             <a href="{% url 'control.index' %}">{% trans 'Overview' %}</a> &middot;
-            <a href="{% url 'control.users' %}">{% trans 'Users' %}</a> &middot;
+            {% if request.user_permissions.view_users %}
+                <a href="{% url 'control.users' %}">{% trans 'Users' %}</a> &middot;
+            {% endif %}
             <a href="{% url 'control.access' %}">{% trans 'Access' %}</a> &middot;
             {% if request.user_permissions.manage_announcements %}
                 <a href="{% url 'control.announcements' %}">{% trans 'Announcements' %}</a> &middot;
