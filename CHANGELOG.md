@@ -13,6 +13,9 @@ and potential backwards incompatibilities.
 - new map settings API endpoint
 - some API mapdata endpoints were moved, some lesser used properties renamed
 - reports for wrong locations can now be auto-rejected based on location groups
+- access restrictions that are part of an access restriction group are now defined in the group, data was migrated
+- editor access restriction overview now highlights affected spaces on a map
+- editor access restriction group edit now shows spaces with selected access restrictions and allows selecting through double click  
 
 # Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 
