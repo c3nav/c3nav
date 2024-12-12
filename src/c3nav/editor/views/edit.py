@@ -21,7 +21,7 @@ from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateRespon
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
                                      editor_etag_func, sidebar_view, accesses_mapdata)
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge
-from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
+from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.utils.user import can_access_editor
 
 
@@ -375,6 +375,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     ctx.update({
         'form': form,
     })
+
+    if model is AccessRestrictionGroup:
+        levels = list(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True))
+        ctx.update({
+            "levels": levels,
+            "level_geometry_urls": True,
+            "access_restriction_select": True,
+        })
 
     return APIHybridFormTemplateResponse('editor/edit.html', ctx, form=form, error=error)
 

@@ -176,6 +176,10 @@ a.list-group-item .badge {
 .itemtable tr.highlight td {
     background-color:#FFFFDD;
 }
+select option.highlight {
+    text-decoration: underline;
+    font-weight: bold;
+}
 .itemtable .item-group-header td {
     padding-top: 20px;
     font-size: 140%;

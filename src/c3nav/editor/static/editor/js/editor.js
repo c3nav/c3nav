@@ -187,7 +187,6 @@ editor = {
         var levels = level_list.find('a');
         level_control.geometryURLs = !!geometryURLs;
         if (levels.length) {
-            console.log('FILLING!!');
             for (var i = 0; i < levels.length; i++) {
                 var level = $(levels[i]);
                 level_control.addLevel(level.attr('data-id'), level.text(), level.attr('href'), geometryURLs ? (i==0) : level.is('.current'));
@@ -407,9 +406,11 @@ editor = {
         if (geometry_url) {
             var highlight_type = content.find('[data-list]');
             var editing_id = content.find('[data-editing]');
+            var access_restriction_select = content.find('[data-access-restriction-select]');
             if (editor._next_zoom === null) {
                 editor._next_zoom = !content.find('[data-nozoom]').length;
             }
+            editor.accessRestrictionSelect = access_restriction_select.length ? $(content.find("[name=members]")[0]) : null;
             editor.load_geometries(
                 geometry_url,
                 (highlight_type.length ? highlight_type.attr('data-list') : null),
@@ -722,6 +723,8 @@ editor = {
 
         $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-pk]', editor._hover_mapitem_row)
             .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row)
+            .on('mouseenter', '[name=members] option', editor._hover_members_option)
+            .on('mouseleave', '[name=members] option', editor._unhover_members_option)
             .on('click', '.itemtable tr[data-pk] td:not(:last-child)', editor._click_mapitem_row);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
@@ -1054,27 +1057,35 @@ editor = {
             editor._line_geometries.push(layer);
             layer.length = Math.pow(Math.pow(layer._latlngs[0].lat - layer._latlngs[1].lat, 2) + Math.pow(layer._latlngs[0].lng - layer._latlngs[1].lng, 2), 0.5);
         }
-        if (feature.properties.type === editor._highlight_type
-                || (editor._highlight_type == "accessrestriction" && feature.properties.access_restriction)) {
+        var highlight_access_restrictions = (editor._highlight_type == "accessrestriction" || editor.accessRestrictionSelect);
+        if (feature.properties.type === editor._highlight_type || (highlight_access_restrictions && feature.properties.access_restriction)) {
             var highlight_id;
-            if (editor._highlight_type == "accessrestriction") {
+            if (highlight_access_restrictions) {
                 highlight_id = feature.properties.access_restriction;
             } else {
                 highlight_id = feature.properties.id;
             }
-            var list_elem = $('#sidebar').find('[data-list] tr[data-pk=' + String(highlight_id) + ']');
+            var list_elem;
+            if (editor.accessRestrictionSelect) {
+                list_elem = editor.accessRestrictionSelect.find('option[value=' + String(highlight_id) + ']');
+            } else {
+                list_elem = $('#sidebar').find('[data-list] tr[data-pk=' + String(highlight_id) + ']');
+            }
             if (list_elem.length === 0) return;
+            var option = editor.accessRestrictionSelect.find('[value='+String(feature.properties.access_restriction)+']');
             var highlight_layer = L.geoJSON(layer.feature, {
                 style: function () {
                     return {
-                        weight: 3,
-                        opacity: 0,
+                        color: option.length ? '#FF0000' : '#FFFFDD',
+                        weight: (option.length && !option.is(':selected')) ? 1 : 3,
+                        opacity: option.length ? (option.is(':selected') ? 1 : 0.3) : 0,
                         fillOpacity: 0,
                         className: 'c3nav-highlight'
                     };
                 },
                 pointToLayer: editor._point_to_layer
             }).getLayers()[0].addTo(editor._highlight_layer);
+            highlight_layer.highlightID = highlight_id;
             highlight_layer.list_elem = list_elem;
             if (!editor._highlight_geometries[highlight_id]) editor._highlight_geometries[highlight_id] = [];
             editor._highlight_geometries[highlight_id].push(highlight_layer);
@@ -1154,6 +1165,18 @@ editor = {
         if (editor._loading_geometry) return;
         editor._unhighlight_geometry(parseInt($(this).attr('data-pk')));
     },
+    _hover_members_option: function () {
+        // hover callback for a itemtable row
+        if (editor._loading_geometry) return;
+        if (!editor.accessRestrictionSelect) return;
+        editor._highlight_geometry(parseInt($(this).val()));
+    },
+    _unhover_members_option: function () {
+        // unhover callback for a itemtable row
+        if (editor._loading_geometry) return;
+        if (!editor.accessRestrictionSelect) return;
+        editor._unhighlight_geometry(parseInt($(this).val()));
+    },
     _click_mapitem_row: function () {
         if (editor._loading_geometry) return;
         geometries = editor._highlight_geometries[parseInt($(this).parent().attr('data-pk'))];
@@ -1172,12 +1195,20 @@ editor = {
     _hover_geometry_layer: function (e) {
         // hover callback for a geometry layer
         if (editor._loading_geometry) return;
-        editor._highlight_geometry((editor._highlight_type == "accessrestriction") ? e.target.feature.properties.access_restriction : e.target.feature.properties.id);
+        editor._highlight_geometry(
+            (editor._highlight_type === "accessrestriction" || editor.accessRestrictionSelect)
+            ? e.target.feature.properties.access_restriction
+            : e.target.feature.properties.id
+        );
     },
     _unhover_geometry_layer: function (e) {
         // unhover callback for a geometry layer
         if (editor._loading_geometry) return;
-        editor._unhighlight_geometry((editor._highlight_type == "accessrestriction") ? e.target.feature.properties.access_restriction : e.target.feature.properties.id);
+        editor._unhighlight_geometry(
+            (editor._highlight_type === "accessrestriction" || editor.accessRestrictionSelect)
+            ? e.target.feature.properties.access_restriction
+            : e.target.feature.properties.id
+        );
     },
     _click_geometry_layer: function (e) {
         // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
@@ -1187,15 +1218,21 @@ editor = {
     _dblclick_geometry_layer: function (e) {
         // dblclick callback for a geometry layer - edit this feature if the corresponding itemtable row exists
         if (editor._loading_geometry) return;
-        e.target.list_elem.find('td:last-child a').click();
-        e.target.list_elem.find('td:last-child a').click();
+        if (editor.accessRestrictionSelect) {
+            e.target.list_elem.prop('selected', !e.target.list_elem.prop('selected'));
+        } else {
+            e.target.list_elem.find('td:last-child a').click();
+            e.target.list_elem.find('td:last-child a').click();
+        }
         editor.map.doubleClickZoom.disable();
     },
     _highlight_geometry: function (id) {
         // highlight a geometries layer and itemtable row if they both exist
         var geometries = editor._highlight_geometries[id];
         if (!geometries) return;
+        var option;
         for (geometry of geometries) {
+            option = editor.accessRestrictionSelect.find('[value='+String(geometry.highlightID)+']')
             geometry.setStyle({
                 color: '#FFFFDD',
                 weight: 3,
@@ -1209,11 +1246,14 @@ editor = {
         // unhighlight whatever is highlighted currently
         var geometries = editor._highlight_geometries[id];
         if (!geometries) return;
+        var option;
         for (geometry of geometries) {
+            option = editor.accessRestrictionSelect.find('[value='+String(geometry.highlightID)+']')
             geometry.setStyle({
-                weight: 3,
-                opacity: 0,
-                fillOpacity: 0
+                color: option.length ? '#FF0000' : '#FFFFDD',
+                weight: (option.length && !option.is(':selected')) ? 1 : 3,
+                opacity: option.length ? (option.is(':selected') ? 1 : 0.3) : 0,
+                fillOpacity: 0,
             });
             geometry.list_elem.removeClass('highlight');
         }
