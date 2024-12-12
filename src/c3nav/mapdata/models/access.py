@@ -310,7 +310,7 @@ class AccessPermission(models.Model):
         return permissions
 
     @classmethod
-    def get_for_request(cls, request) -> set[int]:
+    def get_for_request(cls, request, can_grant: bool = False) -> set[int]:
         if not request:
             return AccessRestriction.get_all_public()
 
@@ -320,13 +320,13 @@ class AccessPermission(models.Model):
         cache_key = cls.request_access_permission_key(request)
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None or True:
-            permissions = cls.get_for_request_with_expire_date(request)
+            permissions = cls.get_for_request_with_expire_date(request, can_grant=can_grant)
 
             access_restriction_ids = set(permissions.keys())
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now() + timedelta(seconds=120))
             cache.set(cache_key, access_restriction_ids, max(0.0, (expire_date - timezone.now()).total_seconds()))
-        return set(access_restriction_ids) | AccessRestriction.get_all_public()
+        return set(access_restriction_ids) | (set() if can_grant else AccessRestriction.get_all_public())
 
     @classmethod
     def get_for_user_with_expire_date(cls, user, can_grant=None):
@@ -358,7 +358,7 @@ class AccessPermission(models.Model):
         return permissions
 
     @classmethod
-    def get_for_user(cls, user) -> set[int]:
+    def get_for_user(cls, user, can_grant: bool = False) -> set[int]:
         from c3nav.control.models import UserPermissions
         if not user or not user.is_authenticated:
             return AccessRestriction.get_all_public()
@@ -369,13 +369,13 @@ class AccessPermission(models.Model):
         cache_key = cls.build_access_permission_key(user_id=user.pk)
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None or True:
-            permissions = cls.get_for_user_with_expire_date(user)
+            permissions = cls.get_for_user_with_expire_date(user, can_grant=can_grant)
 
             access_restriction_ids = set(permissions.keys())
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now()+timedelta(seconds=120))
             cache.set(cache_key, access_restriction_ids, max(0.0, (expire_date-timezone.now()).total_seconds()))
-        return set(access_restriction_ids) | AccessRestriction.get_all_public()
+        return set(access_restriction_ids) | (set() if can_grant else AccessRestriction.get_all_public())
 
     @classmethod
     def cache_key_for_request(cls, request, with_update=True):

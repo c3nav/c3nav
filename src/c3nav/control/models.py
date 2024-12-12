@@ -9,6 +9,7 @@ from django.utils.functional import cached_property, lazy
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.models import Space
+from c3nav.mapdata.models.access import AccessPermission
 
 
 class UserPermissions(models.Model):
@@ -25,7 +26,6 @@ class UserPermissions(models.Model):
     base_mapdata_access = models.BooleanField(default=False, verbose_name=_('can always access base map data'))
     manage_map_updates = models.BooleanField(default=False, verbose_name=_('manage map updates'))
 
-    control_panel = models.BooleanField(default=False, verbose_name=_('can access control panel'))
     view_users = models.BooleanField(default=False, verbose_name=_('view user list in control panel'))
     grant_permissions = models.BooleanField(default=False, verbose_name=_('can grant control permissions'))
     manage_announcements = models.BooleanField(default=False, verbose_name=_('manage announcements'))
@@ -53,6 +53,18 @@ class UserPermissions(models.Model):
             for field in UserPermissions._meta.get_fields():
                 if isinstance(field, models.BooleanField):
                     setattr(self, field.name, True)
+
+    @property
+    def control_panel(self):
+        return (
+            self.view_users
+            or self.grant_permissions
+            or self.manage_announcements
+            or self.grant_all_access
+            or self.grant_unlimited_access
+            or self.grant_space_access
+            or AccessPermission.get_for_user(user=self.user, can_grant=True)
+        )
 
     @staticmethod
     def get_cache_key(pk):
