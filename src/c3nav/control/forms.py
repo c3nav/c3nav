@@ -70,10 +70,10 @@ class AccessPermissionForm(Form):
         else:
             groups = AccessRestrictionGroup.qs_for_user(author)
         groups = groups.prefetch_related(
-            Prefetch('accessrestrictions', AccessRestriction.objects.only('pk'))
+            Prefetch('members', AccessRestriction.objects.only('pk'))
         )
         self.group_contents: dict[int, set[int]] = {
-            group.pk: set(r.pk for r in group.accessrestrictions.all())
+            group.pk: set(r.pk for r in group.members.all())
             for group in groups
         }
         self.group_contents = {
