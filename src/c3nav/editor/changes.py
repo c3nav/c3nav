@@ -576,7 +576,13 @@ class ChangedObjectCollection(BaseSchema):
             # nothing to do? then we're done
             done_situation = start_situation
 
+        num = 0
+
         while open_situations and not done_situation:
+            num += 1
+            if num > 1000:
+                raise ValueError("as_operations might be in an endless loop")
+
             situation = open_situations.pop(0)
 
             continued = False
