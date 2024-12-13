@@ -186,7 +186,7 @@ class DeleteObjectOperation(BaseOperation):
 
 
 class UpdateManyToManyOperation(BaseOperation):
-    type: Literal["m2m_add"] = "m2m_update"
+    type: Literal["m2m_update"] = "m2m_update"
     field: FieldName
     add_values: set[ObjectID] = set()
     remove_values: set[ObjectID] = set()
