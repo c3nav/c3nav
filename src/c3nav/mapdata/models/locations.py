@@ -357,7 +357,7 @@ class LocationGroup(Location, models.Model):
         self._orig = {
             "priority": self.priority,
             "hierarchy": self.hierarchy,
-            "category": self.category,
+            "category_id": self.category_id,
             "color": self.color,
         }
 
