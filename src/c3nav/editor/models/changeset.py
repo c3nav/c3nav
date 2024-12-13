@@ -477,6 +477,8 @@ class ChangeSet(models.Model):
 
     @property
     def as_operations(self) -> DatabaseOperationCollection:
+        if self.state == "applied":
+            return DatabaseOperationCollection()
         return self.get_changes_as_operations().operations
 
     @property
