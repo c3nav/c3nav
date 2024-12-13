@@ -81,7 +81,7 @@
 {% if changeset.description %}
     <p>{{ changeset.description }}</p>
 {% endif %}
-{% if changed_objects %}
+{% if changed_objects and operations|length %}
     <p><em>{% blocktranslate count counter=operations|length %}({{ counter }} operation in total){% plural %}({{ counter }} operations in total){% endblocktranslate %}</em></p>
 {% endif %}
 {% for obj in changed_objects %}
