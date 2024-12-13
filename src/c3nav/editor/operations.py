@@ -152,15 +152,6 @@ class UpdateObjectOperation(BaseOperation):
             else:
                 values[field_name] = value
         data = []
-        if issubclass(model, LocationSlug) and "slug" in values:
-            data.append({
-                "model": f"mapdata.locationslug",
-                "pk": self.obj.id,
-                "fields": {
-                    "slug": values["slug"],
-                },
-            })
-            values = {key: val for key, val in values.items() if key != "slug"}
         data.append({
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
