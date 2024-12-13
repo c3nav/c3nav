@@ -148,7 +148,8 @@ class DatabaseOverlayManager:
 
         if self.operations:
             last_change = self.operations[-1]
-            if isinstance(last_change, UpdateManyToManyOperation) and last_change == ref and last_change == field.name:
+            if (isinstance(last_change, UpdateManyToManyOperation)
+                    and last_change.obj == ref and last_change == field.name):
                 if action == "post_add":
                     last_change.add_values.update(pk_set)
                     last_change.remove_values.difference_update(pk_set)

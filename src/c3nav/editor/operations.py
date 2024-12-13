@@ -247,6 +247,9 @@ class DatabaseOperationCollection(BaseSchema):
     def append(self, item: DatabaseOperation):
         self.operations.append(item)
 
+    def __getitem__(self, item):
+        return self.operations[item]
+
     def prefetch(self) -> "PrefetchedDatabaseOperationCollection":
         return PrefetchedDatabaseOperationCollection(operations=self, instances=self.prev.get_instances())
 
