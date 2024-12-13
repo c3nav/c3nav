@@ -354,12 +354,13 @@ class LocationGroup(Location, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        deferred_fields = self.get_deferred_fields()
         self._orig = {
-            "priority": self.priority,
-            "hierarchy": self.hierarchy,
-            "category_id": self.category_id,
-            "color": self.color,
+            key: getattr(self, key)
+            for key in ["priority", "hierarchy", "category", "color"]
+            if key not in deferred_fields
         }
+
 
     locations = []
 
