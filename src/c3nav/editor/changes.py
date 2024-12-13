@@ -4,7 +4,7 @@ import operator
 import random
 from functools import reduce
 from itertools import chain
-from typing import Type, Any, Union, Self, TypeVar, Generic, NamedTuple, TypeAlias
+from typing import Type, Any, Union, Self, TypeVar, Generic, NamedTuple
 
 from django.apps import apps
 from django.core import serializers
@@ -564,9 +564,6 @@ class ChangedObjectCollection(BaseSchema):
 
         # situations that ended prematurely
         ended_situations: list[OperationSituation] = []
-
-        # situations already encountered by set of operation uuids included, values are number of operations
-        best_uids:  dict[frozenset[tuple], int] = {}
 
         # best way to get to a certain dependency snapshot, values are number of operations
         best_dependency_snapshots: dict[tuple, int] = {}
