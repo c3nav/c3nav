@@ -1072,13 +1072,21 @@ editor = {
                 list_elem = $('#sidebar').find('[data-list] tr[data-pk=' + String(highlight_id) + ']');
             }
             if (list_elem.length === 0) return;
-            var option = editor.accessRestrictionSelect.find('[value='+String(feature.properties.access_restriction)+']');
+            var hasOption, optionSelected;
+            if (editor.accessRestrictionSelect) {
+                var option = editor.accessRestrictionSelect.find('[value=' + String(feature.properties.access_restriction) + ']');
+                hasOption = !!option.length;
+                optionSelected = option.is(':selected');
+            } else {
+                hasOption = false;
+                optionSelected = false;
+            }
             var highlight_layer = L.geoJSON(layer.feature, {
                 style: function () {
                     return {
-                        color: option.length ? '#FF0000' : '#FFFFDD',
-                        weight: (option.length && !option.is(':selected')) ? 1 : 3,
-                        opacity: option.length ? (option.is(':selected') ? 1 : 0.3) : 0,
+                        color: hasOption ? '#FF0000' : '#FFFFDD',
+                        weight: (hasOption && !optionSelected) ? 1 : 3,
+                        opacity: hasOption ? (optionSelected ? 1 : 0.3) : 0,
                         fillOpacity: 0,
                         className: 'c3nav-highlight'
                     };
@@ -1232,7 +1240,6 @@ editor = {
         if (!geometries) return;
         var option;
         for (geometry of geometries) {
-            option = editor.accessRestrictionSelect.find('[value='+String(geometry.highlightID)+']')
             geometry.setStyle({
                 color: '#FFFFDD',
                 weight: 3,
@@ -1248,11 +1255,19 @@ editor = {
         if (!geometries) return;
         var option;
         for (geometry of geometries) {
-            option = editor.accessRestrictionSelect.find('[value='+String(geometry.highlightID)+']')
+            var hasOption, optionSelected;
+            if (editor.accessRestrictionSelect) {
+                var option = editor.accessRestrictionSelect.find('[value=' + String(feature.properties.access_restriction) + ']');
+                hasOption = !!option.length;
+                optionSelected = option.is(':selected');
+            } else {
+                hasOption = false;
+                optionSelected = false;
+            }
             geometry.setStyle({
-                color: option.length ? '#FF0000' : '#FFFFDD',
-                weight: (option.length && !option.is(':selected')) ? 1 : 3,
-                opacity: option.length ? (option.is(':selected') ? 1 : 0.3) : 0,
+                color: hasOption ? '#FF0000' : '#FFFFDD',
+                weight: (hasOption && !optionSelected) ? 1 : 3,
+                opacity: hasOption ? (optionSelected ? 1 : 0.3) : 0,
                 fillOpacity: 0,
             });
             geometry.list_elem.removeClass('highlight');
