@@ -739,9 +739,10 @@ class ChangedObjectCollection(BaseSchema):
 
                 if isinstance(new_operation, CreateObjectOperation):
                     # if an object was created it's no longer missing
-                    missing_objects = new_situation.missing_objects.get(new_operation.obj.model, {})
-                    if new_operation.obj.id in missing_objects:
-                        missing_objects[new_operation.obj.id] = False
+                    for mn in {new_operation.obj.model, operation_model_name}:
+                        missing_objects = new_situation.missing_objects.get(mn, {})
+                        if new_operation.obj.id in missing_objects:
+                            missing_objects[new_operation.obj.id] = False
 
                 if isinstance(new_operation, UpdateObjectOperation):
                     occupied_unique_values = new_situation.occupied_unique_values.get(new_operation.obj.model, {})
@@ -767,9 +768,10 @@ class ChangedObjectCollection(BaseSchema):
 
                 if isinstance(new_operation, DeleteObjectOperation):
                     # if an object was deleted it will now be missing
-                    missing_objects = new_situation.missing_objects.get(new_operation.obj.model, {})
-                    if new_operation.obj.id in missing_objects:
-                        missing_objects[new_operation.obj.id] = True
+                    for mn in {new_operation.obj.model, operation_model_name}:
+                        missing_objects = new_situation.missing_objects.get(mn, {})
+                        if new_operation.obj.id in missing_objects:
+                            missing_objects[new_operation.obj.id] = True
 
                     # all unique values it occupied will no longer be occupied
                     occupied_unique_values = new_situation.occupied_unique_values.get(new_operation.obj.model, {})
