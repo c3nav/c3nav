@@ -56,14 +56,14 @@ class UserPermissions(models.Model):
 
     @property
     def control_panel(self):
-        return (
+        return bool(
             self.view_users
             or self.grant_permissions
             or self.manage_announcements
             or self.grant_all_access
             or self.grant_unlimited_access
             or self.grant_space_access
-            or AccessPermission.get_for_user(user=self.user, can_grant=True)
+            or AccessPermission.get_for_user(user=self.user if self.user_id else None, can_grant=True)
         )
 
     @staticmethod
