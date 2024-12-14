@@ -1238,7 +1238,6 @@ editor = {
         // highlight a geometries layer and itemtable row if they both exist
         var geometries = editor._highlight_geometries[id];
         if (!geometries) return;
-        var option;
         for (geometry of geometries) {
             geometry.setStyle({
                 color: '#FFFFDD',
@@ -1257,7 +1256,7 @@ editor = {
         for (geometry of geometries) {
             var hasOption, optionSelected;
             if (editor.accessRestrictionSelect) {
-                var option = editor.accessRestrictionSelect.find('[value=' + String(feature.properties.access_restriction) + ']');
+                option = editor.accessRestrictionSelect.find('[value=' + String(geometry.highlightID) + ']');
                 hasOption = !!option.length;
                 optionSelected = option.is(':selected');
             } else {
