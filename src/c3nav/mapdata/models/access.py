@@ -338,7 +338,7 @@ class AccessPermission(models.Model):
         result = tuple(
             qs.select_related(
                 'access_restriction_group'
-            ).prefetch_related('access_restriction_group__accessrestrictions')
+            ).prefetch_related('access_restriction_group__members')
         )
 
         # collect permissions (can be multiple for one restriction)
@@ -347,7 +347,7 @@ class AccessPermission(models.Model):
             if permission.access_restriction_id:
                 permissions.setdefault(permission.access_restriction_id, set()).add(permission.expire_date)
             if permission.access_restriction_group_id:
-                for member in permission.access_restriction_group.accessrestrictions.all():
+                for member in permission.access_restriction_group.members.all():
                     permissions.setdefault(member.pk, set()).add(permission.expire_date)
 
         # get latest expire date for each permission
