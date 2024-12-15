@@ -241,7 +241,7 @@ class RouteItem:
             ('waytype', (self.route.router.waytypes[self.edge.waytype] if self.edge and self.edge.waytype else None)),
         ))
         if self.waytype:
-            result['waytype'] = self.waytype.serialize(detailed=False)
+            result['waytype'] = self.waytype
 
         if self.new_space:
             result['space'] = describe_location(self.space, self.route.visible_locations)
