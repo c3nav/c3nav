@@ -112,7 +112,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     @property
     def add_search(self):
         return ' '.join((
-            *(redirect.slug for redirect in self.redirects.all()),
+            *(redirect.effective_slug for redirect in self.redirects.all()),
             *self.other_titles,
         ))
 
