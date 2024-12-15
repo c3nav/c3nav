@@ -241,9 +241,9 @@ class AccessPermission(models.Model):
         if session_token:
             if user_id:
                 raise ValueError
-            return ('mapdata:session_access_permissions:%s' % session_token)
+            return 'mapdata:%s:session_access_permissions:%s' % (MapUpdate.current_cache_key(), session_token)
         elif user_id:
-            return 'mapdata:user_access_permissions:%d' % user_id
+            return 'mapdata:%s:user_access_permissions:%d' % (MapUpdate.current_cache_key(),user_id)
         raise ValueError
 
     @staticmethod
@@ -324,8 +324,6 @@ class AccessPermission(models.Model):
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
             permissions = cls.get_for_request_with_expire_date(request, can_grant=can_grant)
-            print("can_grant", can_grant)
-            print(permissions)
 
             access_restriction_ids = set(permissions.keys())
 
@@ -375,13 +373,13 @@ class AccessPermission(models.Model):
 
         cache_key = cls.build_access_permission_key(user_id=user.pk)
         access_restriction_ids = cache.get(cache_key, None)
-        if access_restriction_ids is None or True:
+        if access_restriction_ids is None:
             permissions = cls.get_for_user_with_expire_date(user, can_grant=can_grant)
 
             access_restriction_ids = set(permissions.keys())
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now()+timedelta(seconds=120))
-            cache.set(cache_key, access_restriction_ids, max(0.0, (expire_date-timezone.now()).total_seconds()))
+            cache.set(cache_key, access_restriction_ids, min(300, (expire_date-timezone.now()).total_seconds()))
         return set(access_restriction_ids) | (set() if can_grant else AccessRestriction.get_all_public())
 
     @classmethod
