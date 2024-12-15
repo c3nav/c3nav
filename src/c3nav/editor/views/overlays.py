@@ -11,14 +11,12 @@ from django.db import IntegrityError
 
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils
 from c3nav.editor.views.edit import get_changeset_exceeded
+from c3nav.mapdata.models import DataOverlay, Level, DataOverlayFeature
 
 
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def overlays_list(request, level):
-    Level = request.changeset.wrap_model('Level')
-    DataOverlay = request.changeset.wrap_model('DataOverlay')
-
     queryset = DataOverlay.objects.all().order_by('id')
     if hasattr(DataOverlay, 'q_for_request'):
         queryset = queryset.filter(DataOverlay.q_for_request(request))
@@ -39,10 +37,6 @@ def overlays_list(request, level):
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def overlay_features(request, level, pk):
-    Level = request.changeset.wrap_model('Level')
-    DataOverlay = request.changeset.wrap_model('DataOverlay')
-    DataOverlayFeature = request.changeset.wrap_model('DataOverlayFeature')
-
     ctx = {
         'path': request.path,
         'overlay_id': pk,
@@ -89,10 +83,6 @@ def overlay_features(request, level, pk):
 @sidebar_view(api_hybrid=True)
 def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     changeset_exceeded = get_changeset_exceeded(request)
-
-    Level = request.changeset.wrap_model('Level')
-    DataOverlay = request.changeset.wrap_model('DataOverlay')
-    DataOverlayFeature = request.changeset.wrap_model('DataOverlayFeature')
 
     can_edit_changeset = request.changeset.can_edit(request)
 
