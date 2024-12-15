@@ -357,7 +357,7 @@ class LocationGroup(Location, models.Model):
         deferred_fields = self.get_deferred_fields()
         self._orig = {
             key: getattr(self, key)
-            for key in ["priority", "hierarchy", "category", "color"]
+            for key in ("priority", "hierarchy", "category_id", "color")
             if key not in deferred_fields
         }
 
