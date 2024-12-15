@@ -241,9 +241,9 @@ class AccessPermission(models.Model):
         if session_token:
             if user_id:
                 raise ValueError
-            return ('mapdata:session_access_permission:%s' % session_token)
+            return ('mapdata:session_access_permissions:%s' % session_token)
         elif user_id:
-            return 'mapdata:user_access_permission:%d' % user_id
+            return 'mapdata:user_access_permissions:%d' % user_id
         raise ValueError
 
     @staticmethod
@@ -312,7 +312,7 @@ class AccessPermission(models.Model):
         return permissions
 
     @classmethod
-    def get_for_request(cls, request, can_grant: bool = False) -> set[int]:
+    def get_for_request(cls, request, can_grant: bool = None) -> set[int]:
         # todo: look, for some reason can_grant=False is coded to do the same as can_grant=True. why?
         if not request:
             return AccessRestriction.get_all_public()
@@ -322,13 +322,15 @@ class AccessPermission(models.Model):
 
         cache_key = cls.request_access_permission_key(request)
         access_restriction_ids = cache.get(cache_key, None)
-        if access_restriction_ids is None or True:
+        if access_restriction_ids is None:
             permissions = cls.get_for_request_with_expire_date(request, can_grant=can_grant)
+            print("can_grant", can_grant)
+            print(permissions)
 
             access_restriction_ids = set(permissions.keys())
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now() + timedelta(seconds=120))
-            cache.set(cache_key, access_restriction_ids, max(0.0, (expire_date - timezone.now()).total_seconds()))
+            cache.set(cache_key, access_restriction_ids, min(300, (expire_date - timezone.now()).total_seconds()))
         return set(access_restriction_ids) | (set() if can_grant else AccessRestriction.get_all_public())
 
     @classmethod
