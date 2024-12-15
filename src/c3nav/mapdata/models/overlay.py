@@ -5,13 +5,14 @@ from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
 
 from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
 
-class DataOverlay(TitledMixin, models.Model):
+class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
     description = models.TextField(blank=True, verbose_name=_('Description'))
     stroke_color = models.TextField(blank=True, null=True, verbose_name=_('default stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('default stroke width'))
