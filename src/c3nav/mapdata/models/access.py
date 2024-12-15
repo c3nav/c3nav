@@ -261,6 +261,7 @@ class AccessPermission(models.Model):
 
     @classmethod
     def queryset_for_user(cls, user, can_grant=None):
+        # todo: look, for some reason can_grant=False is coded to do the same as can_grant=True. why?
         return user.accesspermissions.filter(
             Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
         ).filter(
@@ -278,6 +279,7 @@ class AccessPermission(models.Model):
 
     @classmethod
     def get_for_request_with_expire_date(cls, request, can_grant=None):
+        # todo: look, for some reason can_grant=False is coded to do the same as can_grant=True. why?
         if request.user.is_authenticated:
             if request.user_permissions.grant_all_access:
                 return {pk: None for pk in AccessRestriction.get_all()}
@@ -311,6 +313,7 @@ class AccessPermission(models.Model):
 
     @classmethod
     def get_for_request(cls, request, can_grant: bool = False) -> set[int]:
+        # todo: look, for some reason can_grant=False is coded to do the same as can_grant=True. why?
         if not request:
             return AccessRestriction.get_all_public()
 
@@ -330,6 +333,7 @@ class AccessPermission(models.Model):
 
     @classmethod
     def get_for_user_with_expire_date(cls, user, can_grant=None):
+        # todo: look, for some reason can_grant=False is coded to do the same as can_grant=True. why?
         from c3nav.control.models import UserPermissions
         if UserPermissions.get_for_user(user).grant_all_access:
             return {pk: None for pk in AccessRestriction.get_all()}
@@ -358,7 +362,8 @@ class AccessPermission(models.Model):
         return permissions
 
     @classmethod
-    def get_for_user(cls, user, can_grant: bool = False) -> set[int]:
+    def get_for_user(cls, user, can_grant: bool = None) -> set[int]:
+        # todo: look, for some reason can_grant=False is coded to do the same as can_grant=True. why?
         from c3nav.control.models import UserPermissions
         if not user or not user.is_authenticated:
             return AccessRestriction.get_all_public()
