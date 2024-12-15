@@ -252,14 +252,18 @@ class PrefetchedDatabaseOperationCollection:
 
     def apply(self):
         # todo: what if unique constraint error occurs?
+        prev = self.operations.prev.model_copy(deep=True)
         for operation in self.operations:
             if isinstance(operation, (CreateObjectOperation, CreateMultipleObjectsOperation)):
                 self.instances.update(operation.apply_create())
+                sub_ops = operation.objects if isinstance(operation, CreateMultipleObjectsOperation) else [operation]
+                for sub_op in sub_ops:
+                    prev.set(ref=sub_op.obj, values=sub_op.fields, titles=None)
+
             else:
-                prev_obj = self.operations.prev.get(operation.obj)
+                prev_obj = prev.get(operation.obj)
                 if prev_obj is None:
-                    print('WARN WARN WARN')
-                values = prev_obj.values
+                    raise ValueError(f'Missing: {operation.obj}')
                 try:
                     instance = self.instances[operation.obj]
                 except KeyError:
@@ -267,5 +271,6 @@ class PrefetchedDatabaseOperationCollection:
                         instance = apps.get_model("mapdata", operation.obj.model).filter(pk=operation.obj.id).first()
                     else:
                         instance = None
-                if instance is not None:
-                    operation.apply(values=values, instance=instance)
+                if instance is None:
+                    raise ValueError('Instance to update doesn\'t exist')
+                operation.apply(values=prev_obj.values, instance=instance)

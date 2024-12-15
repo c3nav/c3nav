@@ -682,6 +682,8 @@ class ChangedObjectCollection(BaseSchema):
                             # store the dummyvalue so we can tell the user about it
                             problems.get_object(new_operation.obj).dummy_values[field_name] = dummy_value
 
+                            new_operation.fields[field_name] = dummy_value
+
                         else:
                             # we have set this field to a non-dummy value, if we used one before we can forget it
                             problems.get_object(new_operation.obj).dummy_values.pop(field_name, None)
