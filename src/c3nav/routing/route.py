@@ -178,14 +178,14 @@ class Route:
     def options_summary(self):
         options_summary = [
             {
-                'fastest': _('fastest route'),
-                'shortest': _('shortest route')
+                'fastest': _('fastest'),
+                'shortest': _('shortest')
             }[self.options['mode']],
         ]
 
         restrictions_option = self.options.get('restrictions', 'normal')
         if restrictions_option == "avoid":
-            options_summary.append(_('avoid restrictions'))
+            options_summary.append(_('avoid restrictionss'))
         elif restrictions_option == "prefer":
             options_summary.append(_('prefer restrictions'))
 
@@ -193,10 +193,9 @@ class Route:
                                 for name, value in self.options.items())
 
         if waytypes_excluded:
-            options_summary.append(_('some path types avoided'))
-
-        if len(options_summary) == 1:
-            options_summary.append(_('default options'))
+            options_summary.append(_('avoid some path types'))
+        else:
+            options_summary.append(_('all path types'))
 
         return ', '.join(str(s) for s in options_summary)
 

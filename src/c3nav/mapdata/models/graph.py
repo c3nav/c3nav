@@ -41,11 +41,12 @@ class WayType(SerializableMixin, models.Model):
     up_separate = models.BooleanField(_('upwards separately'), default=True)
     walk = models.BooleanField(_('walking'), default=False)
     color = models.CharField(max_length=32, verbose_name=_('edge color'))
+    avoid_by_default = models.BooleanField(_('avoid by default'), default=False)
     icon_name = models.CharField(_('icon name'), max_length=32, null=True, blank=True)
     extra_seconds = models.PositiveSmallIntegerField(_('extra seconds per edge'), default=0)
     speed = models.DecimalField(_('speed (m/s)'), max_digits=3, decimal_places=1, default=1,
                                 validators=[MinValueValidator(Decimal('0.1'))])
-    description = I18nField(_('description'), fallback_any=True)
+    description = I18nField(_('description (downwards or general)'), fallback_any=True)
     speed_up = models.DecimalField(_('speed upwards (m/s)'), max_digits=3, decimal_places=1, default=1,
                                    validators=[MinValueValidator(Decimal('0.1'))])
     description_up = I18nField(_('description upwards'), fallback_any=True)

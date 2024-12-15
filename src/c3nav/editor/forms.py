@@ -406,7 +406,7 @@ def create_editor_form(editor_model):
                        'node_number', 'wifi_bssid', 'bluetooth_address', "group",
                        'ibeacon_uuid', 'ibeacon_major', 'ibeacon_minor', 'uwb_address',
                        'extra_seconds', 'speed', 'can_report_missing', "can_report_mistake",
-                       'description', 'speed_up', 'description_up',
+                       'description', 'speed_up', 'description_up', 'avoid_by_default',
                        'report_help_text', 'enter_description', 'level_change_description', 'base_mapdata_accessible',
                        'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size', 'members',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations',

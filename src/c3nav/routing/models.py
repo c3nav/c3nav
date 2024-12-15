@@ -52,7 +52,7 @@ class RouteOptions(models.Model):
             fields['waytype_%d' % waytype.pk] = forms.ChoiceField(
                 label=waytype.title_plural,
                 choices=tuple(choices),
-                initial='allow'
+                initial='avoid' if waytype.avoid_by_default else 'allow',
             )
 
         fields['restrictions'] = forms.ChoiceField(
