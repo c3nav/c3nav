@@ -376,7 +376,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'form': form,
     })
 
-    if model is AccessRestrictionGroup:
+    if model is AccessRestrictionGroup and request.user_permissions.can_access_base_mapdata:
         levels = list(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True))
         ctx.update({
             "levels": levels,
@@ -538,7 +538,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         'grouped_objects': grouped_objects,
     })
 
-    if model is AccessRestriction:
+    if model is AccessRestriction and request.user_permissions.can_access_base_mapdata:
         levels = list(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True))
         ctx.update({
             "levels": levels,
