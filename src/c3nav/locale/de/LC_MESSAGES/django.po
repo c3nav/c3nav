@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-12-15 19:28+0100\n"
-"PO-Revision-Date: 2024-12-15 18:31+0000\n"
+"PO-Revision-Date: 2024-12-15 18:32+0000\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1276,12 +1276,12 @@ msgstr "Login erforderlich."
 
 #: c3nav/editor/views/changes.py
 msgid "Can't find this changed object"
-msgstr "Geändertes Objekt nicht gefunden."
+msgstr "Geändertes Objekt nicht gefunden"
 
 #: c3nav/editor/views/changes.py
 msgid "Can't restore this object because it wasn't deleted"
 msgstr ""
-"Du kannst dieses Objekt nicht wiederherstellen, da es nicht gelöscht wurde."
+"Du kannst dieses Objekt nicht wiederherstellen, da es nicht gelöscht wurde"
 
 #: c3nav/editor/views/changes.py
 msgid "Object has been successfully restored."
@@ -1440,7 +1440,7 @@ msgstr "gelöscht"
 
 #: c3nav/editor/views/changes.py
 msgid "can't delete this object because of protected references"
-msgstr "Kann objekt nicht löschen weil andere Objekte sich darauf beziehen."
+msgstr "Kann objekt nicht löschen weil andere Objekte sich darauf beziehen"
 
 #: c3nav/editor/views/changes.py
 msgid "You cannot edit this change set."
@@ -2543,7 +2543,7 @@ msgstr "Standardfüllfarbe"
 
 #: c3nav/mapdata/models/overlay.py
 msgid "pull URL"
-msgstr "pull URL "
+msgstr "pull URL"
 
 #: c3nav/mapdata/models/overlay.py
 msgid "headers for pull http request (JSON object)"
