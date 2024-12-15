@@ -15,7 +15,8 @@ and potential backwards incompatibilities.
 - reports for wrong locations can now be auto-rejected based on location groups
 - access restrictions that are part of an access restriction group are now defined in the group, data was migrated
 - editor access restriction overview now highlights affected spaces on a map
-- editor access restriction group edit now shows spaces with selected access restrictions and allows selecting through double click  
+- editor access restriction group edit now shows spaces with selected access restrictions and allows selecting through double click
+- WayTypes can now be excluded by default
 
 # Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 

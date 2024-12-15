@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-09 16:08+0100\n"
-"PO-Revision-Date: 2024-12-09 16:19+0100\n"
+"POT-Creation-Date: 2024-12-15 19:28+0100\n"
+"PO-Revision-Date: 2024-12-15 18:31+0000\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -201,8 +201,8 @@ msgid "manage map updates"
 msgstr "Kartenänderungen verwalten"
 
 #: c3nav/control/models.py
-msgid "can access control panel"
-msgstr "kann auf das Control Panel zugreifen"
+msgid "view user list in control panel"
+msgstr "Benutzerliste im Kontrollpanel sehen"
 
 #: c3nav/control/models.py
 msgid "can grant control permissions"
@@ -1744,10 +1744,6 @@ msgid "public"
 msgstr "öffentlich"
 
 #: c3nav/mapdata/models/access.py
-msgid "Groups"
-msgstr "Gruppen"
-
-#: c3nav/mapdata/models/access.py
 msgid "Access Restrictions"
 msgstr "Zugangs­beschränkungen"
 
@@ -2061,8 +2057,8 @@ msgstr "Höhenmarker"
 msgid "target space"
 msgstr "Zielraum"
 
-#: c3nav/mapdata/models/geometry/space.py c3nav/mapdata/models/graph.py
-#: c3nav/mapdata/models/locations.py c3nav/mapdata/models/report.py
+#: c3nav/mapdata/models/geometry/space.py c3nav/mapdata/models/locations.py
+#: c3nav/mapdata/models/report.py
 msgid "description"
 msgstr "Beschreibung"
 
@@ -2171,6 +2167,10 @@ msgid "edge color"
 msgstr "Kantenfarbe"
 
 #: c3nav/mapdata/models/graph.py
+msgid "avoid by default"
+msgstr "standardmäßig vermeiden"
+
+#: c3nav/mapdata/models/graph.py
 msgid "icon name"
 msgstr "Iconname"
 
@@ -2181,6 +2181,10 @@ msgstr "Extra-Sekunden pro Kante"
 #: c3nav/mapdata/models/graph.py
 msgid "speed (m/s)"
 msgstr "Geschwindigkeit (m/s)"
+
+#: c3nav/mapdata/models/graph.py
+msgid "description (downwards or general)"
+msgstr "Beschreibung (abwärts oder generell)"
 
 #: c3nav/mapdata/models/graph.py
 msgid "speed upwards (m/s)"
@@ -2700,7 +2704,6 @@ msgid "Sources"
 msgstr "Vorlagen"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
 msgid "Public"
 msgstr "öffentlich"
 
@@ -3505,11 +3508,11 @@ msgstr "Routenoptionen"
 msgid "Routing mode"
 msgstr "Routemodus"
 
-#: c3nav/routing/models.py
+#: c3nav/routing/models.py c3nav/routing/route.py
 msgid "fastest"
 msgstr "schnellste"
 
-#: c3nav/routing/models.py
+#: c3nav/routing/models.py c3nav/routing/route.py
 msgid "shortest"
 msgstr "kürzeste"
 
@@ -3586,28 +3589,20 @@ msgid "You have reached your destination."
 msgstr "Du hast dein Ziel erreicht."
 
 #: c3nav/routing/route.py
-msgid "fastest route"
-msgstr "schnellste Route"
-
-#: c3nav/routing/route.py
-msgid "shortest route"
-msgstr "kürzeste Route"
-
-#: c3nav/routing/route.py
-msgid "avoid restrictions"
-msgstr "Zugangsbeschränkungen vermeiden"
+msgid "avoid restrictionss"
+msgstr "nicht-öffentlich vermieden"
 
 #: c3nav/routing/route.py
 msgid "prefer restrictions"
-msgstr "Zugangsbeschränkungen bevorzugen"
+msgstr "nicht-öffentlich bevorzugen"
 
 #: c3nav/routing/route.py
-msgid "some path types avoided"
+msgid "avoid some path types"
 msgstr "einige Wegtypen vermieden"
 
 #: c3nav/routing/route.py
-msgid "default options"
-msgstr "Standardoptionen"
+msgid "all path types"
+msgstr "alle Pfadtypen"
 
 #: c3nav/settings.py
 msgid "English"
@@ -4227,6 +4222,21 @@ msgid "API secret created. Save it now, cause it will not be shown again!"
 msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
+
+#~ msgid "can access control panel"
+#~ msgstr "kann auf das Control Panel zugreifen"
+
+#~ msgid "Groups"
+#~ msgstr "Gruppen"
+
+#~ msgid "fastest route"
+#~ msgstr "schnellste Route"
+
+#~ msgid "shortest route"
+#~ msgstr "kürzeste Route"
+
+#~ msgid "default options"
+#~ msgstr "Standardoptionen"
 
 #~ msgid "id of existing object"
 #~ msgstr "ID eines existierenden Objects"
