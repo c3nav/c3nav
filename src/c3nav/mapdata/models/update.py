@@ -2,7 +2,7 @@ import logging
 import os
 import pickle
 import time
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager, suppress, nullcontext
 from functools import cached_property
 from sqlite3 import DatabaseError
 
@@ -61,13 +61,13 @@ class MapUpdate(models.Model):
         return last_update
 
     @classmethod
-    def last_processed_update(cls, force=False):
+    def last_processed_update(cls, force=False, lock=True):
         if not force:
             last_processed_update = cache.get('mapdata:last_processed_update', None)
             if last_processed_update is not None:
                 return last_processed_update
         try:
-            with cls.lock():
+            with (cls.lock() if lock else nullcontext()):
                 last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
                 cache.set('mapdata:last_processed_update', last_processed_update, None)
         except cls.DoesNotExist:
@@ -214,7 +214,7 @@ class MapUpdate(models.Model):
 
                 logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
 
-                last_processed_update = cls.last_processed_update(force=True)
+                last_processed_update = cls.last_processed_update(force=True, lock=False)
 
                 for new_update in new_updates:
                     logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
