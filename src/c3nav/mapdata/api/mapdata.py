@@ -50,7 +50,7 @@ def mapdata_list_endpoint(request,
     result = list(qs)
 
     for obj in result:
-        if can_access_geometry(request, obj):
+        if not can_access_geometry(request, obj):
             obj._hide_geometry = True
 
     return result
