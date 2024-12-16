@@ -1,6 +1,7 @@
+from c3nav.editor.forms import get_editor_form
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse,
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
-                                     editor_etag_func, sidebar_view)
+                                     editor_etag_func, sidebar_view, accesses_mapdata)
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import etag
 from django.urls import reverse
@@ -15,6 +16,7 @@ from c3nav.mapdata.models import DataOverlay, Level, DataOverlayFeature
 
 
 @etag(editor_etag_func)
+@accesses_mapdata
 @sidebar_view(api_hybrid=True)
 def overlays_list(request, level):
     queryset = DataOverlay.objects.all().order_by('id')
@@ -35,6 +37,7 @@ def overlays_list(request, level):
     return APIHybridTemplateContextResponse('editor/overlays.html', ctx, fields=('overlays',))
 
 @etag(editor_etag_func)
+@accesses_mapdata
 @sidebar_view(api_hybrid=True)
 def overlay_features(request, level, pk):
     ctx = {
@@ -80,6 +83,7 @@ def overlay_features(request, level, pk):
                                             fields=('can_create', 'create_url', 'objects'))
 
 @etag(editor_etag_func)
+@accesses_mapdata
 @sidebar_view(api_hybrid=True)
 def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     changeset_exceeded = get_changeset_exceeded(request)
@@ -205,7 +209,7 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
 
         json_body = getattr(request, 'json_body', None)
         data = json_body if json_body is not None else request.POST
-        form = DataOverlayFeature.EditorForm(instance=DataOverlayFeature() if new else obj, data=data, is_json=json_body is not None,
+        form = get_editor_form(DataOverlayFeature)(instance=DataOverlayFeature() if new else obj, data=data, is_json=json_body is not None,
                                 request=request, space_id=space_id,
                                 geometry_editable=edit_utils.can_access_child_base_mapdata)
         if form.is_valid():
@@ -239,8 +243,8 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
                     error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
 
     else:
-        form = DataOverlayFeature.EditorForm(instance=obj, request=request, space_id=space_id,
-                                geometry_editable=edit_utils.can_access_child_base_mapdata)
+        form = get_editor_form(DataOverlayFeature)(instance=obj, request=request, space_id=space_id,
+                                      geometry_editable=edit_utils.can_access_child_base_mapdata)
 
     ctx.update({
         'form': form,
