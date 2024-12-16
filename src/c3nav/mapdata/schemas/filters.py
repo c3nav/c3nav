@@ -6,7 +6,8 @@ from pydantic import Field as APIField
 
 from c3nav.api.exceptions import APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, Door, Building
+from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, Door, Building, \
+    DataOverlay
 from c3nav.mapdata.models.access import AccessPermission
 
 
@@ -145,7 +146,7 @@ class ByOverlayFilter(FilterSchema):
     def validate(self, request):
         super().validate(request)
         if self.overlay is not None:
-            assert_valid_value(request, Level, "pk", {self.overlay})
+            assert_valid_value(request, DataOverlay, "pk", {self.overlay})
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.overlay is not None:

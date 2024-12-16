@@ -130,6 +130,7 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
         'title': obj.title if obj else None,
         'geometry_url': geometry_url,
         'geomtype': 'polygon,linestring,point',
+        'default_geomtype': overlay.default_geomtype,
     }
 
     space_id = None

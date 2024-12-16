@@ -13,10 +13,18 @@ from c3nav.mapdata.utils.json import format_geojson
 
 
 class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
+    class GeometryType(models.TextChoices):
+        POLYGON = "polygon", _("Polygon")
+        LINESTRING = "linestring", _("Line string")
+        POINT = "point", _("Point")
+
     description = models.TextField(blank=True, verbose_name=_('Description'))
     stroke_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('default stroke width'))
     fill_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default fill color'))
+
+    default_geomtype = models.CharField(max_length=255, blank=True, null=True, choices=GeometryType, verbose_name=_('default geometry type'))
+
     pull_url = models.URLField(blank=True, null=True, verbose_name=_('pull URL'))
     pull_headers: dict[str, str] = SchemaField(schema=dict[str, str], null=True,
                                                verbose_name=_('headers for pull http request (JSON object)'))

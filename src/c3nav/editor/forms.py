@@ -422,6 +422,7 @@ def create_editor_form(editor_model):
                        'color_ground_fill', 'color_obstacles_default_fill', 'color_obstacles_default_border',
                        'stroke_color', 'stroke_width', 'fill_color', 'interactive', 'point_icon', 'extra_data',
                        'show_label', 'show_geometry', 'external_url',
+                       'show_label', 'show_geometry', 'external_url', 'default_geomtype',
                        ]
     field_names = [field.name for field in editor_model._meta.get_fields()
                    if not field.one_to_many and not isinstance(field, ManyToManyRel)]

@@ -2615,6 +2615,7 @@ KeyControl = L.Control.extend({
 OverlayControl = L.Control.extend({
     options: {position: 'topright', addClasses: '', levels: {}},
     _overlays: {},
+    _ungrouped: [],
     _groups: {},
     _initialActiveOverlays: null,
     _initialCollapsedGroups: null,
@@ -2685,14 +2686,19 @@ OverlayControl = L.Control.extend({
 
     addOverlay: function (overlay) {
         this._overlays[overlay.id] = overlay;
-        if (overlay.group in this._groups) {
-            this._groups[overlay.group].overlays.push(overlay);
+        if (overlay.group == null) {
+            this._ungrouped.push(overlay);
         } else {
-            this._groups[overlay.group] = {
-                expanded: this._initialCollapsedGroups === null || !this._initialCollapsedGroups.includes(overlay.group),
-                overlays: [overlay],
-            };
+            if (overlay.group in this._groups) {
+                this._groups[overlay.group].overlays.push(overlay);
+            } else {
+                this._groups[overlay.group] = {
+                    expanded: this._initialCollapsedGroups === null || !this._initialCollapsedGroups.includes(overlay.group),
+                    overlays: [overlay],
+                };
+            }
         }
+
         this.render();
     },
 
@@ -2709,7 +2715,28 @@ OverlayControl = L.Control.extend({
 
     render: function () {
         if (!this._content) return;
+
+        const ungrouped = document.createDocumentFragment();
         const groups = document.createDocumentFragment();
+
+
+        const render_overlays = (overlays, container) => {
+            for (const overlay of overlays) {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.id = overlay.id;
+                if (overlay.visible) {
+                    checkbox.checked = true;
+                }
+                label.append(checkbox, overlay.title);
+                container.append(label);
+            }
+        };
+
+        render_overlays(this._ungrouped, ungrouped);
+
+
         for (const group in this._groups) {
             const group_container = document.createElement('div');
             group_container.classList.add('overlay-group');
@@ -2721,20 +2748,10 @@ OverlayControl = L.Control.extend({
             const title = document.createElement('h4');
             title.innerText = group;
             group_container.append(title);
-            for (const overlay of this._groups[group].overlays) {
-                const label = document.createElement('label');
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.dataset.id = overlay.id;
-                if (overlay.visible) {
-                    checkbox.checked = true;
-                }
-                label.append(checkbox, overlay.name);
-                group_container.append(label);
-            }
+            render_overlays(this._groups[group].overlays, group_container);
             groups.append(group_container);
         }
-        this._content.replaceChildren(...groups.children);
+        this._content.replaceChildren(...ungrouped.children, ...groups.children);
     },
 
     expand: function () {
@@ -2832,8 +2849,8 @@ class DataOverlay {
 
     constructor(options) {
         this.id = options.id;
-        this.name = options.name;
-        this.group = options.group ?? 'ungrouped';
+        this.title = options.title;
+        this.group = options.group;
         this.default_stroke_color = options.stroke_color;
         this.default_stroke_width = options.stroke_width;
         this.default_fill_color = options.fill_color;

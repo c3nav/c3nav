@@ -1811,14 +1811,7 @@ blink {
             }
 
             label {
-                cursor: pointer;
                 margin-left: 3ch;
-                margin-bottom: 0;
-            }
-
-            input[type=checkbox] {
-                margin-right: 0.5rem;
-                margin-bottom: 0;
             }
         }
 
@@ -1830,6 +1823,16 @@ blink {
             height: 0;
             overflow: hidden;
             margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        label {
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        input[type=checkbox] {
+            margin-right: 0.5rem;
             margin-bottom: 0;
         }
     }

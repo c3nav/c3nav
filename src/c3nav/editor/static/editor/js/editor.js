@@ -1370,6 +1370,7 @@ editor = {
                 }
                 form.addClass('creation-lock');
                 const geomtypes = form.attr('data-geomtype').split(',');
+                const default_geomtype = form.attr('data-default-geomtype');
 
                 const startGeomEditing = (geomtype) => {
                     editor._creating_type = geomtype;
@@ -1387,6 +1388,8 @@ editor = {
                     }
                 }
 
+                let selected_geomtype = geomtypes[0];
+
                 if (geomtypes.length > 1) {
                     const selector = $('<select id="geomtype-selector"></select>');
                     const geomtypeNames = {
@@ -1395,13 +1398,18 @@ editor = {
                         point: 'Point'
                     }; // TODO: translations
                     for(const geomtype of geomtypes) {
-                        selector.append(`<option value="${geomtype}">${geomtypeNames[geomtype]}</option>`);
+                        const option = $(`<option value="${geomtype}">${geomtypeNames[geomtype]}</option>`);
+                        if (geomtype === default_geomtype) {
+                            option.attr('selected', true);
+                            selected_geomtype = geomtype;
+                        }
+                        selector.append(option);
                     }
 
                     selector.on('change', e => startGeomEditing(e.target.value));
                     form.prepend(selector);
                 }
-                startGeomEditing(geomtypes[0]);
+                startGeomEditing(selected_geomtype);
             }
         }
     },
