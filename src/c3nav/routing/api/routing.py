@@ -127,6 +127,18 @@ class ShortWayTypeSchema(DjangoModelSchema):
     pass
 
 
+class ShortSpaceSchema(DjangoModelSchema):
+    pass
+
+class RouteLevelSchema(DjangoModelSchema):
+    on_top_of: Union[
+        Annotated[PositiveInt, APIField(title="level ID", description="level this level is on top of", example=1)],
+        Annotated[None, APIField(title="null", description="this is a main level, not on top of any other")]
+    ] = APIField(
+        title="on top of level ID",
+        description="if set, this is not a main level, but it's on top of this other level"
+    )
+
 class RouteItemSchema(BaseSchema):
     id: PositiveInt
     coordinates: Coordinates3D
@@ -136,14 +148,14 @@ class RouteItemSchema(BaseSchema):
     ] = APIField(None, title="waytype")
     space: Union[
         Annotated[
-            SlimSpaceLocationSchema,
+            ShortSpaceSchema,
             APIField(title="space", descripiton="new space that is being entered")
         ],
         Annotated[None, APIField(title="null", description="staying in the same space")],
     ] = APIField(None, description="new space being entered")
     level: Union[
         Annotated[
-            SlimLevelLocationSchema,
+            RouteLevelSchema,
             APIField(title="level", descripiton="new level that is being entered")
         ],
         Annotated[None, APIField(title="null", description="staying in the same level")],
@@ -151,14 +163,13 @@ class RouteItemSchema(BaseSchema):
     descriptions: list[tuple[
         Annotated[NonEmptyStr, APIField(
             title="icon name",
-            description="any material design icon name"
+            description="any material design icon name or svg icon file name"
         )],
         Annotated[NonEmptyStr, APIField(
             title="instruction",
             description="navigation instruction"
         )]
     ]]
-
 
 class RouteSchema(BaseSchema):
     origin: SlimLocationSchema  # todo: is this fine? works? no issues?
