@@ -21,7 +21,9 @@ class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
     description = models.TextField(blank=True, verbose_name=_('Description'))
     stroke_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('default stroke width'))
+    stroke_opacity = models.FloatField(blank=True, null=True, verbose_name=_('stroke opacity'))
     fill_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default fill color'))
+    fill_opacity = models.FloatField(blank=True, null=True, verbose_name=_('fill opacity'))
 
     default_geomtype = models.CharField(max_length=255, blank=True, null=True, choices=GeometryType, verbose_name=_('default geometry type'))
 
@@ -43,7 +45,9 @@ class DataOverlayFeature(TitledMixin, GeometryMixin, models.Model):
     external_url = models.URLField(blank=True, null=True, verbose_name=_('external URL'))
     stroke_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('stroke width'))
+    stroke_opacity = models.FloatField(blank=True, null=True, verbose_name=_('stroke opacity'))
     fill_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('fill color'))
+    fill_opacity = models.FloatField(blank=True, null=True, verbose_name=_('fill opacity'))
     show_label = models.BooleanField(default=False, verbose_name=_('show label'))
     show_geometry = models.BooleanField(default=True, verbose_name=_('show geometry'))
     interactive = models.BooleanField(default=True, verbose_name=_('interactive'),

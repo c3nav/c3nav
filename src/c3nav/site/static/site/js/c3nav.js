@@ -2859,7 +2859,9 @@ class DataOverlay {
         this.group = options.group;
         this.default_stroke_color = options.stroke_color;
         this.default_stroke_width = options.stroke_width;
+        this.default_stroke_opacity = options.stroke_opacity;
         this.default_fill_color = options.fill_color;
+        this.default_fill_opacity = options.fill_opacity;
     }
 
     async create() {
@@ -2874,7 +2876,9 @@ class DataOverlay {
             const style = {
                 'color': feature.stroke_color ?? this.default_stroke_color ?? 'var(--color-map-overlay)',
                 'weight': feature.stroke_width ?? this.default_stroke_width ?? 1,
+                'opacity': feature.stroke_opacity ?? this.default_stroke_opacity ?? 1,
                 'fillColor': feature.fill_color ?? this.default_fill_color ?? 'var(--color-map-overlay)',
+                'fillOpacity': feature.fill_opacity ?? this.default_fill_opacity ?? 0.2,
             };
             const layer = L.geoJson(feature.geometry, {
                 style,

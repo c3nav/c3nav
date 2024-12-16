@@ -368,7 +368,9 @@ class DataOverlaySchema(TitledSchema, DjangoModelSchema):
     description: Optional[str]
     stroke_color: Optional[str]
     stroke_width: Optional[float]
+    stroke_opacity: Optional[float]
     fill_color: Optional[str]
+    fill_opacity: Optional[float]
 
 
 
@@ -380,7 +382,9 @@ class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSche
     level_id: PositiveInt
     stroke_color: Optional[str]
     stroke_width: Optional[float]
+    stroke_opacity: Optional[float]
     fill_color: Optional[str]
+    fill_opacity: Optional[float]
     show_label: bool
     show_geometry: bool
     interactive: bool
