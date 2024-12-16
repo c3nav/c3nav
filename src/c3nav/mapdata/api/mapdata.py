@@ -11,7 +11,7 @@ from c3nav.api.exceptions import API404
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.api.base import api_etag, optimize_query, can_access_geometry
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
-                                  Space, Stair, DataOverlay, DataOverlayFeature)
+                                  Space, Stair, DataOverlay, DataOverlayFeature, WayType)
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
@@ -24,7 +24,8 @@ from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRe
                                           DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
                                           LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
                                           ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
-                                          DataOverlaySchema, DataOverlayFeatureSchema, LocationRedirectSchema)
+                                          DataOverlaySchema, DataOverlayFeatureSchema, LocationRedirectSchema,
+                                          WayTypeSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 
@@ -223,6 +224,10 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
             model=DataOverlayFeature,
             schema=DataOverlayFeatureSchema,
             filters=ByOverlayFilter,
+        ),
+        MapdataEndpoint(
+            model=WayType,
+            schema=WayTypeSchema,
         ),
     ],
     "level": [

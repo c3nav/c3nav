@@ -393,6 +393,12 @@ class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSche
     extra_data: Optional[dict[str, str]]
 
 
+class WayTypeSchema(TitledSchema, DjangoModelSchema):
+    """
+    Waytypes for navigation like stairs, escalators etc
+    """
+    pass
+
 class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
     A source image that can be traced in the editor.
