@@ -2535,7 +2535,6 @@ KeyControl = L.Control.extend({
 
         if (L.Browser.touch) {
             this._pinned = false;
-            console.log('installing touch handlers')
             $(this._collapsed).click((e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -2639,11 +2638,12 @@ OverlayControl = L.Control.extend({
         this._container = L.DomUtil.create('div', 'leaflet-control-overlays ' + this.options.addClasses);
         this._container.classList.toggle('leaflet-control-overlays-expanded', pinned);
         this._content = L.DomUtil.create('div', 'content');
-        const collapsed = L.DomUtil.create('div', 'collapsed-toggle');
+        this._collapsed = L.DomUtil.create('a', 'collapsed-toggle');
+        this._collapsed.href = '#';
         this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols');
         this._pin.classList.toggle('active', pinned);
         this._pin.innerText = 'push_pin';
-        this._container.append(this._pin, this._content, collapsed);
+        this._container.append(this._pin, this._content, this._collapsed);
         this._expanded = pinned;
         this._pinned = pinned;
 
@@ -2654,7 +2654,23 @@ OverlayControl = L.Control.extend({
             }, this);
         }
 
-        if (!L.Browser.touch) {
+
+        if (L.Browser.touch) {
+            this._pinned = false;
+            $(this._collapsed).click((e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.expand();
+            });
+            $(this._container).click((e) => {
+                e.stopPropagation();
+            });
+            $(this._map).on('click', (e) => {
+                if (this._expanded) {
+                    this.collapse();
+                }
+            });
+        } else {
             L.DomEvent.on(this._container, 'focus', this.expand, this);
             L.DomEvent.on(this._container, 'blur', this.collapse, this);
         }
