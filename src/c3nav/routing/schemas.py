@@ -77,7 +77,7 @@ class LocateRequestIBeaconPeerSchema(BaseSchema):
         title="minor value of the iBeacon",
     )
     distance: NonNegativeFloat = APIField(
-        title="determined iBeacon distance",
+        title="determined iBeacon distance in meters",
     )
     last_seen_ago: NonNegativeInt = APIField(
         title="how many milliseconds ago this beacon was last seen"
