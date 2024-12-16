@@ -792,6 +792,7 @@ c3nav = {
         c3nav._maybe_load_site_update(e.state);
     },
     load_state: function (state, nofly) {
+        console.log(window.location);
         if (state.modal) {
             history.back();
             return;
@@ -2512,18 +2513,14 @@ KeyControl = L.Control.extend({
     _keys: [],
 
     onAdd: function () {
-        const pinned = JSON.parse(localStorage.getItem('c3nav.key.pinned') ?? 'false');
+        this._pinned = JSON.parse(localStorage.getItem('c3nav.key.pinned') ?? 'false');
 
         this._container = L.DomUtil.create('div', 'leaflet-control-key ' + this.options.addClasses);
-        this._container.classList.toggle('leaflet-control-key-expanded', pinned);
         this._content = L.DomUtil.create('div', 'content', this._container);
         this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols', this._container);
-        this._pin.classList.toggle('active', pinned);
         this._pin.innerText = 'push_pin';
         this._collapsed = L.DomUtil.create('a', 'collapsed-toggle', this._container);
         this._collapsed.href = '#';
-        this._expanded = pinned;
-        this._pinned = pinned;
 
         if (!L.Browser.android) {
             L.DomEvent.on(this._container, {
@@ -2532,9 +2529,11 @@ KeyControl = L.Control.extend({
             }, this);
         }
 
+        if (L.Browser.mobile) {
+            this._pinned = false;
+        }
 
         if (L.Browser.touch) {
-            this._pinned = false;
             $(this._collapsed).click((e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -2547,6 +2546,10 @@ KeyControl = L.Control.extend({
             L.DomEvent.on(this._container, 'focus', this.expand, this);
             L.DomEvent.on(this._container, 'blur', this.collapse, this);
         }
+
+        this._expanded = this._pinned;
+        this._container.classList.toggle('leaflet-control-key-expanded', this._expanded);
+        this._pin.classList.toggle('active', this._pinned);
 
         this.render();
 
@@ -2633,19 +2636,15 @@ OverlayControl = L.Control.extend({
     onAdd: function () {
         this._initialActiveOverlays = JSON.parse(localStorage.getItem('c3nav.overlays.active-overlays') ?? '[]');
         this._initialCollapsedGroups = JSON.parse(localStorage.getItem('c3nav.overlays.collapsed-groups') ?? '[]');
-        const pinned = JSON.parse(localStorage.getItem('c3nav.overlays.pinned') ?? 'false');
+        this._pinned = JSON.parse(localStorage.getItem('c3nav.overlays.pinned') ?? 'false');
 
         this._container = L.DomUtil.create('div', 'leaflet-control-overlays ' + this.options.addClasses);
-        this._container.classList.toggle('leaflet-control-overlays-expanded', pinned);
         this._content = L.DomUtil.create('div', 'content');
         this._collapsed = L.DomUtil.create('a', 'collapsed-toggle');
         this._collapsed.href = '#';
         this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols');
-        this._pin.classList.toggle('active', pinned);
         this._pin.innerText = 'push_pin';
         this._container.append(this._pin, this._content, this._collapsed);
-        this._expanded = pinned;
-        this._pinned = pinned;
 
         if (!L.Browser.android) {
             L.DomEvent.on(this._container, {
@@ -2654,9 +2653,11 @@ OverlayControl = L.Control.extend({
             }, this);
         }
 
+        if (L.Browser.mobile) {
+            this._pinned = false;
+        }
 
         if (L.Browser.touch) {
-            this._pinned = false;
             $(this._collapsed).click((e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -2674,6 +2675,11 @@ OverlayControl = L.Control.extend({
             L.DomEvent.on(this._container, 'focus', this.expand, this);
             L.DomEvent.on(this._container, 'blur', this.collapse, this);
         }
+
+        this._expanded = this._pinned;
+        this._container.classList.toggle('leaflet-control-overlays-expanded', this._expanded)
+        this._pin.classList.toggle('active', this._pinned);
+
 
         for (const overlay of this._initialActiveOverlays) {
             if (overlay in this._overlays) {
