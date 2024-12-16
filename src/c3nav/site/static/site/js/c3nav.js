@@ -792,7 +792,15 @@ c3nav = {
         c3nav._maybe_load_site_update(e.state);
     },
     load_state: function (state, nofly) {
-        console.log(window.location);
+        const route_options_str = new URLSearchParams(window.location.search).get('route_opts');
+        if (route_options_str) {
+            try {
+                c3nav.next_route_options = JSON.parse(route_options_str);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
         if (state.modal) {
             history.back();
             return;
