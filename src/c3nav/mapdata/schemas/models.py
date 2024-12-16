@@ -17,7 +17,7 @@ from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, Cust
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema, schema_definitions,
-                                              schema_description, LocationSlugSchema)
+                                              schema_description, LocationSlugSchema, WithGeometrySchema)
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -368,7 +368,8 @@ class DataOverlaySchema(TitledSchema, DjangoModelSchema):
     pass
 
 
-class DataOverlayFeatureSchema(TitledSchema, DjangoModelSchema):
+
+class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSchema):
     """
     A feature (any kind of geometry) to be displayed as part of a data overlay.
     """
