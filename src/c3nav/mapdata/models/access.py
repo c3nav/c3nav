@@ -68,29 +68,29 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
         default_related_name = 'accessrestrictiongroups'
 
     @classmethod
-    def qs_for_request(cls, request):
-        return cls.objects.filter(cls.q_for_request(request))
+    def qs_for_request(cls, request, can_grant=None):
+        return cls.objects.filter(cls.q_for_request(request, can_grant=can_grant))
 
     @classmethod
-    def q_for_request(cls, request):
+    def q_for_request(cls, request, can_grant=None):
         if request.user.is_authenticated and request.user.is_superuser:
             return Q()
         all_permissions = AccessRestriction.get_all()
-        permissions = AccessPermission.get_for_request(request)
+        permissions = AccessPermission.get_for_request(request, can_grant=can_grant)
         # now we filter out groups where the user doesn't have a permission for all members
         filter_perms = all_permissions - permissions
         return ~Q(members__pk__in=filter_perms)
 
     @classmethod
-    def qs_for_user(cls, user):
-        return cls.objects.filter(cls.q_for_user(user))
+    def qs_for_user(cls, user, can_grant=None):
+        return cls.objects.filter(cls.q_for_user(user, can_grant=can_grant))
 
     @classmethod
-    def q_for_user(cls, user):
+    def q_for_user(cls, user, can_grant=None):
         if user.is_authenticated and user.is_superuser:
             return Q()
         all_permissions = AccessRestriction.get_all()
-        permissions = AccessPermission.get_for_user(user)
+        permissions = AccessPermission.get_for_user(user, can_grant=can_grant)
         # now we filter out groups where the user doesn't have a permission for all members
         filter_perms = all_permissions - permissions
         return ~Q(members__pk__in=filter_perms)

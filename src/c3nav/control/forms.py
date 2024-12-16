@@ -66,9 +66,9 @@ class AccessPermissionForm(Form):
 
         # get access permission groups
         if request:
-            groups = AccessRestrictionGroup.qs_for_request(request)
+            groups = AccessRestrictionGroup.qs_for_request(request, can_grant=True)
         else:
-            groups = AccessRestrictionGroup.qs_for_user(author)
+            groups = AccessRestrictionGroup.qs_for_user(author, can_grant=True)
         groups = groups.prefetch_related(
             Prefetch('members', AccessRestriction.objects.only('pk'))
         )
@@ -98,9 +98,6 @@ class AccessPermissionForm(Form):
         self.access_restriction_choices.update({
             "all": tuple(('g%d' % pk) for pk in self.group_contents.keys()) + tuple(restrictions_not_in_group),
         })
-
-        from pprint import pprint
-        pprint(self.access_restriction_choices)
 
         # construct choice field for access permissions
         choices = [('', _('choose permissions…')),  # noqa
