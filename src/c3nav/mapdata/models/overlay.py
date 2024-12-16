@@ -14,9 +14,9 @@ from c3nav.mapdata.utils.json import format_geojson
 
 class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
     description = models.TextField(blank=True, verbose_name=_('Description'))
-    stroke_color = models.TextField(blank=True, null=True, verbose_name=_('default stroke color'))
+    stroke_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('default stroke width'))
-    fill_color = models.TextField(blank=True, null=True, verbose_name=_('default fill color'))
+    fill_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default fill color'))
     pull_url = models.URLField(blank=True, null=True, verbose_name=_('pull URL'))
     pull_headers: dict[str, str] = SchemaField(schema=dict[str, str], null=True,
                                                verbose_name=_('headers for pull http request (JSON object)'))

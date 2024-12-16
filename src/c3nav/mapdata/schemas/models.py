@@ -365,7 +365,10 @@ class DataOverlaySchema(TitledSchema, DjangoModelSchema):
     """
     Represents a collection of geometries to be displayed as an optional overlay to the map.
     """
-    pass
+    description: Optional[str]
+    stroke_color: Optional[str]
+    stroke_width: Optional[float]
+    fill_color: Optional[str]
 
 
 
@@ -384,7 +387,6 @@ class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSche
     point_icon: Optional[str]
     external_url: Optional[str]
     extra_data: Optional[dict[str, str]]
-    # TODO
 
 
 class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
