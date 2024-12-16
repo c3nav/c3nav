@@ -320,7 +320,7 @@ class AccessPermission(models.Model):
         if request.user.is_authenticated and request.user_permissions.grant_all_access:
             return AccessRestriction.get_all()
 
-        cache_key = cls.request_access_permission_key(request)
+        cache_key = cls.request_access_permission_key(request)+f':{can_grant}'
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
             permissions = cls.get_for_request_with_expire_date(request, can_grant=can_grant)
@@ -371,7 +371,7 @@ class AccessPermission(models.Model):
         if UserPermissions.get_for_user(user).grant_all_access:
             return AccessRestriction.get_all()
 
-        cache_key = cls.build_access_permission_key(user_id=user.pk)
+        cache_key = cls.build_access_permission_key(user_id=user.pk)+f':{can_grant}'
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
             permissions = cls.get_for_user_with_expire_date(user, can_grant=can_grant)
