@@ -431,6 +431,7 @@ c3nav = {
             c3nav._clear_route_layers();
             c3nav_api.get(`map/locations/${location.id}/display`).then(c3nav._location_details_loaded)
                 .catch(data => {
+                    console.error(data);
                     var $location_details = $('#location-details');
                     $location_details.find('.details-body').text('Error ' + String(data.status));
                     $location_details.find('.details-body').html('');
@@ -519,13 +520,17 @@ c3nav = {
                 options_override: c3nav.next_route_options ?? null,
             })
                 .then(data => c3nav._route_loaded(data, nofly))
-                .catch(data => c3nav._route_loaded({error: `Error ${data.status}`}));
+                .catch(data => {
+                    console.error(data);
+                    c3nav._route_loaded({error: `Error ${data.status}`});
+                });
         }
         c3nav.next_route_options = null;
     },
     _route_loaded: function (data, nofly) {
         var $route = $('#route-summary');
         if (data.error && $route.is('.loading')) {
+            console.error(data.error);
             $route.find('span').text(data.error);
             $route.removeClass('loading');
             return;
@@ -1371,6 +1376,7 @@ c3nav = {
         c3nav._set_modal_content(html.find('main').html());
     },
     _modal_error: function (data) {
+        console.error(data);
         $('#modal').removeClass('loading').find('#modal-content').html('<h3>Error ' + data.status + '</h3>');
     },
 
