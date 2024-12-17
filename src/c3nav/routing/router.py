@@ -5,7 +5,7 @@ from collections import deque, namedtuple
 from dataclasses import dataclass, field
 from functools import reduce
 from itertools import chain
-from typing import Optional, TypeVar, Generic, Mapping, Any, Sequence, TypeAlias, ClassVar
+from typing import Optional, TypeVar, Generic, Mapping, Any, Sequence, TypeAlias, ClassVar, NamedTuple
 
 import numpy as np
 from django.conf import settings
@@ -33,7 +33,13 @@ except ImportError:
 
 logger = logging.getLogger('c3nav')
 
-NodeConnectionsByNode: TypeAlias = dict[int, tuple["RouterNode", "RouterEdge"] | tuple[None, None]]
+
+class RouterNodeAndEdge(NamedTuple):
+    node: Optional["RouterNode"]
+    edge: Optional["RouterEdge"]
+
+
+NodeConnectionsByNode: TypeAlias = dict[int, RouterNodeAndEdge]
 PointCompatible: TypeAlias = Point | CustomLocation | CustomLocationProxyMixin
 EdgeIndex: TypeAlias = tuple[int, int]
 
@@ -185,15 +191,15 @@ class Router:
                         for node in space_nodes:
                             line = LineString([(node.x, node.y), (fallback_node.x, fallback_node.y)])
                             if line.length < 5 and not clear_geom_prep.intersects(line):
-                                area.fallback_nodes[node.i] = (
-                                    fallback_node,
-                                    RouterEdge.create(from_node=fallback_node, to_node=node, waytype=0)
+                                area.fallback_nodes[node.i] = RouterNodeAndEdge(
+                                    node=fallback_node,
+                                    edge=RouterEdge.create(from_node=fallback_node, to_node=node, waytype=0)
                                 )
                         if not area.fallback_nodes:
                             nearest_node = min(space_nodes, key=lambda node: fallback_point.distance(node.point))
-                            area.fallback_nodes[nearest_node.i] = (
-                                fallback_node,
-                                RouterEdge.create(from_node=fallback_node, to_node=nearest_node, waytype=0)
+                            area.fallback_nodes[nearest_node.i] = RouterNodeAndEdge(
+                                node=fallback_node,
+                                edge=RouterEdge.create(from_node=fallback_node, to_node=nearest_node, waytype=0)
                             )
 
                 for poi in space_obj.pois.all():
@@ -552,18 +558,19 @@ class Router:
         while last_node != origin_node:
             last_node = predecessors[origin_node, last_node]
             path_nodes.appendleft(last_node)
-        path_nodes = tuple(path_nodes)
 
-        origin_addition = origin.nodes_addition.get(origin_node)
-        destination_addition = destination.nodes_addition.get(destination_node)
-
-        # get additional distance at origin and destination
-        origin_xyz = origin.xyz if isinstance(origin, RouterPoint) else None
-        destination_xyz = destination.xyz if isinstance(destination, RouterPoint) else None
-
-        return Route(self, origin, destination, path_nodes, options,
-                     origin_addition, destination_addition, origin_xyz, destination_xyz,
-                     visible_locations)
+        return Route(
+            router=self,
+            origin=origin,
+            destination=destination,
+            path_nodes=tuple(path_nodes),
+            options=options,
+            origin_addition=origin.nodes_addition.get(origin_node),
+            destination_addition=destination.nodes_addition.get(destination_node),
+            origin_xyz=origin.xyz if isinstance(origin, RouterPoint) else None,
+            destination_xyz=destination.xyz if isinstance(destination, RouterPoint) else None,
+            visible_locations=visible_locations
+        )
 
 
 CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude',
@@ -699,11 +706,11 @@ class RouterAltitudeArea:
                 node = all_nodes[node]
                 line = LineString([(node.x, node.y), (point.x, point.y)])
                 if line.length < 10 and not self.clear_geometry_prep.intersects(line):
-                    nodes[node.i] = (None, None)
+                    nodes[node.i] = RouterNodeAndEdge(node=None, edge=None)
             if not nodes:
                 nearest_node = min(tuple(all_nodes[node] for node in self.nodes),
                                    key=lambda node: point.distance(node.point))
-                nodes[nearest_node.i] = (None, None)
+                nodes[nearest_node.i] = RouterNodeAndEdge(node=None, edge=None)
         else:
             nodes = self.fallback_nodes
         return nodes
@@ -800,7 +807,7 @@ class RouterLocation:
     def nodes(self) -> frozenset[int]:
         return reduce(operator.or_, (location.nodes for location in self.locations), frozenset())
 
-    def get_location_for_node(self, node):
+    def get_location_for_node(self, node) -> RouterPoint | None:
         for location in self.locations:
             if node in location.nodes:
                 return location

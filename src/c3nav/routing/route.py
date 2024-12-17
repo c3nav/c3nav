@@ -2,13 +2,16 @@
 from collections import OrderedDict, deque
 from dataclasses import dataclass
 
-import typing
+from typing import TYPE_CHECKING, Sequence, Optional, Mapping
 import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
-if typing.TYPE_CHECKING:
-    from c3nav.routing.router import Router
+from c3nav.mapdata.models import Location
+from c3nav.routing.models import RouteOptions
+
+if TYPE_CHECKING:
+    from c3nav.routing.router import Router, RouterLocation, RouterNodeAndEdge
 
 
 def describe_location(location, locations):
@@ -23,9 +26,18 @@ def describe_location(location, locations):
     return location
 
 
-#@dataclass
+@dataclass
 class Route:
     router: "Router"
+    origin: "RouterLocation"
+    destination: "RouterLocation"
+    path_nodes: Sequence[int]
+    options: RouteOptions
+    origin_addition: Optional["RouterNodeAndEdge"]
+    destination_addition: Optional["RouterNodeAndEdge"]
+    origin_xyz: np.ndarray | None
+    destination_xyz: np.ndarray | None
+    visible_locations: Mapping[int, Location]
 
     def __init__(self, router, origin, destination, path_nodes, options,
                  origin_addition, destination_addition, origin_xyz, destination_xyz,
