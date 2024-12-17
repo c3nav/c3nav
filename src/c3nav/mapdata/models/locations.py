@@ -549,6 +549,8 @@ def get_position_secret():
 
 
 class Position(CustomLocationProxyMixin, models.Model):
+    locationtype = "position"
+
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)
     secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
