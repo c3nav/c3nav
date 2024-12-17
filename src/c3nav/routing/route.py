@@ -2,7 +2,7 @@
 from collections import OrderedDict, deque
 from dataclasses import dataclass
 
-from typing import TYPE_CHECKING, Sequence, Optional, Mapping
+from typing import TYPE_CHECKING, Sequence, Optional, Mapping, NamedTuple
 import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -11,7 +11,7 @@ from c3nav.mapdata.models import Location
 from c3nav.routing.models import RouteOptions
 
 if TYPE_CHECKING:
-    from c3nav.routing.router import Router, RouterPoint, RouterNodeAndEdge
+    from c3nav.routing.router import Router, RouterPoint, RouterNode, RouterEdge
 
 
 def describe_location(location, locations):
@@ -24,6 +24,11 @@ def describe_location(location, locations):
     if isinstance(location, BaseRouterProxy):
         location = location.src
     return location
+
+
+class RouteNodeWithOptionalEdge(NamedTuple):
+    node: int | "RouterNode"
+    edge: Optional["RouterEdge"]
 
 
 @dataclass
@@ -40,12 +45,16 @@ class Route:
     visible_locations: Mapping[int, Location]
 
     def serialize(self):  # todo: move this into schema
-        nodes = [[node, None] for node in self.path_nodes]
+        nodes: list[RouteNodeWithOptionalEdge] = [
+            RouteNodeWithOptionalEdge(node=node, edge=None) for node in self.path_nodes
+        ]
         if self.origin_addition and any(self.origin_addition):
-            nodes.insert(0, (self.origin_addition[0], None))
-            nodes[1][1] = self.origin_addition[1]
+            nodes.insert(0, RouteNodeWithOptionalEdge(node=self.origin_addition.node, edge=None))
+            nodes[1] = RouteNodeWithOptionalEdge(node=nodes[1].node, edge=self.origin_addition.edge)
         if self.destination_addition and any(self.destination_addition):
-            nodes.append(self.destination_addition)
+            nodes.append(
+                RouteNodeWithOptionalEdge(node=self.destination_addition.node, edge=self.destination_addition.edge)
+            )
 
         # calculate distances from origin and destination to the origin and destination nodes
         if self.origin_xyz is not None:
@@ -64,7 +73,7 @@ class Route:
         else:
             destination_distance = 0
 
-        items = deque()
+        items: deque[RouteItem] = deque()
         last_node = None
         last_item = None
         walk_factor = self.options.walk_factor
