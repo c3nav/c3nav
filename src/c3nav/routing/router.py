@@ -49,7 +49,7 @@ class Router:
     groups: dict[int, "RouterGroup"]
     restrictions: dict[int, "RouterRestriction"]
     nodes: deque["RouterNode"]
-    edghes: dict[EdgeIndex, "RouterEdge"]
+    edges: dict[EdgeIndex, "RouterEdge"]
     waytypes: dict[int, "RouterWayType"]
     graph: np.ndarray
 
