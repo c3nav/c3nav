@@ -11,7 +11,7 @@ from c3nav.mapdata.models import Location
 from c3nav.routing.models import RouteOptions
 
 if TYPE_CHECKING:
-    from c3nav.routing.router import Router, RouterLocation, RouterNodeAndEdge
+    from c3nav.routing.router import Router, RouterPoint, RouterNodeAndEdge
 
 
 def describe_location(location, locations):
