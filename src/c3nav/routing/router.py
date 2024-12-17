@@ -552,6 +552,9 @@ class Router:
         origin = origins.get_location_for_node(origin_node)
         destination = destinations.get_location_for_node(destination_node)
 
+        if origin is None or destination is None:
+            raise ValueError
+
         # recreate path
         path_nodes = deque((destination_node, ))
         last_node = destination_node

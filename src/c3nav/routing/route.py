@@ -29,8 +29,8 @@ def describe_location(location, locations):
 @dataclass
 class Route:
     router: "Router"
-    origin: "RouterLocation"
-    destination: "RouterLocation"
+    origin: "RouterPoint"
+    destination: "RouterPoint"
     path_nodes: Sequence[int]
     options: RouteOptions
     origin_addition: Optional["RouterNodeAndEdge"]
@@ -38,20 +38,6 @@ class Route:
     origin_xyz: np.ndarray | None
     destination_xyz: np.ndarray | None
     visible_locations: Mapping[int, Location]
-
-    def __init__(self, router, origin, destination, path_nodes, options,
-                 origin_addition, destination_addition, origin_xyz, destination_xyz,
-                 visible_locations):
-        self.router = router
-        self.origin = origin
-        self.destination = destination
-        self.path_nodes = path_nodes
-        self.options = options
-        self.origin_addition = origin_addition
-        self.destination_addition = destination_addition
-        self.origin_xyz = origin_xyz
-        self.destination_xyz = destination_xyz
-        self.visible_locations = visible_locations
 
     def serialize(self):  # todo: move this into schema
         nodes = [[node, None] for node in self.path_nodes]
