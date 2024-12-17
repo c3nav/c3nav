@@ -1,9 +1,14 @@
 # flake8: noqa
 from collections import OrderedDict, deque
+from dataclasses import dataclass
 
+import typing
 import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+
+if typing.TYPE_CHECKING:
+    from c3nav.routing.router import Router
 
 
 def describe_location(location, locations):
@@ -18,7 +23,10 @@ def describe_location(location, locations):
     return location
 
 
+#@dataclass
 class Route:
+    router: "Router"
+
     def __init__(self, router, origin, destination, path_nodes, options,
                  origin_addition, destination_addition, origin_xyz, destination_xyz,
                  visible_locations):
@@ -41,6 +49,7 @@ class Route:
         if self.destination_addition and any(self.destination_addition):
             nodes.append(self.destination_addition)
 
+        # calculate distances from origin and destination to the origin and destination nodes
         if self.origin_xyz is not None:
             node = nodes[0][0]
             if not hasattr(node, 'xyz'):

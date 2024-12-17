@@ -52,16 +52,16 @@ if settings.METRICS:
     from prometheus_client import Counter
 
 
-def check_location(location: Optional[str], request) -> Optional[SpecificLocation]:
-    if location is None:
+def check_location(location_slug: Optional[str], request) -> Optional[Location]:
+    if location_slug is None:
         return None
 
-    location = get_location_by_slug_for_request(location, request)
+    location = get_location_by_slug_for_request(location_slug, request)
     if location is None:
         return None
 
     if isinstance(location, LocationRedirect):
-        location: Location = location.target
+        result = location.target
     if location is None:
         return None
 

@@ -220,6 +220,8 @@ def preview_route(request, slug, slug2):
     from c3nav.mapdata.utils.geometry import unwrap_geom
     origin = check_location(slug, None)
     destination = check_location(slug2, None)
+    if origin is None or destination is None:
+        raise Http404()
     visible_locations = visible_locations_for_request(request)
     try:
         route = Router.load().get_route(origin=origin,
