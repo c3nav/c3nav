@@ -358,7 +358,9 @@ class LevelRenderData:
 
                 map_history.save_level(render_level.pk, 'composite')
 
-                package.add_level(render_level.pk, theme, map_history, access_restriction_affected)
+                package.add_level(level_id=render_level.pk, theme_id=theme, history=map_history,
+                                  restrictions=access_restriction_affected,
+                                  level_restriction=render_level.access_restriction_id)
 
                 render_data.save(update_cache_key, render_level.pk, theme)
 

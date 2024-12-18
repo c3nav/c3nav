@@ -285,9 +285,14 @@ class TileServer:
             cookie = self.cookie_regex.search(cookie)
             if cookie:
                 cookie = cookie.group(2)
-                access_permissions = (parse_tile_access_cookie(cookie, self.tile_secret) &
-                                      set(level_data.restrictions[minx:maxx, miny:maxy]))
+                access_permissions = (
+                    parse_tile_access_cookie(cookie, self.tile_secret) &
+                    (set(level_data.restrictions[minx:maxx, miny:maxy]) | level_data.global_restrictions)
+                )
                 access_cache_key = build_access_cache_key(access_permissions)
+
+        if not all((r in access_permissions) for r in level_data.global_restrictions):
+            return self.not_found(start_response, b'invalid level or theme.')
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')

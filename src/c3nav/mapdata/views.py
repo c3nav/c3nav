@@ -370,9 +370,12 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
             access_permissions = set()
         else:
             access_permissions = parse_tile_access_cookie(cookie, settings.SECRET_TILE_KEY)
-            access_permissions &= set(level_data.restrictions[minx:maxx, miny:maxy])
+            access_permissions &= set(level_data.restrictions[minx:maxx, miny:maxy]) | level_data.global_restrictions
     else:
         access_permissions = access_permissions - {0}
+
+    if not all((r in access_permissions) for r in level_data.global_restrictions):
+        raise Http404
 
     # build cache keys
     last_update = level_data.history.last_update(minx, miny, maxx, maxy)

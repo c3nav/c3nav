@@ -4,7 +4,7 @@ from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
 from tarfile import TarFile, TarInfo
-from typing import BinaryIO, Optional, Self
+from typing import BinaryIO, Optional, Self, NamedTuple
 
 from pyzstd import CParameter, ZstdError, ZstdFile
 
@@ -16,7 +16,12 @@ except ImportError:
     from threading import local as LocalContext
 
 ZSTD_MAGIC_NUMBER = b"\x28\xb5\x2f\xfd"
-CachePackageLevel = namedtuple('CachePackageLevel', ('history', 'restrictions'))
+
+
+class CachePackageLevel(NamedTuple):
+    history: MapHistory
+    restrictions: AccessRestrictionAffected
+    global_restrictions: frozenset[int]
 
 
 class CachePackage:
@@ -25,8 +30,13 @@ class CachePackage:
         self.levels = {} if levels is None else levels
         self.theme_ids = []
 
-    def add_level(self, level_id: int, theme_id, history: MapHistory, restrictions: AccessRestrictionAffected):
-        self.levels[(level_id, theme_id)] = CachePackageLevel(history, restrictions)
+    def add_level(self, level_id: int, theme_id, history: MapHistory, restrictions: AccessRestrictionAffected,
+                  level_restriction: int | None):
+        self.levels[(level_id, theme_id)] = CachePackageLevel(
+            history=history,
+            restrictions=restrictions,
+            global_restrictions=frozenset() if level_restriction is None else frozenset((level_restriction, ))
+        )
         if theme_id not in self.theme_ids:
             self.theme_ids.append(theme_id)
 
@@ -62,6 +72,10 @@ class CachePackage:
                         key = '%d' % level_id
                     else:
                         key = '%d_%d' % (level_id, theme_id)
+                    self._add_bytesio(f, 'global_restrictions_%s' % key,
+                                      BytesIO(struct.pack('<B'+('I'*len(level_data.global_restrictions)),
+                                                          len(level_data.global_restrictions),
+                                                          *level_data.global_restrictions)))
                     self._add_geometryindexed(f, 'history_%s' % key, level_data.history)
                     self._add_geometryindexed(f, 'restrictions_%s' % key, level_data.restrictions)
         finally:
@@ -116,9 +130,13 @@ class CachePackage:
             else:
                 level_id = int(key)
                 theme_id = None
+            global_restrictions_data = f.extractfile(files['global_restrictions_%s' % key]).read()
             levels[(level_id, theme_id)] = CachePackageLevel(
                 history=MapHistory.read(f.extractfile(files['history_%s' % key])),
-                restrictions=AccessRestrictionAffected.read(f.extractfile(files['restrictions_%s' % key]))
+                restrictions=AccessRestrictionAffected.read(f.extractfile(files['restrictions_%s' % key])),
+                global_restrictions=frozenset(
+                    struct.unpack('<'+('I'*global_restrictions_data[0]), global_restrictions_data[1:])
+                )
             )
 
         return cls(bounds, levels)
