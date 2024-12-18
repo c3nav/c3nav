@@ -27,7 +27,7 @@ def describe_location(location, locations):
 
 
 class RouteNodeWithOptionalEdge(NamedTuple):
-    node: int | "RouterNode"
+    node: Union[int, "RouterNode"]
     edge: Optional["RouterEdge"]
 
 
