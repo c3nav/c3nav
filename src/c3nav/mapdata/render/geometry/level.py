@@ -6,11 +6,11 @@ from functools import reduce
 from itertools import chain
 
 import numpy as np
-from shapely import prepared
+from shapely import prepared, box
 from shapely.geometry import GeometryCollection, Polygon, MultiPolygon
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import Space, Level, AltitudeArea
+from c3nav.mapdata.models import Space, Level, AltitudeArea, Source
 from c3nav.mapdata.render.geometry.altitudearea import AltitudeAreaGeometries
 from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 from c3nav.mapdata.render.geometry.mesh import Mesh
@@ -294,6 +294,13 @@ class SingleLevelGeometries(BaseLevelGeometries):
         walls_geom = buildings_geom.difference(unary_union((spaces_geom, doors_geom)))
         if level.on_top_of_id is None:
             holes_geom = unary_union([s.holes_geom for s in spaces])
+
+            if level.intermediate:
+                holes_geom = unary_union([
+                    holes_geom,
+                    box(*chain(*Source.max_bounds())).difference(buildings_geom).difference(spaces_geom)
+                ])
+
         else:
             holes_geom = None
 

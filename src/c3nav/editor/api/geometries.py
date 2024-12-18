@@ -72,11 +72,16 @@ class LevelsForLevel:
         # noinspection PyPep8Naming
         levels_under = ()
         levels_on_top = ()
-        lower_level = level.lower(Level).first()
-        primary_levels = (level,) + ((lower_level,) if lower_level else ())
+        lower_levels = []
+        for sublevel in level.lower(Level):
+            lower_levels.append(sublevel)
+            if not sublevel.intermediate:
+                break
+        primary_levels = chain((level,), lower_levels)
         secondary_levels = Level.objects.filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
-        if lower_level:
-            levels_under = tuple(pk for pk, on_top_of in secondary_levels if on_top_of == lower_level.pk)
+        lower_level_pks = set(l.pk for l in lower_levels)
+        if lower_levels:
+            levels_under = tuple(pk for pk, on_top_of in secondary_levels if on_top_of in lower_level_pks)
         if True:
             levels_on_top = tuple(pk for pk, on_top_of in secondary_levels if on_top_of == level.pk)
 

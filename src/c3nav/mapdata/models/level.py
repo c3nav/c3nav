@@ -25,6 +25,7 @@ class Level(SpecificLocation, models.Model):
                                       validators=[MinValueValidator(Decimal('0'))])
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
+    intermediate = models.BooleanField(_("intermediate level"), default=False)
     short_label = models.SlugField(max_length=20, verbose_name=_('short label'), unique=True)
 
     class Meta:

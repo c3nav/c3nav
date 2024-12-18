@@ -53,6 +53,7 @@ class LevelRenderData:
     lowest_important_level: int
     levels: list[CompositeLevelGeometries] = field(default_factory=list)
     darken_area: MultiPolygon | None = None
+    darken_much: bool = False
 
     @staticmethod
     def rebuild(update_cache_key):
@@ -125,10 +126,11 @@ class LevelRenderData:
                 map_history = MapHistory.open_level(render_level.pk, 'base')
 
                 # collect potentially relevant levels for rendering this level
-                # these are all levels that are on_top_of this level or below this level
+                # these are all levels that are on_top_of this level or below this level (inless intermediate)
                 relevant_levels = tuple(
                     sublevel for sublevel in levels
-                    if sublevel.on_top_of_id == render_level.pk or sublevel.base_altitude <= render_level.base_altitude
+                    if (sublevel.pk == render_level.pk or sublevel.on_top_of_id == render_level.pk or
+                        (sublevel.base_altitude <= render_level.base_altitude and not sublevel.intermediate))
                 )
 
                 """
@@ -168,7 +170,7 @@ class LevelRenderData:
                             upper_bounds[geoms.pk] = last_lower_bound
                         last_lower_bound = geoms.lower_bound
 
-                    # set crop area if we area on the second primary layer from top or below
+                    # set crop area if we are on the second primary layer from top or below
                     level_crop_to[level.pk] = Cropper(crop_to if primary_level_count > 1 else None)
 
                     if geoms.holes is not None:  # there area holes on this area
@@ -179,6 +181,10 @@ class LevelRenderData:
 
                         if crop_to.is_empty:
                             break
+
+                if render_level.intermediate:
+                    # todo: would be nice to still have the staircases leading to this level i guess?
+                    lowest_important_level = render_level
 
                 render_data = LevelRenderData(
                     base_altitude=render_level.base_altitude,
@@ -201,6 +207,8 @@ class LevelRenderData:
 
                     if single_geoms.holes and render_data.darken_area is None and lowest_important_level_passed:
                         render_data.darken_area = single_geoms.holes
+                        if render_level.intermediate:
+                            render_data.darken_much = True
 
                     if crop_to.geometry is not None:
                         map_history.composite(MapHistory.open_level(level.pk, 'base'), crop_to.geometry)

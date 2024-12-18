@@ -1,8 +1,10 @@
+from itertools import chain
+
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import box
 
-from c3nav.mapdata.models import Level
+from c3nav.mapdata.models import Level, Source
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.geometry import hybrid_union
 from c3nav.mapdata.render.renderdata import LevelRenderData
@@ -61,7 +63,7 @@ class MapRenderer:
             engine.add_group('level_%s' % geoms.short_label)
 
             if geoms.pk == level_render_data.lowest_important_level:
-                engine.darken(level_render_data.darken_area)
+                engine.darken(level_render_data.darken_area, much=level_render_data.darken_much)
 
             if not bbox.intersects(geoms.affected_area):
                 continue

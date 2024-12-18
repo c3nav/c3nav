@@ -64,7 +64,7 @@ class RenderEngine(ABC):
     def add_group(self, group):
         pass
 
-    def darken(self, area):
+    def darken(self, area, much=False):
         pass
 
     def add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
