@@ -234,7 +234,7 @@ class SVGEngine(RenderEngine):
 
     def darken(self, area, much=False):
         if area:
-            self.add_geometry(geometry=area, fill=FillAttribs('#000000', 0.5 if much else 0.1), category='darken')
+            self.add_geometry(geometry=area, fill=FillAttribs('#000000', 0.4 if much else 0.1), category='darken')
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
                       altitude=None, height=None, shadow_color=None, shape_cache_key=None, **kwargs):
