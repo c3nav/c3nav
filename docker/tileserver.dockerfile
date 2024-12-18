@@ -29,6 +29,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libmemcached11t64=1.1.4-1.1build3 \
     tzdata=2024a-3ubuntu1.1 \
     ca-certificates=20240203 \
+    # renovate: srcname=libzstd
     zstd=1.5.5+dfsg2-2build1.1
 
 
@@ -39,7 +40,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=python3.12
     python3.12-dev=3.12.3-1ubuntu0.3 \
     libpcre3-dev=2:8.39-15build1 \
-    # renovate: srcname=libmemcached \
+    # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build3
 
 

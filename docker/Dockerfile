@@ -41,6 +41,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     gettext \
     tzdata=2024a-3ubuntu1.1 \
     ca-certificates=20240203 \
+    # renovate: srcname=libzstd
     zstd=1.5.5+dfsg2-2build1.1
 ENV PATH="/usr/lib/postgresql/16/bin/:$PATH"
 
@@ -57,7 +58,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=cairo
     libcairo2-dev=1.18.0-3build1 \
     libgirepository1.0-dev=1.80.1-1 \
-    # renovate: srcname=libmemcached \
+    # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build3
 
 
