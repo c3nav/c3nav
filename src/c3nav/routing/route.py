@@ -2,7 +2,7 @@
 from collections import OrderedDict, deque
 from dataclasses import dataclass
 
-from typing import TYPE_CHECKING, Sequence, Optional, Mapping, NamedTuple
+from typing import TYPE_CHECKING, Sequence, Optional, Mapping, NamedTuple, Union
 import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
