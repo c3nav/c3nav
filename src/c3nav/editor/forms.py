@@ -399,8 +399,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 def create_editor_form(editor_model):
     possible_fields = [
         'slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret', 'icon', 'join_edges',
-        'up_separate', 'bssid', 'main_point', 'external_url', 'hub_import_type', 'walk', 'ordering',
-        'category', 'width', 'groups', 'height', 'color', 'in_legend', 'priority', 'hierarchy', 'icon_name',
+        'up_separate', 'bssid', 'main_point', 'external_url', 'external_url_label', 'hub_import_type', 'walk',
+        'ordering', 'category', 'width', 'groups', 'height', 'color', 'in_legend', 'priority', 'hierarchy', 'icon_name',
         'base_altitude', 'intermediate', 'waytype', 'access_restriction', 'default_height', 'door_height', 'outside',
         'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'level_index', 'short_label',
         'origin_space', 'target_space', 'data',
@@ -418,7 +418,7 @@ def create_editor_form(editor_model):
         'color_background', 'color_wall_fill', 'color_wall_border', 'color_door_fill', 'color_ground_fill',
         'color_obstacles_default_fill', 'color_obstacles_default_border', 'stroke_color', 'stroke_width',
         'stroke_opacity', 'fill_color', 'fill_opacity', 'interactive', 'point_icon', 'extra_data', 'show_label',
-        'show_geometry', 'external_url', 'show_label', 'show_geometry', 'external_url', 'default_geomtype',
+        'show_geometry', 'show_label', 'show_geometry', 'default_geomtype',
     ]
     field_names = [field.name for field in editor_model._meta.get_fields()
                    if not field.one_to_many and not isinstance(field, ManyToManyRel)]

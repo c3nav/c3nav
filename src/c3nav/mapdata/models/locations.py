@@ -105,6 +105,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can describe'))
     icon = models.CharField(_('icon'), max_length=32, null=True, blank=True, help_text=_('any material icons name'))
+    external_url = models.URLField(_('external URL'), null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -123,6 +124,12 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
             (_('can describe'), _('Yes') if self.can_describe else _('No')),
             (_('icon'), self.effective_icon),
         ])
+
+        if self.external_url:
+            result['external_url'] = {
+                'title': self.external_url_label or _('Open external URL'),
+                'url': self.external_url,
+            }
         return result
 
     @property
@@ -158,13 +165,16 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def effective_icon(self):
         return self.icon or None
 
+    @property
+    def external_url_label(self):
+        return None
+
 
 class SpecificLocation(Location, models.Model):
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
-    external_url = models.URLField(_('external URL'), null=True, blank=True)
     import_block_data = models.BooleanField(_('don\'t change metadata on import'), default=False)
     import_block_geom = models.BooleanField(_('don\'t change geometry on import'), default=False)
 
@@ -214,12 +224,6 @@ class SpecificLocation(Location, models.Model):
                 } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
             ))
 
-        if self.external_url:
-            result['display'].insert(3, (_('External URL'), {
-                'title': _('Open'),
-                'url': self.external_url,
-            }))
-
         return result
 
     @cached_property
@@ -250,6 +254,13 @@ class SpecificLocation(Location, models.Model):
         for group in self.groups.all():
             if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
                 return group.icon
+        return None
+
+    @property
+    def external_url_label(self):
+        for group in self.groups.all():
+            if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
+                return group.external_url_label
         return None
 
 
@@ -343,6 +354,8 @@ class LocationGroup(Location, models.Model):
     hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,
                                        unique=True,
                                        help_text=_('assign this group to imported hub locations of this type'))
+    external_url_label = I18nField(_('external URL label'), plural_name='external_url_labels', blank=True,
+                                   fallback_any=True, fallback_value="")
 
     objects = LocationGroupManager()
 

@@ -835,6 +835,7 @@ class LocationDisplay(BaseSchema):
         description="space",
         example=3,
     )
+    external_url: Optional[DisplayURL] = None
     display: list[
         tuple[
             Annotated[NonEmptyStr, APIField(title="field title")],

@@ -437,6 +437,7 @@ c3nav = {
                     $location_details.find('.details-body').html('');
                     $location_details.find('.editor').hide();
                     $location_details.find('.report').hide();
+                    $location_details.find('.external-url-button').hide();
                     $location_details.removeClass('loading');
                 })
         }
@@ -492,6 +493,13 @@ c3nav = {
             $location_details.find('.report').attr('href', report_url);
         } else {
             $location_details.find('.report').hide();
+        }
+
+        if (data.external_url) {
+            $location_details.find('.external-url-button a').attr('href', data.external_url.url);
+            $location_details.find('.external-url-button span').text(data.external_url.title);
+        } else {
+            $location_details.find('.external-url-button').hide();
         }
 
         if (data.geometry && data.level) {
