@@ -151,11 +151,23 @@ class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
     A connection between two spaces
     """
     geometry = GeometryField('polygon')
+    name = models.CharField(_('Name'), unique=True, max_length=50, blank=True, null=True)
+    todo = models.BooleanField(default=False, verbose_name=_('todo'))
 
     class Meta:
         verbose_name = _('Door')
         verbose_name_plural = _('Doors')
         default_related_name = 'doors'
+
+    def get_geojson_properties(self, *args, **kwargs) -> dict:
+        result = super().get_geojson_properties(*args, **kwargs)
+        if self.todo:
+            result['color'] = "#FFFF00"
+        return result
+
+    @property
+    def title(self):
+        return ('*TODO* ' if self.todo else '') + (self.name or super().title)
 
 
 class ItemWithValue:

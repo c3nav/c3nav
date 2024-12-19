@@ -23,6 +23,24 @@
 <form action="{{ path }}" method="post" {% if nozoom %}data-nozoom {% endif %}data-onbeforeunload {% if new %}data-new="{{ model_name }}" data-geomtype="{{ geomtype }}" {% if default_geomtype %}data-default-geomtype="{{ default_geomtype }}{% endif %}"{% else %}data-editing="{{ model_name }}-{{ pk }}"{% endif %}{% if access_restriction_select %} data-access-restriction-select{% endif %}>
     {% csrf_token %}
     {% bootstrap_form form %}
+    {% if door %}
+        <hr>
+        <h4>{% trans 'Connecting spaces:' %}</h4>
+        <ul>
+        {% for space in door.spaces.values %}
+            <li>
+                {{ space.title }}
+                {% if space.access_restriction %}
+                    <small>({{ space.access_restriction.title }})</small>
+                {% else %}
+                    <small>(<em>no restriction</em>)</small>
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+        {% bootstrap_form door.form %}
+        <hr>
+    {% endif %}
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
     {% if can_edit %}

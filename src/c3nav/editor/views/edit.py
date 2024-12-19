@@ -6,7 +6,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
-from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.db import IntegrityError, models
 from django.db.models import Q
 from django.http import Http404, HttpResponse
@@ -14,14 +14,16 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import etag
+from shapely import LineString
 
-from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form
+from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
                                      editor_etag_func, sidebar_view, accesses_mapdata)
-from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge
+from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
 
@@ -284,6 +286,31 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         return APIHybridLoginRequiredResponse(next=request.path_info, login_url='editor.login', level='info',
                                               message=_('You need to log in to create Beacon Measurements.'))
 
+    graph_form = None
+    if model == Door and not new:
+        door_geom = unwrap_geom(obj.geometry)
+        spaces = {
+            subspace.pk: subspace
+            for subspace in Space.qs_for_request(request).filter(level=level).select_related('access_restriction')
+            if subspace.geometry.intersects(door_geom)
+        }
+        edges = [
+            edge
+            for edge in GraphEdge.qs_for_request(request).filter(
+                from_node__space__in=spaces, to_node__space__in=spaces
+            ).select_related('from_node', 'to_node')
+            if LineString((edge.from_node.coords, edge.to_node.coords)).intersects(door_geom)
+        ]
+        nodes = {}
+        for edge in edges:
+            nodes[edge.from_node.pk] = edge.from_node
+            nodes[edge.to_node.pk] = edge.to_node
+        edges = {(edge.from_node.pk, edge.to_node.pk): edge for edge in edges}
+        for from_node, to_node in tuple(edges):
+            if (to_node, from_node) not in edges:
+                edges[(to_node, from_node)] = None
+        ctx["door"] = {"spaces": spaces}
+
     error = None
     delete = getattr(request, 'is_delete', None)
     if request.method == 'POST' or (not new and delete):
@@ -333,7 +360,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         form = get_editor_form(model)(instance=model() if new else obj, data=data, is_json=json_body is not None,
                                       request=request, space_id=space_id,
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
-        if form.is_valid():
+
+        if "door" in ctx:
+            graph_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges, data=data)
+            ctx["door"]["form"] = graph_form
+
+        if form.is_valid() and (graph_form is None or graph_form.is_valid()):
             # Update/create objects
             obj = form.save(commit=False)
 
@@ -358,7 +390,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
                         for slug in form.remove_redirect_slugs:
                             obj.redirects.filter(slug=slug).delete()
-
+                    if graph_form is not None:
+                        graph_form.save()
                     form.save_m2m()
                     return APIHybridMessageRedirectResponse(
                         level='success',
@@ -371,6 +404,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     else:
         form = get_editor_form(model)(instance=obj, request=request, space_id=space_id,
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
+        if "door" in ctx:
+            graph_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges)
+            ctx["door"]["form"] = graph_form
 
     ctx.update({
         'form': form,
