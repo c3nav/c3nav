@@ -291,7 +291,7 @@ class CustomLocation:
     def __post_init__(self):
         x = round(self.x, 2)
         y = round(self.y, 2)
-        self.pk = 'c:%s:%s:%s' % (self.level.short_label, x, y)
+        self.pk = 'c:%s:%s:%s' % (self.level.level_index, x, y)
 
     @property
     def serialized_geometry(self):

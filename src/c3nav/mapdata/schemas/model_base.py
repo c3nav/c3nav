@@ -340,7 +340,7 @@ class SimpleGeometryLocationsSchema(BaseSchema):
 
 CustomLocationID = Annotated[NonEmptyStr, APIField(
     title="custom location ID",
-    pattern=r"c:[a-z0-9-_]+:(-?\d+(\.\d+)?):(-?\d+(\.\d+)?)$",
+    pattern=r"c:[a-z0-9-_.]+:(-?\d+(\.\d+)?):(-?\d+(\.\d+)?)$",
     example="c:0:-7.23:12.34",
     description="level short_name and x/y coordinates form the ID of a custom location"
 )]
