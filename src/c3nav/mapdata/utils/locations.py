@@ -398,7 +398,7 @@ class CustomLocation:
     @cached_property
     def title_subtitle(self):
         grid_square = self.grid_square
-        level_subtitle = self.level.title if not grid_square else ','.join((grid_square, str(self.level.title)))
+        level_subtitle = self.level.title if not grid_square else ', '.join((grid_square, str(self.level.title)))
 
         title = _('In %(level)s') % {'level': self.level.title}
         if not self.space:
