@@ -2,14 +2,24 @@ from decimal import Decimal
 from itertools import chain
 from operator import attrgetter
 
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.functional import cached_property
+from django.utils.regex_helper import _lazy_re_compile
 from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.locations import SpecificLocation
+
+
+level_index_re = _lazy_re_compile(r"^[-a-zA-Z0-9._]+\Z")
+validate_level_index = RegexValidator(
+    level_index_re,
+    # Translators: "letters" means latin letters: a-z and A-Z.
+    _("Enter a valid “level index” consisting of letters, numbers, underscores, dots or hyphens."),
+    "invalid",
+)
 
 
 class Level(SpecificLocation, models.Model):
@@ -26,7 +36,10 @@ class Level(SpecificLocation, models.Model):
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
     intermediate = models.BooleanField(_("intermediate level"), default=False)
-    short_label = models.SlugField(max_length=20, verbose_name=_('short label'), unique=True)
+    short_label = models.CharField(max_length=20, verbose_name=_('short label'), unique=True,
+                                   help_text=_('used for the level selector'))
+    level_index = models.CharField(max_length=20, verbose_name=_('level index'), unique=True,
+                                   validators=[validate_level_index], help_text=_('used for coordinates'))
 
     class Meta:
         verbose_name = _('Level')

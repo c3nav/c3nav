@@ -20,9 +20,9 @@ class Command(BaseCommand):
             return Level.objects.filter(on_top_of__isnull=True)
 
         values = set(v for v in value.split(',') if v)
-        levels = Level.objects.filter(on_top_of__isnull=True, short_label__in=values)
+        levels = Level.objects.filter(on_top_of__isnull=True, level___in=values)
 
-        not_found = values - set(level.short_label for level in levels)
+        not_found = values - set(level.level_index for level in levels)
         if not_found:
             raise argparse.ArgumentTypeError(
                 ngettext_lazy('Unknown level: %s', 'Unknown levels: %s', len(not_found)) % ', '.join(not_found)
@@ -122,7 +122,7 @@ class Command(BaseCommand):
                                    scale=options['scale'], full_levels=options['full_levels'],
                                    min_width=options['min_width'])
 
-            name = options['name'] or ('level_%s' % level.short_label)
+            name = options['name'] or ('level_%s' % level.level_index)
             filename = settings.RENDER_ROOT / ('%s.%s' % (name, options['filetype']))
 
             if options['filetype'] == 'svg':

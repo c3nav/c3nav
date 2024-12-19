@@ -60,7 +60,7 @@ class MapRenderer:
         not_full_levels = engine.is_3d  # always do non-full-levels until after the first primary level
         full_levels = self.full_levels and engine.is_3d
         for geoms in levels:
-            engine.add_group('level_%s' % geoms.short_label)
+            engine.add_group('level_%s' % geoms.level_index)
 
             if geoms.pk == level_render_data.lowest_important_level:
                 engine.darken(level_render_data.darken_area, much=level_render_data.darken_much)

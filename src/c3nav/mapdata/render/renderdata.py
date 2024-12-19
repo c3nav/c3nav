@@ -301,6 +301,7 @@ class LevelRenderData:
                         pk=single_geoms.pk,
                         on_top_of_id=single_geoms.on_top_of_id,
                         short_label=single_geoms.short_label,
+                        level_index=single_geoms.level_index,
                         base_altitude=single_geoms.base_altitude,
                         default_height=single_geoms.default_height,
                         door_height=single_geoms.door_height,

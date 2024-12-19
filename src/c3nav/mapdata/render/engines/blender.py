@@ -265,7 +265,7 @@ class BlenderEngine(Base3DEngine):
                 holes = geoms.holes.difference(restricted_spaces)
                 buildings = buildings.difference(holes)
 
-                self._add_polygon('Level %s' % geoms.short_label, buildings,
+                self._add_polygon('Level %s' % geoms.level_index, buildings,
                                   geoms.lower_bound, geoms.upper_bound)
                 self._set_last_polygon_to_main()
 

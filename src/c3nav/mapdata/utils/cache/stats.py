@@ -91,7 +91,7 @@ def convert_locate(data):
         pos = CustomLocation(measurement.space.level, measurement.geometry.x, measurement.geometry.y,
                              permissions=set())
         space_slug = measurement.space.effective_slug
-        level_label = measurement.space.level.short_label
+        level_label = measurement.space.level.level_index
         grid_square = pos.grid_square if grid.enabled else None
         measurement_lookup[pos.pk] = (measurement.pk, grid_square, space_slug, level_label)
         result['by_measurement_id'][measurement.pk] = 0
@@ -138,7 +138,7 @@ def convert_location(data):
 
     # fill up lists with zeros
     location_slugs = {}
-    level_labels = {}
+    level_indices = {}
     for location in LocationSlug.objects.all():
         location = location.get_child()
         if isinstance(location, LocationRedirect):
@@ -146,9 +146,9 @@ def convert_location(data):
         result['locations']['by_type'].setdefault(location.__class__.__name__.lower(), {})[location.effective_slug] = 0
         location_slugs[location.pk] = location.effective_slug
         if isinstance(location, Level):
-            result['locations']['by_level'][location.short_label] = 0
-            result['coordinates']['by_level'][location.short_label] = 0
-            level_labels[location.pk] = location.short_label
+            result['locations']['by_level'][location.level_index] = 0
+            result['coordinates']['by_level'][location.level_index] = 0
+            level_indices[location.pk] = location.short_label
         if isinstance(location, Space):
             result['locations']['by_space'][location.effective_slug] = 0
             result['coordinates']['by_space'][location.effective_slug] = 0
@@ -191,7 +191,7 @@ def convert_location(data):
             if hasattr(location, 'space_id'):
                 result['locations']['by_space'][location_slugs[location.space_id]] += value
             if hasattr(location, 'level_id'):
-                result['locations']['by_level'][level_labels[location.level_id]] += value
+                result['locations']['by_level'][level_indices[location.level_id]] += value
             if hasattr(location, 'groups'):
                 for group in location.groups.all():
                     result['locations']['by_group'][location_slugs[group.pk]] += value

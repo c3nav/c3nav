@@ -47,6 +47,7 @@ class BaseLevelGeometries:
 
     pk: int
     on_top_of_id: int | None
+    level_index: str
     short_label: str
     base_altitude: int
     default_height: int
@@ -360,6 +361,7 @@ class SingleLevelGeometries(BaseLevelGeometries):
             pk=level.pk,
             on_top_of_id=level.on_top_of_id,
             short_label=level.short_label,
+            level_index=level.level_index,
             base_altitude=base_altitude,
             default_height=default_height,
             door_height=door_height,

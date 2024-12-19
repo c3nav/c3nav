@@ -12,7 +12,7 @@ class LocationConverter:
 
 
 class CoordinatesConverter:
-    regex = r'[a-z0-9-_:]+:-?\d+(\.\d+)?:-?\d+(\.\d+)?'
+    regex = r'[a-z0-9-_.]+:-?\d+(\.\d+)?:-?\d+(\.\d+)?'
 
     def to_python(self, value):
         return value
@@ -25,7 +25,7 @@ AtPos = namedtuple('AtPos', ('level', 'x', 'y', 'zoom'))
 
 
 class AtPositionConverter:
-    regex = r'(@[a-z0-9-_:]+,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?)?'
+    regex = r'(@[a-z0-9-_.]+,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?)?'
 
     def to_python(self, value):
         if not value:

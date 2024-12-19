@@ -758,7 +758,7 @@ c3nav = {
             url += 'options/'
         }
         if (state.center) {
-            url += '@' + String(c3nav.level_labels_by_id[state.level]) + ',' + String(state.center[0]) + ',' + String(state.center[1]) + ',' + String(state.zoom);
+            url += '@' + String(c3nav.level_indices_by_id[state.level]) + ',' + String(state.center[0]) + ',' + String(state.center[1]) + ',' + String(state.zoom);
         }
         return url
     },
@@ -1414,9 +1414,9 @@ c3nav = {
             c3nav.initial_level = 0
         }
 
-        c3nav.level_labels_by_id = {};
+        c3nav.level_indices_by_id = {};
         for (i = 0; i < c3nav.levels.length; i++) {
-            c3nav.level_labels_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
+            c3nav.level_indices_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
         }
 
         minZoom = Math.log2(Math.max(0.25, Math.min(
@@ -1468,7 +1468,7 @@ c3nav = {
         c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
-            var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
+            var layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
@@ -1572,7 +1572,7 @@ c3nav = {
     },
     _latlng_to_name: function (latlng) {
         var level = c3nav.current_level();
-        return 'c:' + String(c3nav.level_labels_by_id[level]) + ':' + Math.round(latlng.lng * 100) / 100 + ':' + Math.round(latlng.lat * 100) / 100;
+        return 'c:' + String(c3nav.level_indices_by_id[level]) + ':' + Math.round(latlng.lng * 100) / 100 + ':' + Math.round(latlng.lat * 100) / 100;
     },
     _click_anywhere_load: function (nearby, latlng) {
         if (!c3nav._click_anywhere_popup && !latlng) return;
