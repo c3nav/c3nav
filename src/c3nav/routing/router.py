@@ -587,7 +587,7 @@ RouterProxiedType = TypeVar('RouterProxiedType')
 class BaseRouterProxy(Generic[RouterProxiedType]):
     src: RouterProxiedType
     nodes: set[int] = field(default_factory=set)
-    nodes_addition: NodeConnectionsByNode = field(default_factory=set)
+    nodes_addition: NodeConnectionsByNode = field(default_factory=dict)
 
     @cached_property
     def geometry_prep(self):
