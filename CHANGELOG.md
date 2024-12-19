@@ -17,6 +17,10 @@ and potential backwards incompatibilities.
 - editor access restriction overview now highlights affected spaces on a map
 - editor access restriction group edit now shows spaces with selected access restrictions and allows selecting through double click
 - WayTypes can now be excluded by default
+- Proper support for access restricted levels
+- External URLs is now shown more prominently, with a custom label and can now also be set for location groups
+- Level short_label has been split into short_label (for displaying) and level_index (for internal use like coordinates)
+- More type hinting and code modernization
 
 # Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 
