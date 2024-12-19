@@ -55,8 +55,9 @@ class DataOverlayFeature(TitledMixin, GeometryMixin, models.Model):
     point_icon = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('point icon'),
                                   help_text=_(
                                       'use this material icon to display points, instead of drawing a small circle (only makes sense if the geometry is a point)'))
-    extra_data: Optional[dict[str, str]] = SchemaField(schema=dict[str, str], blank=True, null=True, default=None,
-                                             verbose_name=_('extra data (JSON object)'))
+    extra_data: Optional[dict[str, str|int|bool]] = SchemaField(schema=dict[str, str|int|bool], blank=True, null=True,
+                                                                default=None,
+                                                                verbose_name=_('extra data (JSON object)'))
 
     def to_geojson(self, instance=None) -> dict:
         result = {
