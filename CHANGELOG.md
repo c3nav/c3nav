@@ -21,6 +21,7 @@ and potential backwards incompatibilities.
 - External URLs is now shown more prominently, with a custom label and can now also be set for location groups
 - Level short_label has been split into short_label (for displaying) and level_index (for internal use like coordinates)
 - More type hinting and code modernization
+- Fix bug where it hasn't been possible since ages to link to POIs without a slug
 
 # Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 
