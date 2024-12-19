@@ -285,7 +285,7 @@ def get_position_by_id(request, position_id: AnyPositionID):
         location = get_location_by_id_for_request(position_id, request)
         if not isinstance(location, DynamicLocation):
             raise API404()
-    if location is None and position_id.startswith('p:'):
+    if location is None and position_id.startswith('m:'):
         try:
             location = Position.objects.get(secret=position_id[2:])
         except Position.DoesNotExist:
@@ -317,7 +317,7 @@ class UpdatePositionSchema(BaseSchema):
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_permission_responses})
 def set_position(request, position_id: AnyPositionID, update: UpdatePositionSchema):
     # todo: may an API key do this?
-    if not isinstance(position_id, str) or not position_id.startswith('p:'):
+    if not isinstance(position_id, str) or not position_id.startswith('m:'):
         raise API404()
     try:
         location = Position.objects.get(secret=position_id[2:])

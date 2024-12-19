@@ -63,8 +63,8 @@ def locate(instance, interface=None, sudo=False, secret=None, api_secret=None, l
     }
 
     if secret and api_secret:
-        if not secret.startswith('p:'):
-            secret = 'p:' + secret
+        if not secret.startswith('m:'):
+            secret = 'm:' + secret
 
         json['set_position'] = secret
         json['secret'] = api_secret

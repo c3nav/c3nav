@@ -611,8 +611,8 @@ class Position(CustomLocationProxyMixin, models.Model):
         custom_location = self.get_custom_location(request=request)
         if custom_location is None:
             return {
-                'id': 'p:%s' % self.secret,
-                'slug': 'p:%s' % self.secret,
+                'id': 'm:%s' % self.secret,
+                'slug': 'm:%s' % self.secret,
                 'available': False,
                 'icon': 'my_location',
                 'title': self.name,
@@ -622,8 +622,8 @@ class Position(CustomLocationProxyMixin, models.Model):
         result = CustomLocationSchema.model_validate(custom_location).model_dump()
         result.update({
             'available': True,
-            'id': 'p:%s' % self.secret,
-            'slug': 'p:%s' % self.secret,
+            'id': 'm:%s' % self.secret,
+            'slug': 'm:%s' % self.secret,
             'icon': 'my_location',
             'title': self.name,
             'subtitle': '%s, %s, %s' % (
@@ -640,7 +640,7 @@ class Position(CustomLocationProxyMixin, models.Model):
 
     @property
     def slug(self):
-        return 'p:%s' % self.secret
+        return 'm:%s' % self.secret
 
     @property
     def subtitle(self):

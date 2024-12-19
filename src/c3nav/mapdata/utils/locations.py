@@ -213,7 +213,7 @@ def get_location_by_id_for_request(pk, request):
     if isinstance(pk, str):
         if pk.isdigit():
             pk = int(pk)
-        elif pk.startswith('p:'):
+        elif pk.startswith('m:'):
             try:
                 # return immediately, don't cache for obvious reasons
                 return Position.objects.get(secret=pk[2:])
@@ -234,7 +234,7 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[Locat
         location = get_custom_location_for_request(slug, request)
         if location is None:
             return None
-    elif slug.startswith('p:'):
+    elif slug.startswith('m:'):
         try:
             # return immediately, don't cache for obvious reasons
             return Position.objects.get(secret=slug[2:])
