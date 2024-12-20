@@ -1327,6 +1327,7 @@ editor = {
         editor.map.doubleClickZoom.disable();
     },
 
+    _current_editing_shape: [],
     // edit and create geometries
     _check_start_editing: function () {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
@@ -1356,6 +1357,7 @@ editor = {
                             return options;
                         },
                         pointToLayer: editor._point_to_layer,
+                        multipoint: true,
                     }).getLayers()[0].addTo(editor._geometries_layer);
                     editor._editing_layer.enableEdit();
                     if (editor._editing_layer.editor._resizeLatLng !== undefined) {
@@ -1384,7 +1386,9 @@ editor = {
                         options = editor._line_draw_geometry_style(options);
                         editor._current_editing_shape = editor.map.editTools.startPolyline(null, options);
                     } else if (geomtype === 'point') {
-                        editor._current_editing_shape = editor.map.editTools.startMarker(null, options);
+                        editor._current_editing_shape = editor.map.editTools.startCircleMarker(null, options);
+                    } else if (geomtype === 'multipoint') {
+                        editor._current_editing_shape = editor.map.editTools.startMultipoint(null, options);
                     }
                 }
 
@@ -1395,7 +1399,8 @@ editor = {
                     const geomtypeNames = {
                         polygon: 'Polygon',
                         linestring: 'Line string',
-                        point: 'Point'
+                        multipoint: 'Multipoint',
+                        point: 'Point',
                     }; // TODO: translations
                     for(const geomtype of geomtypes) {
                         const option = $(`<option value="${geomtype}">${geomtypeNames[geomtype]}</option>`);
@@ -1435,23 +1440,29 @@ editor = {
     _done_creating: function (e) {
         // called when creating is completed (by clicking on the last point). fills in the form and switches to editing.
         if (editor._creating) {
-            editor._creating = false;
-            // return L.circle(latlng, {radius: 0.5});
+            if (editor._creating_type !== 'multipoint') {
+                // multipoints can always accept more points so they are always in "creating" mode
+                editor._creating = false;
+            }
             var layer = e.layer;
-            if (e.layer._latlng !== undefined) {
-                layer = L.circle(e.layer._latlng, e.layer.options);
+            if (editor._creating_type === 'point' && layer._latlng !== undefined) {
+                layer = L.circle(layer._latlng, layer.options);
                 layer.setRadius(0.15);
                 e.layer.remove();
+                editor._current_editing_shapes = [layer];
             }
             editor._editing_layer = layer;
             editor._editing_layer.addTo(editor._geometries_layer);
-            if (e.layer._latlng !== undefined) {
+            if (editor._creating_type === 'point' && e.layer._latlng !== undefined) {
                 layer.enableEdit();
                 layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
             }
             editor._update_editing();
-            $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock')
-                .find('input:not([type=hidden], .btn)').first().focus();
+            const form = $('#sidebar').find('.content').find('form.creation-lock');
+            form.removeClass('creation-lock')
+            if (editor._creating_type !== 'multipoint') {
+                form.find('input:not([type=hidden], .btn)').first().focus();
+            }
         }
     },
     _update_editing: function () {

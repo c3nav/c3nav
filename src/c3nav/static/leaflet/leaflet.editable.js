@@ -64,6 +64,8 @@
       // Class to be used when creating a new Polyline.
       polylineClass: L.Polyline,
 
+      multipointClass: L.MultiPoint,
+
       // 🍂option markerClass: class = L.Marker
       // Class to be used when creating a new Marker.
       markerClass: L.Marker,
@@ -107,6 +109,8 @@
       // 🍂option markerEditorClass: class = MarkerEditor
       // Class to be used as Marker editor.
       markerEditorClass: undefined,
+
+      multipointEditorClass: undefined,
 
       // 🍂option circleMarkerEditorClass: class = CircleMarkerEditor
       // Class to be used as CircleMarker editor.
@@ -320,6 +324,15 @@
       return line
     },
 
+    // 🍂method startMultipoint(latlng: L.LatLng, options: hash): L.Polyline
+    // Start drawing a startMultipoint. If `latlng` is given, a first point will be added. In any case, continuing on user click.
+    // If `options` is given, it will be passed to the Polyline class constructor.
+    startMultipoint: function (latlng, options) {
+      const multipoint = this.createMultipoint([], options)
+      multipoint.enableEdit(this.map)
+      return multipoint
+    },
+
     // 🍂method startPolygon(latlng: L.LatLng, options: hash): L.Polygon
     // Start drawing a Polygon. If `latlng` is given, a first point will be added. In any case, continuing on user click.
     // If `options` is given, it will be passed to the Polygon class constructor.
@@ -389,6 +402,14 @@
     createPolyline: function (latlngs, options) {
       return this.createLayer(
         options?.polylineClass || this.options.polylineClass,
+        latlngs,
+        options
+      )
+    },
+
+    createMultipoint: function (latlngs, options) {
+      return this.createLayer(
+        options?.multipointClass || this.options.multipointClass,
         latlngs,
         options
       )
@@ -1868,6 +1889,50 @@
     },
   })
 
+  L.Editable.MultipointEditor = L.Editable.PathEditor.extend({
+
+    addHooks: function () {
+      L.Editable.PathEditor.prototype.addHooks.call(this)
+      this.startDrawing();
+      return this
+    },
+
+    processDrawingClick: function (e) {
+      if (e.vertex && e.vertex.editor === this) return;
+      this.addLatLng(e.latlng);
+      this.fireAndForward('editable:drawing:clicked', e)
+      this.onCommitDrawing({
+        ...e,
+        layer: this.feature,
+      });
+    },
+
+    addLatLng: function (latlng) {
+      this._drawnLatLngs.push(latlng)
+      this.feature._bounds.extend(latlng)
+      const vertex = this.addVertexMarker(latlng, this._drawnLatLngs)
+      this.onNewVertex(vertex)
+      this.refresh()
+    },
+
+    refresh: function () {
+      // this.feature.redraw() // TODO: L.MultiPoint needs to support redraw
+      this.onEditing()
+    },
+
+    getLatLngs: function() {
+        return this.feature._latlngs;
+    },
+
+    getDefaultLatLngs: function() {
+        return this.feature._latlngs;
+    },
+
+    hasMiddleMarkers: function () {
+      return false;
+    },
+  })
+
   // 🍂namespace Editable; 🍂class EditableMixin
   // `EditableMixin` is included to `L.Polyline`, `L.Polygon`, `L.Rectangle`, `L.Circle`
   // and `L.Marker`. It adds some methods to them.
@@ -2027,6 +2092,12 @@
     },
   }
 
+  const MultipointMixin = {
+    getEditorClass: (tools) => {
+      return tools?.options?.multipointEditorClass || L.Editable.MultipointEditor
+    },
+  }
+
   const CircleMarkerMixin = {
     getEditorClass: (tools) => {
       return tools?.options?.circleMarkerEditorClass || L.Editable.CircleMarkerEditor
@@ -2078,6 +2149,11 @@
   if (L.Circle) {
     L.Circle.include(EditableMixin)
     L.Circle.include(CircleMixin)
+  }
+  if (L.MultiPoint) {
+    L.MultiPoint.include(EditableMixin)
+    L.MultiPoint.include(MultipointMixin)
+    L.MultiPoint.addInitHook(keepEditable)
   }
 
   L.LatLng.prototype.update = function (latlng) {

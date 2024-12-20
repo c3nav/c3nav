@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from shapely import validation
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.base import BaseGeometry
+from shapely.geometry.multipoint import MultiPoint
 
 from c3nav.mapdata.utils.geometry import WrappedGeometry, clean_geometry
 from c3nav.mapdata.utils.json import format_geojson
@@ -64,9 +65,9 @@ class GeometryField(models.JSONField):
     def __init__(self, geomtype=None, default=None, null=False, blank=False, help_text=None):
         if geomtype == 'polyline':
             geomtype = 'linestring'
-        if geomtype not in (None, 'polygon', 'multipolygon', 'linestring', 'point'):
+        if geomtype not in (None, 'polygon', 'multipolygon', 'linestring', 'multipoint', 'point'):
             raise ValueError('GeometryField.geomtype has to be '
-                             'None, "polygon", "multipolygon", "linestring" or "point"')
+                             'None, "polygon", "multipolygon", "linestring", "multipoint" or "point"')
         self.geomtype = geomtype
         super().__init__(default=default, null=null, blank=blank, help_text=help_text)
 
@@ -108,6 +109,7 @@ class GeometryField(models.JSONField):
             'polygon': (Polygon, ),
             'multipolygon': (Polygon, MultiPolygon),
             'linestring': (LineString, ),
+            'multipoint': (MultiPoint, ),
             'point': (Point, )
         }.get(self.geomtype, None)
 

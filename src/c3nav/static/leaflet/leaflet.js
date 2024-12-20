@@ -7765,6 +7765,276 @@ var Marker = Layer.extend({
 });
 
 
+
+var MultiPoint = Layer.extend({
+	options: {
+		// @option icon: Icon = *
+		// Icon instance to use for rendering the marker.
+		// See [Icon documentation](#L.Icon) for details on how to customize the marker icon.
+		// If not specified, a common instance of `L.Icon.Default` is used.
+		icon: new IconDefault(),
+
+		// Option inherited from "Interactive layer" abstract class
+		interactive: true,
+
+		// @option keyboard: Boolean = true
+		// Whether the marker can be tabbed to with a keyboard and clicked by pressing enter.
+		keyboard: true,
+
+		// @option title: String = ''
+		// Text for the browser tooltip that appear on marker hover (no tooltip by default).
+		title: '',
+
+		// @option alt: String = ''
+		// Text for the `alt` attribute of the icon image (useful for accessibility).
+		alt: '',
+
+		// @option zIndexOffset: Number = 0
+		// By default, marker images zIndex is set automatically based on its latitude. Use this option if you want to put the marker on top of all others (or below), specifying a high value like `1000` (or high negative value, respectively).
+		zIndexOffset: 0,
+
+		// @option opacity: Number = 1.0
+		// The opacity of the marker.
+		opacity: 1,
+
+		// @option riseOnHover: Boolean = false
+		// If `true`, the marker will get on top of others when you hover the mouse over it.
+		riseOnHover: false,
+
+		// @option riseOffset: Number = 250
+		// The z-index offset used for the `riseOnHover` feature.
+		riseOffset: 250,
+
+		// @option pane: String = 'markerPane'
+		// `Map pane` where the markers icon will be added.
+		pane: 'markerPane',
+
+		// @option pane: String = 'shadowPane'
+		// `Map pane` where the markers shadow will be added.
+		shadowPane: 'shadowPane',
+
+		// @option bubblingMouseEvents: Boolean = false
+		// When `true`, a mouse event on this marker will trigger the same event on the map
+		// (unless [`L.DomEvent.stopPropagation`](#domevent-stoppropagation) is used).
+		bubblingMouseEvents: false,
+
+		// @section Draggable marker options
+		// @option draggable: Boolean = false
+		// Whether the marker is draggable with mouse/touch or not.
+		draggable: false,
+
+		// @option autoPan: Boolean = false
+		// Whether to pan the map when dragging this marker near its edge or not.
+		autoPan: false,
+
+		// @option autoPanPadding: Point = Point(50, 50)
+		// Distance (in pixels to the left/right and to the top/bottom) of the
+		// map edge to start panning the map.
+		autoPanPadding: [50, 50],
+
+		// @option autoPanSpeed: Number = 10
+		// Number of pixels the map should pan by.
+		autoPanSpeed: 10
+	},
+
+	initialize: function (latlngs, options) {
+		setOptions(this, options);
+		this._setLatLngs(latlngs);
+	},
+
+	beforeAdd: function (map) {
+		// Renderer is set here because we need to call renderer.getEvents
+		// before this.getEvents.
+		this._renderer = map.getRenderer(this);
+	},
+
+	onAdd: function (map) {
+
+		this._initIcon();
+		// this.update(); // TODO
+	},
+
+	onRemove: function (map) {
+		if (this.dragging && this.dragging.enabled()) {
+			this.options.draggable = true;
+			this.dragging.removeHooks();
+		}
+		delete this.dragging;
+
+		this._removeIcon();
+		this._removeShadow();
+	},
+
+	_setLatLngs: function (latlngs) {
+		this._bounds = new LatLngBounds();
+		this._latlngs = this._convertLatLngs(latlngs);
+	},
+
+	// convert latlngs input into actual LatLng instances; calculate bounds along the way
+	_convertLatLngs: function (latlngs) {
+		var result = [];
+		for (var i = 0, len = latlngs.length; i < len; i++) {
+			result[i] = toLatLng(latlngs[i]);
+			this._bounds.extend(result[i]);
+		}
+
+		return result;
+	},
+
+	// @method getBounds(): LatLngBounds
+	// Returns the `LatLngBounds` of the path.
+	getBounds: function () {
+		return this._bounds;
+	},
+
+	// @method addLatLng(latlng: LatLng, latlngs? LatLng[]): this
+	// Adds a given point to the multipoint.
+	addLatLng: function (latlng) {
+		latlng = toLatLng(latlng);
+		this._latlngs.push(latlng);
+		this._bounds.extend(latlng);
+		return this.redraw();
+	},
+
+
+	update: function () {
+		return; // TODO
+
+
+		if (this._icons && this._map) {
+
+			var pos = this._map.latLngToLayerPoint(this._latlng).round();
+			this._setPos(pos);
+		}
+
+		return this;
+	},
+
+	_initIcon: function () {
+		var options = this.options,
+		    classToAdd = 'leaflet-zoom-' + (this._zoomAnimated ? 'animated' : 'hide');
+
+		var icon = options.icon.createIcon(this._icon),
+		    addIcon = false;
+
+		// if we're not reusing the icon, remove the old one and init new one
+		if (icon !== this._icon) {
+			if (this._icon) {
+				this._removeIcon();
+			}
+			addIcon = true;
+
+			if (options.title) {
+				icon.title = options.title;
+			}
+
+			if (icon.tagName === 'IMG') {
+				icon.alt = options.alt || '';
+			}
+		}
+
+		addClass(icon, classToAdd);
+
+		if (options.keyboard) {
+			icon.tabIndex = '0';
+		}
+
+		this._icon = icon;
+
+		if (options.riseOnHover) {
+			this.on({
+				mouseover: this._bringToFront,
+				mouseout: this._resetZIndex
+			});
+		}
+
+		var newShadow = options.icon.createShadow(this._shadow),
+		    addShadow = false;
+
+		if (newShadow !== this._shadow) {
+			this._removeShadow();
+			addShadow = true;
+		}
+
+		if (newShadow) {
+			addClass(newShadow, classToAdd);
+			newShadow.alt = '';
+		}
+		this._shadow = newShadow;
+
+
+		if (options.opacity < 1) {
+			this._updateOpacity();
+		}
+
+
+		if (addIcon) {
+			this.getPane().appendChild(this._icon);
+		}
+		this._initInteraction();
+		if (newShadow && addShadow) {
+			this.getPane(options.shadowPane).appendChild(this._shadow);
+		}
+	},
+
+	_removeIcon: function () {
+		if (this.options.riseOnHover) {
+			this.off({
+				mouseover: this._bringToFront,
+				mouseout: this._resetZIndex
+			});
+		}
+
+		remove(this._icon);
+		this.removeInteractiveTarget(this._icon);
+
+		this._icon = null;
+	},
+
+	_removeShadow: function () {
+		if (this._shadow) {
+			remove(this._shadow);
+		}
+		this._shadow = null;
+	},
+
+	_initInteraction: function () {
+
+		if (!this.options.interactive) { return; }
+
+		addClass(this._icon, 'leaflet-interactive');
+
+		this.addInteractiveTarget(this._icon);
+
+		if (MarkerDrag) {
+			var draggable = this.options.draggable;
+			if (this.dragging) {
+				draggable = this.dragging.enabled();
+				this.dragging.disable();
+			}
+
+			this.dragging = new MarkerDrag(this);
+
+			if (draggable) {
+				this.dragging.enable();
+			}
+		}
+	},
+
+	toGeoJSON: function (precision) {
+		var multi = !isFlat(this._latlngs);
+
+		var coords = latLngsToCoords(this._latlngs, 0, false, precision);
+
+		return getFeature(this, {
+			type: 'MultiPoint',
+			coordinates: coords
+		});
+	}
+
+});
+
+
 // factory L.marker(latlng: LatLng, options? : Marker options)
 
 // @factory L.marker(latlng: LatLng, options? : Marker options)
@@ -8796,6 +9066,7 @@ function geometryToLayer(geojson, options) {
 	    coords = geometry ? geometry.coordinates : null,
 	    layers = [],
 	    pointToLayer = options && options.pointToLayer,
+		multipoint = options && options.multipoint,
 	    _coordsToLatLng = options && options.coordsToLatLng || coordsToLatLng,
 	    latlng, latlngs, i, len;
 
@@ -8809,6 +9080,11 @@ function geometryToLayer(geojson, options) {
 		return _pointToLayer(pointToLayer, geojson, latlng, options);
 
 	case 'MultiPoint':
+		if (multipoint) {
+			latlngs = coordsToLatLngs(coords, 0, _coordsToLatLng);
+			return new MultiPoint(latlngs, options);
+		}
+
 		for (i = 0, len = coords.length; i < len; i++) {
 			latlng = _coordsToLatLng(coords[i]);
 			layers.push(_pointToLayer(pointToLayer, geojson, latlng, options));
@@ -14027,6 +14303,7 @@ exports.LayerGroup = LayerGroup;
 exports.layerGroup = layerGroup;
 exports.FeatureGroup = FeatureGroup;
 exports.featureGroup = featureGroup;
+exports.MultiPoint = MultiPoint;
 exports.ImageOverlay = ImageOverlay;
 exports.imageOverlay = imageOverlay;
 exports.VideoOverlay = VideoOverlay;

@@ -40,7 +40,7 @@ def format_geojson(data, rounded=True):
     if coordinates is not None:
         if data['type'] == 'Point':
             coordinates = tuple(round(i, 2) for i in coordinates)
-        elif data['type'] == 'LineString':
+        elif data['type'] == 'LineString' or data['type'] == 'MultiPoint':
             coordinates = round_coordinates(coordinates)
         elif data['type'] == 'MultiLineString':
             coordinates = tuple(round_coordinates(linestring) for linestring in coordinates)
