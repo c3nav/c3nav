@@ -201,7 +201,7 @@ class Route:
 
         restrictions_option = self.options.get('restrictions', 'normal')
         if restrictions_option == "avoid":
-            options_summary.append(_('avoid restrictionss'))
+            options_summary.append(_('avoid restrictions'))
         elif restrictions_option == "prefer":
             options_summary.append(_('prefer restrictions'))
 

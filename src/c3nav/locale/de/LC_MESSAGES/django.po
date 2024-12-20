@@ -250,11 +250,11 @@ msgstr "kann bearbeiten"
 
 #: c3nav/control/models.py
 msgid "user space access"
-msgstr "Benutzer-Raumzugrifsberechtigung"
+msgstr "Benutzer-Raumzugriffsberechtigung"
 
 #: c3nav/control/models.py
 msgid "user space accesses"
-msgstr "Benutzer-Raumzugrifsberechtigungen"
+msgstr "Benutzer-Raumzugriffsberechtigungen"
 
 #: c3nav/control/templates/control/access.html
 msgid "Generate QR Code"
@@ -436,7 +436,7 @@ msgstr "Kartenänderungen"
 
 #: c3nav/control/templates/control/map_updates.html
 msgid "Create map update"
-msgstr "Kartenängerung erstellen"
+msgstr "Kartenänderung erstellen"
 
 #: c3nav/control/templates/control/map_updates.html
 msgid "Process updates"
@@ -3589,7 +3589,7 @@ msgid "You have reached your destination."
 msgstr "Du hast dein Ziel erreicht."
 
 #: c3nav/routing/route.py
-msgid "avoid restrictionss"
+msgid "avoid restrictions"
 msgstr "nicht-öffentlich vermieden"
 
 #: c3nav/routing/route.py
