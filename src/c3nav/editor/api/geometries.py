@@ -56,7 +56,7 @@ def _get_geometries_for_one_level(level):
 
     results.extend(sorted(spaces.values(), key=space_sorting_func))
 
-    results.extend(level.data_overlay_features.all())
+    results.extend(level.dataoverlayfeatures.all())
 
     return results
 
@@ -148,7 +148,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         Prefetch('spaces__beacon_measurements', BeaconMeasurement.objects.only('geometry', 'space')),
         Prefetch('spaces__ranging_beacons', RangingBeacon.objects.only('geometry', 'space')),
         Prefetch('spaces__graphnodes', graphnodes_qs),
-        Prefetch('data_overlay_features', DataOverlayFeature.objects.only('geometry', 'overlay_id', 'level'))
+        Prefetch('dataoverlayfeatures', DataOverlayFeature.objects.only('geometry', 'overlay_id', 'level'))
     )
 
     levels = {s.pk: s for s in levels}

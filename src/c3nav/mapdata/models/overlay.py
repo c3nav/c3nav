@@ -7,7 +7,7 @@ from django_pydantic_field import SchemaField
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import TitledMixin
-from c3nav.mapdata.models.geometry.base import GeometryMixin
+from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -16,6 +16,7 @@ class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
     class GeometryType(models.TextChoices):
         POLYGON = "polygon", _("Polygon")
         LINESTRING = "linestring", _("Line string")
+        MULTIPOINT = "multipoint", _("Multipoint")
         POINT = "point", _("Point")
 
     description = models.TextField(blank=True, verbose_name=_('Description'))
@@ -38,10 +39,10 @@ class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
         default_related_name = 'dataoverlays'
 
 
-class DataOverlayFeature(TitledMixin, GeometryMixin, models.Model):
+class DataOverlayFeature(TitledMixin, LevelGeometryMixin, models.Model):
     overlay = models.ForeignKey('mapdata.DataOverlay', on_delete=models.CASCADE, verbose_name=_('Overlay'), related_name='features')
     geometry = GeometryField()
-    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'), related_name='data_overlay_features')
+    # level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'), related_name='data_overlay_features')
     external_url = models.URLField(blank=True, null=True, verbose_name=_('external URL'))
     stroke_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('stroke color'))
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('stroke width'))
