@@ -263,6 +263,9 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon, Sequence[Polygon
         ring = ring[0] if len(ring) == 1 else LinearRing(ring[1].coords[:-1] + ring[0].coords[0:])
         ring = cut_line_with_point(ring, last.point)
 
+        if len(ring) == 1:
+            continue
+
         point_forwards = ring[1].coords[1]
         point_backwards = ring[0].coords[-2]
         angle_forwards = math.atan2(point_forwards[0] - last.point.x, point_forwards[1] - last.point.y)
