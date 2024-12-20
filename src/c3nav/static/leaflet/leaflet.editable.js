@@ -483,7 +483,7 @@
 
   L.Editable.VertexIcon = L.DivIcon.extend({
     options: {
-      iconSize: new L.Point(8, 8),
+      iconSize: new L.Point(20, 20),
     },
   })
 
