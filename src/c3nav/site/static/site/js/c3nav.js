@@ -513,6 +513,7 @@ c3nav = {
         $location_details.removeClass('loading');
     },
     next_route_options: null,
+    session_route_options: null,
     load_route: function (origin, destination, nofly) {
         var $route = $('#route-summary'),
             $details_wrapper = $('#route-details'),
@@ -525,7 +526,7 @@ c3nav = {
             c3nav_api.post('routing/route', {
                 origin: origin.id,
                 destination: destination.id,
-                options_override: c3nav.next_route_options ?? null,
+                options_override: c3nav.next_route_options ?? c3nav.session_route_options ?? null,
             })
                 .then(data => c3nav._route_loaded(data, nofly))
                 .catch(data => {
@@ -803,7 +804,16 @@ c3nav = {
         const route_options_str = new URLSearchParams(window.location.search).get('route_opts');
         if (route_options_str) {
             try {
-                c3nav.next_route_options = JSON.parse(route_options_str);
+                c3nav.session_route_options = JSON.parse(route_options_str);
+                if (sessionStorage) {
+                    sessionStorage.setItem('session-route-opts', JSON.stringify(c3nav.session_route_options));
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        } else if (sessionStorage) {
+            try {
+                c3nav.session_route_options = JSON.parse(sessionStorage.getItem('session-route-opts'));
             } catch (e) {
                 console.error(e);
             }
