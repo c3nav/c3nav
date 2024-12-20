@@ -172,7 +172,7 @@ c3nav = {
                 location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.effective_slug + ' ' + location.add_search.toLowerCase();
                 locations.push(location);
                 locations_by_id[location.id] = location;
-                if (location.point && location.label_settings) {
+                if (location.point && location.effective_label_settings) {
                     if (!(location.point[0] in labels)) labels[location.point[0]] = [];
                     labels[location.point[0]].push([location, c3nav._build_location_label(location)]);
                 }
