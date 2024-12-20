@@ -394,7 +394,7 @@ class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSche
     interactive: bool
     point_icon: Optional[str]
     external_url: Optional[str]
-    extra_data: Optional[dict[str, str]]
+    extra_data: Optional[dict[str, str | int | float]]
 
 
 class WayTypeSchema(TitledSchema, DjangoModelSchema):
