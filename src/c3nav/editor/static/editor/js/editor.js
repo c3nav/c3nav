@@ -1327,7 +1327,7 @@ editor = {
         editor.map.doubleClickZoom.disable();
     },
 
-    _current_editing_shape: [],
+    _current_editing_shape: null,
     // edit and create geometries
     _check_start_editing: function () {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
@@ -1449,7 +1449,7 @@ editor = {
                 layer = L.circle(layer._latlng, layer.options);
                 layer.setRadius(0.15);
                 e.layer.remove();
-                editor._current_editing_shapes = [layer];
+                editor._current_editing_shape = layer;
             }
             editor._editing_layer = layer;
             editor._editing_layer.addTo(editor._geometries_layer);
