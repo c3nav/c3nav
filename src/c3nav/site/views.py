@@ -61,7 +61,7 @@ def check_location(location_slug: Optional[str], request) -> Optional[Location]:
         return None
 
     if isinstance(location, LocationRedirect):
-        result = location.target
+        return location.target
     if location is None:
         return None
 
