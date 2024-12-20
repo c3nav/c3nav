@@ -140,6 +140,7 @@ class Router:
                     space.areas.add(area.pk)
 
                 for area in level.altitudeareas.all():
+                    area.geometry = unwrap_geom(area.geometry).buffer(0)
                     if not space.geometry_prep.intersects(unwrap_geom(area.geometry)):
                         continue
                     for subgeom in assert_multipolygon(accessible_geom.intersection(unwrap_geom(area.geometry))):

@@ -240,7 +240,8 @@ class SingleLevelGeometries(BaseLevelGeometries):
         # add altitudegroup geometries and split ground colors into them
         altitudearea_geoms: list[AltitudeAreaGeometries] = [] 
         for altitudearea in level.altitudeareas.all():  # noqa
-            altitudearea_prep = prepared.prep(unwrap_geom(altitudearea.geometry).buffer(0))
+            altitudearea.geometry = unwrap_geom(altitudearea.geometry).buffer(0)
+            altitudearea_prep = prepared.prep(unwrap_geom(altitudearea.geometry))
             altitudearea_colors = {color: {access_restriction: area.intersection(unwrap_geom(altitudearea.geometry))
                                            for access_restriction, area in areas.items()
                                            if altitudearea_prep.intersects(area)}
@@ -253,8 +254,9 @@ class SingleLevelGeometries(BaseLevelGeometries):
                 for color, color_obstacles in height_obstacles.items():
                     new_color_obstacles = []
                     for obstacle in color_obstacles:
-                        if altitudearea_prep.intersects(obstacle.buffer(0)):
-                            new_color_obstacles.append(obstacle.buffer(0).intersection(unwrap_geom(altitudearea.geometry)))
+                        obstacle = obstacle.buffer(0)
+                        if altitudearea_prep.intersects(obstacle):
+                            new_color_obstacles.append(obstacle.intersection(unwrap_geom(altitudearea.geometry)))
                     if new_color_obstacles:
                         new_height_obstacles[color] = new_color_obstacles
                 if new_height_obstacles:
