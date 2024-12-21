@@ -20,7 +20,7 @@ class Command(BaseCommand):
             return Level.objects.filter(on_top_of__isnull=True)
 
         values = set(v for v in value.split(',') if v)
-        levels = Level.objects.filter(on_top_of__isnull=True, level___in=values)
+        levels = Level.objects.filter(on_top_of__isnull=True, level_index___in=values)
 
         not_found = values - set(level.level_index for level in levels)
         if not_found:
