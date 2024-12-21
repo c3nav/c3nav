@@ -12,7 +12,7 @@ class LocationConverter:
 
 
 class CoordinatesConverter:
-    regex = r'[a-z0-9-_.]+:-?\d+(\.\d+)?:-?\d+(\.\d+)?'
+    regex = r'c:[a-z0-9-_.]+:-?\d+(\.\d+)?:-?\d+(\.\d+)?'
 
     def to_python(self, value):
         return value
