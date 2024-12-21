@@ -266,6 +266,12 @@ editor = {
         }
     },
 
+    _convert_pasted_to_lowercase: function (e) {
+        window.setTimeout(() => {
+            e.target.value = e.target.value.toLowerCase();
+        }, 100);
+    },
+
     _in_modal: false,
     sidebar_extra_data: {},
     _sidebar_loaded: function (data) {
@@ -456,6 +462,9 @@ editor = {
             }
             data_field.after(collector);
         }
+
+        content.find('#id_slug').on('paste', editor._convert_pasted_to_lowercase);
+        content.find('#id_redirect_slugs').on('paste', editor._convert_pasted_to_lowercase);
     },
     _sidebar_error: function (data) {
         $('#sidebar').removeClass('loading').find('.content').html('<h3>Error ' + data.status + '</h3>' + data.statusText);
