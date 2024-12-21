@@ -650,7 +650,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
                     _('We do not accept reports for this location.'),
                     group.report_help_text,
                 ))
-            return render(request, 'site/report_question.html', {})
+                return render(request, 'site/report_question.html', {})
         if report.location is None:
             raise Http404
         if not isinstance(report.location, SpecificLocation):
