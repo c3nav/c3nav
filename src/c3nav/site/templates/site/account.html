@@ -52,10 +52,10 @@
     <hr>
         <p>{% trans 'SSO Connections:' %}</p>
         {% for backend, name in sso_backends.not_associated.items %}
-        <p><a class="button" href="{% url 'social:begin' backend=backend %}?next={% url 'site.account' %}">Link {{ name }}</a></p>
+        <p><a class="button" href="{% url 'social:begin' backend=backend %}?next={% url 'site.account' %}" target="_self">Link {{ name }}</a></p>
         {% endfor %}
         {% for backend, name in sso_backends.associated.items %}
-        <p><a class="button delete" href="{% url 'social:disconnect' backend=backend %}?next={% url 'site.account' %}">Unlink {{ name }}</a></p>
+        <p><a class="button delete" href="{% url 'social:disconnect' backend=backend %}?next={% url 'site.account' %}" target="_self">{ name }}</a></p>
         {% endfor %}
     {% endif %}
 
