@@ -300,7 +300,7 @@ def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            login(request, form.user_cache)
+            login(request, form.user_cache, 'django.contrib.auth.backends.ModelBackend')
             migrate_access_permissions_after_login(request)
             return close_response(request)
     else:
@@ -352,7 +352,7 @@ def register_view(request):
         form = UserCreationForm(data=request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
+            login(request, user, 'django.contrib.auth.backends.ModelBackend')
             migrate_access_permissions_after_login(request)
             return close_response(request)
     else:
@@ -376,7 +376,7 @@ def change_password_view(request):
         form = PasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             form.save()
-            login(request, request.user)
+            login(request, request.user, 'django.contrib.auth.backends.ModelBackend')
             messages.success(request, _('Password successfully changed.'))
             return redirect('site.account')
     else:
