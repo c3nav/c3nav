@@ -13,8 +13,8 @@ mobileclient = {
         console.log('mobileclient: scanNow');
         if (mobileclient.wait) return;
         mobileclient.wait = true;
-        $.getJSON('http://localhost:'+String(mobileclient.port)+'/scan', function(data) {
-            mobileclient.setNearbyStations(data.data);
+        $.getJSON('http://localhost:'+String(mobileclient.port)+'/scan', function(response) {
+            mobileclient.setNearbyStations(response.wifi.data);
         }).always(function() {
             mobileclient.wait = false;
         });
