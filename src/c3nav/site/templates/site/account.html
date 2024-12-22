@@ -48,6 +48,17 @@
         <a class="button" href="{% url 'site.api_secret_list' %}">{% trans 'Manage API secrets' %}</a>
     </p>
 
+    {% if sso_backends %}
+    <hr>
+        <p>{% trans %}SSO Connections:{% endtrans %}</p>
+        {% for backend, name in sso_backends.not_associated.items %}
+        <p><a class="button" href="{% url 'social:begin' backend=backend %}?next={% url 'site.account' %}">Link {{ name }}</a></p>
+        {% endfor %}
+        {% for backend, name in sso_backends.associated.items %}
+        <p><a class="button delete" href="{% url 'social:disconnect' backend=backend %}?next={% url 'site.account' %}">Unlink {{ name }}</a></p>
+        {% endfor %}
+    {% endif %}
+
     <hr>
     <p>
         <a class="button" href="{% url 'site.logout' %}">{% trans 'Log out' %}</a>

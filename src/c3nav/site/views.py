@@ -416,9 +416,23 @@ def delete_account_view(request):
 @never_cache
 @login_required(login_url='site.login')
 def account_view(request):
-    return render(request, 'site/account.html', {
+    ctx = {
         'user_has_reports': Report.user_has_reports(request.user),
-    })
+    }
+    if settings.SSO_ENABLED:
+        from social_core.backends.utils import user_backends_data
+        from social_django.utils import Storage
+        from c3nav.control.sso import get_sso_services
+        sso_services = get_sso_services()
+        ctx['sso_services'] = sso_services
+        backends = user_backends_data(
+            request.user, settings.AUTHENTICATION_BACKENDS, Storage
+        )
+        ctx['sso_backends'] = {
+            'associated': {backend.provider: sso_services[backend.provider] for backend in backends["associated"] },
+            'not_associated': {backend: sso_services[backend] for backend in backends["not_associated"] },
+        }
+    return render(request, 'site/account.html', ctx)
 
 
 @never_cache
