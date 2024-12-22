@@ -25,3 +25,19 @@ class CCCHHOAuth2(KeycloakOAuth2):
             "first_name": response.get("given_name", ''),
             "last_name": response.get("family_name", ''),
         }
+
+
+class C3VOCOpenID(OpenIdConnectAuth):
+    """C3VOC SSO"""
+    name = 'c3voc'
+    verbose_name = 'C3VOC SSO'
+    DEFAULT_SCOPE = ['openid', 'profile', 'groups']
+    EXTRA_DATA = ["id_token", "refresh_token", ("sub", "id"), "groups"]
+
+
+class C3NOCOpenID(OpenIdConnectAuth):
+    """C3NOC SSO"""
+    name = 'c3noc'
+    verbose_name = 'C3NOC SSO'
+    DEFAULT_SCOPE = ['openid', 'profile', 'groups']
+    EXTRA_DATA = ["id_token", "refresh_token", ("sub", "id"), "groups"]
