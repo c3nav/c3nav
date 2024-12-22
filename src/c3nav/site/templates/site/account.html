@@ -50,7 +50,7 @@
 
     {% if sso_backends %}
     <hr>
-        <p>{% trans %}SSO Connections:{% endtrans %}</p>
+        <p>{% trans 'SSO Connections:' %}</p>
         {% for backend, name in sso_backends.not_associated.items %}
         <p><a class="button" href="{% url 'social:begin' backend=backend %}?next={% url 'site.account' %}">Link {{ name }}</a></p>
         {% endfor %}
