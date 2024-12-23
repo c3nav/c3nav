@@ -25,7 +25,6 @@ class LocateWifiPeerSchema(BaseSchema):
         title="RSSI",
         description="RSSI in dBm",
         example=-42,
-        validation_alias="level",  # App version < 4.2.4 use level instead fo rssi
     )
     frequency: Union[
         PositiveInt,
