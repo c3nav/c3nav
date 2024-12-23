@@ -224,7 +224,8 @@ class Locator:
                 best_location = location
                 best_score = score
 
-        best_location.score = best_score
+        if best_location is not None:
+            best_location.score = best_score
 
         return best_location
 

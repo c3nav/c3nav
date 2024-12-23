@@ -1508,7 +1508,7 @@ c3nav = {
         }
 
         // setup user location control
-        if (c3nav.ssids) c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
+        if ($main.is('[data-ssids]')) c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
 
         L.control.zoom({
             position: 'bottomright'
