@@ -300,7 +300,7 @@ def login_view(request):
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            login(request, form.user_cache)
+            login(request, form.user_cache, 'django.contrib.auth.backends.ModelBackend')
             migrate_access_permissions_after_login(request)
             return close_response(request)
     else:
@@ -352,7 +352,7 @@ def register_view(request):
         form = UserCreationForm(data=request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
+            login(request, user, 'django.contrib.auth.backends.ModelBackend')
             migrate_access_permissions_after_login(request)
             return close_response(request)
     else:
@@ -376,7 +376,7 @@ def change_password_view(request):
         form = PasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             form.save()
-            login(request, request.user)
+            login(request, request.user, 'django.contrib.auth.backends.ModelBackend')
             messages.success(request, _('Password successfully changed.'))
             return redirect('site.account')
     else:
@@ -416,9 +416,23 @@ def delete_account_view(request):
 @never_cache
 @login_required(login_url='site.login')
 def account_view(request):
-    return render(request, 'site/account.html', {
+    ctx = {
         'user_has_reports': Report.user_has_reports(request.user),
-    })
+    }
+    if settings.SSO_ENABLED:
+        from social_core.backends.utils import user_backends_data
+        from social_django.utils import Storage
+        from c3nav.control.sso import get_sso_services
+        sso_services = get_sso_services()
+        ctx['sso_services'] = sso_services
+        backends = user_backends_data(
+            request.user, settings.AUTHENTICATION_BACKENDS, Storage
+        )
+        ctx['sso_backends'] = {
+            'associated': {backend.provider: sso_services[backend.provider] for backend in backends["associated"] },
+            'not_associated': {backend: sso_services[backend] for backend in backends["not_associated"] },
+        }
+    return render(request, 'site/account.html', ctx)
 
 
 @never_cache

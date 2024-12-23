@@ -474,6 +474,8 @@ class ChangedObjectCollection(BaseSchema):
                     except FieldDoesNotExist:
                         problems.get_object(changed_obj.obj).field_does_not_exist.add(field_name)
                         continue
+                    if field.related_model.app_name != "mapdata":
+                        continue
                     referenced_objects.setdefault(
                         field.related_model._meta.model_name, set()
                     ).update(set(m2m_changes.added + m2m_changes.removed))
