@@ -15,7 +15,13 @@ def forwards_func(apps, schema_editor):
     for measurement in BeaconMeasurement.objects.all():
         if isinstance(measurement.data, list):
             measurement.data = {"wifi": measurement.data}
-            measurement.save()
+        measurement.data["wifi"] = [
+            [{**{k: v for k, v in peer.items() if k != "level"}, "rssi": peer.get("level", peer.get("rssi"))}
+             for peer in scan]
+            for scan in measurement.data["wifi"]
+        ]
+        measurement.save()
+
 
 
 class Migration(migrations.Migration):
