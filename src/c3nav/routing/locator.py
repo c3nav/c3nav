@@ -17,7 +17,7 @@ from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
 from c3nav.routing.router import Router
-from c3nav.routing.schemas import LocateRequestWifiPeerSchema
+from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema, LocateIBeaconPeerSchema
 
 try:
     from asgiref.local import Local as LocalContext
@@ -117,33 +117,33 @@ class Locator:
             self.peers.append(peer)
         return peer_id
 
-    def convert_wifi_scan(self, scan_data, create_peers=False) -> ScanData:
+    def convert_wifi_scan(self, scan_data: list[LocateWifiPeerSchema], create_peers=False) -> ScanData:
         result = {}
         for scan_value in scan_data:
-            if settings.WIFI_SSIDS and scan_value['ssid'] not in settings.WIFI_SSIDS:
+            if settings.WIFI_SSIDS and scan_value.ssid not in settings.WIFI_SSIDS:
                 continue
-            peer_id = self.get_peer_id(scan_value['bssid'], create=create_peers)
+            peer_id = self.get_peer_id(scan_value.bssid, create=create_peers)
             if peer_id is not None:
-                result[peer_id] = ScanDataValue(rssi=scan_value["rssi"], distance=scan_value.get("distance", None))
+                result[peer_id] = ScanDataValue(rssi=scan_value.rssi, distance=scan_value.get("distance", None))
         return result
 
-    def convert_ibeacon_scan(self, scan_data, create_peers=False) -> ScanData:
+    def convert_ibeacon_scan(self, scan_data: list[LocateIBeaconPeerSchema], create_peers=False) -> ScanData:
         result = {}
         for scan_value in scan_data:
             peer_id = self.get_peer_id(
-                (scan_value['uuid'], scan_value['major'], scan_value['minor']),
+                (scan_value.uuid, scan_value.major, scan_value.minor),
                 create=create_peers
             )
             if peer_id is not None:
-                result[peer_id] = ScanDataValue(ibeacon_range=scan_value["distance"])
+                result[peer_id] = ScanDataValue(ibeacon_range=scan_value.distance)
         return result
 
-    def convert_scans(self, scans_data, create_peers=False) -> ScanData:
+    def convert_scans(self, scans_data: BeaconMeasurementDataSchema, create_peers=False) -> ScanData:
         converted = []
-        for scan in scans_data.get("wifi", []):
+        for scan in scans_data.wifi:
             converted.append(self.convert_wifi_scan(scan, create_peers=create_peers))
 
-        for scan in scans_data.get("ibeacon", []):
+        for scan in scans_data.ibeacon:
             converted.append(self.convert_ibeacon_scan(scan, create_peers=create_peers))
 
         peer_ids = reduce(operator.or_, (frozenset(values.keys()) for values in converted), frozenset())
@@ -176,7 +176,7 @@ class Locator:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
-    def convert_raw_scan_data(self, raw_scan_data: list[LocateRequestWifiPeerSchema]) -> ScanData:
+    def convert_raw_scan_data(self, raw_scan_data: list[LocateWifiPeerSchema]) -> ScanData:
         return self.convert_wifi_scan(raw_scan_data, create_peers=False)
 
     def get_xyz(self, identifier: LocatorPeerIdentifier) -> tuple[int, int, int] | None:
@@ -191,7 +191,7 @@ class Locator:
             if isinstance(peer.identifier, MacAddress)
         }
 
-    def locate(self, raw_scan_data: list[LocateRequestWifiPeerSchema], permissions=None):
+    def locate(self, raw_scan_data: list[LocateWifiPeerSchema], permissions=None):
         # todo: support for ibeacons
         scan_data = self.convert_raw_scan_data(raw_scan_data)
         if not scan_data:

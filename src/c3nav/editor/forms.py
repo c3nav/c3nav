@@ -25,9 +25,9 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge, LocationGroup, Source, LocationGroupCategory, GraphNode, Space, \
     LocationSlug, WayType
 from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup, AccessRestriction
-from c3nav.mapdata.models.geometry.space import ObstacleGroup
+from c3nav.mapdata.models.geometry.space import ObstacleGroup, BeaconMeasurement
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
-from c3nav.routing.schemas import LocateRequestWifiPeerSchema
+from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
@@ -312,30 +312,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             )
 
     def clean_data(self):
-        if 'wifi' not in self.cleaned_data['data']:
+        data = self.cleaned_data['data']
+        if not data.wifi:
             raise ValidationError(_('WiFi scan data is missing.'))
-        if not isinstance(self.cleaned_data['data']["wifi"], list):
-            raise ValidationError(_('WiFi scan data is not a list.'))
-
-        data = list()
-        for scan in self.cleaned_data['data']["wifi"]:
-            scan: list[dict]
-            scan_data = list()
-            for item in scan:
-                # The app might return results without an SSID, we ignore those
-                if not item.get('ssid', ''):
-                    continue
-                # App version < 4.2.4 use level instead fo rssi
-                if 'level' in item:
-                    item['rssi'] = item['level']
-                    del item['level']
-                try:
-                    LocateRequestWifiPeerSchema.model_validate(item)
-                except PydanticValidationError as e:
-                    raise ValidationError(str(e))
-                scan_data.append(item)
-            data.append(scan_data)
-
+        data.wifi = [[item for item in scan if item.ssid] for scan in data.wifi]
         return data
 
     def clean(self):

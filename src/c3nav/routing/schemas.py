@@ -10,7 +10,7 @@ from pydantic_extra_types.mac_address import MacAddress
 from c3nav.api.schema import BaseSchema
 
 
-class LocateRequestWifiPeerSchema(BaseSchema):
+class LocateWifiPeerSchema(BaseSchema):
     bssid: MacAddress = APIField(
         title="BSSID",
         description="BSSID of the peer",
@@ -25,6 +25,7 @@ class LocateRequestWifiPeerSchema(BaseSchema):
         title="RSSI",
         description="RSSI in dBm",
         example=-42,
+        validation_alias="level",  # App version < 4.2.4 use level instead fo rssi
     )
     frequency: Union[
         PositiveInt,
@@ -64,7 +65,7 @@ class LocateRequestWifiPeerSchema(BaseSchema):
     )
 
 
-class LocateRequestIBeaconPeerSchema(BaseSchema):
+class LocateIBeaconPeerSchema(BaseSchema):
     uuid: UUID = APIField(
         title="UUID",
         description="UUID of the iBeacon",
@@ -82,3 +83,8 @@ class LocateRequestIBeaconPeerSchema(BaseSchema):
     last_seen_ago: NonNegativeInt = APIField(
         title="how many milliseconds ago this beacon was last seen"
     )
+
+
+class BeaconMeasurementDataSchema(BaseSchema):
+    wifi: list[list[LocateWifiPeerSchema]] = []
+    ibeacon: list[list[LocateIBeaconPeerSchema]] = []

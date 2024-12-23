@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
+from django_pydantic_field.fields import SchemaField
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
@@ -21,6 +22,7 @@ from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
+from c3nav.routing.schemas import BeaconMeasurementDataSchema
 
 if typing.TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager
@@ -430,7 +432,8 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
-    data = models.JSONField(_('Measurement list'), default=dict)  # todo: would be nice if this used pydantic
+    data: BeaconMeasurementDataSchema = SchemaField(BeaconMeasurementDataSchema,
+                                                    verbose_name=_('Measurement list'))
 
     class Meta:
         verbose_name = _('Beacon Measurement')
