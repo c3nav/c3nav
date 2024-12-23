@@ -433,7 +433,8 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
     data: BeaconMeasurementDataSchema = SchemaField(BeaconMeasurementDataSchema,
-                                                    verbose_name=_('Measurement list'))
+                                                    verbose_name=_('Measurement list'), 
+                                                    default=BeaconMeasurementDataSchema())
 
     class Meta:
         verbose_name = _('Beacon Measurement')

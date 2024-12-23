@@ -1599,6 +1599,7 @@ editor = {
         editor._scancollector_data.wifi.push(data);
         $collector.find('.wifi-count').text(editor._scancollector_data.wifi.length);
         $collector.siblings('[name=data]').val(JSON.stringify(editor._scancollector_data));
+        $collector.siblings('[name=data]').text(JSON.stringify(editor._scancollector_data));
     },
     _scancollector_ibeacon_result: function (data) {
         var $collector = $('#sidebar').find('.scancollector.running'),
@@ -1636,6 +1637,7 @@ editor = {
         editor._scancollector_data.ibeacon.push(data);
         $collector.find('.ibeacon-count').text(editor._scancollector_data.ibeacon.length);
         $collector.siblings('[name=data]').val(JSON.stringify(editor._scancollector_data));
+        $collector.siblings('[name=data]').text(JSON.stringify(editor._scancollector_data));
     },
     _wifi_scan_waits: false,
     _scancollector_wifi_scan_perhaps: function () {
