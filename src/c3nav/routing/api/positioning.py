@@ -42,7 +42,7 @@ class PositioningResult(BaseSchema):
                              response={200: PositioningResult, **auth_responses})
 def get_position(request, parameters: LocateRequestSchema):
     try:
-        location = Locator.load().locate(parameters.dict()["wifi_peers"],
+        location = Locator.load().locate(parameters.wifi_peers,
                                          permissions=AccessPermission.get_for_request(request))
         if location is not None:
             # todo: this will overload us probably, group these
