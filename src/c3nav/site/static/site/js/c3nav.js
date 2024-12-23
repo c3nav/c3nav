@@ -2036,6 +2036,7 @@ c3nav = {
         }
         if (location) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('my_location'));
+            $('.locationinput .locate, .leaflet-control-user-location a').show();
             var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates);
             for (level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
@@ -2055,9 +2056,11 @@ c3nav = {
             $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else if (c3nav.hasLocationPermission()) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_searching'));
+            $('.locationinput .locate, .leaflet-control-user-location a').show();
             $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
+            $('.locationinput .locate, .leaflet-control-user-location a').hide();
             $('.leaflet-control-user-location a').toggleClass('control-disabled', true);
         }
         if (typeof mobileclient !== 'undefined' && mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
