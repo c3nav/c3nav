@@ -124,7 +124,7 @@ class Locator:
                 continue
             peer_id = self.get_peer_id(scan_value.bssid, create=create_peers)
             if peer_id is not None:
-                result[peer_id] = ScanDataValue(rssi=scan_value.rssi, distance=scan_value.get("distance", None))
+                result[peer_id] = ScanDataValue(rssi=scan_value.rssi, distance=scan_value.distance)
         return result
 
     def convert_ibeacon_scan(self, scan_data: list[LocateIBeaconPeerSchema], create_peers=False) -> ScanData:
