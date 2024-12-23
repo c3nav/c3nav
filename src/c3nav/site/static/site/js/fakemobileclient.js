@@ -14,7 +14,7 @@ mobileclient = {
         if (mobileclient.wait) return;
         mobileclient.wait = true;
         $.getJSON('http://localhost:'+String(mobileclient.port)+'/scan', function(response) {
-            mobileclient.setNearbyStations(response.wifi.data);
+            mobileclient.setNearbyStations(response.wifi);
         }).always(function() {
             mobileclient.wait = false;
         });
