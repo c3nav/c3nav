@@ -399,6 +399,7 @@ def create_editor_form(editor_model):
         'color_obstacles_default_fill', 'color_obstacles_default_border', 'stroke_color', 'stroke_width',
         'stroke_opacity', 'fill_color', 'fill_opacity', 'interactive', 'point_icon', 'extra_data', 'show_label',
         'show_geometry', 'show_label', 'show_geometry', 'default_geomtype',
+        "altitude_quest",
     ]
     field_names = [field.name for field in editor_model._meta.get_fields()
                    if not field.one_to_many and not isinstance(field, ManyToManyRel)]
