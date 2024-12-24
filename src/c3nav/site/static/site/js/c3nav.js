@@ -1369,6 +1369,7 @@ c3nav = {
     _modal_click: function (e) {
         if (!c3nav.modal_noclose && (e.target.id === 'modal' || e.target.id === 'close-modal')) {
             history.back();
+            if (c3nav._questsControl) c3nav._questsControl.reloadQuests();
         }
     },
     _href_modal_open_tab: function (location) {
@@ -1927,6 +1928,7 @@ c3nav = {
         if (!c3nav.map) return;
         if (c3nav._questsControl) {
             if (!Object.keys(c3nav.user_data.quests).length) c3nav.map.removeControl(c3nav._questsControl);
+            c3nav._questsControl = null;
         } else {
             if (Object.keys(c3nav.user_data.quests).length) c3nav._questsControl = (new QuestsControl()).addTo(c3nav.map);
         }
@@ -2491,6 +2493,7 @@ QuestsControl = L.Control.extend({
     },
 
     reloadQuests: function() {
+        if (!this.questsActive) return;
         c3nav_api.get('map/quests/')
             .then((data) => {
                 for (const quest of data) {
