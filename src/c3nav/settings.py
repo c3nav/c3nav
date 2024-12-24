@@ -14,9 +14,12 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import get_random_string
 from django.utils.dateparse import parse_duration
 from django.utils.translation import gettext_lazy as _
+from pydantic.type_adapter import TypeAdapter
 from pyproj import Proj, Transformer
 
 from c3nav import __version__ as c3nav_version
+from c3nav.api.schema import BaseSchema
+from c3nav.mapdata.nocutils import NocLayersSchema
 from c3nav.utils.config import C3navConfigParser
 from c3nav.utils.environ import Env
 
@@ -214,6 +217,9 @@ if not HUB_API_SECRET:
         HUB_API_SECRET_FILE = DATA_DIR / '.hub_api_secret'
     if HUB_API_SECRET_FILE.exists():
         HUB_API_SECRET = HUB_API_SECRET_FILE.read_text().strip()
+
+NOC_API_BASE = config.get('c3nav', 'noc_api_base', fallback='').removesuffix('/')
+NOC_LAYERS = NocLayersSchema.validate_json(config.get('c3nav', 'noc_layers', fallback='{}'))
 
 _db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES: dict[str, dict[str, str | int | Path]] = {
