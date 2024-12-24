@@ -19,7 +19,7 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 request_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_API)
 
 
-def api_etag(permissions=True, etag_func=AccessPermission.etag_func, base_mapdata=False):
+def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_func, base_mapdata=False):
 
     def outer_wrapper(func):
         @wraps(func)
@@ -41,6 +41,8 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, base_mapdat
             response_format = "json"
             raw_etag = '%s:%s:%s' % (response_format, get_language(),
                                      (etag_func(request) if permissions else MapUpdate.current_cache_key()))
+            if quests:
+                raw_etag += 'all' if request.user.is_superuser else f':{','.join(request.user_permissions.quests)}'
             if base_mapdata:
                 raw_etag += ':%d' % request.user_permissions.can_access_base_mapdata
             etag = quote_etag(raw_etag)

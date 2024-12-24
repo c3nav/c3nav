@@ -401,5 +401,6 @@ Quests
 
 @map_api_router.get('/quests/', summary="get open quests",
                     response={200: list[QuestSchema], **auth_responses})
+@api_etag(permissions=True, quests=True)
 def list_quests(request):
     return get_all_quests_for_request(request)
