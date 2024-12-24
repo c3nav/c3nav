@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-15 19:28+0100\n"
-"PO-Revision-Date: 2024-12-15 18:32+0000\n"
+"POT-Creation-Date: 2024-12-24 23:00+0100\n"
+"PO-Revision-Date: 2024-12-24 23:04+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -78,6 +78,10 @@ msgstr "Befugnisse"
 #: c3nav/control/admin.py
 msgid "Important dates"
 msgstr "Wichtige Daten"
+
+#: c3nav/control/forms.py
+msgid "Available quests"
+msgstr "Verfügbare quests"
 
 #: c3nav/control/forms.py
 msgid "choose permissions…"
@@ -542,6 +546,7 @@ msgstr "für %(restriction_title)s"
 
 #: c3nav/control/templates/control/user.html
 #: c3nav/editor/templates/editor/account_form.html
+#: c3nav/editor/templates/editor/quest_form.html
 #: c3nav/site/templates/site/account_form.html
 #: c3nav/site/templates/site/confirm.html
 msgid "back"
@@ -704,10 +709,6 @@ msgstr ""
 #: c3nav/editor/forms.py
 msgid "WiFi scan data is missing."
 msgstr "WiFI Scandaten fehlen."
-
-#: c3nav/editor/forms.py
-msgid "WiFi scan data is not a list."
-msgstr "WifFi Scandaten sind keine Liste."
 
 #: c3nav/editor/forms.py
 msgid "Final rejection"
@@ -1073,6 +1074,10 @@ msgstr "%(model_title)s bearbeiten"
 msgid "on top of %(on_top_of_level_title)s"
 msgstr "über %(on_top_of_level_title)s"
 
+#: c3nav/editor/templates/editor/edit.html
+msgid "Connecting spaces:"
+msgstr "Verbundene Spaces"
+
 #: c3nav/editor/templates/editor/fragment_changesets.html
 msgid "(no title)"
 msgstr "(kein Titel)"
@@ -1186,6 +1191,18 @@ msgstr "Daten-Overlays"
 #: c3nav/editor/templates/editor/overlays.html c3nav/editor/views/edit.py
 msgid "back to level"
 msgstr "zurück zur Etage"
+
+#: c3nav/editor/templates/editor/quest_form.html
+msgid "Submit answer"
+msgstr "Antwort abschicken"
+
+#: c3nav/editor/templates/editor/thanks.html
+msgid "Thank you!"
+msgstr "Tanke!"
+
+#: c3nav/editor/templates/editor/thanks.html
+msgid "Have a cookie <3 🍪"
+msgstr "Hier ist dein Keks <3 🍪"
 
 #: c3nav/editor/templates/editor/user.html
 msgid "That's you!"
@@ -1531,13 +1548,6 @@ msgstr "Neuer Graphknoten erstellt."
 msgid "back to overlays"
 msgstr "Zurück zu Overlays"
 
-#: c3nav/editor/views/overlays.py
-msgid ""
-"You can not delete this object because other objects still depend on it."
-msgstr ""
-"Du kannst dieses Objekt nicht löschen weil andere Objekte sich darauf "
-"beziehen."
-
 #: c3nav/editor/views/users.py
 msgid "You deactivated your current changeset."
 msgstr "Du hast dein aktuelles Änderungsset deaktiviert."
@@ -1809,8 +1819,8 @@ msgstr "Zugangserlaubnis-Token"
 msgid "Access Permission"
 msgstr "Zugangserlaubnis"
 
-#: c3nav/mapdata/models/altitudes.py c3nav/mapdata/models/locations.py
-#: c3nav/mapdata/models/source.py
+#: c3nav/mapdata/models/altitudes.py c3nav/mapdata/models/geometry/level.py
+#: c3nav/mapdata/models/locations.py c3nav/mapdata/models/source.py
 #: c3nav/site/templates/site/api_secret_list.html
 msgid "Name"
 msgstr "Name"
@@ -1859,7 +1869,7 @@ msgstr "rechte koordinate"
 msgid "import tag"
 msgstr "import tag"
 
-#: c3nav/mapdata/models/geometry/level.py c3nav/mapdata/models/overlay.py
+#: c3nav/mapdata/models/geometry/level.py
 msgid "level"
 msgstr "Etage"
 
@@ -1900,6 +1910,10 @@ msgstr "Räume"
 #: c3nav/mapdata/models/geometry/level.py c3nav/mapdata/models/level.py
 msgid "outside only"
 msgstr "Nur draußen"
+
+#: c3nav/mapdata/models/geometry/level.py
+msgid "todo"
+msgstr "todo"
 
 #: c3nav/mapdata/models/geometry/level.py
 msgid "Door"
@@ -2131,6 +2145,10 @@ msgid "UWB Address"
 msgstr "UWB Adresse"
 
 #: c3nav/mapdata/models/geometry/space.py
+msgid "altitude quest"
+msgstr "Höhenquest"
+
+#: c3nav/mapdata/models/geometry/space.py
 msgid "Ranging beacon"
 msgstr "Ranging beacon"
 
@@ -2222,6 +2240,15 @@ msgstr "Graphkante"
 msgid "Graph Edges"
 msgstr "Graphkanten"
 
+#. Translators: "letters" means latin letters: a-z and A-Z.
+#: c3nav/mapdata/models/level.py
+msgid ""
+"Enter a valid “level index” consisting of letters, numbers, underscores, "
+"dots or hyphens."
+msgstr ""
+"Gib einen gültigen \"level index\" aus Buchstaben, Ziffern, Unterstrichen, "
+"Punkten und Bindestrichen ein."
+
 #: c3nav/mapdata/models/level.py
 msgid "base altitude"
 msgstr "Basisbodenhöhe"
@@ -2239,8 +2266,24 @@ msgid "on top of"
 msgstr "Halbetage über"
 
 #: c3nav/mapdata/models/level.py
+msgid "intermediate level"
+msgstr "Zwischenetage"
+
+#: c3nav/mapdata/models/level.py
 msgid "short label"
 msgstr "kurze Bezeichnung"
+
+#: c3nav/mapdata/models/level.py
+msgid "used for the level selector"
+msgstr "genutzt in der Etagenauswahl"
+
+#: c3nav/mapdata/models/level.py
+msgid "level index"
+msgstr "Level Index"
+
+#: c3nav/mapdata/models/level.py
+msgid "used for coordinates"
+msgstr "für Koordinaten benutzt"
 
 #: c3nav/mapdata/models/level.py
 msgid "Levels"
@@ -2285,9 +2328,17 @@ msgstr "Icon"
 msgid "any material icons name"
 msgstr "name eines material icons"
 
+#: c3nav/mapdata/models/locations.py c3nav/mapdata/models/overlay.py
+msgid "external URL"
+msgstr "externe URL"
+
 #: c3nav/mapdata/models/locations.py
 msgid "searchable"
 msgstr "suchbar"
+
+#: c3nav/mapdata/models/locations.py
+msgid "Open external URL"
+msgstr "Externe URL öffnen"
 
 #: c3nav/mapdata/models/locations.py
 msgid "Location Groups"
@@ -2300,10 +2351,6 @@ msgstr "Labeleinstellungen"
 #: c3nav/mapdata/models/locations.py
 msgid "Label override"
 msgstr "Label überschreiben"
-
-#: c3nav/mapdata/models/locations.py c3nav/mapdata/models/overlay.py
-msgid "external URL"
-msgstr "externe URL"
 
 #: c3nav/mapdata/models/locations.py
 msgid "don't change metadata on import"
@@ -2320,14 +2367,6 @@ msgstr "Planquadrate"
 #: c3nav/mapdata/models/locations.py c3nav/mapdata/utils/locations.py
 msgid "Grid Square"
 msgstr "Planquadrat"
-
-#: c3nav/mapdata/models/locations.py
-msgid "External URL"
-msgstr "Externe URL"
-
-#: c3nav/mapdata/models/locations.py
-msgid "Open"
-msgstr "Offnen"
 
 #: c3nav/mapdata/models/locations.py
 msgid "single selection"
@@ -2430,6 +2469,10 @@ msgid "assign this group to imported hub locations of this type"
 msgstr "diese Gruppe importierten Hub-Orten mit diesem Typ zuordnen"
 
 #: c3nav/mapdata/models/locations.py
+msgid "external URL label"
+msgstr "Label für externe URL"
+
+#: c3nav/mapdata/models/locations.py
 msgid "Location Group"
 msgstr "Ortgruppe"
 
@@ -2530,6 +2573,22 @@ msgid "Position"
 msgstr "Position"
 
 #: c3nav/mapdata/models/overlay.py
+msgid "Polygon"
+msgstr "Polygon"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "Line string"
+msgstr "LineString"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "Multipoint"
+msgstr "Multipoint"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "Point"
+msgstr "Point"
+
+#: c3nav/mapdata/models/overlay.py
 msgid "default stroke color"
 msgstr "Standard-Konturfarbe"
 
@@ -2538,8 +2597,20 @@ msgid "default stroke width"
 msgstr "Standardkonturdicke"
 
 #: c3nav/mapdata/models/overlay.py
+msgid "stroke opacity"
+msgstr "randopacity"
+
+#: c3nav/mapdata/models/overlay.py
 msgid "default fill color"
 msgstr "Standardfüllfarbe"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "fill opacity"
+msgstr "Füllopacity"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "default geometry type"
+msgstr "Standardgeometrietyp"
 
 #: c3nav/mapdata/models/overlay.py
 msgid "pull URL"
@@ -2846,6 +2917,19 @@ msgstr "via Control Panel"
 #: c3nav/mapdata/models/update.py
 msgid "Map update"
 msgstr "Kartenänderung"
+
+#: c3nav/mapdata/quests/simple.py
+msgid "Ranging Beacon Altitude"
+msgstr "Höhe des Ranging Beacons"
+
+#: c3nav/mapdata/quests/simple.py
+#, python-format
+msgid "How many meters above ground is the access point “%s” mounted?"
+msgstr "Wie viele meter über dem Boden ist der access point „%s“ befestigt?"
+
+#: c3nav/mapdata/quests/simple.py
+msgid "The AP should not be 0m above ground."
+msgstr "Der AP sollte sich nicht 0m über dem Boden befinden."
 
 #: c3nav/mapdata/tasks.py
 #, python-format
@@ -3742,6 +3826,10 @@ msgid "Manage API secrets"
 msgstr "API-Secrets verwalten"
 
 #: c3nav/site/templates/site/account.html
+msgid "SSO Connections:"
+msgstr "SSO Verbindungen:"
+
+#: c3nav/site/templates/site/account.html
 msgid "Manage account"
 msgstr "Konto verwalten"
 
@@ -4222,6 +4310,21 @@ msgid "API secret created. Save it now, cause it will not be shown again!"
 msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
+
+#~ msgid "WiFi scan data is not a list."
+#~ msgstr "WifFi Scandaten sind keine Liste."
+
+#~ msgid ""
+#~ "You can not delete this object because other objects still depend on it."
+#~ msgstr ""
+#~ "Du kannst dieses Objekt nicht löschen weil andere Objekte sich darauf "
+#~ "beziehen."
+
+#~ msgid "External URL"
+#~ msgstr "Externe URL"
+
+#~ msgid "Open"
+#~ msgstr "Offnen"
 
 #~ msgid "can access control panel"
 #~ msgstr "kann auf das Control Panel zugreifen"
