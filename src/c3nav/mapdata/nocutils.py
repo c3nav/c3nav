@@ -20,7 +20,7 @@ class NocTransformLayerSchema(BaseModel):
     offset: tuple[float, float] | int
 
     def convert(self, lat, lng) -> Point:
-        return np.array(deg2pos(lat, lng)) * self.scale + np.array(self.offset)
+        return Point(*reversed(tuple(np.array(deg2pos(lat, lng)) * self.scale + np.array(self.offset))))
 
 
 class NocTwoPointLayerSchema(BaseModel):

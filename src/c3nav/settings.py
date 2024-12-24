@@ -218,7 +218,7 @@ if not HUB_API_SECRET:
     if HUB_API_SECRET_FILE.exists():
         HUB_API_SECRET = HUB_API_SECRET_FILE.read_text().strip()
 
-NOC_API_BASE = config.get('c3nav', 'noc_api_base', fallback='').removesuffix('/')
+NOC_BASE = config.get('c3nav', 'noc_base', fallback='').removesuffix('/')
 NOC_LAYERS = NocLayersSchema.validate_json(config.get('c3nav', 'noc_layers', fallback='{}'))
 
 _db_backend = config.get('database', 'backend', fallback='sqlite3')
