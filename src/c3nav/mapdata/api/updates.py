@@ -10,6 +10,7 @@ from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import MapUpdate
+from c3nav.mapdata.schemas.models import DataOverlaySchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.user import get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
@@ -18,6 +19,7 @@ updates_api_router = APIRouter(tags=["updates"])
 
 
 class UserDataSchema(BaseSchema):
+    # use in more places
     logged_in: bool = APIField(
         title="logged in",
         description="whether a user is logged in",
@@ -57,6 +59,8 @@ class UserDataSchema(BaseSchema):
         description="IDs of access restrictions that this user (even if maybe not signed in) has access to",
         example=[2, 5],
     )
+    overlays: list[DataOverlaySchema]
+    quests: bool
 
 
 class FetchUpdatesResponseSchema(BaseSchema):

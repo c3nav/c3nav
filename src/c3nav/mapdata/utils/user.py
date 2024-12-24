@@ -33,14 +33,15 @@ def get_user_data(request):
     if request.user.is_authenticated:
         result['title'] = request.user.username
 
-
+    # todo: cache this
     result.update({
         'overlays': [
             DataOverlaySchema.model_validate(overlay).model_dump()
-            for overlay
-            in DataOverlay.qs_for_request(request)
-        ]
+            for overlay in DataOverlay.qs_for_request(request)
+        ],
+        'quests': bool(request.user.is_superuser or request.user_permissions.quests),
     })
+
     return result
 
 

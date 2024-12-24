@@ -1482,6 +1482,7 @@ c3nav = {
         c3nav._routeLayerBounds = {};
         c3nav._userLocationLayers = {};
         c3nav._overlayLayers = {};
+        c3nav._questsLayers = {};
         c3nav._firstRouteLevel = null;
         c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
@@ -1492,6 +1493,7 @@ c3nav = {
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._overlayLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._questsLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
@@ -1515,6 +1517,7 @@ c3nav = {
         }).addTo(c3nav.map);
 
         c3nav._update_overlays();
+        c3nav._update_quests();
 
         c3nav.map.on('click', c3nav._click_anywhere);
 
@@ -1892,6 +1895,7 @@ c3nav = {
         c3nav_api.authenticate();
         c3nav.user_data = data;
         c3nav._update_overlays();
+        c3nav._update_quests();
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
@@ -1917,6 +1921,15 @@ c3nav = {
 
         if (c3nav.user_data.overlays.length > 0) {
             c3nav._overlayControl = control.addTo(c3nav.map);
+        }
+    },
+    _update_quests: function () {
+        if (!c3nav.map) return;
+        console.log(c3nav.user_data);
+        if (c3nav._questsControl) {
+            if (!c3nav.user_data.quests) c3nav.map.removeControl(c3nav._questsControl);
+        } else {
+            if (c3nav.user_data.quests) c3nav._questsControl = (new QuestsControl()).addTo(c3nav.map);
         }
     },
 
@@ -2436,6 +2449,69 @@ ThemeControl = L.Control.extend({
         return this._container;
     },
 })
+
+
+QuestsControl = L.Control.extend({
+    options: {
+        position: 'topright',
+        addClasses: ''
+    },
+
+    onAdd: function () {
+        this._container = L.DomUtil.create('div', 'leaflet-control-quests leaflet-bar ' + this.options.addClasses);
+        this._button = L.DomUtil.create('a', 'material-symbols', this._container);
+        $(this._button).click(this.toggleQuests).dblclick(function (e) {
+            e.stopPropagation();
+        });
+        this._button.innerText = c3nav._map_material_icon('editor_choice');
+        this._button.href = '#';
+        this._button.classList.toggle('control-disabled', false);
+        this.questsActive = false;
+        if (localStorageWrapper.getItem('showQuests')) {
+            this.showQuests();
+        }
+        return this._container;
+    },
+
+    toggleQuests: function (e) {
+        if (e) e.preventDefault();
+        if (c3nav._questsControl.questsActive) {
+            c3nav._questsControl.hideQuests();
+        } else {
+            c3nav._questsControl.showQuests();
+        }
+    },
+
+    showQuests: function () {
+        if (this.questsActive) return;
+        this._button.innerText = c3nav._map_material_icon('editor_choice');
+        this._button.classList.toggle('control-disabled', false);
+        this.questsActive = true;
+        localStorageWrapper.setItem('showQuests', true);
+        this.reloadQuests();
+    },
+
+    reloadQuests: function() {
+        c3nav_api.get('map/quests/')
+            .then((data) => {
+                for (const quest of data) {
+                    const layer = L.geoJson(quest.point, {}).addTo(c3nav._questsLayers[quest.level_id]);
+                }
+            })
+            .catch();
+    },
+
+    hideQuests: function () {
+        if (!this.questsActive) return;
+        for (var level_id in c3nav._questsLayers) {
+            c3nav._questsLayers[level_id].clearLayers()
+        }
+        this._button.innerText = c3nav._map_material_icon('editor_choice');
+        this._button.classList.toggle('control-disabled', true);
+        this.questsActive = false;
+        localStorageWrapper.removeItem('hideQuests', true);
+    }
+});
 
 
 L.SquareGridLayer = L.Layer.extend({

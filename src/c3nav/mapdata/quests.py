@@ -89,7 +89,7 @@ class RangingBeaconAltitudeQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).select_related('space').filter(altitude_quest=True)[:10]
+        return RangingBeacon.qs_for_request(request).select_related('space').filter(altitude_quest=True)
 
 
 class QuestSchema(BaseSchema):
