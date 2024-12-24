@@ -26,14 +26,35 @@ from c3nav.mapdata.utils.user import can_access_editor
 
 
 @contextmanager
-def maybe_lock_changeset_to_edit(request):
+def maybe_lock_changeset_to_edit(changeset):
     """ Lock the changeset of the given request, if it can be locked (= has ever been saved to the database)"""
-    if request.changeset.pk:
-        with request.changeset.lock_to_edit(request=request) as changeset:
-            request.changeset = changeset
-            yield
+    if changeset.pk:
+        with changeset.lock_to_edit() as locked_changeset:
+            yield locked_changeset
     else:
-        yield
+        yield changeset
+
+
+@contextmanager
+def within_changeset(changeset, user):
+    with maybe_lock_changeset_to_edit(changeset=changeset) as locked_changeset:
+        # Turn the changes from the changeset into a list of operations
+        operations = locked_changeset.as_operations
+
+        # Enable the overlay manager, temporarily applying the changeset changes
+        # commit is set to false, meaning all changes will be reset once we leave the manager
+        with DatabaseOverlayManager.enable(operations=operations, commit=False) as manager:
+            yield locked_changeset
+        if manager.operations:
+            # Add new operations to changeset
+            locked_changeset.changes.add_operations(manager.operations)
+            locked_changeset.save()
+
+            # Add new changeset update
+            update = locked_changeset.updates.create(user=user, objects_changed=True)
+            locked_changeset.last_update = update
+            locked_changeset.last_change = update
+            locked_changeset.save()
 
 
 @contextmanager
@@ -71,24 +92,9 @@ def accesses_mapdata(func):
                         raise ValueError  # todo: good error message, but this shouldn't happen
         else:
             # For non-direct editing, we will interact with the changeset
-            with maybe_lock_changeset_to_edit(request=request):
-                # Turn the changes from the changeset into a list of operations
-                operations = request.changeset.as_operations
-
-                # Enable the overlay manager, temporarily applying the changeset changes
-                # commit is set to false, meaning all changes will be reset once we leave the manager
-                with DatabaseOverlayManager.enable(operations=operations, commit=False) as manager:
-                    result = func(request, *args, **kwargs)
-                if manager.operations:
-                    # Add new operations to changeset
-                    request.changeset.changes.add_operations(manager.operations)
-                    request.changeset.save()
-
-                    # Add new changeset update
-                    update = request.changeset.updates.create(user=request.user, objects_changed=True)
-                    request.changeset.last_update = update
-                    request.changeset.last_change = update
-                    request.changeset.save()
+            with within_changeset(changeset=request.changeset, user=request.user) as locked_changeset:
+                request.changeset = locked_changeset
+                return func(request, *args, **kwargs)
         return result
 
     return wrapped

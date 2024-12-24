@@ -1,17 +1,16 @@
-from abc import abstractmethod
 from dataclasses import dataclass
 from itertools import chain
-from typing import Self, Optional, Any, Type
+from typing import Any, Self, Optional, Type
 
 from django.core.cache import cache
-from django.utils.translation import gettext_lazy as _
-from pydantic import BaseModel
-from pydantic.type_adapter import TypeAdapter
-from shapely.geometry import Point, mapping
+from django.forms import ModelForm
+from pydantic import TypeAdapter, BaseModel
 
 from c3nav.api.schema import BaseSchema, PointSchema
+from c3nav.editor.models import ChangeSet
+from c3nav.editor.views.base import within_changeset
+
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.geometry.space import RangingBeacon
 
 
 @dataclass
@@ -19,7 +18,6 @@ class Quest:
     obj: Any
 
     @property
-    @abstractmethod
     def point(self) -> dict:
         raise NotImplementedError
 
@@ -43,8 +41,11 @@ class Quest:
     def get_for_request(cls, request, identifier: Any) -> Optional[Self]:
         if not identifier.isdigit():
             return None
+        if not (request.user.is_superuser or cls.quest_type in request.user_permissions.quests):
+            return None
+
         results = list(chain(
-            +(cls._obj_to_quests(obj) for obj in cls._qs_for_request(request).filter(pk=int(identifier)))
+            *(cls._obj_to_quests(obj) for obj in cls._qs_for_request(request).filter(pk=int(identifier)))
         ))
         if len(results) > 1:
             raise ValueError('wrong number of results')
@@ -52,6 +53,8 @@ class Quest:
 
     @classmethod
     def get_all_for_request(cls, request) -> list[Self]:
+        if not (request.user.is_superuser or cls.quest_type in request.user_permissions.quests):
+            return None
         return list(chain(
             *(cls._obj_to_quests(obj) for obj in cls._qs_for_request(request))
         ))
@@ -67,6 +70,32 @@ class Quest:
         cache.set(cache_key, result, 900)
         return result
 
+    def get_form_class(self):
+        return self.form_class
+
+    def get_form_kwargs(self, request):
+        return {"instance": self.obj}
+
+
+class ChangeSetModelForm(ModelForm):
+    def __init__(self, request, **kwargs):
+        super().__init__(**kwargs)
+        self.request = request
+
+    @property
+    def changeset_title(self):
+        raise NotImplementedError
+
+    def save(self, **kwargs):
+        changeset = ChangeSet()
+        changeset.author = self.request.user
+        with within_changeset(changeset=changeset, user=self.request.user) as locked_changeset:
+            super().save(**kwargs)
+        with changeset.lock_to_edit() as locked_changeset:
+            locked_changeset.title = self.changeset_title
+            locked_changeset.description = 'quest'
+            locked_changeset.apply(self.request.user)
+
 
 quest_types: dict[str, Type[BaseModel]] = {}
 
@@ -76,20 +105,11 @@ def register_quest(cls):
     return cls
 
 
-@register_quest
-@dataclass
-class RangingBeaconAltitudeQuest(Quest):
-    quest_type = "ranging_beacon_altitude"
-    quest_type_label = _('Ranging Beacon Altitude')
-    obj: RangingBeacon
-
-    @property
-    def point(self) -> Point:
-        return mapping(self.obj.geometry)
-
-    @classmethod
-    def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).select_related('space').filter(altitude_quest=True)
+def get_quest_for_request(request, quest_type: str, identifier: str) -> Optional[Quest]:
+    quest_cls = quest_types.get(quest_type, None)
+    if quest_cls is None:
+        return None
+    return quest_cls.get_for_request(request, identifier)
 
 
 class QuestSchema(BaseSchema):

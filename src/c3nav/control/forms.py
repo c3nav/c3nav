@@ -21,7 +21,7 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
                                          AccessRestriction, AccessRestrictionGroup)
-from c3nav.mapdata.quests import quest_types
+from c3nav.mapdata.quests.base import quest_types
 from c3nav.site.models import Announcement
 
 

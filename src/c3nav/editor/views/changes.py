@@ -62,7 +62,7 @@ def changeset_detail(request, pk):
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('activate') == '1':
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if changeset.can_activate(request):
                     changeset.activate(request)
                     messages.success(request, _('You activated this change set.'))
@@ -76,7 +76,7 @@ def changeset_detail(request, pk):
                 messages.info(request, _('You need to log in to propose changes.'))
                 return redirect(reverse('editor.login') + '?r=' + request.path)
 
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if not changeset.title:
                     form = ChangeSetForm(instance=changeset, data=request.POST)
                     if not form.is_valid():
@@ -108,7 +108,7 @@ def changeset_detail(request, pk):
                 messages.info(request, _('You need to log in to apply changes.'))
                 return redirect(reverse('editor.login') + '?r=' + request.path)
 
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if not changeset.title:
                     form = ChangeSetForm(instance=changeset, data=request.POST)
                     if not form.is_valid():
@@ -136,7 +136,7 @@ def changeset_detail(request, pk):
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('unpropose') == '1':
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if changeset.can_unpropose(request):
                     changeset.unpropose(request.user)
                     messages.success(request, _('You unproposed your changes.'))
@@ -146,7 +146,7 @@ def changeset_detail(request, pk):
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('review') == '1':
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if changeset.can_start_review(request):
                     changeset.start_review(request.user)
                     messages.success(request, _('You are now reviewing these changes.'))
@@ -156,7 +156,7 @@ def changeset_detail(request, pk):
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('reject') == '1':
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if not changeset.can_end_review(request):
                     messages.error(request, _('You cannot reject these changes.'))
                     return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
@@ -176,7 +176,7 @@ def changeset_detail(request, pk):
                 })
 
         elif request.POST.get('unreject') == '1':
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if not changeset.can_unreject(request):
                     messages.error(request, _('You cannot unreject these changes.'))
                     return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
@@ -187,7 +187,7 @@ def changeset_detail(request, pk):
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('apply') == '1':
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if not changeset.can_end_review(request):
                     messages.error(request, _('You cannot accept and apply these changes.'))
                     return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
@@ -204,7 +204,7 @@ def changeset_detail(request, pk):
                 return render(request, 'editor/changeset_apply.html', {})
 
         elif request.POST.get('delete') == '1':
-            with changeset.lock_to_edit(request) as changeset:
+            with changeset.lock_to_edit() as changeset:
                 if not changeset.can_delete(request):
                     messages.error(request, _('You cannot delete this change set.'))
 
@@ -502,7 +502,7 @@ def changeset_edit(request, pk):
     if str(pk) != str(request.changeset.pk):
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
-    with changeset.lock_to_edit(request) as changeset:
+    with changeset.lock_to_edit() as changeset:
         if not changeset.can_edit(request):
             messages.error(request, _('You cannot edit this change set.'))
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))

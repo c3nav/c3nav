@@ -179,7 +179,7 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
         if not new and ((request.POST.get('delete') == '1' and delete is not False) or delete):
             # Delete this mapitem!
             if request.POST.get('delete_confirm') == '1' or delete:
-                with request.changeset.lock_to_edit(request) as changeset:
+                with request.changeset.lock_to_edit() as changeset:
                     if changeset.can_edit(request):
                         obj.delete()
                     else:
@@ -210,7 +210,7 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
             obj.level = level
             obj.overlay = overlay
 
-            with request.changeset.lock_to_edit(request) as changeset:
+            with request.changeset.lock_to_edit() as changeset:
                 if changeset.can_edit(request):
                     try:
                         obj.save()

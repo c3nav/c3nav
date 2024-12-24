@@ -6,7 +6,6 @@ from django.utils.translation import ngettext_lazy
 from c3nav.mapdata.models import DataOverlay
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.locations import Position
-from c3nav.mapdata.quests import quest_types
 from c3nav.mapdata.schemas.models import DataOverlaySchema
 
 
@@ -35,6 +34,7 @@ def get_user_data(request):
         result['title'] = request.user.username
 
     # todo: cache this
+    from c3nav.mapdata.quests.base import quest_types
     result.update({
         'overlays': [
             DataOverlaySchema.model_validate(overlay).model_dump()

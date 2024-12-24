@@ -2494,7 +2494,10 @@ QuestsControl = L.Control.extend({
         c3nav_api.get('map/quests/')
             .then((data) => {
                 for (const quest of data) {
-                    const layer = L.geoJson(quest.point, {}).addTo(c3nav._questsLayers[quest.level_id]);
+                    L.geoJson(quest.point, {}).addTo(c3nav._questsLayers[quest.level_id]).on('click', function() {
+                        c3nav.open_modal();
+                        $.get(`/editor/quests/${quest.quest_type}/${quest.identifier}`, c3nav._modal_loaded).fail(c3nav._modal_error);
+                    });
                 }
             })
             .catch();

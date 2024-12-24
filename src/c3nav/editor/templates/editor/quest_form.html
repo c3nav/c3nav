@@ -1,0 +1,20 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <h3>{{ title }}</h3>
+
+    {% if back_url %}
+        <p>
+            <a href="{{ back_url }}">&laquo; {% trans 'back' %}</a>
+        </p>
+    {% endif %}
+
+    <form method="post" action="{{ request.path_info }}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% trans 'Submit answer' %}</button>
+    </form>
+</main>
+{% endblock %}

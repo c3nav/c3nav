@@ -21,7 +21,7 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup
-from c3nav.mapdata.quests import QuestSchema, get_all_quests_for_request
+from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
 from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID

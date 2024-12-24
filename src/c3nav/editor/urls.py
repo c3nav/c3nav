@@ -1,10 +1,12 @@
 from django.apps import apps
 from django.urls import path
+from django.views.generic import TemplateView
 
 from c3nav.editor.views.account import change_password_view, login_view, logout_view, register_view
 from c3nav.editor.views.changes import changeset_detail, changeset_edit, changeset_redirect
 from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, sourceimage, space_detail
 from c3nav.editor.views.overlays import overlays_list, overlay_features, overlay_feature_edit
+from c3nav.editor.views.quest import QuestFormView
 from c3nav.editor.views.users import user_detail, user_redirect
 
 
@@ -55,6 +57,8 @@ urlpatterns = [
     path('logout', logout_view, name='editor.logout'),
     path('register', register_view, name='editor.register'),
     path('change_password', change_password_view, name='editor.change_password'),
+    path('quests/<str:quest_type>/<str:identifier>/', QuestFormView.as_view(), name='editor.quest'),
+    path('thanks/', TemplateView.as_view(template_name="editor/thanks.html"), name='editor.thanks'),
     path('', main_index, name='editor.index'),
 ]
 urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
