@@ -10,7 +10,7 @@ from typing import Sequence
 
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
-from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select
+from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select, MultipleChoiceField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
@@ -21,6 +21,7 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
                                          AccessRestriction, AccessRestrictionGroup)
+from c3nav.mapdata.quests import quest_types
 from c3nav.site.models import Announcement
 
 
@@ -28,10 +29,19 @@ class UserPermissionsForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['review_group_reports'].label_from_instance = lambda obj: obj.title
+        self.fields['allowed_quests'] = MultipleChoiceField(
+            label=_('Available quests'),
+            choices=[(key, quest.quest_type_label) for key, quest in quest_types.items()],
+            initial=self.instance.quests,
+        )
+
+    def save(self, *args, **kwargs):
+        self.instance.quests = self.cleaned_data['allowed_quests']
+        super().save()
 
     class Meta:
         model = UserPermissions
-        exclude = ('user', 'max_changeset_changes', 'api_secret')
+        exclude = ('user', 'max_changeset_changes', 'api_secret', 'quests')
 
 
 class AccessPermissionForm(Form):

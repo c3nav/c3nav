@@ -21,6 +21,7 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup
+from c3nav.mapdata.quests import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
 from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
@@ -391,3 +392,14 @@ def legend_for_theme(request, theme_id: int):
                                      for group in obstaclegroups)
                    if item.fill or item.border],
     )
+
+
+""" 
+Quests 
+"""
+
+
+@map_api_router.get('/quests/', summary="get open quests",
+                    response={200: list[QuestSchema], **auth_responses})
+def list_quests(request):
+    return get_all_quests_for_request(request)

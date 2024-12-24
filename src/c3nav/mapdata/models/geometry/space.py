@@ -493,6 +493,8 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
                                    validators=[MinValueValidator(Decimal('0'))])
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
 
+    altitude_quest = models.BooleanField(_('altitude quest'), default=True)
+
     class Meta:
         verbose_name = _('Ranging beacon')
         verbose_name_plural = _('Ranging beacons')

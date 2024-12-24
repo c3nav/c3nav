@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.db import models, transaction
 from django.utils.functional import cached_property, lazy
 from django.utils.translation import gettext_lazy as _
+from django_pydantic_field.fields import SchemaField
 
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessPermission
@@ -41,6 +42,7 @@ class UserPermissions(models.Model):
     mesh_control = models.BooleanField(default=False, verbose_name=_('can access mesh control'))
 
     nonpublic_themes = models.BooleanField(default=False, verbose_name=_('show non-public themes in theme selector'))
+    quests: list[str] = SchemaField(schema=list[str], default=list)
 
     class Meta:
         verbose_name = _('User Permissions')
