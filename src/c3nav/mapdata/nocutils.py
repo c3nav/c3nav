@@ -33,9 +33,7 @@ class NocTwoPointLayerSchema(BaseModel):
     @cached_property
     def to_transform(self) -> NocTransformLayerSchema:
         diff_noc = np.array(deg2pos(*self.latlng1_noc)) - np.array(deg2pos(*self.latlng2_noc))
-        print(diff_noc)
         diff_nav = np.array(self.latlng1_nav) - np.array(self.latlng2_nav)
-        print(diff_nav)
         scale = np.linalg.norm(diff_nav) / np.linalg.norm(diff_noc)
         offset = np.array(self.latlng1_nav) - (np.array(deg2pos(*self.latlng1_noc)) * scale)
         return NocTransformLayerSchema(
