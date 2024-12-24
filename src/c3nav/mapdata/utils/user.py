@@ -6,6 +6,7 @@ from django.utils.translation import ngettext_lazy
 from c3nav.mapdata.models import DataOverlay
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.locations import Position
+from c3nav.mapdata.quests import quest_types
 from c3nav.mapdata.schemas.models import DataOverlaySchema
 
 
@@ -39,7 +40,11 @@ def get_user_data(request):
             DataOverlaySchema.model_validate(overlay).model_dump()
             for overlay in DataOverlay.qs_for_request(request)
         ],
-        'quests': bool(request.user.is_superuser or request.user_permissions.quests),
+        'quests': (
+            {key: quest.quest_type_label
+             for key, quest in quest_types.items()
+             if request.user.is_superuser or request.user_permissions.quests}
+        ),
     })
 
     return result

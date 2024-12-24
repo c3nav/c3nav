@@ -60,7 +60,7 @@ class UserDataSchema(BaseSchema):
         example=[2, 5],
     )
     overlays: list[DataOverlaySchema]
-    quests: bool
+    quests: dict[str, str]
 
 
 class FetchUpdatesResponseSchema(BaseSchema):

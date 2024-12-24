@@ -1925,11 +1925,10 @@ c3nav = {
     },
     _update_quests: function () {
         if (!c3nav.map) return;
-        console.log(c3nav.user_data);
         if (c3nav._questsControl) {
-            if (!c3nav.user_data.quests) c3nav.map.removeControl(c3nav._questsControl);
+            if (!Object.keys(c3nav.user_data.quests).length) c3nav.map.removeControl(c3nav._questsControl);
         } else {
-            if (c3nav.user_data.quests) c3nav._questsControl = (new QuestsControl()).addTo(c3nav.map);
+            if (Object.keys(c3nav.user_data.quests).length) c3nav._questsControl = (new QuestsControl()).addTo(c3nav.map);
         }
     },
 
