@@ -1927,8 +1927,10 @@ c3nav = {
     _update_quests: function () {
         if (!c3nav.map) return;
         if (c3nav._questsControl) {
-            if (!Object.keys(c3nav.user_data.quests).length) c3nav.map.removeControl(c3nav._questsControl);
-            c3nav._questsControl = null;
+            if (!Object.keys(c3nav.user_data.quests).length) {
+                c3nav.map.removeControl(c3nav._questsControl);
+                c3nav._questsControl = null;
+            }
         } else {
             if (Object.keys(c3nav.user_data.quests).length) c3nav._questsControl = (new QuestsControl()).addTo(c3nav.map);
         }
@@ -2496,6 +2498,9 @@ QuestsControl = L.Control.extend({
         if (!this.questsActive) return;
         c3nav_api.get('map/quests/')
             .then((data) => {
+                for (var level_id in c3nav._questsLayers) {
+                    c3nav._questsLayers[level_id].clearLayers();
+                }
                 for (const quest of data) {
                     L.geoJson(quest.point, {}).addTo(c3nav._questsLayers[quest.level_id]).on('click', function() {
                         c3nav.open_modal();
@@ -2509,7 +2514,7 @@ QuestsControl = L.Control.extend({
     hideQuests: function () {
         if (!this.questsActive) return;
         for (var level_id in c3nav._questsLayers) {
-            c3nav._questsLayers[level_id].clearLayers()
+            c3nav._questsLayers[level_id].clearLayers();
         }
         this._button.innerText = c3nav._map_material_icon('editor_choice');
         this._button.classList.toggle('control-disabled', true);
