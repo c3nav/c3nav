@@ -33,6 +33,7 @@ class UserPermissionsForm(ModelForm):
             label=_('Available quests'),
             choices=[(key, quest.quest_type_label) for key, quest in quest_types.items()],
             initial=self.instance.quests,
+            required=False,
         )
 
     def save(self, *args, **kwargs):
