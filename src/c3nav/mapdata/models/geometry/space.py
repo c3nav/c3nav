@@ -41,6 +41,13 @@ class SpaceGeometryMixin(GeometryMixin):
         except ObjectDoesNotExist:
             return None
 
+    @cached_property
+    def main_level_id(self):
+        try:
+            return self.space.level.on_top_of_id or self.space.level_id
+        except ObjectDoesNotExist:
+            return None
+
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
         if hasattr(self, 'get_color'):
