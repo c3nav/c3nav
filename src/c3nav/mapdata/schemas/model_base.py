@@ -236,6 +236,10 @@ class SpecificLocationSchema(LocationSchema):
         title="label override (preferred language)",
         description="text to use for the label. by default (null), the title would be used."
     )
+    load_group_display: Optional[PositiveInt] = APIField(
+        default=None,
+        title="load group to display",
+    )
 
 
 class WithGeometrySchema(BaseSchema):

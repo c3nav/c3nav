@@ -170,6 +170,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         return None
 
 
+
 class SpecificLocation(Location, models.Model):
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
@@ -177,6 +178,9 @@ class SpecificLocation(Location, models.Model):
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
     import_block_data = models.BooleanField(_('don\'t change metadata on import'), default=False)
     import_block_geom = models.BooleanField(_('don\'t change geometry on import'), default=False)
+
+    load_group_display = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
+                                           related_name='+', verbose_name=_('display load group'))
 
     class Meta:
         abstract = True
@@ -357,6 +361,9 @@ class LocationGroup(Location, models.Model):
     external_url_label = I18nField(_('external URL label'), plural_name='external_url_labels', blank=True,
                                    fallback_any=True, fallback_value="")
 
+    load_group_contribute = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
+                                              verbose_name=_('contribute to load group'))
+
     objects = LocationGroupManager()
 
     class Meta:
@@ -472,6 +479,19 @@ class LabelSettings(SerializableMixin, models.Model):
         verbose_name_plural = _('Label Settings')
         default_related_name = 'labelsettings'
         ordering = ('min_zoom', '-font_size')
+
+
+class LoadGroup(SerializableMixin, models.Model):
+    name = models.CharField(_('Name'), unique=True, max_length=50)  # a slugfield would forbid periods
+
+    @property
+    def title(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Load group')
+        verbose_name_plural = _('Load groups')
+        default_related_name = 'labelgroup'
 
 
 class CustomLocationProxyMixin:

@@ -18,7 +18,7 @@ from c3nav.mapdata.models import Space, Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -137,6 +137,9 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
                                            help_text=_('values of overlapping areas get multiplied!'))
     main_point = GeometryField('point', null=True, blank=True,
                                help_text=_('main routing point (optional)'))
+
+    load_group_contribute = models.ForeignKey(LoadGroup, on_delete=models.SET_NULL, null=True, blank=True,
+                                              verbose_name=_('contribute to load group'))
 
     class Meta:
         verbose_name = _('Area')

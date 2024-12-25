@@ -28,7 +28,7 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
@@ -123,6 +123,9 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
     enter_description = I18nField(_('Enter description'), blank=True, fallback_language=None)
     base_mapdata_accessible = models.BooleanField(default=False,
                                                   verbose_name=_('always accessible (overwrites base mapdata setting)'))
+
+    load_group_contribute = models.ForeignKey(LoadGroup, on_delete=models.SET_NULL, null=True, blank=True,
+                                              verbose_name=_('contribute to load group'))
 
     class Meta:
         verbose_name = _('Space')
