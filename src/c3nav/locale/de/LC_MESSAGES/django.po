@@ -85,7 +85,7 @@ msgstr "Verfügbare quests"
 
 #: c3nav/control/forms.py
 msgid "choose permissions…"
-msgstr "Erlaubnsise auswählen…"
+msgstr "Erlaubnisse auswählen…"
 
 #: c3nav/control/forms.py
 #, python-format
