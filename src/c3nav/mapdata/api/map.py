@@ -20,7 +20,7 @@ from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle
-from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup
+from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup, LoadGroup
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
@@ -404,3 +404,16 @@ Quests
 @api_etag(permissions=True, quests=True)
 def list_quests(request):
     return get_all_quests_for_request(request)
+
+
+"""
+Room load
+"""
+
+
+@map_api_router.get('/load/', summary="get load group loads",
+                    response={200: dict[PositiveInt, float], **auth_responses})
+def get_load(request):
+    # todo: cache
+    import random
+    return {pk: random.randrange(0, 100)/100 for pk in LoadGroup.objects.values_list("pk", flat=True)}

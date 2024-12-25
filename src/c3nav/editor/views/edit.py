@@ -63,6 +63,7 @@ def main_index(request):
             child_model(request, 'AccessRestriction'),
             child_model(request, 'AccessRestrictionGroup'),
             child_model(request, 'LabelSettings'),
+            child_model(request, 'LoadGroup'),
             child_model(request, 'Source'),
             child_model(request, 'Theme'),
             child_model(request, 'DataOverlay'),
