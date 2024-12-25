@@ -4,12 +4,12 @@
      * and resulting anti-aliasing.
      * https://github.com/Leaflet/Leaflet/issues/3575
      */
-    var originalInitTile = L.GridLayer.prototype._initTile;
+    const originalInitTile = L.GridLayer.prototype._initTile;
     L.GridLayer.include({
         _initTile: function (tile) {
             originalInitTile.call(this, tile);
 
-            var tileSize = this.getTileSize();
+            const tileSize = this.getTileSize();
 
             tile.style.width = tileSize.x + 1 + 'px';
             tile.style.height = tileSize.y + 1 + 'px';
@@ -19,7 +19,7 @@
     /*
      * Fix scroll wheel zoom on precise scrolling devices
      */
-    var originalPerformZoom = L.Map.ScrollWheelZoom.prototype._performZoom;
+    const originalPerformZoom = L.Map.ScrollWheelZoom.prototype._performZoom;
     L.Map.ScrollWheelZoom.include({
         _performZoom: function () {
             if (this._delta) this._delta = (this._delta > 0) ? Math.max(this._delta, 60) : Math.min(this._delta, -60);
@@ -34,11 +34,11 @@
         return Math.log(x) * Math.LOG2E;
     };
 
-    var originalGetIconBox = L.LayerGroup.Collision.prototype._getIconBox;
+    const originalGetIconBox = L.LayerGroup.Collision.prototype._getIconBox;
     L.LayerGroup.Collision.prototype._getIconBox = function (el) {
-        var result = originalGetIconBox(el);
-        var offsetX = (result[2] - result[0] / 2),
-            offsetY = (result[3] - result[1] / 2);
+        const result = originalGetIconBox(el);
+        const offsetX = (result[2] - result[0] / 2);
+        const offsetY = (result[3] - result[1] / 2);
         result[0] -= offsetX;
         result[1] -= offsetY;
         result[2] -= offsetX;
@@ -79,7 +79,7 @@ localStorageWrapper = {
         try {
             localStorage.setItem(keyName, keyValue)
         } catch (e) {
-            console.log("can't set localstorage preference for " + keyName);
+            console.warn("can't set localstorage preference for " + keyName);
         }
     },
     removeItem: function (keyName) {
@@ -124,7 +124,7 @@ c3nav = {
             $('.app-ads').remove();
         }
 
-        var $body = $('body');
+        const $body = $('body');
         if (window.mobileclient) {
             $body.addClass('mobileclient');
             c3nav._set_user_location(null);
@@ -152,8 +152,10 @@ c3nav = {
             });
     },
     _sort_labels: function (a, b) {
-        var result = (a[0].effective_label_settings.min_zoom || -10) - (b[0].effective_label_settings.min_zoom || -10);
-        if (result === 0) result = b[0].effective_label_settings.font_size - a[0].effective_label_settings.font_size;
+        let result = (a[0].effective_label_settings.min_zoom || -10) - (b[0].effective_label_settings.min_zoom || -10);
+        if (result === 0) {
+            result = b[0].effective_label_settings.font_size - a[0].effective_label_settings.font_size;
+        }
         return result;
     },
     _last_time_searchable_locations_loaded: null,
@@ -161,11 +163,11 @@ c3nav = {
     _searchable_locations_loaded: function (data) {
         c3nav._last_time_searchable_locations_loaded = Date.now();
         if (data !== undefined) {
-            var locations = [],
-                locations_by_id = {},
-                labels = {};
-            for (var i = 0; i < data.length; i++) {
-                var location = data[i];
+            const locations = [];
+            const locations_by_id = {};
+            const labels = {};
+            for (let i = 0; i < data.length; i++) {
+                const location = data[i];
                 location.elem = c3nav._build_location_html(location);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
@@ -177,7 +179,7 @@ c3nav = {
                     labels[location.point[0]].push([location, c3nav._build_location_label(location)]);
                 }
             }
-            for (level_id in labels) {
+            for (const level_id in labels) {
                 labels[level_id].sort(c3nav._sort_labels);
             }
             c3nav.locations = locations;
@@ -198,8 +200,9 @@ c3nav = {
 
         $('.locationinput').data('location', null);
 
-        var $main = $('main'),
-            state = JSON.parse($main.attr('data-state'));
+        const $main = $('main');
+        const state = JSON.parse($main.attr('data-state'));
+
         c3nav.embed = $main.is('[data-embed]');
 
         c3nav.last_site_update = JSON.parse($main.attr('data-last-site-update'));
@@ -231,14 +234,14 @@ c3nav = {
 
         $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
 
-        var $result_buttons = $('#location-buttons, #route-result-buttons');
+        const $result_buttons = $('#location-buttons, #route-result-buttons');
         $result_buttons.find('.share').on('click', c3nav._buttons_share_click);
         $result_buttons.find('.details').on('click', c3nav._buttons_details_click);
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#route-summary').find('.options').on('click', c3nav._buttons_options_click);
 
-        var $route_options = $('#route-options');
+        const $route_options = $('#route-options');
         $route_options.find('.close').on('click', c3nav._route_options_close_click);
         $route_options.find('button').on('click', c3nav._route_options_submit);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
@@ -295,17 +298,17 @@ c3nav = {
             options = false;
         }
 
-        var destination = $('#destination-input').data('location'),
-            origin = $('#origin-input').data('location'),
-            new_state = {
-                routing: routing,
-                origin: origin,
-                destination: destination,
-                sidebar: true,
-                details: !!details,
-                options: !!options,
-                nearby: !!nearby,
-            };
+        const destination = $('#destination-input').data('location');
+        const origin = $('#origin-input').data('location');
+        const new_state = {
+            routing: routing,
+            origin: origin,
+            destination: destination,
+            sidebar: true,
+            details: !!details,
+            options: !!options,
+            nearby: !!nearby,
+        };
 
         c3nav._push_state(new_state, replace);
 
@@ -315,7 +318,7 @@ c3nav = {
         return c3nav._levelControl.currentLevel || c3nav.resume_level;
     },
     update_map_state: function (replace, level, center, zoom) {
-        var new_state = {
+        const new_state = {
             level: center ? level : c3nav.current_level(),
             center: L.GeoJSON.latLngToCoords(center ? center : c3nav.map.getCenter(), 2),
             zoom: Math.round((center ? zoom : c3nav.map.getZoom()) * 100) / 100
@@ -326,7 +329,7 @@ c3nav = {
     },
     _first_sidebar_state: true,
     _sidebar_state_updated: function (state, nofly) {
-        var view;
+        let view;
         if (state.routing) {
             view = (!state.origin || !state.destination) ? 'route-search' : 'route-result';
         } else {
@@ -366,10 +369,10 @@ c3nav = {
             }, 300);
         }
 
-        var $search = $('#search');
+        const $search = $('#search');
         $search.removeClass('loading');
 
-        var $selected_locationinputs = $('.locationinput.selected');
+        const $selected_locationinputs = $('.locationinput.selected');
         $selected_locationinputs.filter(':focus').blur();
         if (!c3nav._first_sidebar_state || !window.mobileclient) {
             $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
@@ -384,12 +387,12 @@ c3nav = {
     _clear_route_layers: function () {
         c3nav._firstRouteLevel = null;
         c3nav._routeLayerBounds = {};
-        for (var id in c3nav._routeLayers) {
+        for (const id in c3nav._routeLayers) {
             c3nav._routeLayers[id].clearLayers();
         }
     },
     _clear_detail_layers: function () {
-        for (var id in c3nav._detailLayers) {
+        for (const id in c3nav._detailLayers) {
             c3nav._detailLayers[id].clearLayers();
         }
     },
@@ -397,15 +400,15 @@ c3nav = {
     update_location_labels: function () {
         if (!c3nav._labelControl.labelsActive) return;
         c3nav._labelLayer.clearLayers();
-        var labels = c3nav.labels[c3nav.current_level()],
-            bounds = c3nav.map.getBounds().pad(0.15),
-            zoom = c3nav.map.getZoom();
+        const labels = c3nav.labels[c3nav.current_level()];
+        const bounds = c3nav.map.getBounds().pad(0.15);
+        const zoom = c3nav.map.getZoom();
         if (!labels) return;
 
-        var valid_upper = [], location, label;
-        for (var item of labels) {
-            location = item[0];
-            label = item[1];
+        const valid_upper = [];
+        for (const item of labels) {
+            const location = item[0];
+            const label = item[1];
             if (zoom < (location.effective_label_settings.min_zoom || -10)) {
                 // since the labels are sorted by min_zoom, we can just leave here
                 break;
@@ -418,21 +421,21 @@ c3nav = {
                 }
             }
         }
-        for (label of valid_upper) {
+
+        for (const label of valid_upper) {
             c3nav._labelLayer._maybeAddLayerToRBush(label);
         }
-
     },
 
     load_location_details: function (location) {
-        var $location_details = $('#location-details');
+        const $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
             c3nav._clear_route_layers();
             c3nav_api.get(`map/locations/${location.id}/display`).then(c3nav._location_details_loaded)
                 .catch(data => {
                     console.error(data);
-                    var $location_details = $('#location-details');
+                    const $location_details = $('#location-details');
                     $location_details.find('.details-body').text('Error ' + String(data.status));
                     $location_details.find('.details-body').html('');
                     $location_details.find('.editor').hide();
@@ -443,28 +446,29 @@ c3nav = {
         }
     },
     _location_details_loaded: function (data) {
-        var $location_details = $('#location-details');
+        const $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(data.id)) {
             // loaded too late, information no longer needed
             return;
         }
-        var line, sublocations, loc, loclist, elem = $('<dl>');
-        for (var i = 0; i < data.display.length; i++) {
-            line = data.display[i];
+
+        const elem = $('<dl>');
+        for (let i = 0; i < data.display.length; i++) {
+            const line = data.display[i];
             elem.append($('<dt>').text(line[0]));
             if (typeof line[1] === 'string') {
                 elem.append($('<dd>').text(line[1]));
             } else if (line[1] === null || line.length === 0) {
                 elem.append($('<dd>').text('-'));
             } else if (line.length === 2 && line[1].url !== undefined) {
-                loclist = $('<dd>');
+                const loclist = $('<dd>');
                 loclist.append($('<a>').attr('href', line[1].url).attr('target', '_blank').text(line[1].title));
                 elem.append(loclist);
             } else {
-                sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
-                loclist = $('<dd>');
-                for (var j = 0; j < sublocations.length; j++) {
-                    loc = sublocations[j];
+                const sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
+                const loclist = $('<dd>');
+                for (let j = 0; j < sublocations.length; j++) {
+                    const loc = sublocations[j];
                     if (loc.can_search) {
                         loclist.append($('<a>').attr('href', '/l/' + loc.effective_slug + '/details/').attr('data-id', loc.id).click(function (e) {
                             e.preventDefault();
@@ -480,7 +484,7 @@ c3nav = {
         }
         $location_details.find('.details-body').html('').append(elem);
 
-        var $editor = $location_details.find('.editor');
+        const $editor = $location_details.find('.editor');
         if (data.editor_url) {
             $editor.attr('href', data.editor_url).show();
         } else {
@@ -488,8 +492,7 @@ c3nav = {
         }
 
         if (data.geometry) {
-            var custom_location = typeof data.id !== 'number',
-                report_url = '/report/l/' + String(data.id) + '/';
+            const report_url = '/report/l/' + String(data.id) + '/';
             $location_details.find('.report').attr('href', report_url);
         } else {
             $location_details.find('.report').hide();
@@ -515,9 +518,9 @@ c3nav = {
     next_route_options: null,
     session_route_options: null,
     load_route: function (origin, destination, nofly) {
-        var $route = $('#route-summary'),
-            $details_wrapper = $('#route-details'),
-            $options_wrapper = $('#route-options');
+        const $route = $('#route-summary');
+        const $details_wrapper = $('#route-details');
+        const $options_wrapper = $('#route-options');
         if (c3nav.next_route_options || $route.attr('data-origin') !== String(origin.id) || $route.attr('data-destination') !== String(destination.id)) {
             c3nav._clear_route_layers();
             $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
@@ -537,7 +540,7 @@ c3nav = {
         c3nav.next_route_options = null;
     },
     _route_loaded: function (data, nofly) {
-        var $route = $('#route-summary');
+        const $route = $('#route-summary');
         if (data.error && $route.is('.loading')) {
             console.error(data.error);
             $route.find('span').text(data.error);
@@ -554,15 +557,9 @@ c3nav = {
         c3nav._display_route_options(data.options_form);
     },
     _display_route_result: function (result, nofly) {
-        var $route = $('#route-summary'),
-            $details_wrapper = $('#route-details'),
-            $details = $details_wrapper.find('.details-body'),
-            first_primary_level = null,
-            last_primary_level = null,
-            level_collect = [],
-            next_level_collect = [],
-            in_intermediate_level = true,
-            item, coords, description;
+        const $route = $('#route-summary');
+        const $details_wrapper = $('#route-details');
+        const $details = $details_wrapper.find('.details-body');
         c3nav._clear_route_layers();
 
         $details_wrapper.find('.report')
@@ -570,15 +567,20 @@ c3nav = {
         $details.html('');
         $details.append(c3nav._build_location_html(result.origin));
 
-        for (var i = 0; i < result.items.length; i++) {
-            item = result.items[i];
+        let first_primary_level = null;
+        let last_primary_level = null;
+        let level_collect = [];
+        let next_level_collect = [];
+        let in_intermediate_level = true;
+        for (let i = 0; i < result.items.length; i++) {
+            const item = result.items[i];
 
-            for (var j = 0; j < item.descriptions.length; j++) {
-                description = item.descriptions[j];
+            for (let j = 0; j < item.descriptions.length; j++) {
+                const description = item.descriptions[j];
                 $details.append(c3nav._build_route_item(description[0], description[1]));
             }
 
-            coords = [item.coordinates[0], item.coordinates[1]];
+            const coords = [item.coordinates[0], item.coordinates[1]];
             level_collect.push(coords);
             if (item.level) {
                 if (in_intermediate_level) {
@@ -655,7 +657,7 @@ c3nav = {
         return false;
     },
     _build_route_item: function (icon, text) {
-        var elem = $('<div class="routeitem">');
+        const elem = $('<div class="routeitem">');
         if (icon.indexOf('.') === -1) {
             elem.append($('<span class="icon"><i class="material-symbols">' + icon + '</i></span>'));
         } else {
@@ -665,24 +667,24 @@ c3nav = {
         return elem;
     },
     _add_intermediate_point: function (origin, destination, next) {
-        var angle = Math.atan2(destination[1] - next[1], destination[0] - next[0]),
-            distance = Math.sqrt(Math.pow(origin[0] - destination[0], 2) + Math.pow(origin[1] - destination[1], 2)),
-            offset = Math.min(1.5, distance / 4),
-            point = [destination[0] + Math.cos(angle) * offset, destination[1] + Math.sin(angle) * offset];
+        const angle = Math.atan2(destination[1] - next[1], destination[0] - next[0]);
+        const distance = Math.sqrt(Math.pow(origin[0] - destination[0], 2) + Math.pow(origin[1] - destination[1], 2));
+        const offset = Math.min(1.5, distance / 4);
+        const point = [destination[0] + Math.cos(angle) * offset, destination[1] + Math.sin(angle) * offset];
         return [origin, point, destination];
     },
     _add_line_to_route: function (level, coords, dots, link_to_level) {
         if (coords.length < 2) return;
-        var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
-            routeLayer = c3nav._routeLayers[level];
-        line = L.polyline(latlngs, {
+        const latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords));
+        const routeLayer = c3nav._routeLayers[level];
+        const line = L.polyline(latlngs, {
             className: dots ? 'c3nav-route-dashes' : 'c3nav-route-line',
             color: dots ? 'var(--color-route-dashes)' : 'var(--color-map-overlay)',
             dashArray: (dots || link_to_level) ? '7' : null,
             interactive: false,
             smoothFactor: 0.5
         }).addTo(routeLayer);
-        bounds = {};
+        const bounds = {};
         bounds[level] = line.getBounds();
 
         c3nav._merge_bounds(c3nav._routeLayerBounds, bounds);
@@ -699,7 +701,7 @@ c3nav = {
     },
     _smooth_line: function (coords) {
         if (coords.length > 2) {
-            for (var i = 0; i < 4; i++) {
+            for (let i = 0; i < 4; i++) {
                 coords = c3nav._smooth_line_iteration(coords);
             }
         }
@@ -707,8 +709,8 @@ c3nav = {
     },
     _smooth_line_iteration: function (coords) {
         // Chaikin'S Corner Cutting Algorithm
-        var new_coords = [coords[0]];
-        for (var i = 1; i < coords.length - 1; i++) {
+        const new_coords = [coords[0]];
+        for (let i = 1; i < coords.length - 1; i++) {
             new_coords.push([(coords[i][0] * 5 + coords[i - 1][0]) / 6, (coords[i][1] * 5 + coords[i - 1][1]) / 6]);
             new_coords.push([(coords[i][0] * 5 + coords[i + 1][0]) / 6, (coords[i][1] * 5 + coords[i + 1][1]) / 6]);
         }
@@ -716,18 +718,19 @@ c3nav = {
         return new_coords
     },
     _display_route_options: function (options) {
-        var $options_wrapper = $('#route-options'),
-            $options = $options_wrapper.find('.route-options-fields'),
-            option, field, field_id, choice;
+        const $options_wrapper = $('#route-options');
+        const $options = $options_wrapper.find('.route-options-fields');
         $options.html('');
-        for (var i = 0; i < options.length; i++) {
-            option = options[i];
-            field_id = 'option_id_' + option.name;
+        for (let i = 0; i < options.length; i++) {
+            // TODO: I think this logic is broken, field is only assigned for type=select but always used
+            const option = options[i];
+            const field_id = 'option_id_' + option.name;
             $options.append($('<label for="' + field_id + '">').text(option.label));
+            let field;
             if (option.type === 'select') {
                 field = $('<select name="' + option.name + '" id="' + field_id + '">');
-                for (j = 0; j < option.choices.length; j++) {
-                    choice = option.choices[j];
+                for (let j = 0; j < option.choices.length; j++) {
+                    const choice = option.choices[j];
                     field.append($('<option value="' + choice.name + '">').text(choice.title));
                 }
             }
@@ -747,7 +750,7 @@ c3nav = {
         return true;
     },
     _build_state_url: function (state, embed) {
-        var url = embed ? '/embed' : '';
+        let url = embed ? '/embed' : '';
         if (state.routing) {
             if (state.origin) {
                 url += (state.destination) ? '/r/' + state.origin.effective_slug + '/' + state.destination.effective_slug + '/' : '/o/' + state.origin.effective_slug + '/';
@@ -773,12 +776,12 @@ c3nav = {
     },
     _push_state: function (state, replace) {
         state = $.extend({}, c3nav.state, state);
-        var old_state = c3nav.state;
+        const old_state = c3nav.state;
 
         if (!replace && c3nav._equal_states(old_state, state)) return;
 
-        var url = c3nav._build_state_url(state, c3nav.embed),
-            embed_link = $('.embed-link');
+        const url = c3nav._build_state_url(state, c3nav.embed);
+        const embed_link = $('.embed-link');
 
         if (embed_link.length) {
             embed_link.attr('href', c3nav._build_state_url(state) + (c3nav.access_query ? ('?access=' + c3nav.access_query) : ''));
@@ -786,17 +789,14 @@ c3nav = {
 
         c3nav.state = state;
         if (replace || (!state.sidebar && !old_state.sidebar)) {
-            // console.log('state replaced');
             history.replaceState(state, '', url);
         } else {
-            // console.log('state pushed');
             history.pushState(state, '', url);
         }
 
         c3nav._maybe_load_site_update(state);
     },
     _onpopstate: function (e) {
-        // console.log('state popped');
         c3nav.load_state(e.state);
         c3nav._maybe_load_site_update(e.state);
     },
@@ -830,7 +830,7 @@ c3nav = {
         c3nav._sidebar_state_updated(state, state.center);
         if (state.center) {
             c3nav._levelControl.setLevel(state.level);
-            var center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
+            const center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
             if (nofly) {
                 c3nav.map.setView(center, state.zoom, {animate: false});
             } else {
@@ -854,11 +854,11 @@ c3nav = {
         c3nav.update_state(null, null, null, false);
     },
     _route_options_submit: function () {
-        var options = {};
-        var waytypes = {};
+        const options = {};
+        const waytypes = {};
         $('#route-options').find('.route-options-fields [name]').each(function () {
-            var name = $(this).attr('name');
-            var value = $(this).val();
+            const name = $(this).attr('name');
+            const value = $(this).val();
             if (name.startsWith('waytype_')) {
                 waytypes[name.substring('waytype_'.length)] = value;
             } else {
@@ -876,19 +876,19 @@ c3nav = {
         c3nav.update_state(true);
     },
     _route_buttons_swap_click: function () {
-        var $origin = $('#origin-input'),
-            $destination = $('#destination-input'),
-            tmp = $origin.data('location');
+        const $origin = $('#origin-input');
+        const $destination = $('#destination-input');
+        const tmp = $origin.data('location');
         c3nav._locationinput_set($origin, $destination.data('location'));
         c3nav._locationinput_set($destination, tmp);
-        var offset = $destination.position().top - $origin.position().top;
+        const offset = $destination.position().top - $origin.position().top;
         $origin.stop().css('top', offset).animate({top: 0}, 150);
         $destination.stop().css('top', -offset).animate({top: 0}, 150);
         c3nav.update_state();
     },
     _route_buttons_close_click: function () {
-        var $origin = $('#origin-input'),
-            $destination = $('#destination-input');
+        const $origin = $('#origin-input');
+        const $destination = $('#destination-input');
         if ($origin.is('.selected') && !$destination.is('.selected')) {
             c3nav._locationinput_set($destination, $origin.data('location'));
         }
@@ -896,14 +896,13 @@ c3nav = {
     },
     _popup_button_click: function (e) {
         e.stopPropagation();
-        var $location = $(this).parent().siblings('.location');
+        const $location = $(this).parent().siblings('.location');
         if ($location.length) {
-            var location = c3nav.locations_by_id[parseInt($location.attr('data-id'))],
-                $origin = $('#origin-input'),
-                $destination = $('#destination-input');
-            if (!location) {
-                location = JSON.parse($location.attr('data-location'));
-            }
+            const location = c3nav.locations_by_id[parseInt($location.attr('data-id'))]
+                || JSON.parse($location.attr('data-location'));
+
+            const $origin = $('#origin-input');
+            const $destination = $('#destination-input');
             if ($(this).is('.as-location')) {
                 c3nav._locationinput_set($destination, location);
                 c3nav.update_state(false);
@@ -915,9 +914,9 @@ c3nav = {
             } else if ($(this).is('a')) {
                 c3nav._modal_link_click.call(this, e);
             } else {
-                var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
-                    $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
-                    other_location = $other_locationinput.data('location');
+                const $locationinput = $(this).is('.as-origin') ? $origin : $destination;
+                const $other_locationinput = $(this).is('.as-origin') ? $destination : $origin;
+                const other_location = $other_locationinput.data('location');
                 c3nav._locationinput_set($locationinput, location);
                 if (other_location && (other_location.id === location.id || (other_location.locations && other_location.locations.includes(location.id)))) {
                     c3nav._locationinput_set($other_locationinput, null);
@@ -930,9 +929,10 @@ c3nav = {
 
     // share logic
     _buttons_share_click: function (location) {
-        var url = c3nav._get_share_url(false, location);
+        let url = c3nav._get_share_url(false, location);
         if (navigator.share) {
-            var title, subtitle;
+            let title;
+            let subtitle;
             if (location.effective_slug) {
                 title = location.title;
                 subtitle = location.subtitle;
@@ -940,7 +940,7 @@ c3nav = {
                 title = c3nav.state.destination.title;
                 subtitle = c3nav.state.destination.subtitle;
             }
-            var text = title + '\n' + subtitle;
+            const text = title + '\n' + subtitle;
             url = window.location.protocol + '//' + window.location.host + url;
             navigator.share({
                 url: url,
@@ -953,19 +953,18 @@ c3nav = {
         }
     },
     _get_share_url: function (with_position, location) {
-        var url, state = $.extend({}, c3nav.state);
+        const state = $.extend({}, c3nav.state);
         if (location.effective_slug) {
-            url = '/l/' + location.effective_slug + '/';
+            return '/l/' + location.effective_slug + '/';
         } else {
             if (!with_position) {
                 state.center = null;
             }
-            url = c3nav._build_state_url(state);
+            return c3nav._build_state_url(state);
         }
-        return url;
     },
     _update_share_ui: function (url) {
-        var $share = $('#modal').find('.share-ui');
+        const $share = $('#modal').find('.share-ui');
         $share.find('img').attr('src', '/qr' + url);
         $share.find('input').val(window.location.protocol + '//' + window.location.host + url);
         if (!window.mobileclient) $share.find('input')[0].select();
@@ -1000,7 +999,7 @@ c3nav = {
         $('html').on('keydown', c3nav._global_keydown);
     },
     _build_location_html: function (location) {
-        var html = $('<div class="location">')
+        const html = $('<div class="location">')
             .append($('<i class="icon material-symbols">').text(c3nav._map_material_icon(location.effective_icon || 'place')))
             .append($('<span>').text(location.title))
             .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
@@ -1008,13 +1007,16 @@ c3nav = {
         return html[0].outerHTML;
     },
     _build_location_label: function (location) {
-        var text = location.label_override || location.title, segments = [''], new_segments = [], new_text = [''],
-            len = 0, since_last = 0;
-        segments = text.split(' ');
-        for (var segment of segments) {
+        const text = location.label_override || location.title;
+        const new_segments = [];
+        const new_text = [''];
+        let len = 0;
+        let since_last = 0;
+        const segments = text.split(' ');
+        for (const segment of segments) {
             if (segment.length > 12) {
                 new_segments.push('');
-                for (char of segment) {
+                for (const char of segment) {
                     new_segments[new_segments.length - 1] += char;
                     since_last++;
                     if ('.,-:;!?/&'.indexOf(char) >= 0) {
@@ -1026,7 +1028,7 @@ c3nav = {
                 new_segments.push(segment + ' ');
             }
         }
-        for (var segment of new_segments) {
+        for (const  segment of new_segments) {
             if (len === 0 || len + segment.length < 12) {
                 new_text[new_text.length - 1] += $('<div>').text(segment).html();
                 len += segment.length;
@@ -1035,10 +1037,10 @@ c3nav = {
                 len = segment.length;
             }
         }
-        for (var i = 0; i < new_text.length; i++) {
+        for (let i = 0; i < new_text.length; i++) {
             new_text[i] = new_text[i].trim();
         }
-        var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;' + new_text.join('&#8239;<br>&#8239;') + '&#8239;'));
+        const html = $('<div class="location-label-text">').append($('<span>').html('&#8239;' + new_text.join('&#8239;<br>&#8239;') + '&#8239;'));
         html.css('font-size', location.effective_label_settings.font_size + 'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
             icon: L.divIcon({
@@ -1087,7 +1089,7 @@ c3nav = {
     },
     _locationinput_reset_autocomplete: function () {
         // hide autocomplete
-        var $autocomplete = $('#autocomplete');
+        const $autocomplete = $('#autocomplete');
         $autocomplete.find('.focus').removeClass('focus');
         $autocomplete.html('');
         c3nav._last_locationinput_words_key = null;
@@ -1095,7 +1097,7 @@ c3nav = {
     },
     _locationinput_blur: function () {
         // when a locationinput is blurred…
-        var suggestion = $(this).parent().data('suggestion');
+        const suggestion = $(this).parent().data('suggestion');
         if (suggestion) {
             // if it has a suggested location in it currently
             c3nav._locationinput_set($(this).parent(), suggestion);
@@ -1120,10 +1122,10 @@ c3nav = {
         }
     },
     _locationinput_keydown: function (e) {
-        var $autocomplete = $('#autocomplete'), $focused, origval;
+        const $autocomplete = $('#autocomplete');
         if (e.which === 27) {
             // escape: reset the location input
-            origval = $(this).data('origval');
+            const origval = $(this).data('origval');
             if (origval) {
                 $(this).val(origval).removeData('origval');
                 $(this).parent().removeData('suggestion');
@@ -1133,7 +1135,7 @@ c3nav = {
             }
         } else if (e.which === 40 || e.which === 38) {
             // arrows up/down
-            var $locations = $autocomplete.find('.location');
+            const $locations = $autocomplete.find('.location');
             if (!$locations.length) return;
 
             // save current input value in case we have to restore it
@@ -1142,11 +1144,11 @@ c3nav = {
             }
 
             // find focused element and remove focus
-            $focused = $locations.filter('.focus');
+            const $focused = $locations.filter('.focus');
             $locations.removeClass('focus');
 
             // find next element
-            var next;
+            let next;
             if (!$focused.length) {
                 next = $locations.filter((e.which === 40) ? ':first-child' : ':last-child');
             } else {
@@ -1164,7 +1166,7 @@ c3nav = {
             }
         } else if (e.which === 13) {
             // enter: select currently focused suggestion or first suggestion
-            $focused = $autocomplete.find('.location.focus');
+            let $focused = $autocomplete.find('.location.focus');
             if (!$focused.length) {
                 $focused = $autocomplete.find('.location:first-child');
             }
@@ -1203,7 +1205,7 @@ c3nav = {
         $(this).addClass('focus').siblings().removeClass('focus');
     },
     _locationinput_click_suggestion: function () {
-        var $locationinput = $('#' + c3nav.current_locationinput);
+        const $locationinput = $('#' + c3nav.current_locationinput);
         c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
         c3nav.update_state();
         c3nav.fly_to_bounds(true);
@@ -1216,13 +1218,13 @@ c3nav = {
         return a[5] - b[5];
     },
     _locationinput_input: function () {
-        var matches = [],
-            val = $(this).removeData('origval').val(),
-            val_trimmed = $.trim(val),
-            val_words = val_trimmed.toLowerCase().split(/\s+/),
-            val_words_key = val_words.join(' '),
-            $autocomplete = $('#autocomplete'),
-            $parent = $(this).parent();
+        const matches = [];
+        const val = $(this).removeData('origval').val();
+        const val_trimmed = $.trim(val);
+        const val_words = val_trimmed.toLowerCase().split(/\s+/);
+        const val_words_key = val_words.join(' ');
+        const $autocomplete = $('#autocomplete');
+        const $parent = $(this).parent();
         $parent.toggleClass('empty', val === '').removeData('suggestion');
         if ($parent.is('.selected')) {
             $parent.removeClass('selected').data('location', null);
@@ -1239,17 +1241,14 @@ c3nav = {
         if (val_words_key === c3nav._last_locationinput_words_key) return;
         c3nav._last_locationinput_words_key = val_words_key;
 
-        for (var i = 0; i < c3nav.locations.length; i++) {
-            var location = c3nav.locations[i],
-                leading_words_count = 0,
-                words_total_count = 0,
-                words_start_count = 0,
-                nomatch = false,
-                val_word, j;
+        for (let i = 0; i < c3nav.locations.length; i++) {
+            const location = c3nav.locations[i];
+            let leading_words_count = 0;
 
             // each word has to be in the location
-            for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[j];
+            let nomatch = false;
+            for (let j = 0; j < val_words.length; j++) {
+                const val_word = val_words[j];
                 if (location.match.indexOf(val_word) === -1) {
                     nomatch = true;
                     break;
@@ -1259,15 +1258,17 @@ c3nav = {
 
             // how many words from the beginning are in the title
             for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[j];
+                const val_word = val_words[j];
                 if (location.title_words[j] !== val_word &&
                     (j !== val_words.length - 1 || location.title_words[j].indexOf(val_word) !== 0)) break;
                 leading_words_count++;
             }
 
             // how many words in total can be found
+            let words_start_count = 0;
+            let words_total_count = 0;
             for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[j];
+                const val_word = val_words[j];
                 if (location.match.indexOf(' ' + val_word + ' ') !== -1) {
                     words_total_count++;
                 } else if (location.match.indexOf(' ' + val_word) !== -1) {
@@ -1281,19 +1282,19 @@ c3nav = {
         matches.sort(c3nav._locationinput_matches_compare);
 
         $autocomplete.html('');
-        var max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height() / 55));
-        for (i = 0; i < max_items; i++) {
+        const max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height() / 55));
+        for (let i = 0; i < max_items; i++) {
             $autocomplete.append(matches[i][0]);
         }
     },
 
     _random_location_click: function () {
-        var $button = $('button.random'),
-            parent = $button.parent(),
-            width = parent.width(),
-            height = parent.height();
+        const $button = $('button.random');
+        const parent = $button.parent();
+        const width = parent.width();
+        const height = parent.height();
 
-        $cover = $('<div>').css({
+        const $cover = $('<div>').css({
             'width': width + 'px',
             'height': height + 'px',
             'background-color': 'var(--color-background)',
@@ -1319,20 +1320,20 @@ c3nav = {
             left: 5,
         }, 300, 'swing').queue(function (d) {
             d();
-            var possible_locations = new Set();
-            for (var id of c3nav.random_location_groups) {
-                var group = c3nav.locations_by_id[id];
+            const possible_locations_set = new Set();
+            for (const id of c3nav.random_location_groups) {
+                const group = c3nav.locations_by_id[id];
                 if (!group) continue;
                 if (!group.locationtype || group.locationtype !== 'locationgroup') continue;
                 group.locations.forEach(subid => {
                     if (subid in c3nav.locations_by_id) possible_locations.add(subid)
                 });
             }
-            possible_locations = Array.from(possible_locations);
-            var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
+            const possible_locations = Array.from(possible_locations_set);
+            const location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
             c3nav._locationinput_set($('#destination-input'), location);
             c3nav.update_state(false);
-            c3nav.fly_to_bounds(true);
+            c3nav.fly_to_bovarunds(true);
             $cover.animate({
                 left: width + $button.width() / 2 + 'px'
             }, 300, 'swing');
@@ -1353,7 +1354,7 @@ c3nav = {
     modal_noclose: false,
     open_modal: function (content, no_close) {
         c3nav.modal_noclose = no_close;
-        var $modal = $('#modal');
+        const $modal = $('#modal');
         c3nav._set_modal_content(content, no_close);
         if (!$modal.is('.show')) {
             c3nav._push_state({modal: true, sidebar: true});
@@ -1376,7 +1377,7 @@ c3nav = {
         return ['/l/', '/control/', '/reports/', '/mesh/', '/api-secrets/', '/editor/'].some(prefix => location.startsWith(prefix));
     },
     _modal_link_click: function (e) {
-        var location = $(this).attr('href');
+        const location = $(this).attr('href');
         if ($(this).is('[target]') || c3nav._href_modal_open_tab(location)) {
             if (!$(this).is('[target]')) $(this).attr('target', '_blank');
             return;
@@ -1396,8 +1397,8 @@ c3nav = {
             history.back();
             return;
         }
-        var html = $('<div>' + data.replace('<body', '<div') + '</div>');
-        var user_data = html.find('[data-user-data]');
+        const html = $('<div>' + data.replace('<body', '<div') + '</div>');
+        const user_data = html.find('[data-user-data]');
         if (user_data.length) {
             c3nav._set_user_data(JSON.parse(user_data.attr('data-user-data')));
         }
@@ -1410,16 +1411,15 @@ c3nav = {
 
     // map
     init_map: function () {
-        var $map = $('#map'),
-            $main = $('main'),
-            i;
+        const $map = $('#map');
+        const $main = $('main');
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
         c3nav.levels = JSON.parse($map.attr('data-levels'));
         c3nav.tile_server = $map.attr('data-tile-server');
 
         if ($map.is('[data-initial-bounds]')) {
-            var bounds = JSON.parse($map.attr('data-initial-bounds'));
-            bounds = [bounds.slice(0, 2), bounds.slice(2)];
+            const bounds_raw = JSON.parse($map.attr('data-initial-bounds'));
+            const bounds = [bounds_raw.slice(0, 2), bounds_raw.slice(2)];
             c3nav.initial_bounds = bounds;
         } else {
             c3nav.initial_bounds = c3nav.bounds
@@ -1434,11 +1434,11 @@ c3nav = {
         }
 
         c3nav.level_indices_by_id = {};
-        for (i = 0; i < c3nav.levels.length; i++) {
+        for (let i = 0; i < c3nav.levels.length; i++) {
             c3nav.level_indices_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
         }
 
-        minZoom = Math.log2(Math.max(0.25, Math.min(
+        const minZoom = Math.log2(Math.max(0.25, Math.min(
             ($main.width() - 40) / (c3nav.bounds[1][0] - c3nav.bounds[0][0]),
             ($main.height() - 250) / (c3nav.bounds[1][1] - c3nav.bounds[0][1])
         )));
@@ -1487,8 +1487,8 @@ c3nav = {
         c3nav._firstRouteLevel = null;
         c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
-            var level = c3nav.levels[i];
-            var layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
+            const level = c3nav.levels[i];
+            const layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
@@ -1573,7 +1573,7 @@ c3nav = {
             .then(key => {
                 const entries = [...key.base, ...key.groups, ...key.obstacles];
                 const key_control = new KeyControl();
-                for (let entry of entries) {
+                for (const entry of entries) {
                     key_control.addKey(entry.title, entry.fill, entry.border);
                 }
                 if (c3nav.key_control !== null) {
@@ -1593,15 +1593,15 @@ c3nav = {
         c3nav._click_anywhere_load(false, e.latlng);
     },
     _latlng_to_name: function (latlng) {
-        var level = c3nav.current_level();
+        const level = c3nav.current_level();
         return 'c:' + String(c3nav.level_indices_by_id[level]) + ':' + Math.round(latlng.lng * 100) / 100 + ':' + Math.round(latlng.lat * 100) / 100;
     },
     _click_anywhere_load: function (nearby, latlng) {
         if (!c3nav._click_anywhere_popup && !latlng) return;
         if (latlng === undefined) latlng = c3nav._click_anywhere_popup.getLatLng();
         if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
-        var popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>'),
-            name = c3nav._latlng_to_name(latlng);
+        const popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>');
+        const name = c3nav._latlng_to_name(latlng);
         c3nav._click_anywhere_popup = popup;
         popup.on('remove', function () {
             c3nav._click_anywhere_popup = null
@@ -1611,15 +1611,15 @@ c3nav = {
                 if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
                 popup.remove();
                 if (nearby) {
-                    var $destination = $('#destination-input');
+                    const $destination = $('#destination-input');
                     c3nav._locationinput_set($destination, data);
                     c3nav.update_state(false, false, false, false, true);
                 } else {
-                    newpopup = L.popup(c3nav._add_map_padding({
+                    const newpopup = L.popup(c3nav._add_map_padding({
                         className: 'location-popup',
                         maxWidth: 500
                     }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-                    var buttons = $('#location-popup-buttons').clone();
+                    const buttons = $('#location-popup-buttons').clone();
                     buttons.find('.report').attr('href', '/report/l/' + String(data.id) + '/');
                     buttons.find('.set-position').attr('href', '/positions/set/' + name + '/');
                     newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data) + buttons.html());
@@ -1644,14 +1644,9 @@ c3nav = {
     icons: {},
     create_icons: function () {
         const theme = c3nav.themes[c3nav.theme];
-        let rootPath = theme.icon_path;
-        let config = theme.marker_config ? JSON.parse(theme.marker_config) : null;
-        if (!rootPath) {
-            rootPath = '/static/img/';
-        }
-        if (!config) {
-            config = {};
-        }
+        const rootPath = theme.icon_path || '/static/img/';
+        const config = (theme.marker_config ? JSON.parse(theme.marker_config) : null) ?? {};
+
         c3nav.icons = {};
         for (const name of ['default', 'origin', 'destination', 'nearby']) {
             c3nav.icons[name] = new L.Icon({
@@ -1671,17 +1666,17 @@ c3nav = {
     visible_map_locations: [],
     update_map_locations: function () {
         // update locations markers on the map
-        var origin = $('#origin-input').data('location'),
-            destination = $('#destination-input').data('location'),
-            single = !$('main').is('[data-view^=route]'),
-            bounds = {};
-        for (var level_id in c3nav._locationLayers) {
+        const origin = $('#origin-input').data('location');
+        const destination = $('#destination-input').data('location');
+        const single = !$('main').is('[data-view^=route]');
+        const bounds = {};
+        for (const level_id in c3nav._locationLayers) {
             c3nav._locationLayers[level_id].clearLayers()
         }
         c3nav._visible_map_locations = [];
         if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? c3nav.icons.default : c3nav.icons.origin));
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? c3nav.icons.default : c3nav.icons.destination));
-        var done = [];
+        const done = [];
         if (c3nav.state.nearby && destination && 'areas' in destination) {
             if (destination.space) {
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true));
@@ -1690,11 +1685,11 @@ c3nav = {
                 done.push(destination.near_area);
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true));
             }
-            for (var area of destination.areas) {
+            for (const area of destination.areas) {
                 done.push(area);
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true));
             }
-            for (var location of destination.nearby) {
+            for (const location of destination.nearby) {
                 if (location in done) continue;
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true));
             }
@@ -1703,8 +1698,8 @@ c3nav = {
     },
     fly_to_bounds: function (replace_state, nofly) {
         // fly to the bounds of the current overlays
-        var level = c3nav.current_level(),
-            bounds = null;
+        let level = c3nav.current_level();
+        let bounds = null;
 
         if (c3nav._firstRouteLevel) {
             level = c3nav._firstRouteLevel;
@@ -1712,7 +1707,7 @@ c3nav = {
         } else if (c3nav._locationLayerBounds[level]) {
             bounds = c3nav._locationLayerBounds[level];
         } else {
-            for (var level_id in c3nav._locationLayers) {
+            for (const level_id in c3nav._locationLayers) {
                 if (c3nav._locationLayerBounds[level_id]) {
                     bounds = c3nav._locationLayerBounds[level_id];
                     level = level_id
@@ -1721,8 +1716,8 @@ c3nav = {
         }
         c3nav._levelControl.setLevel(level);
         if (bounds) {
-            var target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({}));
-            var center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
+            const target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({}));
+            const center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
             if (nofly) {
                 c3nav.map.flyTo(center, target.zoom, {animate: false});
             } else {
@@ -1736,14 +1731,14 @@ c3nav = {
     },
     _add_map_padding: function (options, topleft, bottomright) {
         // add padding information for the current ui layout to fitBounds options
-        var $search = $('#search'),
-            $main = $('main'),
-            padBesideSidebar = (
-                $main.width() > 1000 &&
-                ($main.height() < 250 || c3nav.state.details || c3nav.state.options)
-            ),
-            left = padBesideSidebar ? ($search.width() || 0) + 10 : 0,
-            top = padBesideSidebar ? 10 : ($search.height() || 0) + 10;
+        const $search = $('#search');
+        const    $main = $('main');
+        const padBesideSidebar = (
+            $main.width() > 1000 &&
+            ($main.height() < 250 || c3nav.state.details || c3nav.state.options)
+        );
+        const left = padBesideSidebar ? ($search.width() || 0) + 10 : 0;
+        const top = padBesideSidebar ? 10 : ($search.height() || 0) + 10;
         if ('maxWidth' in options) {
             options.maxWidth = Math.min(options.maxWidth, $main.width() - left - 13 - 50)
         }
@@ -1753,8 +1748,8 @@ c3nav = {
     },
     _get_padded_max_bounds: function (zoom) {
         if (zoom === undefined) zoom = c3nav.map.getZoom();
-        var bounds = c3nav.bounds,
-            factor = Math.pow(2, zoom);
+        const bounds = c3nav.bounds;
+        const factor = Math.pow(2, zoom);
         return [
             [bounds[0][0] - 600 / factor, bounds[0][1] - 200 / factor],
             [bounds[1][0] + 600 / factor, bounds[1][1] + 200 / factor]
@@ -1777,8 +1772,8 @@ c3nav = {
         }
         // add a location to the map as a marker
         if (location.locations) {
-            var bounds = {};
-            for (var i = 0; i < location.locations.length; i++) {
+            const bounds = {};
+            for (const i = 0; i < location.locations.length; i++) {
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon, true));
             }
             return bounds;
@@ -1790,8 +1785,8 @@ c3nav = {
         }
 
         if (!location.point) return;
-        var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
-            latlng = L.GeoJSON.coordsToLatLng(point);
+        const point = c3nav._location_point_overrides[location.id] || location.point.slice(1);
+        const latlng = L.GeoJSON.coordsToLatLng(point);
         let buttons_html = '';
         if (!c3nav.embed) {
             let buttons = $('#location-popup-buttons').clone();
@@ -1806,14 +1801,14 @@ c3nav = {
             maxWidth: 500
         }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
 
-        var result = {};
+        const result = {};
         result[location.point[0]] = L.latLngBounds(
             location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
         );
         return result
     },
     _merge_bounds: function (bounds, new_bounds) {
-        for (var level_id in new_bounds) {
+        for (const level_id in new_bounds) {
             bounds[level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
     },
@@ -1825,10 +1820,10 @@ c3nav = {
     },
     _maybe_update_dynamic_location: function (elem, location) {
         if (elem.is('.empty')) return false;
-        var orig_location = elem.data('location');
+        const orig_location = elem.data('location');
         if (orig_location.id !== location.id) return false;
 
-        new_location = $.extend({}, orig_location, location);
+        const new_location = $.extend({}, orig_location, location);
         c3nav._locationinput_set(elem, new_location);
         return true;
     },
@@ -1859,8 +1854,7 @@ c3nav = {
             .then(c3nav._fetch_updates_callback)
             .catch(() => {
                 c3nav._fetch_updates_failure_count++;
-                waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
-                // console.log('fetch updates failed, retying in ' + waittime + 'sec');
+                const waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
                 c3nav.schedule_fetch_updates(waittime * 1000);
             });
     },
@@ -1897,7 +1891,7 @@ c3nav = {
         c3nav.user_data = data;
         c3nav._update_overlays();
         c3nav._update_quests();
-        var $user = $('header #user');
+        const $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
         $('.position-buttons').toggle(data.has_positions);
@@ -1955,7 +1949,7 @@ c3nav = {
     _wifiScanningTimer: null,
     startWifiScanning: function () {
         if (c3nav._wifiScanningTimer == null) {
-            console.log("started wifi scanning with interval of " + c3nav.getWifiScanRate());
+            console.info("started wifi scanning with interval of " + c3nav.getWifiScanRate());
             c3nav._wifiScanningTimer = window.setInterval(function () {
                 mobileclient.scanNow();
             }, c3nav.getWifiScanRate());
@@ -1984,7 +1978,7 @@ c3nav = {
         if (c3nav.ssids) {
             peers = peers.filter(peer => c3nav.ssids.includes(peer.ssid));
         }
-        for (let peer of peers) {
+        for (const peer of peers) {
             if (peer.level !== undefined) {
                 peer.rssi = peer.level;
                 delete peer.level;
@@ -2004,14 +1998,14 @@ c3nav = {
         c3nav._after_scan_results();
     },
     _after_scan_results: function () {
-        has_peers = c3nav._last_wifi_peers.length || c3nav._last_ibeacon_peers.length;
+        const has_peers = c3nav._last_wifi_peers.length || c3nav._last_ibeacon_peers.length;
         if (has_peers) {
             c3nav._hasLocationPermission = true;
         } else {
             c3nav.hasLocationPermission(true);
         }
 
-        var now = Date.now();
+        const now = Date.now();
         if (now - 4000 < c3nav._last_scan) return;
 
         if (!has_peers) {
@@ -2029,8 +2023,8 @@ c3nav = {
         }
         c3nav._no_scan_count = 0;
 
-        let ibeacon_peers = c3nav._last_ibeacon_peers.map(p => ({...p}));
-        for (let peer of ibeacon_peers) {
+        const ibeacon_peers = c3nav._last_ibeacon_peers.map(p => ({...p}));
+        for (const peer of ibeacon_peers) {
             peer.last_seen_ago = Math.max(0, now - peer.last_seen);
         }
 
@@ -2047,17 +2041,17 @@ c3nav = {
     _current_user_location: null,
     _set_user_location: function (location) {
         c3nav._current_user_location = location;
-        for (var id in c3nav._userLocationLayers) {
+        for (const id in c3nav._userLocationLayers) {
             c3nav._userLocationLayers[id].clearLayers();
         }
         if (location) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('my_location'));
             $('.locationinput .locate, .leaflet-control-user-location a').show();
-            var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates);
-            for (level in c3nav._userLocationLayers) {
+            const latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates);
+            for (const level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
-                layer = c3nav._userLocationLayers[level];
-                factor = (parseInt(level) === location.level) ? 1 : 0.3;
+                const layer = c3nav._userLocationLayers[level];
+                const factor = (parseInt(level) === location.level) ? 1 : 0.3;
                 L.circleMarker(latlng, {
                     radius: 11,
                     stroke: 0,
@@ -2105,9 +2099,9 @@ c3nav = {
     _material_symbols_codepoints: null,
     load_material_symbols_if_needed: function () {
         // load material icons codepoint for android 4.3.3 and other heccing old browsers
-        var elem = document.createElement('span'),
-            before = elem.style.fontFeatureSettings,
-            ligaturesSupported = false;
+        const elem = document.createElement('span');
+        const before = elem.style.fontFeatureSettings;
+        let ligaturesSupported = false;
         if (before !== undefined) {
             elem.style.fontFeatureSettings = '"liga" 1';
             ligaturesSupported = (elem.style.fontFeatureSettings !== before);
@@ -2117,11 +2111,11 @@ c3nav = {
         }
     },
     _material_symbols_loaded: function (data) {
-        var lines = data.split("\n"),
-            line, result = {};
+        const lines = data.split("\n");
+        const result = {};
 
-        for (var i = 0; i < lines.length; i++) {
-            line = lines[i].split(' ');
+        for (const i = 0; i < lines.length; i++) {
+            const line = lines[i].split(' ');
             if (line.length === 2) {
                 result[line[0]] = String.fromCharCode(parseInt(line[1], 16));
             }
@@ -2151,20 +2145,20 @@ c3nav = {
     },
     _resume: function () {
         if (c3nav._fetch_updates_timer === null) {
-            console.log("c3nav._resume() -> fetch_updates");
+            console.info("c3nav._resume() -> fetch_updates");
             c3nav.fetch_updates();
         }
         if (c3nav._searchable_locations_timer === null) {
-            scheduled_load_in = null
+            let scheduled_load_in = null
             if (c3nav._last_time_searchable_locations_loaded !== null) {
                 scheduled_load_in = c3nav._last_time_searchable_locations_loaded + c3nav._searchable_locations_interval - Date.now();
             }
             if (scheduled_load_in === null || scheduled_load_in <= 5000) {
                 c3nav.load_searchable_locations();
-                console.log("c3nav._resume() -> loading searchable locations");
+                console.info("c3nav._resume() -> loading searchable locations");
             } else {
                 c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, scheduled_load_in);
-                console.log("c3nav._resume() -> scheduling searchable locations timeout: " + scheduled_load_in);
+                console.info("c3nav._resume() -> scheduling searchable locations timeout: " + scheduled_load_in);
             }
         }
     },
@@ -2230,7 +2224,7 @@ LevelControl = L.Control.extend({
     },
 
     createTileLayer: function (id) {
-        let urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${this.currentTheme}.png`;
+        const urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${this.currentTheme}.png`;
         return L.tileLayer(urlPattern, {
             minZoom: -2,
             maxZoom: 5,
@@ -2254,10 +2248,10 @@ LevelControl = L.Control.extend({
     },
     addLevel: function (id, title) {
         this._tileLayers[id] = this.createTileLayer(id);
-        var overlay = L.layerGroup();
+        const overlay = L.layerGroup();
         this._overlayLayers[id] = overlay;
 
-        var link = L.DomUtil.create('a', '', this._container);
+        const link = L.DomUtil.create('a', '', this._container);
         link.innerHTML = title;
         link.level = id;
         link.href = '#';
@@ -2296,7 +2290,7 @@ LevelControl = L.Control.extend({
     },
 
     finalize: function () {
-        var buttons = $(this._container).find('a');
+        const buttons = $(this._container).find('a');
         buttons.addClass('current');
         buttons.width(buttons.width());
         buttons.removeClass('current');
@@ -2304,8 +2298,8 @@ LevelControl = L.Control.extend({
 
     reloadMap: function () { // TODO: create fresh tile layers
         if (this.currentLevel === null) return;
-        var old_tile_layer = this._tileLayers[this.currentLevel],
-            new_tile_layer = this.createTileLayer(this.currentLevel);
+        const old_tile_layer = this._tileLayers[this.currentLevel];
+        const new_tile_layer = this.createTileLayer(this.currentLevel);
         this._tileLayers[this.currentLevel] = new_tile_layer;
         new_tile_layer.addTo(c3nav.map);
         window.setTimeout(function () {
@@ -2490,7 +2484,7 @@ QuestsControl = L.Control.extend({
         this._button.innerText = c3nav._map_material_icon('editor_choice');
         this._button.classList.toggle('control-disabled', false);
         this.questsActive = true;
-        localStorageWrapper.setItem('showQuests', true);
+        localStorageWrapper.setItem('showQuests', '1');
         this.reloadQuests();
     },
 
@@ -2498,7 +2492,7 @@ QuestsControl = L.Control.extend({
         if (!this.questsActive) return;
         c3nav_api.get('map/quests/')
             .then((data) => {
-                for (var level_id in c3nav._questsLayers) {
+                for (const level_id in c3nav._questsLayers) {
                     c3nav._questsLayers[level_id].clearLayers();
                 }
                 for (const quest of data) {
@@ -2513,13 +2507,13 @@ QuestsControl = L.Control.extend({
 
     hideQuests: function () {
         if (!this.questsActive) return;
-        for (var level_id in c3nav._questsLayers) {
+        for (const level_id in c3nav._questsLayers) {
             c3nav._questsLayers[level_id].clearLayers();
         }
         this._button.innerText = c3nav._map_material_icon('editor_choice');
         this._button.classList.toggle('control-disabled', true);
         this.questsActive = false;
-        localStorageWrapper.removeItem('hideQuests', true);
+        localStorageWrapper.removeItem('showQuests');
     }
 });
 
@@ -2535,19 +2529,19 @@ L.SquareGridLayer = L.Layer.extend({
 
         this.cols = [];
         this.rows = [];
-        var i, elem, label;
-        for (i = 0; i < this.config.cols.length; i++) {
-            elem = L.DomUtil.create('div', 'c3nav-grid-column');
-            label = String.fromCharCode(65 + (this.config.invert_x ? (this.config.cols.length - i - 2) : i));
+
+        for (let i = 0; i < this.config.cols.length; i++) {
+            const elem = L.DomUtil.create('div', 'c3nav-grid-column');
+            const label = String.fromCharCode(65 + (this.config.invert_x ? (this.config.cols.length - i - 2) : i));
             if (i < this.config.cols.length - 1) {
                 elem.innerHTML = '<span>' + label + '</span><span>' + label + '</span>';
             }
             this._container.appendChild(elem);
             this.cols.push(elem);
         }
-        for (i = 0; i < this.config.rows.length; i++) {
-            elem = L.DomUtil.create('div', 'c3nav-grid-row');
-            label = (this.config.invert_y ? (this.config.rows.length - i) : i);
+        for (let i = 0; i < this.config.rows.length; i++) {
+            const elem = L.DomUtil.create('div', 'c3nav-grid-row');
+            const label = (this.config.invert_y ? (this.config.rows.length - i) : i);
             if (i > 0) {
                 elem.innerHTML = '<span>' + label + '</span><span>' + label + '</span>';
             }
@@ -2573,25 +2567,25 @@ L.SquareGridLayer = L.Layer.extend({
 
     _updateGrid: function (map) {
         if (!this.cols || this.cols.length === 0) return;
-        var mapSize = map.getSize(),
-            panePos = map._getMapPanePos(),
-            sidebarStart = $('#sidebar').outerWidth() + 15,
-            searchHeight = $('#search').outerHeight() + 10,
-            controlsWidth = $('.leaflet-control-zoom').outerWidth() + 10,
-            attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
-            bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
-            coord = null, lastCoord = null, size, center;
+        const mapSize = map.getSize();
+        const panePos = map._getMapPanePos();
+        const sidebarStart = $('#sidebar').outerWidth() + 15;
+        const searchHeight = $('#search').outerHeight() + 10;
+        const controlsWidth = $('.leaflet-control-zoom').outerWidth() + 10;
+        const attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16;
+        const bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24;
+        let lastCoord = null;
         this._container.style.width = mapSize.x + 'px';
         this._container.style.height = mapSize.y + 'px';
         this._container.style.left = (-panePos.x) + 'px';
         this._container.style.top = (-panePos.y) + 'px';
-        for (i = 0; i < this.config.cols.length; i++) {
-            coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
+        for (let i = 0; i < this.config.cols.length; i++) {
+            let coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
             coord = Math.min(mapSize.x, Math.max(-1, coord));
             this.cols[i].style.left = coord + 'px';
             if (i > 0) {
-                size = coord - lastCoord;
-                center = (lastCoord + coord) / 2;
+                const size = coord - lastCoord;
+                const center = (lastCoord + coord) / 2;
                 if (size > 0) {
                     this.cols[i - 1].style.display = '';
                     this.cols[i - 1].style.width = size + 'px';
@@ -2603,13 +2597,13 @@ L.SquareGridLayer = L.Layer.extend({
             }
             lastCoord = coord;
         }
-        for (i = 0; i < this.config.rows.length; i++) {
-            coord = map.latLngToContainerPoint([this.config.rows[i], 0], map.getZoom()).y;
+        for (let i = 0; i < this.config.rows.length; i++) {
+            let coord = map.latLngToContainerPoint([this.config.rows[i], 0], map.getZoom()).y;
             coord = Math.min(mapSize.y, Math.max(-1, coord));
             this.rows[i].style.top = coord + 'px';
             if (i > 0) {
-                size = lastCoord - coord;
-                center = (lastCoord + coord) / 2;
+                const size = lastCoord - coord;
+                const center = (lastCoord + coord) / 2;
                 if (size > 0) {
                     this.rows[i].style.display = '';
                     this.rows[i].style.height = size + 'px';
@@ -2710,9 +2704,7 @@ KeyControl = L.Control.extend({
     },
 
     expand: function () {
-        console.log('expand')
         if (this._pinned) return;
-        console.log('expanding');
         this._expanded = true;
         this._container.classList.add('leaflet-control-key-expanded');
         return this;
@@ -2965,7 +2957,7 @@ var SvgIcon = L.Icon.extend({
     },
 
     _createIcon: function (name, oldIcon) {
-        var src = this.options[`${name}Svg`];
+        const src = this.options[`${name}Svg`];
 
         if (!src) {
             if (name === 'icon') {
@@ -2974,7 +2966,7 @@ var SvgIcon = L.Icon.extend({
             return null;
         }
 
-        var svgEl;
+        let svgEl;
         if (src instanceof SVGElement) {
             svgEl = src;
         } else {
