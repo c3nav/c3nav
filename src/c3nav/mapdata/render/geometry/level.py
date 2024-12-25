@@ -294,7 +294,7 @@ class SingleLevelGeometries(BaseLevelGeometries):
         doors_geom = doors_geom.intersection(buildings_geom)
         walkable_spaces_geom = unary_union([unwrap_geom(space.walkable_geom) for space in spaces])
         doors_geom = doors_geom.difference(walkable_spaces_geom)
-        walls_geom = buildings_geom.difference(unary_union((spaces_geom, doors_geom)))
+        walls_geom = buildings_geom.difference(unary_union((spaces_geom, doors_geom.buffer(0.01))))
         if level.on_top_of_id is None:
             holes_geom = unary_union([s.holes_geom for s in spaces])
 
