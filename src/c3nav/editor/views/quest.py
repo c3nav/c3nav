@@ -34,6 +34,7 @@ class QuestFormView(FormView):
         return {
             **super().get_context_data(**kwargs),
             "title": self.quest.quest_type_label,
+            "description": self.quest.quest_description,
         }
 
     def form_valid(self, form):

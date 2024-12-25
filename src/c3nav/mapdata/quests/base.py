@@ -18,6 +18,10 @@ class Quest:
     obj: Any
 
     @property
+    def quest_description(self) -> list[str]:
+        return []
+
+    @property
     def point(self) -> dict:
         raise NotImplementedError
 
@@ -38,7 +42,7 @@ class Quest:
         return [cls(obj=obj)]
 
     @classmethod
-    def get_for_request(cls, request, identifier: Any) -> Optional[Self]:
+    def get_for_request(cls, request, identifier: str) -> Optional[Self]:
         if not identifier.isdigit():
             return None
         if not (request.user.is_superuser or cls.quest_type in request.user_permissions.quests):
@@ -61,7 +65,7 @@ class Quest:
 
     @classmethod
     def cached_get_all_for_request(cls, request) -> list["QuestSchema"]:
-        cache_key = f'quests:{cls.identifier}:{AccessPermission.cache_key_for_request(request)}'
+        cache_key = f'quests:{cls.quest_type}:{AccessPermission.cache_key_for_request(request)}'
         result = cache.get(cache_key, None)
         if result is not None:
             return result

@@ -5,11 +5,9 @@
 <main class="account">
     <h3>{{ title }}</h3>
 
-    {% if back_url %}
-        <p>
-            <a href="{{ back_url }}">&laquo; {% trans 'back' %}</a>
-        </p>
-    {% endif %}
+    {% for line in description %}
+        <p>{{ line }}</p>
+    {% endfor %}
 
     <form method="post" action="{{ request.path_info }}">
         {% csrf_token %}
