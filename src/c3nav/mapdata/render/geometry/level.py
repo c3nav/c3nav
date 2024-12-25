@@ -142,7 +142,7 @@ class SingleLevelGeometries(BaseLevelGeometries):
 
         for space in spaces:
             buffered = space.geometry.buffer(0.01).union(unary_union(tuple(
-                unwrap_geom(door.geometry)
+                unwrap_geom(door.geometry).buffer(0.02)
                 for door in level.doors.all() if door.geometry.intersects(unwrap_geom(space.geometry))  # noqa
             )).difference(walkable_spaces_geom))
             intersects = buildings_geom_prep.intersects(buffered)
@@ -179,7 +179,7 @@ class SingleLevelGeometries(BaseLevelGeometries):
                 if access_restriction is None:
                     continue
                 column.geometry = column.geometry.intersection(unwrap_geom(space.walkable_geom))
-                buffered_column = column.geometry.buffer(0.01)
+                buffered_column = column.geometry.buffer(0.02)
                 if intersects:
                     restricted_spaces_indoors.setdefault(access_restriction, []).append(buffered_column)
                 if not intersects or not buildings_geom_prep.contains(buffered):
