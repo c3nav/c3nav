@@ -329,7 +329,7 @@ class LocationGroup(Location, models.Model):
         MULTIPLE = "multiple", _("offer if nothing in the first step matches, multiple choice")
 
     class CanReportMistake(models.TextChoices):
-        ALLOW = "allow", _("don't offer")
+        ALLOW = "allow", _("allow")
         REJECT = "reject", _("reject for all locations with this group")
 
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
