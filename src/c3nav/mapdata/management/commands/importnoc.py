@@ -130,6 +130,9 @@ class Command(BaseCommand):
             if not result:
                 old_result = result
                 result = RangingBeacon(import_tag=import_tag)
+            else:
+                if result.space == new_space and distance(unwrap_geom(result.geometry), new_geometry) < 0.03:
+                    continue
             result.comment = name
             result.space = new_space
             result.geometry = new_geometry
