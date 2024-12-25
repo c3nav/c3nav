@@ -104,6 +104,7 @@ c3nav = {
 
         c3nav.load_material_symbols_if_needed();
         c3nav.load_searchable_locations();
+        c3nav.load_load_indicator_data();
 
         $('#messages').find('ul.messages li').each(function () {
             $(this).prepend(
@@ -145,10 +146,29 @@ c3nav = {
         c3nav._searchable_locations_timer = null;
         c3nav_api.get('map/locations?searchable=true')
             .then(c3nav._searchable_locations_loaded)
-            .catch(() => {
+            .catch((err) => {
+                console.error(err);
                 if (c3nav._searchable_locations_timer === null) {
                     c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
                 }
+            });
+    },
+    _load_indicator_timer: null,
+    load_load_indicator_data: function () {
+        c3nav._load_indicator_timer = null;
+        c3nav_api.get('map/load')
+            .then(data => {
+                if (data) {
+                    c3nav._location_load_groups = data;
+                }
+
+                if (c3nav._load_indicator_timer === null) {
+                    c3nav._load_indicator_timer = window.setTimeout(c3nav.load_load_indicator_data, c3nav._load_indicator_interval);
+                }
+                c3nav.update_load_data();
+            })
+            .catch(err => {
+                console.error(err);
             });
     },
     _sort_labels: function (a, b) {
@@ -160,12 +180,15 @@ c3nav = {
     },
     _last_time_searchable_locations_loaded: null,
     _searchable_locations_interval: 120000,
+    _load_indicator_interval: 10000, // TODO: set to a sensible number
+    loadIndicatorLocations: [],
     _searchable_locations_loaded: function (data) {
         c3nav._last_time_searchable_locations_loaded = Date.now();
         if (data !== undefined) {
             const locations = [];
             const locations_by_id = {};
             const labels = {};
+            const loadIndicatorLocations = [];
             for (let i = 0; i < data.length; i++) {
                 const location = data[i];
                 location.elem = c3nav._build_location_html(location);
@@ -178,6 +201,15 @@ c3nav = {
                     if (!(location.point[0] in labels)) labels[location.point[0]] = [];
                     labels[location.point[0]].push([location, c3nav._build_location_label(location)]);
                 }
+
+
+                if (location.point && location.load_group_display) {
+                    loadIndicatorLocations.push({
+                        level: location.point[0],
+                        coords: location.point.slice(1),
+                        load_id: location.load_group_display,
+                    });
+                }
             }
             for (const level_id in labels) {
                 labels[level_id].sort(c3nav._sort_labels);
@@ -185,6 +217,8 @@ c3nav = {
             c3nav.locations = locations;
             c3nav.locations_by_id = locations_by_id;
             c3nav.labels = labels;
+            c3nav.loadIndicatorLocations = loadIndicatorLocations;
+            c3nav.update_load_data();
         } else {
             // 304, nothing to do!
         }
@@ -195,6 +229,52 @@ c3nav = {
             c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav._searchable_locations_interval);
         }
     },
+    _loadIndicatorLabels: {},
+    _location_load_groups: {},
+    update_load_data: function() {
+        c3nav._loadIndicatorLabels = {};
+        for (const location of c3nav.loadIndicatorLocations) {
+            const load = c3nav._location_load_groups[location.load_id];
+            if (typeof load != "number") continue;
+
+            const load_pct = Math.round(load * 100);
+
+            const html = $(`<div class="location-load-info"><div class="load-indicator" style="--location-load-value: ${load_pct}%;"></div>`);
+
+            const marker = L.marker(L.GeoJSON.coordsToLatLng(location.coords), {
+                icon: L.divIcon({
+                    html: html[0].outerHTML,
+                    iconSize: null,
+                    className: ''
+                }),
+                interactive: false,
+            });
+
+            let levelLabels = c3nav._loadIndicatorLabels[location.level];
+            if (!levelLabels) {
+                levelLabels = c3nav._loadIndicatorLabels[location.level] = [];
+            }
+
+            levelLabels.push(marker);
+        }
+
+        c3nav._update_loadinfo_labels();
+    },
+    _update_loadinfo_labels: function () {
+        if (!c3nav._loadIndicatorLayer) return;
+        c3nav._loadIndicatorLayer.clearLayers();
+        if (!c3nav._loadIndicatorControl.enabled) return;
+        const labels = c3nav._loadIndicatorLabels[c3nav.current_level()] ?? [];
+        const bounds = c3nav.map.getBounds().pad(0.15);
+        if (!labels) return;
+
+        for (const label of labels) {
+            if (bounds.contains(label.getLatLng())) {
+                c3nav._loadIndicatorLayer._maybeAddLayerToRBush(label);
+            }
+        }
+    },
+
     continue_init: function () {
         c3nav.init_map();
 
@@ -228,6 +308,7 @@ c3nav = {
                 c3nav.update_map_state(true);
             }
             c3nav.update_location_labels();
+            c3nav._update_loadinfo_labels();
         }
 
         c3nav.init_locationinputs();
@@ -277,7 +358,8 @@ c3nav = {
                 window.setTimeout(c3nav.test_location, 1000);
                 c3nav._set_user_location(data.location);
             })
-            .catch(() => {
+            .catch(err => {
+                console.error(err);
                 window.setTimeout(c3nav.test_location, 1000);
                 c3nav._set_user_location(null);
             });
@@ -398,7 +480,7 @@ c3nav = {
     },
 
     update_location_labels: function () {
-        if (!c3nav._labelControl.labelsActive) return;
+        if (!c3nav._labelControl.enabled) return;
         c3nav._labelLayer.clearLayers();
         const labels = c3nav.labels[c3nav.current_level()];
         const bounds = c3nav.map.getBounds().pad(0.15);
@@ -1040,6 +1122,8 @@ c3nav = {
         for (let i = 0; i < new_text.length; i++) {
             new_text[i] = new_text[i].trim();
         }
+
+
         const html = $('<div class="location-label-text">').append($('<span>').html('&#8239;' + new_text.join('&#8239;<br>&#8239;') + '&#8239;'));
         html.css('font-size', location.effective_label_settings.font_size + 'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
@@ -1486,7 +1570,8 @@ c3nav = {
         c3nav._questsLayers = {};
         c3nav._firstRouteLevel = null;
         c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
-        for (i = c3nav.levels.length - 1; i >= 0; i--) {
+        c3nav._loadIndicatorLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
+        for (let i = c3nav.levels.length - 1; i >= 0; i--) {
             const level = c3nav.levels[i];
             const layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
@@ -1499,12 +1584,48 @@ c3nav = {
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
 
-        c3nav._labelControl = new LabelControl().addTo(c3nav.map);
+        c3nav._labelControl = new ToggleControl({
+            storageId: 'labels',
+            enabledIcon: c3nav._map_material_icon('label'),
+            disabledIcon: c3nav._map_material_icon('label_off'),
+            onEnable: () => {
+                c3nav._labelLayer.addTo(c3nav.map);
+                c3nav.update_location_labels();
+            },
+            onDisable: () => {
+                c3nav._labelLayer.clearLayers();
+                c3nav._labelLayer.remove();
+            },
+        }).addTo(c3nav.map);
+
+        c3nav._loadIndicatorControl = new ToggleControl({
+            storageId: 'load_indicator',
+            enabledIcon: c3nav._map_material_icon('bar_chart'),
+            disabledIcon: c3nav._map_material_icon('bar_chart_off'),
+            onEnable: () => {
+                c3nav._update_loadinfo_labels();
+            },
+            onDisable: () => {
+                c3nav._update_loadinfo_labels();
+            },
+        }).addTo(c3nav.map);
 
         // setup grid control
         if ($map.is('[data-grid]')) {
             c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
-            c3nav._gridControl = new SquareGridControl().addTo(c3nav.map);
+            c3nav._gridControl = new ToggleControl({
+                storageId: 'grid',
+                enabledIcon: c3nav._map_material_icon('grid_on'),
+                disabledIcon: c3nav._map_material_icon('grid_off'),
+                onEnable: () => {
+                    console.log('grid enable');
+                    c3nav._gridLayer.addTo(c3nav.map);
+                },
+                onDisable: () => {
+                    console.log('grid disable');
+                    c3nav._gridLayer.remove();
+                },
+            }).addTo(c3nav.map);
         }
         if (Object.values(c3nav.themes).length > 1) {
             new ThemeControl().addTo(c3nav.map);
@@ -1519,6 +1640,7 @@ c3nav = {
 
         c3nav._update_overlays();
         c3nav._update_quests();
+        c3nav._update_loadinfo_labels();
 
         c3nav.map.on('click', c3nav._click_anywhere);
 
@@ -1636,10 +1758,12 @@ c3nav = {
     _map_moved: function () {
         c3nav.update_map_state();
         c3nav.update_location_labels();
+        c3nav._update_loadinfo_labels();
     },
     _map_zoomed: function () {
         c3nav.update_map_state();
         c3nav.update_location_labels();
+        c3nav._update_loadinfo_labels();
     },
     icons: {},
     create_icons: function () {
@@ -1852,7 +1976,8 @@ c3nav = {
         c3nav._fetch_updates_timer = null;
         c3nav_api.get('updates/fetch')
             .then(c3nav._fetch_updates_callback)
-            .catch(() => {
+            .catch(err => {
+                console.error(err);
                 c3nav._fetch_updates_failure_count++;
                 const waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
                 c3nav.schedule_fetch_updates(waittime * 1000);
@@ -2033,7 +2158,8 @@ c3nav = {
             ibeacon_peers: ibeacon_peers,
         })
             .then(data => c3nav._set_user_location(data.location))
-            .catch(() => {
+            .catch(err => {
+                console.error(err);
                 c3nav._set_user_location(null);
                 c3nav._last_scan = Date.now() + 20000
             });
@@ -2287,6 +2413,7 @@ LevelControl = L.Control.extend({
         this.setLevel(e.target.level);
         c3nav.update_map_state();
         c3nav.update_location_labels();
+        c3nav._update_loadinfo_labels();
     },
 
     finalize: function () {
@@ -2326,107 +2453,77 @@ UserLocationControl = L.Control.extend({
     }
 });
 
-
-LabelControl = L.Control.extend({
+ToggleControl = L.Control.extend({
     options: {
         position: 'bottomright',
-        addClasses: ''
+        addClasses: '',
+        initialOn: false,
+        storageId: null,
+        enabledIcon: null,
+        disabledIcon: null,
+        onEnable: null,
+        onDisable: null,
     },
 
     onAdd: function () {
-        this._container = L.DomUtil.create('div', 'leaflet-control-labels leaflet-bar ' + this.options.addClasses);
+        this.toggle = this.toggle.bind(this);
+        this.toggleOn = this.toggleOn.bind(this);
+        this.toggleOff = this.toggleOff.bind(this);
+
+        this._container = L.DomUtil.create('div', 'leaflet-control-toggle leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-symbols', this._container);
-        $(this._button).click(this.toggleLabels).dblclick(function (e) {
+        $(this._button).click(this.toggle).dblclick(function (e) {
             e.stopPropagation();
         });
-        this._button.innerText = c3nav._map_material_icon('label');
+        this._button.innerText = this.options.enabledIcon;
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', false);
-        this.labelsActive = true;
-        if (localStorageWrapper.getItem('hideLabels')) {
-            this.hideLabels();
+        let initialOn = this.options.initialOn;
+        if (this.options.storageId) {
+            initialOn = !localStorageWrapper.getItem(`c3nav.toggle-control.${this.options.storageId}.hide`);
         }
+
+        window.setTimeout(() => {
+            if (initialOn) {
+                this.toggleOn();
+            } else {
+                this.toggleOff();
+            }
+        }, 1);
+
         return this._container;
     },
 
-    toggleLabels: function (e) {
+
+    toggle: function (e) {
         if (e) e.preventDefault();
-        if (c3nav._labelControl.labelsActive) {
-            c3nav._labelControl.hideLabels();
+        if (this.enabled) {
+            this.toggleOff();
         } else {
-            c3nav._labelControl.showLabels();
+            this.toggleOn();
         }
     },
 
-    showLabels: function () {
-        if (this.labelsActive) return;
-        c3nav._labelLayer.addTo(c3nav.map);
-        this._button.innerText = c3nav._map_material_icon('label');
+    toggleOn: function () {
+        if (this.enabled === true) return;
+        this.enabled = true;
+        if (this.options.onEnable) {
+            this.options.onEnable();
+        }
+        this._button.innerText = this.options.enabledIcon;
         this._button.classList.toggle('control-disabled', false);
-        this.labelsActive = true;
-        localStorageWrapper.removeItem('hideLabels');
-        c3nav.update_location_labels();
+        localStorageWrapper.removeItem(`c3nav.toggle-control.${this.options.storageId}.hide`);
     },
 
-    hideLabels: function () {
-        if (!this.labelsActive) return;
-        c3nav._labelLayer.clearLayers();
-        c3nav._labelLayer.remove();
-        this._button.innerText = c3nav._map_material_icon('label_outline');
-        this._button.classList.toggle('control-disabled', true);
-        this.labelsActive = false;
-        localStorageWrapper.setItem('hideLabels', true);
-    }
-});
-
-
-SquareGridControl = L.Control.extend({
-    options: {
-        position: 'bottomright',
-        addClasses: ''
-    },
-
-    onAdd: function () {
-        this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-symbols', this._container);
-        $(this._button).click(this.toggleGrid).dblclick(function (e) {
-            e.stopPropagation();
-        });
-        this._button.innerText = c3nav._map_material_icon('grid_off');
-        this._button.href = '#';
-        this._button.classList.toggle('control-disabled', true);
-        this.gridActive = false;
-        if (localStorageWrapper.getItem('showGrid')) {
-            this.showGrid();
+    toggleOff: function () {
+        if (this.enabled === false) return;
+        this.enabled = false;
+        if (this.options.onDisable) {
+            this.options.onDisable();
         }
-        return this._container;
-    },
-
-    toggleGrid: function (e) {
-        if (e) e.preventDefault();
-        if (c3nav._gridControl.gridActive) {
-            c3nav._gridControl.hideGrid();
-        } else {
-            c3nav._gridControl.showGrid();
-        }
-    },
-
-    showGrid: function () {
-        if (this.gridActive) return;
-        c3nav._gridLayer.addTo(c3nav.map);
-        this._button.innerText = c3nav._map_material_icon('grid_on');
-        this._button.classList.toggle('control-disabled', false);
-        this.gridActive = true;
-        localStorageWrapper.setItem('showGrid', true);
-    },
-
-    hideGrid: function () {
-        if (!this.gridActive) return;
-        c3nav._gridLayer.remove();
-        this._button.innerText = c3nav._map_material_icon('grid_off');
+        this._button.innerText = this.options.disabledIcon;
         this._button.classList.toggle('control-disabled', true);
-        this.gridActive = false;
-        localStorageWrapper.removeItem('showGrid');
+        localStorageWrapper.setItem(`c3nav.toggle-control.${this.options.storageId}.hide`, '1');
     }
 });
 
@@ -2502,7 +2599,9 @@ QuestsControl = L.Control.extend({
                     });
                 }
             })
-            .catch();
+            .catch(err => {
+                console.error(err);
+            });
     },
 
     hideQuests: function () {
