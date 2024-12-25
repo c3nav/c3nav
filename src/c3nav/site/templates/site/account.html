@@ -18,6 +18,9 @@
             {% trans 'You can manage:' %}
         </p>
         <p>
+            {% if request.user_permissions.editor_access %}
+                <a class="button" href="{% url 'editor.index' %}">{% trans 'Editor' %}</a>
+            {% endif %}
             {% if request.user_permissions.control_panel %}
                 <a class="button" href="{% url 'control.index' %}">{% trans 'stuff' %}</a>
             {% endif %}
