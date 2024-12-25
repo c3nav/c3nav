@@ -18,6 +18,11 @@ from c3nav.mapdata.views import set_tile_access_cookie
 updates_api_router = APIRouter(tags=["updates"])
 
 
+class QuestTypeSchema(BaseSchema):
+    label: str
+    icon: str
+
+
 class UserDataSchema(BaseSchema):
     # use in more places
     logged_in: bool = APIField(
@@ -60,7 +65,7 @@ class UserDataSchema(BaseSchema):
         example=[2, 5],
     )
     overlays: list[DataOverlaySchema]
-    quests: dict[str, str]
+    quests: dict[str, QuestTypeSchema]
 
 
 class FetchUpdatesResponseSchema(BaseSchema):

@@ -46,6 +46,7 @@ class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
 class RangingBeaconAltitudeQuest(Quest):
     quest_type = "ranging_beacon_altitude"
     quest_type_label = _('Ranging Beacon Altitude')
+    quest_type_icon = "router"
     form_class = RangingBeaconAltitudeQuestForm
     obj: RangingBeacon
 
@@ -74,6 +75,7 @@ class LeaveDescriptionQuestForm(I18nModelFormMixin, ChangeSetModelForm):
 class LeaveDescriptionQuest(Quest):
     quest_type = "leave_description"
     quest_type_label = _('Leave Description')
+    quest_type_icon = "logout"
     form_class = LeaveDescriptionQuestForm
     obj: ClassVar
     space: Space

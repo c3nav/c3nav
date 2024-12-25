@@ -41,7 +41,7 @@ def get_user_data(request):
             for overlay in DataOverlay.qs_for_request(request)
         ],
         'quests': (
-            {key: quest.quest_type_label
+            {key: {"label": quest.quest_type_label, "icon": quest.quest_type_icon}
              for key, quest in quest_types.items()
              if request.user.is_superuser or request.user_permissions.quests}
         ),
