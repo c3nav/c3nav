@@ -112,14 +112,14 @@ class Command(BaseCommand):
                 if not unary_union([unwrap_geom(h.geometry) for h in new_space.holes.all()]).intersects(new_geometry):
                     # current selected spacae is fine, that's it
                     break
-                print(f"WARNING: {name} is in a hole, looking lower...")
+                print(f"NOTE: {name} is in a hole, looking lower...")
 
                 # find a lower space
                 possible_spaces = [space for space in spaces_for_level[lower_level]
                                    if space.geometry.intersects(new_geometry)]
                 if possible_spaces:
                     new_space = possible_spaces[0]
-                    print(f"WARNING: {name} moved to lower space {new_space}")
+                    print(f"NOTE: {name} moved to lower space {new_space}")
             else:
                 print(f"WARNING: {name} couldn't find a lower space, still in a hole")
 
