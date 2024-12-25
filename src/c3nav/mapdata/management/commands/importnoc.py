@@ -56,8 +56,6 @@ class Command(BaseCommand):
         levels = tuple(Level.objects.values_list("pk", flat=True))
         lower_levels_for_level = {pk: levels[:i] for i, pk in enumerate(levels)}
 
-        RangingBeacon.objects.all().delete()
-
         for space in Space.objects.select_related('level').prefetch_related('holes'):
             spaces_for_level.setdefault(space.level_id, []).append(space)
 
