@@ -183,7 +183,7 @@ class Command(BaseCommand):
                 for polygon in self.parse_svg_data(path.attrib['d']):
                     if len(polygon) < 3:
                         continue
-                    polygon = Polygon(polygon)
+                    polygon = Polygon(polygon).buffer(0)
                     polygon = translate(polygon, xoff=-offset_x, yoff=-offset_y)
                     polygon = scale(polygon, xfact=1, yfact=-1, origin=(0, svg_height/2))
                     polygon = scale(polygon, xfact=width / svg_width, yfact=height / svg_height, origin=(0, 0))

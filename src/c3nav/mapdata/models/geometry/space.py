@@ -85,8 +85,8 @@ class SpaceGeometryMixin(GeometryMixin):
     def register_change(self, force=False):
         space = self.space
         if force or self._state.adding or self.all_geometry_changed or self.geometry_changed:
-            changed_geometries.register(space.level_id, space.geometry.intersection(
-                unwrap_geom(self.geometry if force or self._state.adding else self.get_changed_geometry())
+            changed_geometries.register(space.level_id, space.geometry.buffer(0).intersection(
+                unwrap_geom(self.geometry if force or self._state.adding else self.get_changed_geometry()).buffer(0)
             ))
 
     def details_display(self, **kwargs):
