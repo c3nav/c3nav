@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-24 23:00+0100\n"
-"PO-Revision-Date: 2024-12-24 23:04+0100\n"
+"POT-Creation-Date: 2024-12-25 11:49+0100\n"
+"PO-Revision-Date: 2024-12-25 11:50+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2919,10 +2919,6 @@ msgid "Map update"
 msgstr "Kartenänderung"
 
 #: c3nav/mapdata/quests/simple.py
-msgid "Ranging Beacon Altitude"
-msgstr "Höhe des Ranging Beacons"
-
-#: c3nav/mapdata/quests/simple.py
 #, python-format
 msgid "How many meters above ground is the access point “%s” mounted?"
 msgstr "Wie viele meter über dem Boden ist der access point „%s“ befestigt?"
@@ -2930,6 +2926,10 @@ msgstr "Wie viele meter über dem Boden ist der access point „%s“ befestigt?
 #: c3nav/mapdata/quests/simple.py
 msgid "The AP should not be 0m above ground."
 msgstr "Der AP sollte sich nicht 0m über dem Boden befinden."
+
+#: c3nav/mapdata/quests/simple.py
+msgid "Ranging Beacon Altitude"
+msgstr "Höhe des Ranging Beacons"
 
 #: c3nav/mapdata/tasks.py
 #, python-format
@@ -4188,6 +4188,77 @@ msgstr[1] ""
 #, python-format
 msgid "Route from %s to %s"
 msgstr "Route von %s nach %s"
+
+#: c3nav/site/views.py
+msgid "I do not read fefe or i only read the sports section."
+msgstr "Ich lese kein Fefe oder nur den Sportteil."
+
+#: c3nav/site/views.py
+msgid ""
+"I am not affiliated with Automattic in any way, financially or otherwise."
+msgstr ""
+"Ich bin in keiner Weise, weder finanziell noch anderweitig, Automattic "
+"angehörig."
+
+#: c3nav/site/views.py
+msgid ""
+"I am not Anish Kapoor, i am in no way affiliated to Anish Kapoor, I am not "
+"signing in on behalf of Anish Kapoor or an associate of Anish Kapoor. To the "
+"best of my knowledge, information and belief, this account will not make its "
+"way into the hands of Anish Kapoor."
+msgstr ""
+"Ich bin nicht Anish Kapoor, ich bin in keiner Weise mit Anish Kapoor "
+"verbunden, ich melde mich nicht im Namen von Anish Kapoor oder eines "
+"Mitarbeiters von Anish Kapoor an. Nach meinem besten Wissen und Gewissen "
+"wird dieses Konto nicht in die Hände von Anish Kapoor gelangen."
+
+#: c3nav/site/views.py
+msgid "I do not use generative AI to create cheap assets for my talk slides."
+msgstr ""
+"Ich verwende keine generative KI, um billige Assets für meine Vortragsfolien "
+"zu erstellen."
+
+#: c3nav/site/views.py
+msgid "I have not checked this checkbox."
+msgstr "Ich habe diese Checkbox nicht aktiviert."
+
+#: c3nav/site/views.py
+msgid ""
+"I will not harm any human being, catgirl or similar creature nor through "
+"inaction permit any such creature to be harmed."
+msgstr ""
+"Ich werde keinem Menschen, Catgirl oder ähnlichen Lebewesen Schaden zufügen "
+"und auch nicht durch Untätigkeit zulassen, dass einem solchen Lebewesen "
+"Schaden zugefügt wird."
+
+#: c3nav/site/views.py
+msgid "I am not a robot or i am at least a cute one."
+msgstr "Ich bin kein Roboter oder wenn, dann ein cuter Roboter."
+
+#: c3nav/site/views.py
+msgid "I am a robot."
+msgstr "Ich bin ein Roboter."
+
+#: c3nav/site/views.py
+msgid "Trans rights!"
+msgstr "Trans rights!"
+
+#: c3nav/site/views.py
+msgid "Be excellent to each other."
+msgstr "Be excellent to each other."
+
+#: c3nav/site/views.py
+msgid ""
+"I acknowledge that any checkboxes shown under this form are optional, non-"
+"mandatory serving suggestions."
+msgstr ""
+"Ich erkenne an, dass alle Checkboxen unter diesem Formular optionale, nicht-"
+"verpflichtende Serviervorschläge sind."
+
+#: c3nav/site/views.py
+msgid "If you do not like this checkbox, reload to get another one."
+msgstr ""
+"Wenn dir diese Checkbox nicht gefällt, lade die Seite neu für eine andere."
 
 #: c3nav/site/views.py
 msgid "account creation is currently disabled."

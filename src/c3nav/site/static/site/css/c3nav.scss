@@ -195,6 +195,21 @@ main.account form {
     width: 100%;
 }
 
+form label:has(+[type=checkbox]) {
+    float: right;
+    width: calc(100% - 25px);
+    margin-bottom: 1px;
+}
+form [type=checkbox] {
+    margin-bottom: 1px;
+}
+form [type=checkbox]+.helptext {
+    clear: both;
+    display: block;
+    mrgin-top: 1px;
+    margin-bottom: 1px;
+}
+
 #modal-content p, main.account p {
     margin-bottom: 10px;
 }
