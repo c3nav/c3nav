@@ -1579,7 +1579,12 @@ c3nav = {
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._overlayLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._questsLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._questsLayers[level[0]] = L.markerClusterGroup({
+                spiderLegPolylineOptions: {
+                    color: 'var(--color-primary)',
+                },
+                showCoverageOnHover: false,
+            }).addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
@@ -1897,7 +1902,7 @@ c3nav = {
         // add a location to the map as a marker
         if (location.locations) {
             const bounds = {};
-            for (const i = 0; i < location.locations.length; i++) {
+            for (let i = 0; i < location.locations.length; i++) {
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon, true));
             }
             return bounds;
@@ -2240,7 +2245,7 @@ c3nav = {
         const lines = data.split("\n");
         const result = {};
 
-        for (const i = 0; i < lines.length; i++) {
+        for (let i = 0; i < lines.length; i++) {
             const line = lines[i].split(' ');
             if (line.length === 2) {
                 result[line[0]] = String.fromCharCode(parseInt(line[1], 16));
@@ -2593,10 +2598,24 @@ QuestsControl = L.Control.extend({
                     c3nav._questsLayers[level_id].clearLayers();
                 }
                 for (const quest of data) {
-                    L.geoJson(quest.point, {}).addTo(c3nav._questsLayers[quest.level_id]).on('click', function() {
-                        c3nav.open_modal();
-                        $.get(`/editor/quests/${quest.quest_type}/${quest.identifier}`, c3nav._modal_loaded).fail(c3nav._modal_error);
-                    });
+                    const quest_icon = c3nav._map_material_icon(c3nav.user_data.quests[quest.quest_type].icon ?? 'editor_choice');
+                    L.geoJson(quest.point, {
+                        pointToLayer:  (geom, latlng) => {
+                            return L.marker(latlng, {
+                                icon: L.divIcon({
+                                    className: 'quest-icon',
+                                    html: `<span>${quest_icon}</span>`,
+                                    iconSize: [24, 24],
+                                    iconAnchor: [12, 12],
+                                })
+                            });
+                        }
+                    })
+                        .addTo(c3nav._questsLayers[quest.level_id])
+                        .on('click', function() {
+                            c3nav.open_modal();
+                            $.get(`/editor/quests/${quest.quest_type}/${quest.identifier}`, c3nav._modal_loaded).fail(c3nav._modal_error);
+                        });
                 }
             })
             .catch(err => {
