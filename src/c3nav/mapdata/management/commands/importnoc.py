@@ -136,6 +136,8 @@ class Command(BaseCommand):
             result.comment = name
             result.space = new_space
             result.geometry = new_geometry
+            result.altitude = 0
+            result.altitude_quest = True
             result.save()  # todo: onyl save if changes… etc
 
         for import_tag, location in beacons_so_far.items():
