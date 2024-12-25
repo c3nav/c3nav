@@ -6,12 +6,12 @@ from django.core.management.base import BaseCommand
 from pydantic import BaseModel
 from shapely import distance
 
-from c3nav.mapdata.models import MapUpdate, Space
+from c3nav.mapdata.models import MapUpdate, Space, Level
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.models.report import Report
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from shapely.ops import nearest_points
+from shapely.ops import nearest_points, unary_union
 
 
 class NocImportItem(BaseModel):
@@ -48,9 +48,17 @@ class Command(BaseCommand):
             report.save()
             report.notify_reviewers()
 
+    def _get_space_geom(self, space):
+        return space.geometry.difference(unary_union([unwrap_geom(hole.geometry) for hole in space.holes.all()]))
+
     def do_import(self, items: dict[str, NocImportItem]):
         spaces_for_level = {}
-        for space in Space.objects.all():
+        levels = tuple(Level.objects.values_list("pk", flat=True))
+        lower_levels_for_level = {pk: levels[:i] for i, pk in enumerate(levels)}
+
+        RangingBeacon.objects.all().delete()
+
+        for space in Space.objects.select_related('level').prefetch_related('holes'):
             spaces_for_level.setdefault(space.level_id, []).append(space)
 
         beacons_so_far: dict[str, RangingBeacon] = {
@@ -87,14 +95,33 @@ class Command(BaseCommand):
                 else:
                     print(f"ERROR: {name} is not within any space (NOC: {(item.lat, item.lng)}, NAV: {new_geometry}")
                     continue
+
+                # move point into space if needed
                 if not space.geometry.intersects(new_geometry):
                     new_geometry = nearest_points(space.geometry.buffer(-0.05), new_geometry)[0]
-            if len(possible_spaces) == 1:
+            elif len(possible_spaces) == 1:
                 new_space = possible_spaces[0]
                 print(f"SUCCESS: {name} is in {new_space.title}")
             else:
                 print(f"WARNING: {name} could be in multiple spaces, picking one...")
                 new_space = possible_spaces[0]
+
+            lower_levels = lower_levels_for_level[new_space.level_id]
+            for lower_level in reversed(lower_levels):
+                # let's go through the lower levels
+                if not unary_union([unwrap_geom(h.geometry) for h in new_space.holes.all()]).intersects(new_geometry):
+                    # current selected spacae is fine, that's it
+                    break
+                print(f"WARNING: {name} is in a hole, looking lower...")
+
+                # find a lower space
+                possible_spaces = [space for space in spaces_for_level[lower_level]
+                                   if space.geometry.intersects(new_geometry)]
+                if possible_spaces:
+                    new_space = possible_spaces[0]
+                    print(f"WARNING: {name} moved to lower space {new_space}")
+            else:
+                print(f"WARNING: {name} couldn't find a lower space, still in a hole")
 
             # find existing location
             result = beacons_so_far.pop(import_tag, None)
