@@ -118,6 +118,7 @@ class LeaveDescriptionQuest(Quest):
             for from_space, to_space, from_point, to_point in GraphEdge.objects.filter(
                 from_node__space__in=spaces,
                 to_node__space__in=spaces,
+                waytype=None,
                 **more_filter,
             ).exclude(
                 from_node__space=F("to_node__space")
