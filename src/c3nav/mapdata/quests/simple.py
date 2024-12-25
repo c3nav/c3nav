@@ -97,12 +97,7 @@ class LeaveDescriptionQuest(Quest):
 
     @property
     def level_id(self) -> int:
-        if self.space.level_id == self.target_space.level_id:
-            return self.space.level_id
-        levels = sorted((self.space.level, self.target_space.level), key=attrgetter("base_altitude"))
-        if self.space.level.on_top_of_id is None and self.target_space.level.on_top_of_id is None:
-            return levels[1].pk
-        return levels[0].pk
+        return self.space.level.on_top_of_id or self.space.level_id
 
     @property
     def identifier(self) -> str:
