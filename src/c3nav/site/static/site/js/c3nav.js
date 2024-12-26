@@ -1456,7 +1456,7 @@ c3nav = {
     _modal_click: function (e) {
         if (!c3nav.modal_noclose && (e.target.id === 'modal' || e.target.id === 'close-modal')) {
             history.back();
-            if (c3nav._questsControl) c3nav._questsControl.reloadQuests();
+            if (c3nav._questsControl) c3nav._questsControl.reloadQuests(true);
         }
     },
     _href_modal_open_tab: function (location) {
@@ -2734,14 +2734,18 @@ QuestsControl = ExpandingControl.extend({
         this.reloadQuests().catch(err => console.error(err));
     },
 
-    reloadQuests: async function() {
+     reloadQuests: async function (force = false) {
         const activeQuests = this._activeQuests;
         const removed = this._loadedQuests.difference(activeQuests);
-        const added = activeQuests.difference(this._loadedQuests);
+        const added = force ? activeQuests : activeQuests.difference(this._loadedQuests);
 
         if (removed.size === 0 && added.size === 0) return;
 
         const questData = this._questData;
+
+        for (const name of removed) {
+            delete questData[name];
+        }
 
         if (added.size > 0) {
             for(const name of added) {
@@ -2753,10 +2757,6 @@ QuestsControl = ExpandingControl.extend({
             for (const quest of data) {
                 questData[quest.quest_type].push(quest);
             }
-        }
-
-        for (const name of removed) {
-            delete questData[name];
         }
 
         this._questData = questData;
