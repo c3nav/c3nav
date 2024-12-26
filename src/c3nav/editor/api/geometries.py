@@ -78,7 +78,9 @@ class LevelsForLevel:
             if not sublevel.intermediate:
                 break
         primary_levels = chain((level,), lower_levels)
-        secondary_levels = Level.objects.filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
+        secondary_levels = Level.objects.qs_for_request(request).filter(
+            on_top_of__in=primary_levels
+        ).values_list('pk', 'on_top_of')
         lower_level_pks = set(l.pk for l in lower_levels)
         if lower_levels:
             levels_under = tuple(pk for pk, on_top_of in secondary_levels if on_top_of in lower_level_pks)
