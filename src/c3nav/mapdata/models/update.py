@@ -219,12 +219,15 @@ class MapUpdate(models.Model):
                 for new_update in new_updates:
                     logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
                                 {'id': new_update.pk, 'type': new_update.type})
-                    new_changes = new_update.get_changed_geometries()
-                    if new_changes is None:
-                        logger.warning('changed_geometries pickle file not found.')
-                    else:
-                        logger.info('%.3f m² affected by this update.' % new_changes.area)
-                        changed_geometries.combine(new_changes)
+                    try:
+                        new_changes = new_update.get_changed_geometries()
+                        if new_changes is None:
+                            logger.warning('changed_geometries pickle file not found.')
+                        else:
+                            logger.info('%.3f m² affected by this update.' % new_changes.area)
+                            changed_geometries.combine(new_changes)
+                    except EOFError:
+                        logger.warning('changed_geometries pickle file corrupted.')
 
                 logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
 
