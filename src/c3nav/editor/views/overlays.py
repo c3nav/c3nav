@@ -91,7 +91,6 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     can_edit_changeset = request.changeset.can_edit(request)
 
     obj = None
-    edit_utils = DefaultEditUtils(request)
     if pk is not None:
         # Edit existing map item
         kwargs = {'pk': pk}

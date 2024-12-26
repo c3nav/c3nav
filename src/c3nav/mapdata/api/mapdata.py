@@ -27,8 +27,9 @@ from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRe
                                           LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
                                           ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
                                           DataOverlaySchema, DataOverlayFeatureSchema, LocationRedirectSchema,
-                                          WayTypeSchema,
-                                          DataOverlayFeatureUpdateSchema, DataOverlayFeatureBulkUpdateSchema)
+                                          WayTypeSchema, DataOverlayFeatureGeometrySchema,
+                                          DataOverlayFeatureUpdateSchema, DataOverlayFeatureBulkUpdateSchema,
+                                          )
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 
@@ -77,14 +78,16 @@ class MapdataEndpoint:
     model: Type[Model]
     schema: Type[BaseSchema]
     filters: Type[FilterSchema] | None = None
+    no_cache: bool = False
+    name: Optional[str] = None
 
     @property
     def model_name(self):
         return self.model._meta.model_name
 
     @property
-    def model_name_plural(self):
-        return self.model._meta.default_related_name
+    def endpoint_name(self):
+        return self.name if self.name is not None else self.model._meta.default_related_name
 
 
 @dataclass
@@ -110,7 +113,7 @@ class MapdataAPIBuilder:
             add_call_params = {}
         call_param_values = set(add_call_params.values())
         call_params = (
-            *(f"{name}={name}" for name in set(view_params.keys())-call_param_values),
+            *(f"{name}={name}" for name in set(view_params.keys()) - call_param_values),
             *(f"{name}={value}" for name, value in add_call_params.items()),
         )
         method_code = "\n".join((
@@ -139,12 +142,15 @@ class MapdataAPIBuilder:
         )
         list_func.__name__ = f"{endpoint.model_name}_list"
 
-        self.router.get(f"/{endpoint.model_name_plural}/", summary=f"{endpoint.model_name} list",
+        if not endpoint.no_cache:
+            list_func = api_etag()(list_func)
+
+        self.router.get(f"/{endpoint.endpoint_name}/", summary=f"{endpoint.model_name} list",
                         tags=[f"mapdata-{tag}"], description=schema_description(endpoint.schema),
                         response={200: list[endpoint.schema],
                                   **(validate_responses if endpoint.filters else {}),
                                   **auth_responses})(
-            api_etag()(list_func)
+            list_func
         )
 
     def add_by_id_endpoint(self, endpoint: MapdataEndpoint, tag: str):
@@ -160,7 +166,7 @@ class MapdataAPIBuilder:
         )
         list_func.__name__ = f"{endpoint.model_name}_by_id"
 
-        self.router.get(f'/{endpoint.model_name_plural}/{{{id_field}}}/', summary=f"{endpoint.model_name} by ID",
+        self.router.get(f'/{endpoint.endpoint_name}/{{{id_field}}}/', summary=f"{endpoint.model_name} by ID",
                         tags=[f"mapdata-{tag}"], description=schema_description(endpoint.schema),
                         response={200: endpoint.schema, **API404.dict(), **auth_responses})(
             api_etag()(list_func)
@@ -227,6 +233,14 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
             model=DataOverlayFeature,
             schema=DataOverlayFeatureSchema,
             filters=ByOverlayFilter,
+            no_cache=True,
+        ),
+        MapdataEndpoint(
+            model=DataOverlayFeature,
+            schema=DataOverlayFeatureGeometrySchema,
+            filters=ByOverlayFilter,
+            no_cache=True,
+            name='dataoverlayfeaturegeometries'
         ),
         MapdataEndpoint(
             model=WayType,
@@ -304,12 +318,11 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
     ],
 }
 
-
 MapdataAPIBuilder(router=mapdata_api_router).build_all_endpoints(mapdata_endpoints)
 
 
 @mapdata_api_router.post('/dataoverlayfeatures/{id}', summary="update a data overlay feature (including geometries)",
-                        response={204: None, **API404.dict(), **auth_permission_responses})
+                         response={204: None, **API404.dict(), **auth_permission_responses})
 def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeatureUpdateSchema):
     """
     update the data overlay feature
@@ -317,7 +330,8 @@ def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeature
 
     feature = get_object_or_404(DataOverlayFeature, id=id)
 
-    if feature.overlay.edit_access_restriction_id is None or feature.overlay.edit_access_restriction_id not in AccessPermission.get_for_request(request):
+    if feature.overlay.edit_access_restriction_id is None or feature.overlay.edit_access_restriction_id not in AccessPermission.get_for_request(
+            request):
         raise APIPermissionDenied('You are not allowed to edit this object.')
 
     updates = parameters.dict(exclude_unset=True)
@@ -329,10 +343,10 @@ def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeature
 
     return 204, None
 
+
 @mapdata_api_router.post('/dataoverlayfeatures-bulk', summary="bulk-update data overlays (including geometries)",
                          response={204: None, **API404.dict(), **auth_permission_responses})
 def update_data_overlay_features_bulk(request, parameters: DataOverlayFeatureBulkUpdateSchema):
-
     permissions = AccessPermission.get_for_request(request)
 
     updates = {
@@ -343,7 +357,8 @@ def update_data_overlay_features_bulk(request, parameters: DataOverlayFeatureBul
     forbidden_object_ids = []
 
     with transaction.atomic():
-        features = DataOverlayFeature.objects.filter(id__in=updates.keys()).annotate(edit_access_restriction_id=F('overlay__edit_access_restriction_id'))
+        features = DataOverlayFeature.objects.filter(id__in=updates.keys()).annotate(
+            edit_access_restriction_id=F('overlay__edit_access_restriction_id'))
 
         for feature in features:
             if feature.edit_access_restriction_id is None or feature.edit_access_restriction_id not in permissions:

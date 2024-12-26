@@ -376,14 +376,13 @@ class DataOverlaySchema(TitledSchema, DjangoModelSchema):
     fill_color: Optional[str]
     fill_opacity: Optional[float]
     cluster_points: bool
+    update_interval: Optional[PositiveInt]
 
 
-
-class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSchema):
+class DataOverlayFeatureSchema(TitledSchema, DjangoModelSchema):
     """
     A feature (any kind of geometry) to be displayed as part of a data overlay.
     """
-    geometry: AnyGeometrySchema
     level_id: PositiveInt
     stroke_color: Optional[str]
     stroke_width: Optional[float]
@@ -396,6 +395,13 @@ class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSche
     point_icon: Optional[str]
     external_url: Optional[str]
     extra_data: Optional[dict[str, str | int | float]]
+
+
+class DataOverlayFeatureGeometrySchema(WithGeometrySchema, DjangoModelSchema):
+    """
+    A feature (any kind of geometry) to be displayed as part of a data overlay.
+    """
+    geometry: AnyGeometrySchema
 
 class DataOverlayFeatureUpdateSchema(BaseSchema):
     """

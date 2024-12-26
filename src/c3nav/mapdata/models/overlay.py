@@ -24,16 +24,21 @@ class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
     stroke_width = models.FloatField(blank=True, null=True, verbose_name=_('default stroke width'))
     stroke_opacity = models.FloatField(blank=True, null=True, verbose_name=_('stroke opacity'))
     fill_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default fill color'))
-    fill_opacity = models.FloatField(blank=True, null=True, verbose_name=_('fill opacity'))
+    fill_opacity = models.FloatField(blank=True, null=True, verbose_name=_('default fill opacity'))
 
     cluster_points = models.BooleanField(default=False, verbose_name=_('cluster points together when zoomed out'))
 
-    default_geomtype = models.CharField(max_length=255, blank=True, null=True, choices=GeometryType, verbose_name=_('default geometry type'))
+    default_geomtype = models.CharField(max_length=255, blank=True, null=True, choices=GeometryType,
+                                        verbose_name=_('default geometry type'))
 
     pull_url = models.URLField(blank=True, null=True, verbose_name=_('pull URL'))
     pull_headers: dict[str, str] = SchemaField(schema=dict[str, str], null=True,
                                                verbose_name=_('headers for pull http request (JSON object)'))
     pull_interval = models.DurationField(blank=True, null=True, verbose_name=_('pull interval'))
+
+    update_interval = models.PositiveIntegerField(blank=True, null=True, verbose_name=_('frontend update interval'),
+                                                  help_text=_('in seconds'))
+
     edit_access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
                                                 related_name='edit_access_restrictions',
                                                 verbose_name=_('Editor Access Restriction'),
@@ -46,7 +51,8 @@ class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
 
 
 class DataOverlayFeature(TitledMixin, LevelGeometryMixin, models.Model):
-    overlay = models.ForeignKey('mapdata.DataOverlay', on_delete=models.CASCADE, verbose_name=_('Overlay'), related_name='features')
+    overlay = models.ForeignKey('mapdata.DataOverlay', on_delete=models.CASCADE, verbose_name=_('Overlay'),
+                                related_name='features')
     geometry = GeometryField()
     # level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'), related_name='data_overlay_features')
     external_url = models.URLField(blank=True, null=True, verbose_name=_('external URL'))
@@ -62,9 +68,10 @@ class DataOverlayFeature(TitledMixin, LevelGeometryMixin, models.Model):
     point_icon = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('point icon'),
                                   help_text=_(
                                       'use this material icon to display points, instead of drawing a small circle (only makes sense if the geometry is a point)'))
-    extra_data: Optional[dict[str, str|int|bool]] = SchemaField(schema=dict[str, str|int|bool], blank=True, null=True,
-                                                                default=None,
-                                                                verbose_name=_('extra data (JSON object)'))
+    extra_data: Optional[dict[str, str | int | bool]] = SchemaField(schema=dict[str, str | int | bool], blank=True,
+                                                                    null=True,
+                                                                    default=None,
+                                                                    verbose_name=_('extra data (JSON object)'))
 
     def to_geojson(self, instance=None) -> dict:
         result = {

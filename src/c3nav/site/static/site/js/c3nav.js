@@ -47,6 +47,17 @@
     };
 }());
 
+function makeClusterIconCreate(color) {
+    return function(cluster) {
+        const childCount = cluster.getChildCount();
+        return new L.DivIcon({
+            html: `<div style="--cluster-marker-color: ${color};"><span>${childCount}</span></div>`,
+            className: 'marker-cluster',
+            iconSize: new L.Point(30, 30)
+        });
+    }
+}
+
 /**
  * a wrapper for localStorage, catching possible exception when accessing or setting data.
  * working silently if there are errors apart from a console log message when setting an item.
@@ -1586,6 +1597,7 @@ c3nav = {
                     color: 'var(--color-primary)',
                 },
                 showCoverageOnHover: false,
+                iconCreateFunction: makeClusterIconCreate('var(--color-primary)'),
             }).addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
@@ -3130,6 +3142,7 @@ L.SquareGridLayer = L.Layer.extend({
 
 class DataOverlay {
     levels = null;
+    feature_geometries = {};
 
     constructor(options) {
         this.id = options.id;
@@ -3141,19 +3154,66 @@ class DataOverlay {
         this.default_stroke_opacity = options.stroke_opacity;
         this.default_fill_color = options.fill_color;
         this.default_fill_opacity = options.fill_opacity;
+        this.update_interval = options.update_interval === null ? null : options.update_interval * 1000;
     }
 
     async create() {
-        const features = await c3nav_api.get(`mapdata/dataoverlayfeatures/?overlay=${this.id}`);
+        const [features, feature_geometries] = await Promise.all([
+            c3nav_api.get(`mapdata/dataoverlayfeatures/?overlay=${this.id}`),
+            c3nav_api.get(`mapdata/dataoverlayfeaturegeometries/?overlay=${this.id}`)
+        ]);
 
-        const levels = {};
+        this.feature_geometries = Object.fromEntries(feature_geometries.map(f => [f.id, f.geometry]));
+
+        this.update_features(features);
+
+        if (this.update_interval !== null) {
+            window.setTimeout(() => {
+                this.fetch_features()
+                    .catch(err => console.error(err))
+            }, this.update_interval);
+        }
+    }
+
+    async fetch_features() {
+        const features= await c3nav_api.get(`mapdata/dataoverlayfeatures/?overlay=${this.id}`);
+
+        this.update_features(features);
+
+        if (this.update_interval !== null) {
+            window.setTimeout(() => {
+                this.fetch_features()
+                    .catch(err => console.error(err))
+            }, this.update_interval);
+        }
+    }
+
+    update_features (features) {
+        if (this.levels === null) {
+            this.levels = {};
+        }
+
+        for (let id in this.levels) {
+            this.levels[id].clearLayers();
+        }
+
         for (const feature of features) {
+            const geometry = this.feature_geometries[feature.id]
             const level_id = feature.level_id;
-            if (!(level_id in levels)) {
+            if (!(level_id in this.levels)) {
                 if (this.cluster_points) {
-                    levels[level_id] = L.markerClusterGroup();
+                    this.levels[level_id] = L.markerClusterGroup({
+                        spiderLegPolylineOptions: {
+                            color: this.default_stroke_color ?? 'var(--color-map-overlay)',
+                        },
+                        polygonOptions: {
+                            color: this.default_stroke_color ?? 'var(--color-map-overlay)',
+                            fillColor: this.default_fill_color ?? 'var(--color-map-overlay)',
+                        },
+                        iconCreateFunction: makeClusterIconCreate(this.default_fill_color ?? 'var(--color-map-overlay)'),
+                    });
                 } else {
-                    levels[level_id] = L.layerGroup();
+                    this.levels[level_id] = L.layerGroup();
                 }
             }
             const style = {
@@ -3163,7 +3223,7 @@ class DataOverlay {
                 'fillColor': feature.fill_color ?? this.default_fill_color ?? 'var(--color-map-overlay)',
                 'fillOpacity': feature.fill_opacity ?? this.default_fill_opacity ?? 0.2,
             };
-            const layer = L.geoJson(feature.geometry, {
+            const layer = L.geoJson(geometry, {
                 style,
                 interactive: feature.interactive,
                 pointToLayer: (geom, latlng) => {
@@ -3176,22 +3236,6 @@ class DataOverlay {
                             iconAnchor: [12, 12],
                         })
                     });
-                    if (feature.point_icon !== null) {
-                        return L.marker(latlng, {
-                            title: feature.title,
-                            icon: L.divIcon({
-                                className: 'symbol-icon ' + (feature.interactive ? 'symbol-icon-interactive' : ''),
-                                html: `<span style="--icon-color: ${style.color}">${feature.point_icon}</span>`,
-                                iconSize: [24, 24],
-                                iconAnchor: [12, 12],
-                            })
-                        });
-                    } else {
-                        return L.circleMarker(latlng, {
-                            title: feature.title,
-                            ...style
-                        });
-                    }
                 },
                 onEachFeature: (f, layer) => {
                     if (feature.interactive) {
@@ -3216,10 +3260,8 @@ class DataOverlay {
                 }
             });
 
-            levels[level_id].addLayer(layer);
+            this.levels[level_id].addLayer(layer);
         }
-
-        this.levels = levels;
     }
 
     async enable(levels) {

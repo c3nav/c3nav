@@ -1975,29 +1975,25 @@ blink {
 }
 
 .marker-cluster {
-	background-color: color-mix(in srgb, transparent, var(--color-primary) 60%);
-    background-clip: padding-box;
-	border-radius: 20px;
-
-    div {
-        background-color: white;
-        color: var(--color-primary);
+    span {
+        display: inline-block;
         width: 30px;
         height: 30px;
-        margin-left: 5px;
-        margin-top: 5px;
-
+        line-height: 30px;
         text-align: center;
-        border-radius: 15px;
-        font-size: 12px;
+        background-color: white;
+        color: var(--cluster-marker-color);
+        font-weight: bold;
+        border-radius: 100%;
 
-        span {
-            line-height: 30px;
-	        font-weight: bold;
-        }
+        box-shadow: 0 0 0 5px color-mix(in srgb, transparent, var(--cluster-marker-color) 60%);
+
+        transition: color, background-color 150ms ease-in-out;
+
+        cursor: pointer;
 
         &:hover {
-            background-color: var(--color-primary);
+            background-color: var(--cluster-marker-color);
             color: white;
         }
     }
