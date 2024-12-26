@@ -10,6 +10,12 @@ from pydantic_extra_types.mac_address import MacAddress
 from c3nav.api.schema import BaseSchema
 
 
+class WifiPeerInformationElement(BaseSchema):
+    id: PositiveInt
+    id_ext: PositiveInt
+    data: Annotated[list[Annotated[NonNegativeInt, Lt(2**8)]], APIField(description="list of bytes")]
+
+
 class LocateWifiPeerSchema(BaseSchema):
     bssid: MacAddress = APIField(
         title="BSSID",
@@ -61,6 +67,11 @@ class LocateWifiPeerSchema(BaseSchema):
         title="distance standard deviation",
         description="standard deviation of measurements in meters",
         example=1.23
+    )
+    info_elems: list[WifiPeerInformationElement] = APIField(
+        default=[],
+        title="information elements / vendor data",
+        description="if avaiilable",
     )
 
 
