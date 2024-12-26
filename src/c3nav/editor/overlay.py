@@ -167,6 +167,8 @@ class DatabaseOverlayManager:
 def handle_pre_change_instance(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
         return
+    if sender._meta.model_name == 'report':
+        return
     manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
         manager.handle_pre_change_instance(sender=sender, **kwargs)
@@ -174,6 +176,8 @@ def handle_pre_change_instance(sender: Type[Model], **kwargs):
 
 def handle_post_save(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
+        return
+    if sender._meta.model_name == 'report':
         return
     manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
@@ -183,6 +187,8 @@ def handle_post_save(sender: Type[Model], **kwargs):
 def handle_post_delete(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
         return
+    if sender._meta.model_name == 'report':
+        return
     manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
         manager.handle_post_delete(sender=sender, **kwargs)
@@ -190,6 +196,8 @@ def handle_post_delete(sender: Type[Model], **kwargs):
 
 def handle_m2m_changed(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
+        return
+    if sender._meta.model_name == 'report':
         return
     manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
