@@ -14,6 +14,7 @@ and potential backwards incompatibilities.
 - new map settings API endpoint
 - ability to import APs from NOC eventmap
 
+
 - Doors now have a UI to easily manage edges that go through them, as well as a To Do feature
 - space can now be classified as "identifyable" to determine which route descriptions they need
 - reports for wrong locations can now be auto-rejected based on location g
@@ -25,11 +26,13 @@ and potential backwards incompatibilities.
 - support for various SSOs
 - various compliance checkboxes
 
+
 - Fix bug where it hasn't been possible since ages to link to POIs without a slug
 - External URLs is now shown more prominently, with a custom label and can now also be set for location groups
 - Level short_label has been split into short_label (for displaying) and level_index (for internal use like coordinates)
 - some API mapdata endpoints were moved, some lesser used properties renamed
 - proper support for access restricted levels
+
 
 - positioning/beacon measurements now have schemas
 - more type hinting and code modernization 
