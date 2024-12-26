@@ -8,12 +8,15 @@ and potential backwards incompatibilities.
 
 # 38. Chaos Communication Congress (development ongoing)
 
+Big stuff:
+
 - Quest support to categorize rooms, find AP altitudes and generate route descriptions
 - data overlay support
 - complete rewrite of editor changesets as a base for a more modern editor – you will lose all changesets!
 - new map settings API endpoint
 - ability to import APs from NOC eventmap
 
+Semi-big stuff:
 
 - Doors now have a UI to easily manage edges that go through them, as well as a To Do feature
 - space can now be classified as "identifyable" to determine which route descriptions they need
@@ -26,6 +29,7 @@ and potential backwards incompatibilities.
 - support for various SSOs
 - various compliance checkboxes
 
+Small stuff:
 
 - Fix bug where it hasn't been possible since ages to link to POIs without a slug
 - External URLs is now shown more prominently, with a custom label and can now also be set for location groups
@@ -33,6 +37,7 @@ and potential backwards incompatibilities.
 - some API mapdata endpoints were moved, some lesser used properties renamed
 - proper support for access restricted levels
 
+Behind the scenes, comfort, bug fixes:
 
 - positioning/beacon measurements now have schemas
 - more type hinting and code modernization 
