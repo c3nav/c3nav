@@ -1,9 +1,11 @@
 import hashlib
+from typing import Literal, Optional
 from uuid import UUID
 
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.utils.text import slugify
 from pydantic import BaseModel, Field, PositiveInt
 from shapely import Point
 from shapely.geometry import shape
@@ -11,6 +13,7 @@ from shapely.geometry import shape
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import Area, LocationGroup, LocationSlug, MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import POI
+from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.models.report import Report
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 
@@ -22,15 +25,15 @@ class HubImportItem(BaseModel):
     type: NonEmptyStr
     id: UUID
     slug: NonEmptyStr = Field(pattern=r'^[-a-zA-Z0-9_]+$')
-    name: NonEmptyStr | dict[NonEmptyStr, NonEmptyStr]
-    is_official: bool
-    description: dict[NonEmptyStr, NonEmptyStr | None]
+    name: NonEmptyStr | dict[NonEmptyStr, NonEmptyStr] = None
+    is_official: bool = False
+    description: dict[NonEmptyStr, str | None]
     public_url: NonEmptyStr = Field(pattern=r'^https://')
-    parent_id: UUID | None
-    children: list[NonEmptyStr] | None
+    parent_id: UUID | None = None
+    children: list[NonEmptyStr] | None = []
     floor: PositiveInt | None
     location: tuple[float, float] | None
-    polygons: tuple[list[tuple[float, float]]] | None
+    polygons: tuple[list[tuple[float, float]]] | None = None
 
 
 class Command(BaseCommand):
@@ -56,7 +59,8 @@ class Command(BaseCommand):
             report.notify_reviewers()
 
     def do_import(self, data):
-        items: list[HubImportItem] = [HubImportItem.model_validate(item) for item in data if item["type"] == "assembly"]
+        items: list[HubImportItem] = [HubImportItem.model_validate(item) for item in data
+                                      if item["type"] in ("assembly", "room", "project")]
         items_by_id = {item.id: item for item in items}
 
         spaces_for_level = {}
@@ -76,12 +80,19 @@ class Command(BaseCommand):
         for item in items:
             item.slug = item.slug.lower().replace('_', '-')
 
+            if item.type == "project":
+                item.polygons = None
+
             if item.polygons is None and item.location is None:
                 print(f"SKIPPING: {item.slug} / {item.id} has no polygon or location")
                 continue
 
             if item.floor is None:
                 print(f"SKIPPING: {item.slug} / {item.id} has no floor")
+                continue
+
+            if item.is_official:
+                print(f"SKIPPING: {item.slug} / {item.id} because it is official")
                 continue
 
             import_tag = f"hub:{item.id}"
@@ -125,9 +136,15 @@ class Command(BaseCommand):
             result = locations_so_far.pop(import_tag, None)
             result: Area | POI | None
 
-            old_result = None
+            old_result = None   # only used if the type needs to be changed
 
-            if result is not None:
+            if result is None:
+                occupied_by = LocationSlug.objects.filter(slug=item.id).first()
+                if occupied_by:
+                    print(f"SKIPPING (nonexisting): {item.slug} / {item.id} UUID already occupied by {occupied_by.get_child()}")
+                    continue
+
+            elif result is not None:
                 # already exists
                 if not isinstance(result, target_type):
                     # need to change from POI to Area or inverted
@@ -313,6 +330,8 @@ class Command(BaseCommand):
                 result.groups.set(old_group_ids)
                 for slug in old_redirect_slugs:
                     result.redirects.create(slug=slug)
+            if not result.redirects.filter(slug=item.id).exists():
+                result.redirects.create(slug=item.id)
             if is_new:
                 result.groups.set(new_group_ids)
             else:
