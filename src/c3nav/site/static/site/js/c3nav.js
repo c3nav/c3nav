@@ -1412,7 +1412,7 @@ c3nav = {
                 if (!group) continue;
                 if (!group.locationtype || group.locationtype !== 'locationgroup') continue;
                 group.locations.forEach(subid => {
-                    if (subid in c3nav.locations_by_id) possible_locations.add(subid)
+                    if (subid in c3nav.locations_by_id) possible_locations_set.add(subid)
                 });
             }
             const possible_locations = Array.from(possible_locations_set);
