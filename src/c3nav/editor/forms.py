@@ -211,14 +211,12 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 if field.startswith('label_override'):
                     self.fields.move_to_end(field)
 
-        if 'category' in self.fields:
-            self.fields['category'].label_from_instance = attrgetter('title')
-
         if 'groundaltitude' in self.fields:
             self.fields['groundaltitude'].label_from_instance = attrgetter('choice_label')
 
-        if 'label_settings' in self.fields:
-            self.fields['label_settings'].label_from_instance = attrgetter('title')
+        for name in ('category', 'label_settings', 'load_group_contribute', 'load_group_display'):
+            if name in self.fields:
+                self.fields[name].label_from_instance = attrgetter('title')
 
         if 'access_restriction' in self.fields:
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
