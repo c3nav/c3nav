@@ -397,6 +397,50 @@ class DataOverlayFeatureSchema(TitledSchema, WithGeometrySchema, DjangoModelSche
     external_url: Optional[str]
     extra_data: Optional[dict[str, str | int | float]]
 
+class DataOverlayFeatureUpdateSchema(BaseSchema):
+    """
+    An update to a data overlay feature.
+    """
+    level_id: Optional[PositiveInt] = None
+    geometry: Optional[AnyGeometrySchema] = None
+    stroke_color: Optional[str] = None
+    stroke_width: Optional[float] = None
+    stroke_opacity: Optional[float] = None
+    fill_color: Optional[str] = None
+    fill_opacity: Optional[float] = None
+    show_label: Optional[bool] = None
+    show_geometry: Optional[bool] = None
+    interactive: Optional[bool] = None
+    point_icon: Optional[str] = None
+    external_url: Optional[str] = None
+    extra_data: Optional[dict[str, str | int | float]] = None
+
+class DataOverlayFeatureBulkUpdateItemSchema(BaseSchema):
+    """
+    An item of a bulk update to data overlay features.
+    """
+    id: PositiveInt
+    level_id: Optional[PositiveInt] = None
+    geometry: Optional[AnyGeometrySchema] = None
+    stroke_color: Optional[str] = None
+    stroke_width: Optional[float] = None
+    stroke_opacity: Optional[float] = None
+    fill_color: Optional[str] = None
+    fill_opacity: Optional[float] = None
+    show_label: Optional[bool] = None
+    show_geometry: Optional[bool] = None
+    interactive: Optional[bool] = None
+    point_icon: Optional[str] = None
+    external_url: Optional[str] = None
+    extra_data: Optional[dict[str, str | int | float]] = None
+
+class DataOverlayFeatureBulkUpdateSchema(BaseSchema):
+    """
+    A bulk update to data overlay features
+    """
+    updates: list[DataOverlayFeatureBulkUpdateItemSchema]
+
+
 
 class WayTypeSchema(TitledSchema, DjangoModelSchema):
     """

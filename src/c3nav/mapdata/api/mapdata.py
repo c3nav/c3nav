@@ -1,18 +1,20 @@
 from dataclasses import dataclass
 from typing import Optional, Sequence, Type, Callable, Any
 
-from django.db.models import Model
+from django.db import transaction
+from django.db.models import Model, F
+from django.shortcuts import get_object_or_404
 from ninja import Query
 from ninja import Router as APIRouter
 from pydantic import PositiveInt
 
-from c3nav.api.auth import auth_responses, validate_responses
-from c3nav.api.exceptions import API404
+from c3nav.api.auth import auth_responses, validate_responses, auth_permission_responses
+from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.api.base import api_etag, optimize_query, can_access_geometry
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
                                   Space, Stair, DataOverlay, DataOverlayFeature, WayType)
-from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
+from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup, AccessPermission
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
 from c3nav.mapdata.models.locations import DynamicLocation, LabelSettings, LocationRedirect
@@ -25,7 +27,8 @@ from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRe
                                           LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
                                           ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
                                           DataOverlaySchema, DataOverlayFeatureSchema, LocationRedirectSchema,
-                                          WayTypeSchema)
+                                          WayTypeSchema,
+                                          DataOverlayFeatureUpdateSchema, DataOverlayFeatureBulkUpdateSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 
@@ -303,3 +306,60 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
 
 
 MapdataAPIBuilder(router=mapdata_api_router).build_all_endpoints(mapdata_endpoints)
+
+
+@mapdata_api_router.post('/dataoverlayfeatures/{id}', summary="update a data overlay feature (including geometries)",
+                        response={204: None, **API404.dict(), **auth_permission_responses})
+def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeatureUpdateSchema):
+    """
+    update the data overlay feature
+    """
+
+    feature = get_object_or_404(DataOverlayFeature, id=id)
+
+    if feature.overlay.edit_access_restriction_id is None or feature.overlay.edit_access_restriction_id not in AccessPermission.get_for_request(request):
+        raise APIPermissionDenied('You are not allowed to edit this object.')
+
+    updates = parameters.dict(exclude_unset=True)
+
+    for key, value in updates.items():
+        setattr(feature, key, value)
+
+    feature.save()
+
+    return 204, None
+
+@mapdata_api_router.post('/dataoverlayfeatures-bulk', summary="bulk-update data overlays (including geometries)",
+                         response={204: None, **API404.dict(), **auth_permission_responses})
+def update_data_overlay_features_bulk(request, parameters: DataOverlayFeatureBulkUpdateSchema):
+
+    permissions = AccessPermission.get_for_request(request)
+
+    updates = {
+        u.id: u
+        for u in parameters.updates
+    }
+
+    forbidden_object_ids = []
+
+    with transaction.atomic():
+        features = DataOverlayFeature.objects.filter(id__in=updates.keys()).annotate(edit_access_restriction_id=F('overlay__edit_access_restriction_id'))
+
+        for feature in features:
+            if feature.edit_access_restriction_id is None or feature.edit_access_restriction_id not in permissions:
+                forbidden_object_ids.append(feature.id)
+                continue
+
+            changes = updates[feature.id].dict(exclude_unset=True)
+
+            for key, value in changes.items():
+                if key == 'id':
+                    continue
+                setattr(feature, key, value)
+            feature.save()
+
+        if len(forbidden_object_ids) > 0:
+            raise APIPermissionDenied('You are not allowed to edit the objects with the following ids: %s.'
+                                      % ", ".join([str(x) for x in forbidden_object_ids]))
+
+    return 204, None
