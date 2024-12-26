@@ -14,7 +14,6 @@ from c3nav.mapdata.utils.locations import CustomLocation, get_location_by_id_for
 
 
 def increment_cache_key(cache_key):
-    print('increment_cache_key', cache_key)
     try:
         cache.incr(cache_key)
     except ValueError:
