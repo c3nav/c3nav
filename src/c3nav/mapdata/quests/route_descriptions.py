@@ -1,11 +1,11 @@
 import operator
+from collections import Counter
 from dataclasses import dataclass
 from functools import reduce
 from typing import Optional, ClassVar
 
 from django.db.models import Q, F
 from django.utils.translation import gettext_lazy as _
-from ninja.errors import ValidationError
 from shapely import Point, LineString
 from shapely.geometry import mapping
 
@@ -142,6 +142,7 @@ class LeaveDescriptionQuest(Quest):
     @classmethod
     def get_all_for_request(cls, request, space_ids: tuple[int, int] = ()):
         spaces, edges = get_door_edges_for_request(request, space_ids)
+        counter = Counter(from_space for from_space, to_space in edges.keys())
         return [
             cls(
                 space=spaces[from_space],
@@ -149,7 +150,7 @@ class LeaveDescriptionQuest(Quest):
                 the_point=unwrap_geom(from_point),
             )
             for (from_space, to_space), (from_point, to_point) in edges.items()
-            if spaces[to_space].identifyable is False
+            if spaces[to_space].identifyable is False and (space_ids or counter[from_space] > 1)
         ]
 
     @classmethod
@@ -159,7 +160,10 @@ class LeaveDescriptionQuest(Quest):
             return None
 
         results = cls.get_all_for_request(request, space_ids=[int(i) for i in space_ids])
-        return results[0] if results else None
+        result = results[0] if results else None
+        if GraphEdge.objects.filter(from_node__space=result.space).exclude(to_node__space=result.space).count() < 2:
+            return None
+        return result
 
     def get_form_kwargs(self, request):
         instance = LeaveDescription()
