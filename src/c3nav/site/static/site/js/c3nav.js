@@ -3143,6 +3143,7 @@ L.SquareGridLayer = L.Layer.extend({
 class DataOverlay {
     levels = null;
     feature_geometries = {};
+    fetch_timeout = null;
 
     constructor(options) {
         this.id = options.id;
@@ -3167,8 +3168,8 @@ class DataOverlay {
 
         this.update_features(features);
 
-        if (this.update_interval !== null) {
-            window.setTimeout(() => {
+        if (this.update_interval !== null && this.fetch_timeout === null) {
+            this.fetch_timeout = window.setTimeout(() => {
                 this.fetch_features()
                     .catch(err => console.error(err))
             }, this.update_interval);
@@ -3176,12 +3177,16 @@ class DataOverlay {
     }
 
     async fetch_features() {
+        if (this.fetch_timeout !== null) {
+            window.clearTimeout(this.fetch_timeout);
+            this.fetch_timeout = null;
+        }
         const features= await c3nav_api.get(`mapdata/dataoverlayfeatures/?overlay=${this.id}`);
 
         this.update_features(features);
 
-        if (this.update_interval !== null) {
-            window.setTimeout(() => {
+        if (this.update_interval !== null && this.fetch_timeout === null) {
+            this.fetch_timeout = window.setTimeout(() => {
                 this.fetch_features()
                     .catch(err => console.error(err))
             }, this.update_interval);
@@ -3267,6 +3272,9 @@ class DataOverlay {
     async enable(levels) {
         if (!this.levels) {
             await this.create();
+        } else {
+            this.fetch_features()
+                .catch(err => console.error(err));
         }
         for (const id in levels) {
             if (id in this.levels) {
@@ -3281,7 +3289,7 @@ class DataOverlay {
                 levels[id].removeLayer(this.levels[id]);
             }
         }
+        window.clearTimeout(this.fetch_timeout);
+        this.fetch_timeout = null;
     }
-
-
 }
