@@ -400,7 +400,7 @@ def changeset_detail(request, pk):
                             'value': value,
                         })
 
-                        if field.is_relation:
+                        if field.is_relation and field.related_model._meta.app_label == "mapdata":
                             # todo: super imperformant, we should do this via prev etc
                             try:
                                 related_obj = field.related_model.objects.get(pk=value)
