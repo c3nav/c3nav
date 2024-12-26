@@ -8,20 +8,34 @@ and potential backwards incompatibilities.
 
 # 38. Chaos Communication Congress (development ongoing)
 
+- Quest support to categorize rooms, find AP altitudes and generate route descriptions
 - data overlay support
 - complete rewrite of editor changesets as a base for a more modern editor – you will lose all changesets!
 - new map settings API endpoint
-- some API mapdata endpoints were moved, some lesser used properties renamed
-- reports for wrong locations can now be auto-rejected based on location groups
+- ability to import APs from NOC eventmap
+
+- Doors now have a UI to easily manage edges that go through them, as well as a To Do feature
+- space can now be classified as "identifyable" to determine which route descriptions they need
+- reports for wrong locations can now be auto-rejected based on location g
 - access restrictions that are part of an access restriction group are now defined in the group, data was migrated
 - editor access restriction overview now highlights affected spaces on a map
 - editor access restriction group edit now shows spaces with selected access restrictions and allows selecting through double click
 - WayTypes can now be excluded by default
-- Proper support for access restricted levels
+- Pass route options through url parameter
+- support for various SSOs
+- various compliance checkboxes
+
+- Fix bug where it hasn't been possible since ages to link to POIs without a slug
 - External URLs is now shown more prominently, with a custom label and can now also be set for location groups
 - Level short_label has been split into short_label (for displaying) and level_index (for internal use like coordinates)
-- More type hinting and code modernization
-- Fix bug where it hasn't been possible since ages to link to POIs without a slug
+- some API mapdata endpoints were moved, some lesser used properties renamed
+- proper support for access restricted levels
+
+- positioning/beacon measurements now have schemas
+- more type hinting and code modernization 
+- paste in slug field is now auto-lowercase
+- fix editor header on mobile
+- some js refactors in main UI
 
 # Eurofurence 28 ([ef28](https://github.com/c3nav/c3nav/tree/ef28))
 
