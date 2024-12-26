@@ -66,8 +66,8 @@ class SpaceIdentifyableQuest(Quest):
     @classmethod
     def _qs_for_request(cls, request):
         return Space.qs_for_request(request).select_related('level').filter(identifyable=None).annotate(
-            num_graph_nodes=Count('graph_nodes')
-        ).exclude(graph_nodes=0)
+            num_graph_nodes=Count('graphnodes')
+        ).exclude(num_graph_nodes=0)
 
 
 def get_door_edges_for_request(request, space_ids: Optional[list[int]] = None):
