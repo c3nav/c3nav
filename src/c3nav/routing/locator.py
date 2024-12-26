@@ -80,8 +80,8 @@ class Locator:
         calculated = get_nodes_and_ranging_beacons()
         for beacon in calculated.beacons.values():
             identifiers = []
-            if beacon.wifi_bssid:
-                identifiers.append(beacon.wifi_bssid)
+            for bssid in beacon.wifi_bssids:
+                identifiers.append(bssid)
             if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
                 identifiers.append((beacon.ibeacon_uuid, beacon.ibeacon_major, beacon.ibeacon_minor))
             for identifier in identifiers:

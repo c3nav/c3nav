@@ -10,6 +10,7 @@ from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field.fields import SchemaField
+from pydantic_extra_types.mac_address import MacAddress
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
@@ -468,14 +469,8 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     node_number = models.PositiveSmallIntegerField(_('Node Number'), unique=True, null=True, blank=True)
 
-    wifi_bssid = models.CharField(_('WiFi BSSID'), unique=True, null=True, blank=True,
-                                  max_length=17,
-                                  validators=[RegexValidator(
-                                      regex='^([a-f0-9]{2}:){5}[a-f0-9]{2}$',
-                                      message='Must be a lower-case bssid',
-                                      code='invalid_bssid'
-                                  )],
-                                  help_text=_("uses node's value if not set"))
+    wifi_bssids: list[MacAddress] = SchemaField(list[MacAddress], verbose_name=_('WiFi BSSIDs'), default=list,
+                                                help_text=_("uses node's value if not set"))
     bluetooth_address = models.CharField(_('Bluetooth Address'), unique=True, null=True, blank=True,
                                          max_length=17,
                                          validators=[RegexValidator(
@@ -520,10 +515,10 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     @property
     def title(self):
-        if self.node_number is not None or self.wifi_bssid is not None:
+        if self.node_number is not None or self.wifi_bssids:
             if self.comment:
-                return f'{self.node_number or ''} {self.wifi_bssid or ''} ({self.comment})'.strip()
+                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])} ({self.comment})'.strip()
             else:
-                return f'{self.node_number or ''} {self.wifi_bssid or ''}'.strip()
+                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])}'.strip()
         else:
             return self.comment

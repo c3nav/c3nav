@@ -1,3 +1,5 @@
+from itertools import chain
+
 import numpy as np
 from django.core.management.base import BaseCommand
 
@@ -17,7 +19,7 @@ class Command(BaseCommand):
                         found_beacons.setdefault(measurement["bssid"], []).append((beacon_measurement, measurement))
 
         # put in the ones we know
-        known = {r.wifi_bssid: r for r in RangingBeacon.objects.all()}
+        known = dict(chain(*(((bssid, r) for bssid in r.wifi_bssids) for r in RangingBeacon.objects.all())))
 
         # lets go through them
         for bssid, measurements in found_beacons.items():
