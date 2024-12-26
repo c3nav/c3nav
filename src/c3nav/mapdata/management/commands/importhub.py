@@ -9,9 +9,7 @@ from shapely import Point
 from shapely.geometry import shape
 
 from c3nav.api.utils import NonEmptyStr
-from c3nav.editor.models import ChangeSet
-from c3nav.editor.views.base import within_changeset
-from c3nav.mapdata.models import Area, LocationGroup, LocationSlug, Space
+from c3nav.mapdata.models import Area, LocationGroup, LocationSlug, MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.models.report import Report
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -43,14 +41,10 @@ class Command(BaseCommand):
                          headers={"Authorization": "Token "+settings.HUB_API_SECRET})
         r.raise_for_status()
 
-        changed_geometries.reset()
-        changeset = ChangeSet()
-        changeset.author = self.request.user
-        changeset.title = 'importhub'
-        with within_changeset(changeset=changeset, user=None) as locked_changeset:
+        with MapUpdate.lock():
+            changed_geometries.reset()
             self.do_import(r.json())
-        with changeset.lock_to_edit() as locked_changeset:
-            locked_changeset.apply(user=None)
+            MapUpdate.objects.create(type='importhub')
 
     def do_report(self, prefix: str, obj_id: str, obj, report: Report):
         import_prefix = f"{prefix}:{obj_id}:"

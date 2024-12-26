@@ -78,7 +78,7 @@
                     {% elif update.type == 'changeset' %}
                         {% url 'control.users.detail' user=update.user.pk as user_url %}
                         {% url 'control.users.detail' user=update.changeset.author.pk as author_url %}
-                        {% blocktrans with changeset_id=update.changeset.pk changeset_url=update.changeset.get_absolute_url changeset_title=update.changeset.title user_name=update.user.username author_name=update.changeset.author.username %}Changeset <a href="{{ changeset_url }}">#{{ changeset_id }} ({{ changeset_title }})</a> by <a href="{{ author_url }}">{{ author_name }}</a> applied by <a href="{{ user_url }}">{{ user_name }}</a>{% endblocktrans %}
+                        {% blocktrans with changeset_id=update.changeset.pk changeset_url=update.changeset.get_absolute_url user_name=update.user.username author_name=update.changeset.author.username %}Changeset <a href="{{ changeset_url }}">#{{ changeset_id }}</a> by <a href="{{ author_url }}">{{ author_name }}</a> applied by <a href="{{ user_url }}">{{ user_name }}</a>{% endblocktrans %}
                     {% else %}
                         {{ update.type }}
                     {% endif %}
