@@ -20,7 +20,7 @@ class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["altitude"].label = (
-            _('How many meters above ground is the access point “%s” mounted?') % self.instance.title
+            _('How many meters above ground is the access point “%s” mounted?') % self.instance.comment
         )
 
     def clean_altitude(self):
