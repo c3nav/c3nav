@@ -56,14 +56,14 @@ class RangingBeaconAltitudeQuest(Quest):
 
 class RangingBeaconBSSIDsQuestForm(ChangeSetModelForm):
     def clean_bssids(self):
-        data = self.cleaned_data["bssids"]
+        data = self.cleaned_data["wifi_bssids"]
         if not data:
             raise ValidationError(_("Need at least one bssid."))
         return data
 
     class Meta:
         model = RangingBeacon
-        fields = ("bssids", )
+        fields = ("wifi_bssids", )
 
     @property
     def changeset_title(self):
