@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Sequence, Type, Callable, Any
 
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Model, F
 from django.shortcuts import get_object_or_404
@@ -79,6 +80,7 @@ class MapdataEndpoint:
     schema: Type[BaseSchema]
     filters: Type[FilterSchema] | None = None
     no_cache: bool = False
+    etag_add_key: Optional[str] = None
     name: Optional[str] = None
 
     @property
@@ -143,7 +145,9 @@ class MapdataAPIBuilder:
         list_func.__name__ = f"{endpoint.model_name}_list"
 
         if not endpoint.no_cache:
-            list_func = api_etag()(list_func)
+            list_func = api_etag(
+                etag_add_key=(("filters", endpoint.etag_add_key) if endpoint.etag_add_key else None)
+            )(list_func)
 
         self.router.get(f"/{endpoint.endpoint_name}/", summary=f"{endpoint.model_name} list",
                         tags=[f"mapdata-{tag}"], description=schema_description(endpoint.schema),
@@ -233,13 +237,13 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
             model=DataOverlayFeature,
             schema=DataOverlayFeatureSchema,
             filters=ByOverlayFilter,
-            no_cache=True,
+            etag_add_key="overlay",
         ),
         MapdataEndpoint(
             model=DataOverlayFeature,
             schema=DataOverlayFeatureGeometrySchema,
             filters=ByOverlayFilter,
-            no_cache=True,
+            etag_add_key="overlay",
             name='dataoverlayfeaturegeometries'
         ),
         MapdataEndpoint(
@@ -341,6 +345,8 @@ def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeature
 
     feature.save()
 
+    cache.delete(f'mapdata:etag_add:overlay:{feature.overlay_id}')
+
     return 204, None
 
 
@@ -356,6 +362,7 @@ def update_data_overlay_features_bulk(request, parameters: DataOverlayFeatureBul
 
     forbidden_object_ids = []
 
+    overlay_ids = set()
     with transaction.atomic():
         features = DataOverlayFeature.objects.filter(id__in=updates.keys()).annotate(
             edit_access_restriction_id=F('overlay__edit_access_restriction_id'))
@@ -371,7 +378,14 @@ def update_data_overlay_features_bulk(request, parameters: DataOverlayFeatureBul
                 if key == 'id':
                     continue
                 setattr(feature, key, value)
+
+            overlay_ids.add(feature.overlay_id)
             feature.save()
+
+        for pk in overlay_ids:
+            transaction.on_commit(
+                lambda: cache.delete(f'mapdata:etag_add:overlay:{pk}')
+            )
 
         if len(forbidden_object_ids) > 0:
             raise APIPermissionDenied('You are not allowed to edit the objects with the following ids: %s.'

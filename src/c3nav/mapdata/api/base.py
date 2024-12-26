@@ -1,7 +1,10 @@
 import json
+import time
 from functools import wraps
+from typing import Optional
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Prefetch
 from django.utils.cache import get_conditional_response
@@ -19,7 +22,8 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 request_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_API)
 
 
-def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_func, base_mapdata=False):
+def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_func, base_mapdata=False,
+             etag_add_key: Optional[tuple[str, str]] = None):
 
     def outer_wrapper(func):
         @wraps(func)
@@ -63,9 +67,20 @@ def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_fun
                 else:
                     value = model_dump()
                 data[name] = value
-            cache_key = 'mapdata:api:%s:%s:%s' % (
+
+            etag_add = ''
+            if etag_add_key:
+                etag_add_cache_key = (
+                    f'mapdata:etag_add:{etag_add_key[1]}:{getattr(kwargs[etag_add_key[0]], etag_add_key[1])}'
+                )
+                etag_add = cache.get(etag_add_cache_key, None)
+                if etag_add is None:
+                    etag_add = int(time.time())
+                    cache.set(etag_add_cache_key, etag_add, 300)
+            cache_key = 'mapdata:api:%s:%s:%s:%s' % (
                 request.resolver_match.route.replace('/', '-').strip('-'),
                 raw_etag,
+                etag_add,
                 json.dumps(data, separators=(',', ':'), sort_keys=True, cls=DjangoJSONEncoder),
             )
 
