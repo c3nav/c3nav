@@ -39,15 +39,6 @@ class Command(BaseCommand):
             self.do_import(items)
             MapUpdate.objects.create(type='importnoc')
 
-    def do_report(self, prefix: str, obj_id: str, obj, report: Report):
-        import_prefix = f"{prefix}:{obj_id}:"
-        import_tag = import_prefix+hashlib.md5(str(obj).encode()).hexdigest()
-        Report.objects.filter(import_tag__startswith=import_prefix, open=True).exclude(import_tag=import_tag).delete()
-        if not Report.objects.filter(import_tag=import_tag).exists():
-            report.import_tag = import_tag
-            report.save()
-            report.notify_reviewers()
-
     def _get_space_geom(self, space):
         return space.geometry.difference(unary_union([unwrap_geom(hole.geometry) for hole in space.holes.all()]))
 
@@ -95,8 +86,8 @@ class Command(BaseCommand):
                     continue
 
                 # move point into space if needed
-                if not space.geometry.intersects(new_geometry):
-                    new_geometry = nearest_points(space.geometry.buffer(-0.05), new_geometry)[0]
+                if not new_space.geometry.intersects(new_geometry):
+                    new_geometry = nearest_points(new_space.geometry.buffer(-0.05), new_geometry)[0]
             elif len(possible_spaces) == 1:
                 new_space = possible_spaces[0]
                 print(f"SUCCESS: {name} is in {new_space.title}")
