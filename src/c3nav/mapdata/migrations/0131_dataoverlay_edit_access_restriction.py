@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0129_dataoverlay_cluster_points'),
+        ('mapdata', '0130_rangingbeacon_wifi_bssids'),
     ]
 
     operations = [

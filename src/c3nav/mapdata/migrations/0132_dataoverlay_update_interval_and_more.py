@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0130_dataoverlay_edit_access_restriction'),
+        ('mapdata', '0131_dataoverlay_edit_access_restriction'),
     ]
 
     operations = [
