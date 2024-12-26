@@ -1419,7 +1419,7 @@ c3nav = {
             const location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
             c3nav._locationinput_set($('#destination-input'), location);
             c3nav.update_state(false);
-            c3nav.fly_to_bovarunds(true);
+            c3nav.fly_to_bounds(true);
             $cover.animate({
                 left: width + $button.width() / 2 + 'px'
             }, 300, 'swing');
