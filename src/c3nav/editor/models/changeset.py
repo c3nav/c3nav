@@ -211,7 +211,7 @@ class ChangeSet(models.Model):
         result = True
         for model_name, objects in self.changes.objects.items():
             model = apps.get_model('mapdata', model_name)
-            if issubclass(model, (LocationRedirect, LocationSlug)):
+            if issubclass(model, LocationRedirect):
                 continue
 
             if issubclass(model, DataOverlay):
@@ -241,36 +241,29 @@ class ChangeSet(models.Model):
                 result = False
                 break
 
-            for obj in objects:
-                if obj.space_id not in can_edit_spaces:
-                    result = False
-                    break
-            if not result:
-                break
+            ids = [obj.obj.id for obj in objects.values()]
+            space_ids = set(model.objects.filter(pk__in=ids).values_list('space_id', flat=True))
 
             try:
                 model._meta.get_field('origin_space')
             except FieldDoesNotExist:
                 pass
             else:
-                for obj in objects:
-                    if obj.origin_space_id not in can_edit_spaces:
-                        result = False
-                        break
-                if not result:
-                    break
+                ids = [obj.obj.id for obj in objects.values()]
+                space_ids += set(model.objects.filter(pk__in=ids).values_list('origin_space_id', flat=True))
 
             try:
                 model._meta.get_field('target_space')
             except FieldDoesNotExist:
                 pass
             else:
-                for obj in objects:
-                    if obj.target_space_id not in can_edit_spaces:
-                        result = False
-                        break
-                if not result:
-                    break
+                ids = [obj.obj.id for obj in objects.values()]
+                space_ids += set(model.objects.filter(pk__in=ids).values_list('target_space_id', flat=True))
+
+            if space_ids - can_edit_spaces:
+                result = False
+                break
+
 
         request._has_edit_access_on_all_objects_cache[self.pk] = result
         return result
