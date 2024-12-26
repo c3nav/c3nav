@@ -279,7 +279,7 @@ def mesh_map(request, level_id: int):
                     "uplink": None if node_uplink is None else node_uplink.node_id,
                 },
             }
-        })
+        })z
 
         if node_uplink and node.upstream_id:
             upstream_node = collected.nodes[node.upstream_id]

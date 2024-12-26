@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-25 11:49+0100\n"
-"PO-Revision-Date: 2024-12-25 11:50+0100\n"
+"POT-Creation-Date: 2024-12-26 22:26+0100\n"
+"PO-Revision-Date: 2024-12-26 22:25+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -243,6 +243,10 @@ msgstr "kann auf das Mesh Control Panel zugreifen"
 #: c3nav/control/models.py
 msgid "show non-public themes in theme selector"
 msgstr "Nichtöffentliche Themes in der Themeauswahl zeigen"
+
+#: c3nav/control/models.py
+msgid "dont say thanks after completing a quest"
+msgstr "nicht für das Lösen eines Quests bedanken"
 
 #: c3nav/control/models.py
 msgid "User Permissions"
@@ -546,7 +550,6 @@ msgstr "für %(restriction_title)s"
 
 #: c3nav/control/templates/control/user.html
 #: c3nav/editor/templates/editor/account_form.html
-#: c3nav/editor/templates/editor/quest_form.html
 #: c3nav/site/templates/site/account_form.html
 #: c3nav/site/templates/site/confirm.html
 msgid "back"
@@ -1904,6 +1907,23 @@ msgid "always accessible (overwrites base mapdata setting)"
 msgstr "immer zugänglich (überschreibt Basiskartendaten-Einstellung)"
 
 #: c3nav/mapdata/models/geometry/level.py
+#: c3nav/mapdata/models/geometry/space.py c3nav/mapdata/models/locations.py
+msgid "contribute to load group"
+msgstr "zu Auslastungsgruppe beitragen"
+
+#: c3nav/mapdata/models/geometry/level.py
+msgid "easily identifyable/findable"
+msgstr "einfach zu identifizieren/finden"
+
+#: c3nav/mapdata/models/geometry/level.py
+msgid ""
+"if unknown, this will be a quest. if yes, quests for enter, leave or cross "
+"descriptions to this room will be generated."
+msgstr ""
+"Falls „Unbekannt“, wird diese Location zu einem Quest. Falls ja, werden "
+"Quest zum Betreten, Verlassen und Durchgehen zu diesem Space generiert."
+
+#: c3nav/mapdata/models/geometry/level.py
 msgid "Spaces"
 msgstr "Räume"
 
@@ -2117,7 +2137,9 @@ msgid "Node Number"
 msgstr "Node Nummer"
 
 #: c3nav/mapdata/models/geometry/space.py
-msgid "WiFi BSSID"
+#, fuzzy
+#| msgid "WiFi BSSID"
+msgid "WiFi BSSIDs"
 msgstr "WLAN BSSID"
 
 #: c3nav/mapdata/models/geometry/space.py
@@ -2361,6 +2383,10 @@ msgid "don't change geometry on import"
 msgstr "Geometrie bei Import nicht überschreiben"
 
 #: c3nav/mapdata/models/locations.py
+msgid "display load group"
+msgstr "Auslastungsgruppe anzeigen"
+
+#: c3nav/mapdata/models/locations.py
 msgid "Grid Squares"
 msgstr "Planquadrate"
 
@@ -2419,6 +2445,10 @@ msgstr "im ersten Schritt anbieten, exklusive Auswahl"
 #: c3nav/mapdata/models/locations.py
 msgid "offer if nothing in the first step matches, multiple choice"
 msgstr "anbieten falls nichts im ersten Schritt passt, multiple choice"
+
+#: c3nav/mapdata/models/locations.py c3nav/routing/models.py
+msgid "allow"
+msgstr "erlaubt"
 
 #: c3nav/mapdata/models/locations.py
 msgid "reject for all locations with this group"
@@ -2529,6 +2559,14 @@ msgid "Label Settings"
 msgstr "Labeleinstellungen"
 
 #: c3nav/mapdata/models/locations.py
+msgid "Load group"
+msgstr "Auslastungsgruppe"
+
+#: c3nav/mapdata/models/locations.py
+msgid "Load groups"
+msgstr "Auslastungsgruppen"
+
+#: c3nav/mapdata/models/locations.py
 msgid "position secret"
 msgstr "position secret"
 
@@ -2607,6 +2645,10 @@ msgstr "Standardfüllfarbe"
 #: c3nav/mapdata/models/overlay.py
 msgid "fill opacity"
 msgstr "Füllopacity"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "cluster points together when zoomed out"
+msgstr "Punkte clustern wenn rausgezoomt"
 
 #: c3nav/mapdata/models/overlay.py
 msgid "default geometry type"
@@ -2918,18 +2960,146 @@ msgstr "via Control Panel"
 msgid "Map update"
 msgstr "Kartenänderung"
 
-#: c3nav/mapdata/quests/simple.py
+#: c3nav/mapdata/quests/positioning.py
 #, python-format
 msgid "How many meters above ground is the access point “%s” mounted?"
 msgstr "Wie viele meter über dem Boden ist der access point „%s“ befestigt?"
 
-#: c3nav/mapdata/quests/simple.py
+#: c3nav/mapdata/quests/positioning.py
 msgid "The AP should not be 0m above ground."
 msgstr "Der AP sollte sich nicht 0m über dem Boden befinden."
 
-#: c3nav/mapdata/quests/simple.py
+#: c3nav/mapdata/quests/positioning.py
 msgid "Ranging Beacon Altitude"
 msgstr "Höhe des Ranging Beacons"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid "Does this space qualify as “easily identifyable/findable”?"
+msgstr "Ist dieser Raum „einfach zu identifizieren/finden“?"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid "Space identifyability"
+msgstr "Raumidentifizierung"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+#, python-format
+msgid ""
+"If you are standing in any adjacent space to this one and you know that this "
+"space is named “%s”, will it be very straightforward to find it?"
+msgstr ""
+"Wenn du in in einem angrenzenden Raum stehst und weißt dass dieser raum „%s“ "
+"heißt, ist es sehr einfach ihn zu finden?"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"This applies mainly to rooms that are connected to a corridor where, if you "
+"pass their door, you will, thanks to a sign or other some other labeling, "
+"immediately able to tell that this is the door you want to go through."
+msgstr ""
+"Dies trifft hauptsächlich auf Räume zu, die mit einem Flur verbunden ist, "
+"durch den man gehen und die Tür zu diesem Raum trivial findet, dank einem "
+"Schild oder ähnliches an der Tür."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"Also, obviously, if this is a side room to another room, like a bathroom in "
+"a wardrobe."
+msgstr ""
+"Selbiges gilt, wenn dies ein raum in einem anderen Raum ist, z.b. ein "
+"Badezimmer in einer Garderobe."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"If finding this space from adjacent spaces is not obvious, the answer is no."
+msgstr ""
+"Wenn es nicht offensichtlich ist, wie man diesen Raum von allen angrenzenden "
+"Räumen findet, ist die Antwort nein."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"Even if it's a bathroom or similar facility, the answer is no unless it is "
+"very obvious and easy to see where it is."
+msgstr ""
+"Sogar wenn es ein Badezimmer oder ein ähnlicher Raum ist, ist die antwort "
+"nein, es sei denn es ist offensichtlich und einfach ihn zu sehen."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid "Leave Description"
+msgstr "Verlassensbeschreibung"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+#, python-format
+msgid ""
+"Please provide a description to be used when leaving “%(from_space)s” "
+"towards “%(to_space)s”."
+msgstr ""
+"Bitte gebe eine Beschreibung an, die genutzt werden kann wenn "
+"“%(from_space)s” in richtung “%(to_space)s” verlassen wird."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"This will be used all for all connections that lead from this space to the "
+"other, not just the highlighted one! So, if there is more than one "
+"connection between these two rooms, please be generic."
+msgstr ""
+"Diese Beschreibung wird für alle Verbindungen von diesem Raum in den anderen "
+"genutzt, nicht nur die, die markiert wurde. Wenn es alsao mehr als eine "
+"Verbindung gibt, bleib allgemein genug!"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"The description should make it possible to find the room exit no matter "
+"where in the room you are."
+msgstr ""
+"Diese Beschreibung sollte es ermöglichen, den entsprechenden Ausgang zu "
+"finden, egal, wo man im raum ist."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"Examples: “Walk through the red door.”, „Walk through the doors with the "
+"Sign “Hall 3” above it.”"
+msgstr ""
+"Beispie: „Gehe durch die rote Tür.“ „Gehe durch die Türen über denen ein "
+"Schild ‚Saal 3‘ hängt.“"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid "Cross Description"
+msgstr "Durchschreitungsbeschreibung"
+
+#: c3nav/mapdata/quests/route_descriptions.py
+#, python-format
+msgid ""
+"Please provide a description to be used when coming from “%(from_space)s” "
+"into “%(space)s” and exiting towardss “%(to_space)s”."
+msgstr ""
+"Bitte gebe eine Beschreibung an, die genutzt werden kann wenn man von "
+"“%(from_space)s” durch “%(space)s” zu “%(to_space)s” geht."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"This will be used combination of space connections that match this "
+"description, not just the highlighted ones! So, if there is more than "
+"connection between these two rooms, please be generic."
+msgstr ""
+"Dies wird für jede Raumverbindungskombination genutzt, auf die diese "
+"Beschreibung zutrifft, nicht nur die hervorgehobene! Also, wenn es mehr als "
+"eine Verbindung gibt, bleib allgemein."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"This description will replace the entire route descripting when passing "
+"through the room this way."
+msgstr ""
+"Diese Beschreibung wird die komplette Routenbeschreibung ersetzen wenn man "
+"auf diese art durch diesen Raum läuft."
+
+#: c3nav/mapdata/quests/route_descriptions.py
+msgid ""
+"Examples: “Go straight ahead into the room right across.” “Turn right and go "
+"through the big doors.”"
+msgstr ""
+"Beispei: „Geradeaus durch die gegenüberliegenden türen.“ „Biege rechts ab "
+"und geh durch das große Tor.“"
 
 #: c3nav/mapdata/tasks.py
 #, python-format
@@ -3617,10 +3787,6 @@ msgid "fast"
 msgstr "schnell"
 
 #: c3nav/routing/models.py
-msgid "allow"
-msgstr "erlaubt"
-
-#: c3nav/routing/models.py
 msgid "avoid upwards"
 msgstr "aufwärts vermeiden"
 
@@ -3699,6 +3865,90 @@ msgstr "Engwish UwU"
 #: c3nav/settings.py
 msgid "German"
 msgstr "Deutsch"
+
+#: c3nav/site/compliance.py
+msgid "I do not read fefe or i only read the sports section."
+msgstr "Ich lese kein Fefe oder nur den Sportteil."
+
+#: c3nav/site/compliance.py
+msgid ""
+"I am not affiliated with Automattic in any way, financially or otherwise."
+msgstr ""
+"Ich bin in keiner Weise, weder finanziell noch anderweitig, Automattic "
+"angehörig."
+
+#: c3nav/site/compliance.py
+msgid ""
+"I am not Anish Kapoor, i am in no way affiliated to Anish Kapoor, I am not "
+"signing in on behalf of Anish Kapoor or an associate of Anish Kapoor. To the "
+"best of my knowledge, information and belief, this account will not make its "
+"way into the hands of Anish Kapoor."
+msgstr ""
+"Ich bin nicht Anish Kapoor, ich bin in keiner Weise mit Anish Kapoor "
+"verbunden, ich melde mich nicht im Namen von Anish Kapoor oder eines "
+"Mitarbeiters von Anish Kapoor an. Nach meinem besten Wissen und Gewissen "
+"wird dieses Konto nicht in die Hände von Anish Kapoor gelangen."
+
+#: c3nav/site/compliance.py
+msgid "I do not use generative AI to create cheap assets for my talk slides."
+msgstr ""
+"Ich verwende keine generative KI, um billige Assets für meine Vortragsfolien "
+"zu erstellen."
+
+#: c3nav/site/compliance.py
+msgid "I have not checked this checkbox."
+msgstr "Ich habe diese Checkbox nicht aktiviert."
+
+#: c3nav/site/compliance.py
+msgid ""
+"I will not harm any human being, catgirl or similar creature nor through "
+"inaction permit any such creature to be harmed."
+msgstr ""
+"Ich werde keinem Menschen, Catgirl oder ähnlichen Lebewesen Schaden zufügen "
+"und auch nicht durch Untätigkeit zulassen, dass einem solchen Lebewesen "
+"Schaden zugefügt wird."
+
+#: c3nav/site/compliance.py
+msgid "I am not a robot or i am at least a cute one."
+msgstr "Ich bin kein Roboter oder wenn, dann ein cuter Roboter."
+
+#: c3nav/site/compliance.py
+msgid "I am a robot."
+msgstr "Ich bin ein Roboter."
+
+#: c3nav/site/compliance.py
+msgid "Trans rights!"
+msgstr "Trans rights!"
+
+#: c3nav/site/compliance.py
+msgid "Be excellent to each other."
+msgstr "Be excellent to each other."
+
+#: c3nav/site/compliance.py
+msgid ""
+"I acknowledge that any checkboxes shown under this form are optional, non-"
+"mandatory serving suggestions."
+msgstr ""
+"Ich erkenne an, dass alle Checkboxen unter diesem Formular optionale, nicht-"
+"verpflichtende Serviervorschläge sind."
+
+#: c3nav/site/compliance.py
+msgid ""
+"Chaos™ is a registered trademark of Chaos Computer Club "
+"Veranstaltungsgesellschaft mbH."
+msgstr ""
+"Chaos™ ist eine eingetragene Marke der Chaos Computer Club "
+"Veranstaltungsgesellschaft mbH."
+
+#: c3nav/site/compliance.py
+#, python-format
+msgid "We and our %d partners value your privacy."
+msgstr "Wir und unsere %d Partner nehmen Ihre Privatsphäre sehr ernst."
+
+#: c3nav/site/compliance.py
+msgid "If you do not like this checkbox, reload to get another one."
+msgstr ""
+"Wenn dir diese Checkbox nicht gefällt, lade die Seite neu für eine andere."
 
 #: c3nav/site/forms.py
 msgid "Yes, i really want to delete my account."
@@ -3796,6 +4046,10 @@ msgstr "Du bist angemeldet als <strong>%(username)s</strong>."
 #: c3nav/site/templates/site/account.html
 msgid "You can manage:"
 msgstr "Du kannst folgendes verwalten:"
+
+#: c3nav/site/templates/site/account.html c3nav/site/templates/site/map.html
+msgid "Editor"
+msgstr "Editor"
 
 #: c3nav/site/templates/site/account.html
 msgid "stuff"
@@ -3900,10 +4154,6 @@ msgstr "Sprache wählen"
 #: c3nav/site/templates/site/language.html
 msgid "Set language"
 msgstr "Sprache setzen"
-
-#: c3nav/site/templates/site/map.html
-msgid "Editor"
-msgstr "Editor"
 
 #: c3nav/site/templates/site/map.html
 msgid "API"
@@ -4190,85 +4440,6 @@ msgid "Route from %s to %s"
 msgstr "Route von %s nach %s"
 
 #: c3nav/site/views.py
-msgid "I do not read fefe or i only read the sports section."
-msgstr "Ich lese kein Fefe oder nur den Sportteil."
-
-#: c3nav/site/views.py
-msgid ""
-"I am not affiliated with Automattic in any way, financially or otherwise."
-msgstr ""
-"Ich bin in keiner Weise, weder finanziell noch anderweitig, Automattic "
-"angehörig."
-
-#: c3nav/site/views.py
-msgid ""
-"I am not Anish Kapoor, i am in no way affiliated to Anish Kapoor, I am not "
-"signing in on behalf of Anish Kapoor or an associate of Anish Kapoor. To the "
-"best of my knowledge, information and belief, this account will not make its "
-"way into the hands of Anish Kapoor."
-msgstr ""
-"Ich bin nicht Anish Kapoor, ich bin in keiner Weise mit Anish Kapoor "
-"verbunden, ich melde mich nicht im Namen von Anish Kapoor oder eines "
-"Mitarbeiters von Anish Kapoor an. Nach meinem besten Wissen und Gewissen "
-"wird dieses Konto nicht in die Hände von Anish Kapoor gelangen."
-
-#: c3nav/site/views.py
-msgid "I do not use generative AI to create cheap assets for my talk slides."
-msgstr ""
-"Ich verwende keine generative KI, um billige Assets für meine Vortragsfolien "
-"zu erstellen."
-
-#: c3nav/site/views.py
-msgid "I have not checked this checkbox."
-msgstr "Ich habe diese Checkbox nicht aktiviert."
-
-#: c3nav/site/views.py
-msgid ""
-"I will not harm any human being, catgirl or similar creature nor through "
-"inaction permit any such creature to be harmed."
-msgstr ""
-"Ich werde keinem Menschen, Catgirl oder ähnlichen Lebewesen Schaden zufügen "
-"und auch nicht durch Untätigkeit zulassen, dass einem solchen Lebewesen "
-"Schaden zugefügt wird."
-
-#: c3nav/site/views.py
-msgid "I am not a robot or i am at least a cute one."
-msgstr "Ich bin kein Roboter oder wenn, dann ein cuter Roboter."
-
-#: c3nav/site/views.py
-msgid "I am a robot."
-msgstr "Ich bin ein Roboter."
-
-#: c3nav/site/views.py
-msgid "Trans rights!"
-msgstr "Trans rights!"
-
-#: c3nav/site/views.py
-msgid "Be excellent to each other."
-msgstr "Be excellent to each other."
-
-#: c3nav/site/views.py
-msgid ""
-"I acknowledge that any checkboxes shown under this form are optional, non-"
-"mandatory serving suggestions."
-msgstr ""
-"Ich erkenne an, dass alle Checkboxen unter diesem Formular optionale, nicht-"
-"verpflichtende Serviervorschläge sind."
-
-#: c3nav/site/views.py
-msgid "If you do not like this checkbox, reload to get another one."
-msgstr ""
-"Wenn dir diese Checkbox nicht gefällt, lade die Seite neu für eine andere."
-
-#: c3nav/site/views.py
-msgid "Chaos™ is a registered trademark of Chaos Computer Club Veranstaltungsgesellschaft mbH."
-msgstr "Chaos™ ist eine eingetragene Marke der Chaos Computer Club Veranstaltungsgesellschaft mbH."
-
-#: c3nav/site/views.py
-msgid "We and our %d partners value your privacy."
-msgstr "Wir und unsere %d Partner nehmen ihre Privatsphäre sehr ernst."
-
-#: c3nav/site/views.py
 msgid "account creation is currently disabled."
 msgstr "Benutzerregistrierung ist momentan deaktiviert."
 
@@ -4327,6 +4498,14 @@ msgstr "Um welchen Ort geht es?"
 #: c3nav/site/views.py
 msgid "Does one of these describe your missing location?"
 msgstr "Beschreibt einer dieser Begriffe den fehlenden Ort?"
+
+#: c3nav/site/views.py
+msgid ""
+"Please carefully check if one of the options above applies to the missing "
+"location!"
+msgstr ""
+"Bitte überprüfe sorgfältig ob keine der oben genannten Optionen auf den "
+"fehlenden Ort zutrifft."
 
 #: c3nav/site/views.py
 msgid "None of these fit"
