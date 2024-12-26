@@ -415,10 +415,9 @@ class QuestsFilter(BaseSchema):
                     response={200: list[QuestSchema], **auth_responses})
 @api_etag(permissions=True, quests=True)
 def list_quests(request, filters: Query[QuestsFilter]):
-    quests = get_all_quests_for_request(request)
-    quest_types = frozenset(filters.quest_type.split(',')) if filters.quest_type else ()
-    if quest_types:
-        quests = [quest for quest in quests if quest.quest_type in quest_types]
+    quest_types = filters.quest_type.split(',') if filters.quest_type else None
+    quests = get_all_quests_for_request(request, quest_types)
+
     if filters.level:
         quests = [quest for quest in quests if quest.level_id == filters.level]
     return quests

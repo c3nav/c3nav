@@ -1623,11 +1623,9 @@ c3nav = {
                 enabledIcon: c3nav._map_material_icon('grid_on'),
                 disabledIcon: c3nav._map_material_icon('grid_off'),
                 onEnable: () => {
-                    console.log('grid enable');
                     c3nav._gridLayer.addTo(c3nav.map);
                 },
                 onDisable: () => {
-                    console.log('grid disable');
                     c3nav._gridLayer.remove();
                 },
             }).addTo(c3nav.map);
@@ -1694,21 +1692,21 @@ c3nav = {
         history.back(); // close the modal
     },
 
-    key_control: null,
+    legend_control: null,
     create_key: function (theme_id) {
         c3nav_api.get(`map/legend/${theme_id}/`)
             .then(key => {
                 const entries = [...key.base, ...key.groups, ...key.obstacles];
-                const key_control = new KeyControl();
+                const legend_control = new LegendControl();
                 for (const entry of entries) {
-                    key_control.addKey(entry.title, entry.fill, entry.border);
+                    legend_control.addKey(entry.title, entry.fill, entry.border);
                 }
-                if (c3nav.key_control !== null) {
-                    c3nav.map.removeControl(c3nav.key_control);
+                if (c3nav.legend_control !== null) {
+                    c3nav.map.removeControl(c3nav.legend_control);
                 }
                 if (entries.length > 0) {
-                    c3nav.key_control = key_control;
-                    key_control.addTo(c3nav.map);
+                    c3nav.legend_control = legend_control;
+                    legend_control.addTo(c3nav.map);
                 }
             });
     },
@@ -2417,9 +2415,13 @@ ExpandingControl = L.Control.extend({
             e.stopPropagation();
         });
 
-        this.render();
+        this.refresh();
 
         return this._container;
+    },
+
+    refresh: function () {
+        this.render(this._content);
     },
 
     expand: function () {
@@ -2445,7 +2447,7 @@ ExpandingControl = L.Control.extend({
         this.setStored('pinned', this._pinned);
     },
 
-    render: function () {},
+    render: function (content) {},
 });
 
 
@@ -2660,90 +2662,365 @@ ThemeControl = L.Control.extend({
     },
 })
 
-QuestsControl = L.Control.extend({
+QuestsControl = ExpandingControl.extend({
     options: {
         position: 'topright',
-        addClasses: ''
+        addClasses: 'leaflet-control-quests',
+        icon: 'editor_choice',
+        storageKey: 'quests',
     },
 
+    _questData: {},
+
     onAdd: function () {
-        this._container = L.DomUtil.create('div', 'leaflet-control-quests leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-symbols', this._container);
-        $(this._button).click(this.toggleQuests).dblclick(function (e) {
-            e.stopPropagation();
+        this._activeQuests = new Set(this.getStored('active', []));
+        this._loadedQuests = new Set();
+
+        ExpandingControl.prototype.onAdd.call(this);
+
+        this.reloadQuests().catch(err => console.error(err));
+
+        $(this._container).on('change', 'input[type=checkbox]', e => {
+            const questName = e.target.dataset.quest;
+            if (e.target.checked) {
+                this.showQuest(questName);
+            } else {
+                this.hideQuest(questName);
+            }
         });
-        this._button.innerText = c3nav._map_material_icon('editor_choice');
-        this._button.href = '#';
-        this._button.classList.toggle('control-disabled', false);
-        this.questsActive = false;
-        if (localStorageWrapper.getItem('showQuests')) {
-            this.showQuests();
-        }
+
         return this._container;
     },
 
-    toggleQuests: function (e) {
-        if (e) e.preventDefault();
-        if (c3nav._questsControl.questsActive) {
-            c3nav._questsControl.hideQuests();
-        } else {
-            c3nav._questsControl.showQuests();
+    render: function (container) {
+        if (!container) return;
+        const fragment = document.createDocumentFragment();
+        const title = document.createElement('h4');
+        title.textContent = 'Quests';
+
+        fragment.append(title);
+
+        for (const quest_name in c3nav.user_data.quests) {
+            const quest = c3nav.user_data.quests[quest_name];
+
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.dataset.quest = quest_name;
+
+            if (this._activeQuests.has(quest_name)) {
+                checkbox.checked = true;
+            }
+            label.append(checkbox, quest.label);
+            
+            fragment.append(label);
         }
+        container.replaceChildren(...fragment.children);
     },
 
-    showQuests: function () {
-        if (this.questsActive) return;
-        this._button.innerText = c3nav._map_material_icon('editor_choice');
-        this._button.classList.toggle('control-disabled', false);
-        this.questsActive = true;
-        localStorageWrapper.setItem('showQuests', '1');
-        this.reloadQuests();
+    showQuest: function (name) {
+        if (this._activeQuests.has(name)) return;
+        this._activeQuests.add(name);
+        this.setStored('active', [...this._activeQuests]);
+        this.reloadQuests().catch(err => console.error(err));
     },
 
-    reloadQuests: function() {
-        if (!this.questsActive) return;
-        c3nav_api.get('map/quests/')
-            .then((data) => {
-                for (const level_id in c3nav._questsLayers) {
-                    c3nav._questsLayers[level_id].clearLayers();
-                }
-                for (const quest of data) {
-                    const quest_icon = c3nav._map_material_icon(c3nav.user_data.quests[quest.quest_type].icon ?? 'editor_choice');
-                    L.geoJson(quest.point, {
-                        pointToLayer:  (geom, latlng) => {
-                            return L.marker(latlng, {
-                                icon: L.divIcon({
-                                    className: 'quest-icon',
-                                    html: `<span>${quest_icon}</span>`,
-                                    iconSize: [24, 24],
-                                    iconAnchor: [12, 12],
-                                })
-                            });
-                        }
-                    })
-                        .addTo(c3nav._questsLayers[quest.level_id])
-                        .on('click', function() {
-                            c3nav.open_modal();
-                            $.get(`/editor/quests/${quest.quest_type}/${quest.identifier}`, c3nav._modal_loaded).fail(c3nav._modal_error);
-                        });
-                }
-            })
-            .catch(err => {
-                console.error(err);
-            });
+    hideQuest: function (name) {
+        if (!this._activeQuests.has(name)) return;
+        this._activeQuests.delete(name);
+        this.setStored('active', [...this._activeQuests]);
+        this.reloadQuests().catch(err => console.error(err));
     },
 
-    hideQuests: function () {
-        if (!this.questsActive) return;
+    reloadQuests: async function() {
+        console.log(this);
+        const activeQuests = this._activeQuests;
+        const removed = this._loadedQuests.difference(activeQuests);
+        const added = activeQuests.difference(this._loadedQuests);
+
+        if (removed.size === 0 && added.size === 0) return;
+
+        const questData = this._questData;
+
+        if (added.size > 0) {
+            for(const name of added) {
+                questData[name] = [];
+            }
+
+            const added_param = [...added].join(',');
+            const data = await c3nav_api.get(`map/quests/?quest_type=${added_param}`);
+            for (const quest of data) {
+                questData[quest.quest_type].push(quest);
+            }
+        }
+
+        for (const name of removed) {
+            delete questData[name];
+        }
+
+        this._questData = questData;
+        this._loadedQuests = new Set([...activeQuests]);
+
         for (const level_id in c3nav._questsLayers) {
             c3nav._questsLayers[level_id].clearLayers();
         }
-        this._button.innerText = c3nav._map_material_icon('editor_choice');
-        this._button.classList.toggle('control-disabled', true);
-        this.questsActive = false;
-        localStorageWrapper.removeItem('showQuests');
-    }
+
+        for (const quest_type in this._questData) {
+            const quests = this._questData[quest_type];
+            const quest_icon = c3nav._map_material_icon(c3nav.user_data.quests[quest_type].icon ?? 'editor_choice');
+
+            for (const quest of quests) {
+                L.geoJson(quest.point, {
+                    pointToLayer: (geom, latlng) => {
+                        return L.marker(latlng, {
+                            icon: L.divIcon({
+                                className: 'quest-icon',
+                                html: `<span>${quest_icon}</span>`,
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12],
+                            })
+                        });
+                    }
+                })
+                    .addTo(c3nav._questsLayers[quest.level_id])
+                    .on('click', function () {
+                        c3nav.open_modal();
+                        $.get(`/editor/quests/${quest_type}/${quest.identifier}`, c3nav._modal_loaded).fail(c3nav._modal_error);
+                    });
+            }
+
+
+        }
+    },
 });
+
+LegendControl = ExpandingControl.extend({
+    options: {
+        position: 'topright',
+        addClasses: 'leaflet-control-key',
+        icon: 'legend_toggle',
+        storageKey: 'legend',
+    },
+    _keys: [],
+
+    addKey: function (name, background, border) {
+        this._keys.push({
+            name,
+            background,
+            border,
+        });
+        this.refresh();
+    },
+
+    render: function (container) {
+        if (!container) return;
+        const fragment = document.createDocumentFragment();
+        for (const key of this._keys) {
+            const key_container = document.createElement('div');
+            key_container.classList.add('key');
+            const color = document.createElement('div');
+            color.classList.add('key-color');
+            if (key.background !== null) {
+                color.style.backgroundColor = key.background;
+            }
+            if (key.border !== null) {
+                color.style.borderColor = key.border;
+            }
+
+            const name = document.createElement('div');
+            name.innerText = key.name;
+            key_container.append(color, name);
+            fragment.append(key_container);
+        }
+        container.replaceChildren(...fragment.children);
+    },
+});
+
+OverlayControl = ExpandingControl.extend({
+    options: {
+        position: 'topright',
+        addClasses: 'leaflet-control-overlays',
+        icon: 'stacks',
+        storageKey: 'overlays',
+        levels: {}
+    },
+
+    _overlays: {},
+    _ungrouped: [],
+    _groups: {},
+
+    initialize: function ({levels, ...config}) {
+        this.config = config;
+        this._levels = levels;
+    },
+
+    onAdd: function () {
+
+        const initialActiveOverlays = this.getStored('active', []);
+        const initialCollapsedGroups = this.getStored('collapsed', []);
+
+        for (const overlay of initialActiveOverlays) {
+            if (overlay in this._overlays) {
+                this._overlays[overlay].visible = true;
+                this._overlays[overlay].enable(this._levels);
+            }
+        }
+
+        for (const group of initialCollapsedGroups) {
+            if (group in this._groups) {
+                this._groups[group].expanded = false;
+            }
+        }
+
+        ExpandingControl.prototype.onAdd.call(this);
+
+        this.refresh();
+
+        $(this._container).on('change', 'input[type=checkbox]', e => {
+            this._overlays[e.target.dataset.id].visible = e.target.checked;
+            this.updateOverlay(e.target.dataset.id);
+        });
+        $(this._container).on('click', '.content h4', e => {
+            this.toggleGroup(e.target.parentElement.dataset.group);
+        });
+        return this._container;
+    },
+
+    addOverlay: function (overlay) {
+        this._overlays[overlay.id] = overlay;
+        if (overlay.group == null) {
+            this._ungrouped.push(overlay);
+        } else {
+            if (overlay.group in this._groups) {
+                this._groups[overlay.group].overlays.push(overlay);
+            } else {
+                this._groups[overlay.group] = {
+                    expanded: this._initialCollapsedGroups === null || !this._initialCollapsedGroups.includes(overlay.group),
+                    overlays: [overlay],
+                };
+            }
+        }
+
+        this.refresh();
+    },
+
+    updateOverlay: function (id) {
+        const overlay = this._overlays[id];
+        if (overlay.visible) {
+            overlay.enable(this._levels);
+        } else {
+            overlay.disable(this._levels);
+        }
+        const activeOverlays = Object.keys(this._overlays).filter(k => this._overlays[k].visible);
+        this.setStored('active', activeOverlays);
+    },
+
+    render: function (container) {
+        if (!container) return;
+
+        const ungrouped = document.createDocumentFragment();
+        const groups = document.createDocumentFragment();
+
+        const render_overlays = (overlays, container) => {
+            for (const overlay of overlays) {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.id = overlay.id;
+                if (overlay.visible) {
+                    checkbox.checked = true;
+                }
+                label.append(checkbox, overlay.title);
+                container.append(label);
+            }
+        };
+
+        render_overlays(this._ungrouped, ungrouped);
+
+        for (const group in this._groups) {
+            const group_container = document.createElement('div');
+            group_container.classList.add('overlay-group');
+            if (this._groups[group].expanded) {
+                group_container.classList.add('expanded');
+            }
+            this._groups[group].el = group_container;
+            group_container.dataset.group = group;
+            const title = document.createElement('h4');
+            title.innerText = group;
+            group_container.append(title);
+            render_overlays(this._groups[group].overlays, group_container);
+            groups.append(group_container);
+        }
+        container.replaceChildren(...ungrouped.children, ...groups.children);
+    },
+
+    toggleGroup: function (name) {
+        const group = this._groups[name];
+        group.expanded = !group.expanded;
+        group.el.classList.toggle('expanded', group.expanded);
+        const collapsedGroups = Object.keys(this._groups).filter(k => !this._groups[k].expanded);
+        this.setStored('collapsed', collapsedGroups);
+    },
+});
+
+var SvgIcon = L.Icon.extend({
+    options: {
+        // @section
+        // @aka DivIcon options
+        iconSize: [12, 12], // also can be set through CSS
+
+        // iconAnchor: (Point),
+        // popupAnchor: (Point),
+
+        // @option html: String|SVGElement = ''
+        // Custom HTML code to put inside the div element, empty by default. Alternatively,
+        // an instance of `SVGElement`.
+        iconSvg: null,
+        shadowSvg: null,
+
+        // @option bgPos: Point = [0, 0]
+        // Optional relative position of the background, in pixels
+        bgPos: null,
+
+        className: 'leaflet-svg-icon'
+    },
+
+    // @method createIcon(oldIcon?: HTMLElement): HTMLElement
+    // Called internally when the icon has to be shown, returns a `<img>` HTML element
+    // styled according to the options.
+    createIcon: function (oldIcon) {
+        return this._createIcon('icon', oldIcon);
+    },
+
+    // @method createShadow(oldIcon?: HTMLElement): HTMLElement
+    // As `createIcon`, but for the shadow beneath it.
+    createShadow: function (oldIcon) {
+        return this._createIcon('shadow', oldIcon);
+    },
+
+    _createIcon: function (name, oldIcon) {
+        const src = this.options[`${name}Svg`];
+
+        if (!src) {
+            if (name === 'icon') {
+                throw new Error('iconSvg not set in Icon options (see the docs).');
+            }
+            return null;
+        }
+
+        let svgEl;
+        if (src instanceof SVGElement) {
+            svgEl = src;
+        } else {
+            svgEl = (new DOMParser()).parseFromString(src, 'image/svg+xml').documentElement;
+        }
+
+        this._setIconStyles(svgEl, name);
+
+        return svgEl;
+    },
+});
+
 
 L.SquareGridLayer = L.Layer.extend({
     initialize: function (config) {
@@ -2844,234 +3121,6 @@ L.SquareGridLayer = L.Layer.extend({
     }
 });
 
-KeyControl = ExpandingControl.extend({
-    options: {
-        position: 'topright',
-        addClasses: 'leaflet-control-key',
-        icon: 'legend_toggle',
-        storageKey: 'key',
-    },
-    _keys: [],
-
-    addKey: function (name, background, border) {
-        this._keys.push({
-            name,
-            background,
-            border,
-        });
-        this.render();
-    },
-
-    render: function () {
-        if (!this._content) return;
-        const fragment = document.createDocumentFragment();
-        for (const key of this._keys) {
-            const key_container = document.createElement('div');
-            key_container.classList.add('key');
-            const color = document.createElement('div');
-            color.classList.add('key-color');
-            if (key.background !== null) {
-                color.style.backgroundColor = key.background;
-            }
-            if (key.border !== null) {
-                color.style.borderColor = key.border;
-            }
-
-            const name = document.createElement('div');
-            name.innerText = key.name;
-            key_container.append(color, name);
-            fragment.append(key_container);
-        }
-        this._content.replaceChildren(...fragment.children);
-    },
-});
-
-OverlayControl = ExpandingControl.extend({
-    options: {
-        position: 'topright',
-        addClasses: 'leaflet-control-overlays',
-        icon: 'stacks',
-        storageKey: 'overlays',
-        levels: {}
-    },
-
-    _overlays: {},
-    _ungrouped: [],
-    _groups: {},
-
-    initialize: function ({levels, ...config}) {
-        this.config = config;
-        this._levels = levels;
-    },
-
-    onAdd: function () {
-
-        const initialActiveOverlays = this.getStored('active', []);
-        const initialCollapsedGroups = this.getStored('collapsed', []);
-
-        for (const overlay of initialActiveOverlays) {
-            if (overlay in this._overlays) {
-                this._overlays[overlay].visible = true;
-                this._overlays[overlay].enable(this._levels);
-            }
-        }
-
-        for (const group of initialCollapsedGroups) {
-            if (group in this._groups) {
-                this._groups[group].expanded = false;
-            }
-        }
-
-        ExpandingControl.prototype.onAdd.call(this);
-
-        this.render();
-
-        $(this._container).on('change', 'input[type=checkbox]', e => {
-            this._overlays[e.target.dataset.id].visible = e.target.checked;
-            this.updateOverlay(e.target.dataset.id);
-        });
-        $(this._container).on('click', '.content h4', e => {
-            this.toggleGroup(e.target.parentElement.dataset.group);
-        });
-        return this._container;
-    },
-
-    addOverlay: function (overlay) {
-        this._overlays[overlay.id] = overlay;
-        if (overlay.group == null) {
-            this._ungrouped.push(overlay);
-        } else {
-            if (overlay.group in this._groups) {
-                this._groups[overlay.group].overlays.push(overlay);
-            } else {
-                this._groups[overlay.group] = {
-                    expanded: this._initialCollapsedGroups === null || !this._initialCollapsedGroups.includes(overlay.group),
-                    overlays: [overlay],
-                };
-            }
-        }
-
-        this.render();
-    },
-
-    updateOverlay: function (id) {
-        const overlay = this._overlays[id];
-        if (overlay.visible) {
-            overlay.enable(this._levels);
-        } else {
-            overlay.disable(this._levels);
-        }
-        const activeOverlays = Object.keys(this._overlays).filter(k => this._overlays[k].visible);
-        this.setStored('active', activeOverlays);
-    },
-
-    render: function () {
-        if (!this._content) return;
-
-        const ungrouped = document.createDocumentFragment();
-        const groups = document.createDocumentFragment();
-
-
-        const render_overlays = (overlays, container) => {
-            for (const overlay of overlays) {
-                const label = document.createElement('label');
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.dataset.id = overlay.id;
-                if (overlay.visible) {
-                    checkbox.checked = true;
-                }
-                label.append(checkbox, overlay.title);
-                container.append(label);
-            }
-        };
-
-        render_overlays(this._ungrouped, ungrouped);
-
-
-        for (const group in this._groups) {
-            const group_container = document.createElement('div');
-            group_container.classList.add('overlay-group');
-            if (this._groups[group].expanded) {
-                group_container.classList.add('expanded');
-            }
-            this._groups[group].el = group_container;
-            group_container.dataset.group = group;
-            const title = document.createElement('h4');
-            title.innerText = group;
-            group_container.append(title);
-            render_overlays(this._groups[group].overlays, group_container);
-            groups.append(group_container);
-        }
-        this._content.replaceChildren(...ungrouped.children, ...groups.children);
-    },
-
-    toggleGroup: function (name) {
-        const group = this._groups[name];
-        group.expanded = !group.expanded;
-        group.el.classList.toggle('expanded', group.expanded);
-        const collapsedGroups = Object.keys(this._groups).filter(k => !this._groups[k].expanded);
-        this.setStored('collapsed', collapsedGroups);
-    },
-});
-
-var SvgIcon = L.Icon.extend({
-    options: {
-        // @section
-        // @aka DivIcon options
-        iconSize: [12, 12], // also can be set through CSS
-
-        // iconAnchor: (Point),
-        // popupAnchor: (Point),
-
-        // @option html: String|SVGElement = ''
-        // Custom HTML code to put inside the div element, empty by default. Alternatively,
-        // an instance of `SVGElement`.
-        iconSvg: null,
-        shadowSvg: null,
-
-        // @option bgPos: Point = [0, 0]
-        // Optional relative position of the background, in pixels
-        bgPos: null,
-
-        className: 'leaflet-svg-icon'
-    },
-
-    // @method createIcon(oldIcon?: HTMLElement): HTMLElement
-    // Called internally when the icon has to be shown, returns a `<img>` HTML element
-    // styled according to the options.
-    createIcon: function (oldIcon) {
-        return this._createIcon('icon', oldIcon);
-    },
-
-    // @method createShadow(oldIcon?: HTMLElement): HTMLElement
-    // As `createIcon`, but for the shadow beneath it.
-    createShadow: function (oldIcon) {
-        return this._createIcon('shadow', oldIcon);
-    },
-
-    _createIcon: function (name, oldIcon) {
-        const src = this.options[`${name}Svg`];
-
-        if (!src) {
-            if (name === 'icon') {
-                throw new Error('iconSvg not set in Icon options (see the docs).');
-            }
-            return null;
-        }
-
-        let svgEl;
-        if (src instanceof SVGElement) {
-            svgEl = src;
-        } else {
-            svgEl = (new DOMParser()).parseFromString(src, 'image/svg+xml').documentElement;
-        }
-
-        this._setIconStyles(svgEl, name);
-
-        return svgEl;
-    },
-});
 
 class DataOverlay {
     levels = null;

@@ -123,9 +123,16 @@ class QuestSchema(BaseSchema):
     point: PointSchema
 
 
-def get_all_quests_for_request(request) -> list[QuestSchema]:
-    return list(chain(*(
-        quest.cached_get_all_for_request(request)
-        for key, quest in quest_types.items()
-        if request.user.is_superuser or key in request.user_permissions.quests
-    )))
+def get_all_quests_for_request(request, requested_quest_types: Optional[list[str]]) -> list[QuestSchema]:
+    if requested_quest_types is None:
+        return list(chain(*(
+            quest.cached_get_all_for_request(request)
+            for key, quest in quest_types.items()
+            if request.user.is_superuser or key in request.user_permissions.quests
+        )))
+    else:
+        return list(chain(*(
+            quest.cached_get_all_for_request(request)
+            for key, quest in quest_types.items()
+            if key in requested_quest_types and (request.user.is_superuser or key in request.user_permissions.quests)
+        )))
