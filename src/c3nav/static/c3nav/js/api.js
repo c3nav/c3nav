@@ -49,20 +49,34 @@
             if (typeof body !== 'undefined') {
                 init.body = JSON.stringify(body);
             }
-            const res = await fetch(this.make_url(path), init);
-            return await res.json();
+            return await fetch(this.make_url(path), init);
         }
 
         get(path) {
-            return this.req('GET', path);
+            return this.req('GET', path).then(r => r.json());
+        }
+
+        async get_with_etag(path, etag) {
+            const res = await this.req('GET', path);
+            const res_etag = res.headers.get('etag');
+            if (etag !== null && res_etag === etag) {
+                return {
+                    etag: res_etag,
+                    data: null,
+                };
+            }
+            return {
+                etag: res_etag,
+                data: await res.json(),
+            };
         }
 
         post(path, data) {
-            return this.req('POST', path, data);
+            return this.req('POST', path, data).then(r => r.json());
         }
 
         put(path, data) {
-            return this.req('PUT', path, data);
+            return this.req('PUT', path, data).then(r => r.json());
         }
     }
 

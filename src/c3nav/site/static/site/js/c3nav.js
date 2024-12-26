@@ -3170,6 +3170,7 @@ class DataOverlay {
     levels = null;
     feature_geometries = {};
     fetch_timeout = null;
+    etag = null;
 
     constructor(options) {
         this.id = options.id;
@@ -3185,10 +3186,14 @@ class DataOverlay {
     }
 
     async create() {
-        const [features, feature_geometries] = await Promise.all([
-            c3nav_api.get(`mapdata/dataoverlayfeatures/?overlay=${this.id}`),
+        const [
+            {data: features, etag},
+            feature_geometries
+        ] = await Promise.all([
+            c3nav_api.get_with_etag(`mapdata/dataoverlayfeatures/?overlay=${this.id}`, null),
             c3nav_api.get(`mapdata/dataoverlayfeaturegeometries/?overlay=${this.id}`)
         ]);
+        this.etag = etag;
 
         this.feature_geometries = Object.fromEntries(feature_geometries.map(f => [f.id, f.geometry]));
 
@@ -3207,9 +3212,12 @@ class DataOverlay {
             window.clearTimeout(this.fetch_timeout);
             this.fetch_timeout = null;
         }
-        const features= await c3nav_api.get(`mapdata/dataoverlayfeatures/?overlay=${this.id}`);
+        const {data: features, etag} = await c3nav_api.get_with_etag(`mapdata/dataoverlayfeatures/?overlay=${this.id}`, this.etag);
 
-        this.update_features(features);
+        if (features !== null) {
+            this.update_features(features);
+            this.etag = etag;
+        }
 
         if (this.update_interval !== null && this.fetch_timeout === null) {
             this.fetch_timeout = window.setTimeout(() => {
