@@ -408,7 +408,7 @@ def changeset_detail(request, pk):
                                 related_model_name = field.related_model._meta.verbose_name
                                 change_data["value"] = f"{related_model_name} #{value}"
                             else:
-                                change_data["value"] = related_obj.title
+                                change_data["value"] = getattr(related_obj, "title", str(related_obj))
                                 reverse_kwargs = {'pk': changed_object.obj.id}
                                 try:
                                     field.related_model._meta.get_field("space")
