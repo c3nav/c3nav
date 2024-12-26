@@ -38,12 +38,12 @@ class Command(BaseCommand):
 
         changed_geometries.reset()
         changeset = ChangeSet()
+        changeset.author = self.request.user
         changeset.title = 'importnoc'
         with within_changeset(changeset=changeset, user=None) as locked_changeset:
             self.do_import(items)
-        if locked_changeset.changes:
-            with locked_changeset.lock_to_edit() as locked_changeset:
-                locked_changeset.apply(user=None)
+        with changeset.lock_to_edit() as locked_changeset:
+            locked_changeset.apply(user=None)
 
     def do_report(self, prefix: str, obj_id: str, obj, report: Report):
         import_prefix = f"{prefix}:{obj_id}:"
