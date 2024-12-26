@@ -28,6 +28,7 @@ Semi-big stuff:
 - Pass route options through url parameter
 - support for various SSOs
 - various compliance checkboxes
+- support for importing projects and rooms from hub
 
 Small stuff:
 
