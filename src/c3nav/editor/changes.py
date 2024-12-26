@@ -369,10 +369,11 @@ class ChangedObjectCollection(BaseSchema):
                     dependencies = base_dependencies.copy()
                     # todo: prev
                     if field.is_relation and not field.many_to_many:
-                        dependencies.add(OperationDependencyObjectExists(obj=ObjectReference(
-                            model=field.related_model._meta.model_name,
-                            id=value,
-                        )))
+                        if field.related_model._meta.app_label == "mapdata":
+                            dependencies.add(OperationDependencyObjectExists(obj=ObjectReference(
+                                model=field.related_model._meta.model_name,
+                                id=value,
+                            )))
                     if field.unique:
                         dependencies.add(OperationDependencyUniqueValue(
                             model="locationslug" if issubclass(model, LocationSlug) else model._meta.model_name,
