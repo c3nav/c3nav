@@ -520,6 +520,10 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     @property
     def title(self):
-        if self.comment:
-            return f'{self.node_number} {self.wifi_bssid} ({self.comment})'.strip()
-        return f'{self.node_number} {self.wifi_bssid}'.strip()
+        if self.node_number is not None or self.wifi_bssid is not None:
+            if self.comment:
+                return f'{self.node_number or ''} {self.wifi_bssid or ''} ({self.comment})'.strip()
+            else:
+                return f'{self.node_number or ''} {self.wifi_bssid or ''}'.strip()
+        else:
+            return self.comment
