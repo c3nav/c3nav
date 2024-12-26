@@ -2733,7 +2733,6 @@ QuestsControl = ExpandingControl.extend({
     },
 
     reloadQuests: async function() {
-        console.log(this);
         const activeQuests = this._activeQuests;
         const removed = this._loadedQuests.difference(activeQuests);
         const added = activeQuests.difference(this._loadedQuests);
