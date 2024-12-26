@@ -97,9 +97,7 @@ class CreateObjectOperation(BaseOperation):
                     "slug": self.fields.get("slug", None)
                 },
             })
-            values = {key: val for key, val in self.fields.items() if key != "slug"}
-        else:
-            values = self.fields
+        values = self.fields
         data.append({
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
