@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.views.generic.edit import FormView
 
 from c3nav.mapdata.quests.base import get_quest_for_request
+from c3nav.site.views import close_response
 
 
 class QuestFormView(FormView):
@@ -39,4 +40,6 @@ class QuestFormView(FormView):
 
     def form_valid(self, form):
         form.save()
+        if self.request.user_permissions.impolite_quests:
+            return close_response(self.request)
         return super().form_valid(form)
