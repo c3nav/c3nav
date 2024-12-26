@@ -20,6 +20,9 @@
             {% endfor %}
         </div>
     {% endif %}
+    {% if before_answers %}
+        <p>{{ before_answers }}</p>
+    {% endif %}
     <div class="answers">
         {% for answer in answers %}
             <p><a class="button" href="{{ answer.url }}">{{ answer.text }}</a></p>

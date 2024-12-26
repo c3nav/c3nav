@@ -605,12 +605,13 @@ def report_missing_choose(request, coordinates):
             }
             for group in groups
         ],
+        'before_answers': _('Please carefully check if one of the options above applies to the missing location!'),
         'answers': [
             {
                 'url': reverse('site.report_create', kwargs={"coordinates": coordinates}),
                 'text': _('None of these fit'),
             },
-        ]
+        ],
     })
 
 
