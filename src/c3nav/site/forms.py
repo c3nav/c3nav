@@ -13,9 +13,10 @@ from c3nav.api.models import Secret
 from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models.locations import Position, LocationGroup
 from c3nav.mapdata.models.report import Report, ReportUpdate
+from c3nav.site.compliance import ComplianceCheckboxFormMixin
 
 
-class ReportIssueForm(I18nModelFormMixin, ModelForm):
+class ReportIssueForm(ComplianceCheckboxFormMixin, I18nModelFormMixin, ModelForm):
     class Meta:
         model = Report
         fields = ['title', 'description']

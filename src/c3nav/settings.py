@@ -185,6 +185,8 @@ CACHE_TILES = config.getboolean('c3nav', 'cache_tiles', fallback=not DEBUG)
 CACHE_PREVIEWS = config.getboolean('c3nav', 'cache_previews', fallback=not DEBUG)
 CACHE_RESOLUTION = config.getint('c3nav', 'cache_resolution', fallback=4)
 
+COMPLIANCE_CHECKBOX = config.getboolean('c3nav', 'compliance_checkbox', fallback=False)
+
 IMPRINT_LINK = config.get('c3nav', 'imprint_link', fallback=None)
 IMPRINT_PATRONS = config.get('c3nav', 'imprint_patrons', fallback=None)
 IMPRINT_TEAM = config.get('c3nav', 'imprint_team', fallback=None)
