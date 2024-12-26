@@ -5,13 +5,15 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from pydantic import BaseModel
 from shapely import distance
+from shapely.ops import nearest_points, unary_union
 
-from c3nav.mapdata.models import MapUpdate, Space, Level
+from c3nav.editor.models import ChangeSet
+from c3nav.editor.views.base import within_changeset
+from c3nav.mapdata.models import Space, Level
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.models.report import Report
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from shapely.ops import nearest_points, unary_union
 
 
 class NocImportItem(BaseModel):
@@ -34,10 +36,14 @@ class Command(BaseCommand):
                  for name, item in r.json()["markers"].items()
                  if not name.startswith("__polyline")}
 
-        with MapUpdate.lock():
-            changed_geometries.reset()
+        changed_geometries.reset()
+        changeset = ChangeSet()
+        changeset.author = self.request.user
+        changeset.title = 'importnoc'
+        with within_changeset(changeset=changeset, user=None) as locked_changeset:
             self.do_import(items)
-            MapUpdate.objects.create(type='importnoc')
+        with changeset.lock_to_edit() as locked_changeset:
+            locked_changeset.apply(user=None)
 
     def do_report(self, prefix: str, obj_id: str, obj, report: Report):
         import_prefix = f"{prefix}:{obj_id}:"
