@@ -43,7 +43,7 @@ def get_user_data(request):
         'quests': (
             {key: {"label": quest.quest_type_label, "icon": quest.quest_type_icon}
              for key, quest in quest_types.items()
-             if request.user.is_superuser or request.user_permissions.quests}
+             if request.user.is_superuser or key in request.user_permissions.quests}
         ),
     })
 
