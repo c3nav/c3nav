@@ -41,7 +41,7 @@ class ChangeSet(models.Model):
     last_state_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
                                           verbose_name=_('last state update'), on_delete=models.CASCADE)
     state = models.CharField(max_length=20, db_index=True, choices=STATES, default='unproposed')
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
     description = models.TextField(max_length=1000, default='', verbose_name=_('Description'), blank=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,

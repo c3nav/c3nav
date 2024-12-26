@@ -11,7 +11,7 @@ class ChangeSetUpdate(models.Model):
     changeset = models.ForeignKey(ChangeSet, on_delete=models.CASCADE, related_name='updates')
     datetime = models.DateTimeField(auto_now_add=True, verbose_name=_('datetime'))
     comment = models.TextField(max_length=1000, null=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name='+')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='+')
 
     state = models.CharField(null=None, db_index=True, choices=ChangeSet.STATES, max_length=20)
     title = models.CharField(max_length=100, null=True)
