@@ -1,4 +1,4 @@
-from typing import Annotated, Union
+from typing import Annotated, Union, Optional
 from uuid import UUID
 
 from annotated_types import Lt
@@ -87,10 +87,12 @@ class LocateIBeaconPeerSchema(BaseSchema):
     minor: Annotated[NonNegativeInt, Lt(2 ** 16)] = APIField(
         title="minor value of the iBeacon",
     )
-    distance: NonNegativeFloat = APIField(
+    distance: Optional[NonNegativeFloat] = APIField(
+        default=None,
         title="determined iBeacon distance in meters",
     )
-    last_seen_ago: NonNegativeInt = APIField(
+    last_seen_ago: Optional[NonNegativeInt ]= APIField(
+        default=None,
         title="how many milliseconds ago this beacon was last seen"
     )
 
