@@ -16,7 +16,8 @@ from django_pydantic_field import SchemaField
 from c3nav.editor.changes import ChangedObjectCollection, ChangeProblems
 from c3nav.editor.operations import DatabaseOperationCollection
 from c3nav.editor.tasks import send_changeset_proposed_notification
-from c3nav.mapdata.models import LocationSlug, MapUpdate
+from c3nav.mapdata.models import LocationSlug, MapUpdate, DataOverlayFeature, DataOverlay
+from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import LocationRedirect
 
 
@@ -58,12 +59,6 @@ class ChangeSet(models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        self.created_objects = {}
-        self.updated_existing = {}
-        self.deleted_existing = {}
-        self.m2m_added = {}
-        self.m2m_removed = {}
 
         self._object_changed = False
         self._request = None
@@ -179,38 +174,65 @@ class ChangeSet(models.Model):
         return (self.can_edit(request) and self.can_review(request)
                 and not self.proposed and self.changes and not self.problems.any)
 
-    def has_space_access_on_all_objects(self, request, force=False):
+    def has_edit_access_on_all_objects(self, request, force=False):
         # todo: reimplement this
         if not request.user.is_authenticated:
             return False
 
         try:
-            request._has_space_access_on_all_objects_cache
+            request._has_edit_access_on_all_objects_cache
         except AttributeError:
-            request._has_space_access_on_all_objects_cache = {}
+            request._has_edit_access_on_all_objects_cache = {}
 
         can_edit_spaces = {space_id for space_id, can_edit in request.user_space_accesses.items() if can_edit}
 
-        if not can_edit_spaces:
-            return False
-
         if not force:
             try:
-                return request._has_space_access_on_all_objects_cache[self.pk]
+                return request._has_edit_access_on_all_objects_cache[self.pk]
             except KeyError:
                 pass
 
-        for model in self.changed_objects.keys():
+        for modelname in self.changes.objects.keys():
+            model = apps.get_model('mapdata', modelname)
             if issubclass(model, LocationRedirect):
+                continue
+            if issubclass(model, (DataOverlay, DataOverlayFeature)):
                 continue
             try:
                 model._meta.get_field('space')
             except FieldDoesNotExist:
                 return False
 
+        permissions = AccessPermission.get_for_request(request)
+
+        overlay_ids = []
+
+
         result = True
-        for model, objects in self.get_objects(many=False).items():
+        for model_name, objects in self.changes.objects.items():
+            model = apps.get_model('mapdata', model_name)
             if issubclass(model, (LocationRedirect, LocationSlug)):
+                continue
+
+            if issubclass(model, DataOverlay):
+                ids = [obj.obj.id for obj in objects.values()]
+                restriction_ids = set(model.objects.filter(pk__in=ids).values_list('edit_access_restriction_id', flat=True))
+                if None in restriction_ids or (restriction_ids - permissions - {None}):
+                    result = False
+                    break
+
+                continue
+
+            if issubclass(model, DataOverlayFeature):
+                ids = [obj.obj.id for obj in objects.values()]
+
+                restriction_ids = set(model.objects
+                                      .filter(pk__in=ids)
+                                      .values_list('overlay__edit_access_restriction_id', flat=True))
+                if None in restriction_ids or (restriction_ids - permissions - {None}):
+                    result = False
+                    break
+
                 continue
 
             try:
@@ -250,7 +272,7 @@ class ChangeSet(models.Model):
                 if not result:
                     break
 
-        request._has_space_access_on_all_objects_cache[self.pk] = result
+        request._has_edit_access_on_all_objects_cache[self.pk] = result
         return result
 
     def can_review(self, request):
@@ -258,7 +280,7 @@ class ChangeSet(models.Model):
             return False
         if request.user_permissions.review_changesets:
             return True
-        return self.has_space_access_on_all_objects(request)
+        return self.has_edit_access_on_all_objects(request)
 
     @classmethod
     def can_direct_edit(cls, request):

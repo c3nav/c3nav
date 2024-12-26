@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
 
 from c3nav.mapdata.fields import GeometryField
-from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestriction
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.utils.geometry import smart_mapping
@@ -34,6 +34,10 @@ class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
     pull_headers: dict[str, str] = SchemaField(schema=dict[str, str], null=True,
                                                verbose_name=_('headers for pull http request (JSON object)'))
     pull_interval = models.DurationField(blank=True, null=True, verbose_name=_('pull interval'))
+    edit_access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
+                                                related_name='edit_access_restrictions',
+                                                verbose_name=_('Editor Access Restriction'),
+                                                on_delete=models.PROTECT)
 
     class Meta:
         verbose_name = _('Data Overlay')
