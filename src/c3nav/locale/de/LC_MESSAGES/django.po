@@ -4261,6 +4261,14 @@ msgstr ""
 "Wenn dir diese Checkbox nicht gefällt, lade die Seite neu für eine andere."
 
 #: c3nav/site/views.py
+msgid "Chaos™ is a registered trademark of Chaos Computer Club Veranstaltungsgesellschaft mbH."
+msgstr "Chaos™ ist eine eingetragene Marke der Chaos Computer Club Veranstaltungsgesellschaft mbH."
+
+#: c3nav/site/views.py
+msgid "We and our %d partners value your privacy."
+msgstr "Wir und unsere %d Partner nehmen ihre Privatsphäre sehr ernst."
+
+#: c3nav/site/views.py
 msgid "account creation is currently disabled."
 msgstr "Benutzerregistrierung ist momentan deaktiviert."
 

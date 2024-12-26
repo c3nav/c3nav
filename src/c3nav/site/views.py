@@ -308,7 +308,14 @@ login_options = (
     _('Trans rights!'),
     _('Be excellent to each other.'),
     _('I acknowledge that any checkboxes shown under this form are optional, non-mandatory serving suggestions.'),
+    _('Chaos™ is a registered trademark of Chaos Computer Club Veranstaltungsgesellschaft mbH.'),
+    _('We and our %d partners value your privacy.'),
 )
+
+def get_random_checkbox_message() -> str:
+    msg: str = random.choice(login_options)
+    msg = msg.replace('%d', str(random.randint(1000, 3000)))
+    return msg
 
 
 @never_cache
@@ -325,7 +332,7 @@ def login_view(request):
     else:
         form = AuthenticationForm(request)
 
-    form.fields["check"] = BooleanField(required=False, label=random.choice(login_options),
+    form.fields["check"] = BooleanField(required=False, label=get_random_checkbox_message(),
                                         help_text=_('If you do not like this checkbox, reload to get another one.'))
 
     redirect_path = request.GET.get(REDIRECT_FIELD_NAME, '/account/')
