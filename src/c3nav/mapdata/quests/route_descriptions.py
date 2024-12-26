@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from functools import reduce
 from typing import Optional, ClassVar
 
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
 from django.utils.translation import gettext_lazy as _
 from shapely import Point, LineString
 from shapely.geometry import mapping
@@ -65,7 +65,9 @@ class SpaceIdentifyableQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return Space.qs_for_request(request).select_related('level').filter(identifyable=None)
+        return Space.qs_for_request(request).select_related('level').filter(identifyable=None).annotate(
+            num_graph_nodes=Count('graph_nodes')
+        ).exclude(graph_nodes=0)
 
 
 def get_door_edges_for_request(request, space_ids: Optional[list[int]] = None):
