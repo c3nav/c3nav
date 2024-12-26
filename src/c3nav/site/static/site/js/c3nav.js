@@ -2337,6 +2337,118 @@ function mobileclientOnResume() {
     c3nav._resume();
 }
 
+ExpandingControl = L.Control.extend({
+    options: {
+        storageKey: null,
+        pinIcon: 'push_pin',
+        icon: '',
+    },
+
+    getStored: function(key, fallback=null) {
+        if (this.options.storageKey !== null) {
+            const fullKey = `c3nav.control.${this.options.storageKey}.${key}`;
+            try {
+                const value = localStorageWrapper.getItem(fullKey);
+                if (value === null) {
+                    return fallback;
+                }
+                return JSON.parse(value);
+            } catch (err) {
+                console.warn(err);
+                localStorageWrapper.removeKey(fullKey);
+                return fallback;
+            }
+        } else {
+            return fallback;
+        }
+    },
+
+    setStored: function(key, value) {
+        if (this.options.storageKey !== null) {
+            const fullKey = `c3nav.control.${this.options.storageKey}.${key}`;
+            localStorageWrapper.setItem(fullKey, JSON.stringify(value));
+        }
+    },
+
+    onAdd: function () {
+        this._pinned = this.getStored('pinned', false);
+
+        this._container = L.DomUtil.create('div', 'leaflet-control-expanding ' + this.options.addClasses);
+        this._content = L.DomUtil.create('div', 'leaflet-control-expanding-content', this._container);
+        this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols', this._container);
+        this._pin.innerText = c3nav._map_material_icon(this.options.pinIcon);
+        this._collapsed = L.DomUtil.create('a', 'collapsed-toggle', this._container);
+        this._collapsed.textContent = c3nav._map_material_icon(this.options.icon);
+        this._collapsed.href = '#';
+
+        if (!L.Browser.android) {
+            L.DomEvent.on(this._container, {
+                mouseenter: this.expand,
+                mouseleave: this.collapse
+            }, this);
+        }
+
+        if (L.Browser.mobile) {
+            this._pinned = false;
+        }
+
+        if (L.Browser.touch) {
+            $(this._collapsed).click((e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.expand();
+            });
+            $(this._map).on('click', (e) => {
+                this.collapse();
+            });
+        } else {
+            L.DomEvent.on(this._container, 'focus', this.expand, this);
+            L.DomEvent.on(this._container, 'blur', this.collapse, this);
+        }
+
+        this._expanded = this._pinned;
+        this._container.classList.toggle('leaflet-control-expanded', this._expanded);
+        this._pin.classList.toggle('active', this._pinned);
+
+        $(this._container).on('click', 'div.pin-toggle', e => {
+            this.togglePinned();
+        });
+        $(this._container).on('mousedown pointerdown wheel', e => {
+            e.stopPropagation();
+        });
+
+        this.render();
+
+        return this._container;
+    },
+
+    expand: function () {
+        if (this._pinned) return;
+        this._expanded = true;
+        this._container.classList.add('leaflet-control-expanded');
+        return this;
+    },
+
+    collapse: function () {
+        if (this._pinned) return;
+        this._expanded = false;
+        this._container.classList.remove('leaflet-control-expanded');
+        return this;
+    },
+
+    togglePinned: function () {
+        this._pinned = !this._pinned;
+        if (this._pinned) {
+            this._expanded = true;
+        }
+        this._pin.classList.toggle('active', this._pinned);
+        this.setStored('pinned', this._pinned);
+    },
+
+    render: function () {},
+});
+
+
 LevelControl = L.Control.extend({
     options: {
         position: 'bottomright',
@@ -2439,7 +2551,6 @@ LevelControl = L.Control.extend({
         }, 2000);
     }
 });
-
 
 UserLocationControl = L.Control.extend({
     options: {
@@ -2549,7 +2660,6 @@ ThemeControl = L.Control.extend({
     },
 })
 
-
 QuestsControl = L.Control.extend({
     options: {
         position: 'topright',
@@ -2634,7 +2744,6 @@ QuestsControl = L.Control.extend({
         localStorageWrapper.removeItem('showQuests');
     }
 });
-
 
 L.SquareGridLayer = L.Layer.extend({
     initialize: function (config) {
@@ -2735,59 +2844,14 @@ L.SquareGridLayer = L.Layer.extend({
     }
 });
 
-KeyControl = L.Control.extend({
-    options: {position: 'topright', addClasses: ''},
-    _keys: [],
-
-    onAdd: function () {
-        this._pinned = JSON.parse(localStorage.getItem('c3nav.key.pinned') ?? 'false');
-
-        this._container = L.DomUtil.create('div', 'leaflet-control-key ' + this.options.addClasses);
-        this._content = L.DomUtil.create('div', 'content', this._container);
-        this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols', this._container);
-        this._pin.innerText = 'push_pin';
-        this._collapsed = L.DomUtil.create('a', 'collapsed-toggle', this._container);
-        this._collapsed.href = '#';
-
-        if (!L.Browser.android) {
-            L.DomEvent.on(this._container, {
-                mouseenter: this.expand,
-                mouseleave: this.collapse
-            }, this);
-        }
-
-        if (L.Browser.mobile) {
-            this._pinned = false;
-        }
-
-        if (L.Browser.touch) {
-            $(this._collapsed).click((e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.expand();
-            });
-            $(this._map).on('click', (e) => {
-                this.collapse();
-            });
-        } else {
-            L.DomEvent.on(this._container, 'focus', this.expand, this);
-            L.DomEvent.on(this._container, 'blur', this.collapse, this);
-        }
-
-        this._expanded = this._pinned;
-        this._container.classList.toggle('leaflet-control-key-expanded', this._expanded);
-        this._pin.classList.toggle('active', this._pinned);
-
-        this.render();
-
-        $(this._container).on('click', 'div.pin-toggle', e => {
-            this.togglePinned();
-        });
-        $(this._container).on('mousedown pointerdown wheel', e => {
-            e.stopPropagation();
-        });
-        return this._container;
+KeyControl = ExpandingControl.extend({
+    options: {
+        position: 'topright',
+        addClasses: 'leaflet-control-key',
+        icon: 'legend_toggle',
+        storageKey: 'key',
     },
+    _keys: [],
 
     addKey: function (name, background, border) {
         this._keys.push({
@@ -2820,38 +2884,20 @@ KeyControl = L.Control.extend({
         }
         this._content.replaceChildren(...fragment.children);
     },
-
-    expand: function () {
-        if (this._pinned) return;
-        this._expanded = true;
-        this._container.classList.add('leaflet-control-key-expanded');
-        return this;
-    },
-
-    collapse: function () {
-        if (this._pinned) return;
-        this._expanded = false;
-        this._container.classList.remove('leaflet-control-key-expanded');
-        return this;
-    },
-
-    togglePinned: function () {
-        this._pinned = !this._pinned;
-        if (this._pinned) {
-            this._expanded = true;
-        }
-        this._pin.classList.toggle('active', this._pinned);
-        localStorage.setItem('c3nav.key.pinned', JSON.stringify(this._pinned));
-    },
 });
 
-OverlayControl = L.Control.extend({
-    options: {position: 'topright', addClasses: '', levels: {}},
+OverlayControl = ExpandingControl.extend({
+    options: {
+        position: 'topright',
+        addClasses: 'leaflet-control-overlays',
+        icon: 'stacks',
+        storageKey: 'overlays',
+        levels: {}
+    },
+
     _overlays: {},
     _ungrouped: [],
     _groups: {},
-    _initialActiveOverlays: null,
-    _initialCollapsedGroups: null,
 
     initialize: function ({levels, ...config}) {
         this.config = config;
@@ -2859,65 +2905,24 @@ OverlayControl = L.Control.extend({
     },
 
     onAdd: function () {
-        this._initialActiveOverlays = JSON.parse(localStorage.getItem('c3nav.overlays.active-overlays') ?? '[]');
-        this._initialCollapsedGroups = JSON.parse(localStorage.getItem('c3nav.overlays.collapsed-groups') ?? '[]');
-        this._pinned = JSON.parse(localStorage.getItem('c3nav.overlays.pinned') ?? 'false');
 
-        this._container = L.DomUtil.create('div', 'leaflet-control-overlays ' + this.options.addClasses);
-        this._content = L.DomUtil.create('div', 'content');
-        this._collapsed = L.DomUtil.create('a', 'collapsed-toggle');
-        this._collapsed.href = '#';
-        this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols');
-        this._pin.innerText = 'push_pin';
-        this._container.append(this._pin, this._content, this._collapsed);
+        const initialActiveOverlays = this.getStored('active', []);
+        const initialCollapsedGroups = this.getStored('collapsed', []);
 
-        if (!L.Browser.android) {
-            L.DomEvent.on(this._container, {
-                mouseenter: this.expand,
-                mouseleave: this.collapse
-            }, this);
-        }
-
-        if (L.Browser.mobile) {
-            this._pinned = false;
-        }
-
-        if (L.Browser.touch) {
-            $(this._collapsed).click((e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.expand();
-            });
-            $(this._container).click((e) => {
-                e.stopPropagation();
-            });
-            $(this._map).on('click', (e) => {
-                if (this._expanded) {
-                    this.collapse();
-                }
-            });
-        } else {
-            L.DomEvent.on(this._container, 'focus', this.expand, this);
-            L.DomEvent.on(this._container, 'blur', this.collapse, this);
-        }
-
-        this._expanded = this._pinned;
-        this._container.classList.toggle('leaflet-control-overlays-expanded', this._expanded)
-        this._pin.classList.toggle('active', this._pinned);
-
-
-        for (const overlay of this._initialActiveOverlays) {
+        for (const overlay of initialActiveOverlays) {
             if (overlay in this._overlays) {
                 this._overlays[overlay].visible = true;
                 this._overlays[overlay].enable(this._levels);
             }
         }
 
-        for (const group of this._initialCollapsedGroups) {
+        for (const group of initialCollapsedGroups) {
             if (group in this._groups) {
                 this._groups[group].expanded = false;
             }
         }
+
+        ExpandingControl.prototype.onAdd.call(this);
 
         this.render();
 
@@ -2925,14 +2930,8 @@ OverlayControl = L.Control.extend({
             this._overlays[e.target.dataset.id].visible = e.target.checked;
             this.updateOverlay(e.target.dataset.id);
         });
-        $(this._container).on('click', 'div.pin-toggle', e => {
-            this.togglePinned();
-        });
         $(this._container).on('click', '.content h4', e => {
             this.toggleGroup(e.target.parentElement.dataset.group);
-        });
-        $(this._container).on('mousedown pointerdown wheel', e => {
-            e.stopPropagation();
         });
         return this._container;
     },
@@ -2963,7 +2962,7 @@ OverlayControl = L.Control.extend({
             overlay.disable(this._levels);
         }
         const activeOverlays = Object.keys(this._overlays).filter(k => this._overlays[k].visible);
-        localStorage.setItem('c3nav.overlays.active-overlays', JSON.stringify(activeOverlays));
+        this.setStored('active', activeOverlays);
     },
 
     render: function () {
@@ -3007,35 +3006,12 @@ OverlayControl = L.Control.extend({
         this._content.replaceChildren(...ungrouped.children, ...groups.children);
     },
 
-    expand: function () {
-        if (this._pinned) return;
-        this._expanded = true;
-        this._container.classList.add('leaflet-control-overlays-expanded');
-        return this;
-    },
-
-    collapse: function () {
-        if (this._pinned) return;
-        this._expanded = false;
-        this._container.classList.remove('leaflet-control-overlays-expanded');
-        return this;
-    },
-
     toggleGroup: function (name) {
         const group = this._groups[name];
         group.expanded = !group.expanded;
         group.el.classList.toggle('expanded', group.expanded);
         const collapsedGroups = Object.keys(this._groups).filter(k => !this._groups[k].expanded);
-        localStorage.setItem('c3nav.overlays.collapsed-groups', JSON.stringify(collapsedGroups));
-    },
-
-    togglePinned: function () {
-        this._pinned = !this._pinned;
-        if (this._pinned) {
-            this._expanded = true;
-        }
-        this._pin.classList.toggle('active', this._pinned);
-        localStorage.setItem('c3nav.overlays.pinned', JSON.stringify(this._pinned));
+        this.setStored('collapsed', collapsedGroups);
     },
 });
 

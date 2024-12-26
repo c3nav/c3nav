@@ -1073,7 +1073,7 @@ main:not([data-view=route-result]) #route-summary {
     font-size: 20px;
 }
 
-.leaflet-bar, .leaflet-touch .leaflet-bar, .leaflet-control-key, .leaflet-control-overlays {
+.leaflet-bar, .leaflet-touch .leaflet-bar, .leaflet-control-expanding, .leaflet-control-overlays {
     overflow: hidden;
     background-color: var(--color-control-background);
     border-radius: var(--border-radius-leaflet-control);
@@ -1691,10 +1691,10 @@ blink {
     margin-top: 48px;
 }
 
-.leaflet-control-key, .leaflet-control-overlays {
+.leaflet-control-expanding {
     background-clip: padding-box;
 
-    &.leaflet-control-key-expanded > .collapsed-toggle, &.leaflet-control-overlays-expanded > .collapsed-toggle  {
+    &.leaflet-control-expanded > .collapsed-toggle {
         display: none;
     }
 
@@ -1704,18 +1704,14 @@ blink {
         height: 26px;
         line-height: 26px;
         text-align: center;
+        font-family: 'Material Symbols Outlined';
+        font-size: 26px;
 
         color: var(--color-control);
 
         .leaflet-touch & {
             width: 30px;
             height: 30px;
-        }
-
-        &::before {
-            font-family: 'Material Symbols Outlined';
-            font-size: 26px;
-            line-height: 26px;
         }
     }
 
@@ -1750,15 +1746,14 @@ blink {
         }
     }
 
-    &.leaflet-control-key-expanded > .pin-toggle, &.leaflet-control-overlays-expanded > .pin-toggle {
+    &.leaflet-control-expanded > .pin-toggle {
         display: block;
         .leaflet-touch & {
             display: none;
         }
     }
 
-    > .content {
-        display: none;
+    > .leaflet-control-expanding-content {
         padding: 1rem 4rem 1rem 1rem;
 
         .leaflet-touch & {
@@ -1766,18 +1761,15 @@ blink {
         }
     }
 
-    &.leaflet-control-key-expanded > .content {
-        display: grid;
+    &:not(.leaflet-control-expanded) > .leaflet-control-expanding-content {
+        display: none;
     }
 }
 
-
 .leaflet-control-key {
-    > .collapsed-toggle::before {
-        content: 'legend_toggle';
-    }
 
-    > .content {
+    > .leaflet-control-expanding-content {
+        display: grid;
         gap: 1rem;
         grid-template-columns: 2rem 1fr;
 
@@ -1796,17 +1788,15 @@ blink {
         }
     }
 
-    &.leaflet-control-key-expanded > .content {
+    &.leaflet-control-expanded > .leaflet-control-expanding-content {
         display: grid;
     }
 }
 
 .leaflet-control-overlays {
-    > .collapsed-toggle::before {
-        content: 'stacks';
-    }
 
-    > .content {
+    > .leaflet-control-expanding-content {
+        display: flex;
         flex-direction: column;
         gap: 1rem;
 
@@ -1850,10 +1840,6 @@ blink {
             margin-right: 0.5rem;
             margin-bottom: 0;
         }
-    }
-
-    &.leaflet-control-overlays-expanded > .content {
-        display: flex;
     }
 }
 
