@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Union
+from typing import Annotated, Union, Optional
 
 from celery import chain
 from django.core.serializers.json import DjangoJSONEncoder
@@ -399,11 +399,29 @@ Quests
 """
 
 
+class QuestsFilter(BaseSchema):
+    quest_type: Optional[str] = APIField(
+        None,
+        title="only show these quest types",
+        description="multiple quest types can be comma-separated"
+    )
+    level: Optional[PositiveInt] = APIField(
+        None,
+        title="only show quests for this level",
+    )
+
+
 @map_api_router.get('/quests/', summary="get open quests",
                     response={200: list[QuestSchema], **auth_responses})
 @api_etag(permissions=True, quests=True)
-def list_quests(request):
-    return get_all_quests_for_request(request)
+def list_quests(request, filters: Query[QuestsFilter]):
+    quests = get_all_quests_for_request(request)
+    quest_types = frozenset(filters.quest_type.split(',')) if filters.quest_type else ()
+    if quest_types:
+        quests = [quest for quest in quests if quest.quest_type in quest_types]
+    if filters.level:
+        quests = [quest for quest in quests if quest.level_id == filters.level]
+    return quests
 
 
 """
