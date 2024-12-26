@@ -1,9 +1,10 @@
-from typing import Annotated, Union, Optional
+from typing import Annotated, Union, Optional, Any
 from uuid import UUID
 
 from annotated_types import Lt
 from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
+from pydantic.functional_validators import BeforeValidator
 from pydantic.types import NonNegativeInt, NonNegativeFloat
 from pydantic_extra_types.mac_address import MacAddress
 
@@ -75,6 +76,10 @@ class LocateWifiPeerSchema(BaseSchema):
     )
 
 
+def negative_one_is_none(value: Any):
+    return None if value == -1 else value
+
+
 class LocateIBeaconPeerSchema(BaseSchema):
     uuid: UUID = APIField(
         title="UUID",
@@ -87,7 +92,7 @@ class LocateIBeaconPeerSchema(BaseSchema):
     minor: Annotated[NonNegativeInt, Lt(2 ** 16)] = APIField(
         title="minor value of the iBeacon",
     )
-    distance: Optional[NonNegativeFloat] = APIField(
+    distance: Annotated[Optional[NonNegativeFloat], BeforeValidator(negative_one_is_none)] = APIField(
         default=None,
         title="determined iBeacon distance in meters",
     )
