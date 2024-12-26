@@ -375,6 +375,7 @@ class DataOverlaySchema(TitledSchema, DjangoModelSchema):
     stroke_opacity: Optional[float]
     fill_color: Optional[str]
     fill_opacity: Optional[float]
+    cluster_points: bool
 
 
 

@@ -26,6 +26,8 @@ class DataOverlay(TitledMixin, AccessRestrictionMixin, models.Model):
     fill_color = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('default fill color'))
     fill_opacity = models.FloatField(blank=True, null=True, verbose_name=_('fill opacity'))
 
+    cluster_points = models.BooleanField(default=False, verbose_name=_('cluster points together when zoomed out'))
+
     default_geomtype = models.CharField(max_length=255, blank=True, null=True, choices=GeometryType, verbose_name=_('default geometry type'))
 
     pull_url = models.URLField(blank=True, null=True, verbose_name=_('pull URL'))

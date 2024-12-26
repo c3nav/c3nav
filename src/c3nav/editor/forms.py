@@ -396,7 +396,7 @@ def create_editor_form(editor_model):
         'color_background', 'color_wall_fill', 'color_wall_border', 'color_door_fill', 'color_ground_fill',
         'color_obstacles_default_fill', 'color_obstacles_default_border', 'stroke_color', 'stroke_width',
         'stroke_opacity', 'fill_color', 'fill_opacity', 'interactive', 'point_icon', 'extra_data', 'show_label',
-        'show_geometry', 'show_label', 'show_geometry', 'default_geomtype',
+        'show_geometry', 'show_label', 'show_geometry', 'default_geomtype', 'cluster_points',
         "load_group_display", "load_group_contribute",
         "altitude_quest",
     ]

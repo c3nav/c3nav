@@ -1880,18 +1880,6 @@ blink {
     }
 }
 
-.overlay-point-icon {
-    > span {
-        display: inline-block;
-        width: 24px;
-        height: 24px;
-        line-height: 24px;
-        text-align: center;
-        font-size: 24px;
-        font-family: 'Material Symbols Outlined';
-    }
-}
-
 .data-overlay-popup {
     .leaflet-popup-content {
         margin: 0;
@@ -1944,7 +1932,8 @@ blink {
     }
 }
 
-.quest-icon {
+.symbol-icon {
+    --icon-color: var(--color-primary);
     > span {
         display: inline-block;
         width: 30px;
@@ -1954,15 +1943,33 @@ blink {
         font-size: 22px;
         font-family: 'Material Symbols Outlined';
         background-color: white;
-        color: var(--color-primary);
+        color: var(--icon-color);
         border-radius: 100%;
-        box-shadow: 0 0 0 5px color-mix(in srgb, transparent, var(--color-primary) 60%);
+        box-shadow: 0 0 0 5px color-mix(in srgb, transparent, var(--icon-color) 60%);
 
         transition: color, background-color 150ms ease-in-out;
 
-        &:hover {
-            background-color: var(--color-primary);
-            color: white;
+        cursor: default;
+    }
+
+
+    &.symbol-icon-interactive {
+        > span {
+            cursor: pointer;
+
+            &:hover {
+                background-color: var(--icon-color);
+                color: white;
+            }
+        }
+    }
+
+    &.symbol-icon-empty {
+        > span {
+            width: 14px;
+            height: 14px;
+            line-height: 14px;
+            font-size: 10px;
         }
     }
 }

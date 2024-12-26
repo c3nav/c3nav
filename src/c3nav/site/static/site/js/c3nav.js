@@ -2775,7 +2775,7 @@ QuestsControl = ExpandingControl.extend({
                     pointToLayer: (geom, latlng) => {
                         return L.marker(latlng, {
                             icon: L.divIcon({
-                                className: 'quest-icon',
+                                className: 'symbol-icon symbol-icon-interactive',
                                 html: `<span>${quest_icon}</span>`,
                                 iconSize: [24, 24],
                                 iconAnchor: [12, 12],
@@ -3130,6 +3130,7 @@ class DataOverlay {
         this.id = options.id;
         this.title = options.title;
         this.group = options.group;
+        this.cluster_points = options.cluster_points;
         this.default_stroke_color = options.stroke_color;
         this.default_stroke_width = options.stroke_width;
         this.default_stroke_opacity = options.stroke_opacity;
@@ -3144,7 +3145,11 @@ class DataOverlay {
         for (const feature of features) {
             const level_id = feature.level_id;
             if (!(level_id in levels)) {
-                levels[level_id] = L.layerGroup([]);
+                if (this.cluster_points) {
+                    levels[level_id] = L.markerClusterGroup();
+                } else {
+                    levels[level_id] = L.layerGroup();
+                }
             }
             const style = {
                 'color': feature.stroke_color ?? this.default_stroke_color ?? 'var(--color-map-overlay)',
@@ -3157,12 +3162,21 @@ class DataOverlay {
                 style,
                 interactive: feature.interactive,
                 pointToLayer: (geom, latlng) => {
+                    return L.marker(latlng, {
+                        title: feature.title,
+                        icon: L.divIcon({
+                            className: 'symbol-icon ' + (feature.point_icon ? '' : 'symbol-icon-empty ') + (feature.interactive ? 'symbol-icon-interactive' : ''),
+                            html: `<span style="--icon-color: ${style.color}">${feature.point_icon ?? ''}</span>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12],
+                        })
+                    });
                     if (feature.point_icon !== null) {
                         return L.marker(latlng, {
                             title: feature.title,
                             icon: L.divIcon({
-                                className: 'overlay-point-icon',
-                                html: `<span style="color: ${style.color}">${feature.point_icon}</span>`,
+                                className: 'symbol-icon ' + (feature.interactive ? 'symbol-icon-interactive' : ''),
+                                html: `<span style="--icon-color: ${style.color}">${feature.point_icon}</span>`,
                                 iconSize: [24, 24],
                                 iconAnchor: [12, 12],
                             })
@@ -3173,27 +3187,30 @@ class DataOverlay {
                             ...style
                         });
                     }
+                },
+                onEachFeature: (f, layer) => {
+                    if (feature.interactive) {
+                        layer.bindPopup(() => {
+                            let html = `<h4>${feature.title}</h4>`;
+                            if (feature.external_url != null) {
+                                html += `<a href="${feature.external_url}" target="_blank">open external link</a>`;
+                            }
+                            if (feature.extra_data != null) {
+                                html += '<table>';
+                                for (const key in feature.extra_data) {
+                                    html += `<tr><th>${key}</th><td>${feature.extra_data[key]}</td></tr>`;
+                                }
+
+                                html += '</table>';
+                            }
+                            return html;
+                        }, {
+                            className: 'data-overlay-popup'
+                        });
+                    }
                 }
             });
-            if (feature.interactive) {
-                layer.bindPopup(() => {
-                    let html = `<h4>${feature.title}</h4>`;
-                    if (feature.external_url != null) {
-                        html += `<a href="${feature.external_url}" target="_blank">open external link</a>`;
-                    }
-                    if (feature.extra_data != null) {
-                        html += '<table>';
-                        for (const key in feature.extra_data) {
-                            html += `<tr><th>${key}</th><td>${feature.extra_data[key]}</td></tr>`;
-                        }
 
-                        html += '</table>';
-                    }
-                    return html;
-                }, {
-                    className: 'data-overlay-popup'
-                });
-            }
             levels[level_id].addLayer(layer);
         }
 
