@@ -1,37 +1,31 @@
 import operator
 from dataclasses import dataclass
 from functools import reduce
-from typing import ClassVar, Optional
+from typing import Optional, ClassVar
 
-from django.core.exceptions import ValidationError
-from django.db.models import F, Q
+from django.db.models import Q, F
 from django.utils.translation import gettext_lazy as _
+from ninja.errors import ValidationError
 from shapely import Point, LineString
 from shapely.geometry import mapping
 
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models import GraphEdge, Space
-from c3nav.mapdata.models.geometry.space import RangingBeacon, LeaveDescription, CrossDescription
-from c3nav.mapdata.quests.base import register_quest, Quest, ChangeSetModelForm
+from c3nav.mapdata.models import Space, GraphEdge
+from c3nav.mapdata.models.geometry.space import LeaveDescription, CrossDescription
+from c3nav.mapdata.quests.base import ChangeSetModelForm, register_quest, Quest
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
-class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
+class SpaceIdentifyableQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["altitude"].label = (
-            _('How many meters above ground is the access point “%s” mounted?') % self.instance.comment
-        )
-
-    def clean_altitude(self):
-        data = self.cleaned_data["altitude"]
-        if not data:
-            raise ValidationError(_("The AP should not be 0m above ground."))
-        return data
+        self.fields["identifyable"].label = _("Does this space qualify as “easily identifyable/findable”?")
+        self.fields["identifyable"].help_text = ""
+        self.fields["identifyable"].required = True
 
     class Meta:
-        model = RangingBeacon
-        fields = ("altitude", )
+        model = Space
+        fields = ("identifyable", )
 
     def save(self, *args, **kwargs):
         self.instance.altitude_quest = False
@@ -44,21 +38,34 @@ class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
 
 @register_quest
 @dataclass
-class RangingBeaconAltitudeQuest(Quest):
-    quest_type = "ranging_beacon_altitude"
-    quest_type_label = _('Ranging Beacon Altitude')
-    quest_type_icon = "router"
-    form_class = RangingBeaconAltitudeQuestForm
-    obj: RangingBeacon
+class SpaceIdentifyableQuest(Quest):
+    quest_type = "space_identifyable"
+    quest_type_label = _('Space identifyability')
+    quest_type_icon = "beenhere"
+    form_class = SpaceIdentifyableQuestForm
+    obj: Space
+
+    @property
+    def quest_description(self) -> list[str]:
+        return [
+            _("If you are standing in any adjacent space to this one and you know that this space is named “%s”, "
+              "will it be very straightforward to find it?") % self.obj.title,
+            _("This applies mainly to rooms that are connected to a corridor where, if you pass their door, you will, "
+              "thanks to a sign or other some other labeling, immediately able to tell that this is the door you want "
+              "to go through."),
+            _("Also, obviously, if this is a side room to another room, like a bathroom in a wardrobe."),
+            _("If finding this space from adjacent spaces is not obvious, the answer is no."),
+            _("Even if it's a bathroom or similar facility, the answer is no unless it is very obvious and easy to see"
+              " where it is."),
+        ]
 
     @property
     def point(self) -> Point:
-        return mapping(self.obj.geometry)
+        return mapping(self.obj.point)
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).select_related('space',
-                                                                    'space__level').filter(altitude_quest=True)
+        return Space.qs_for_request(request).select_related('level').filter(identifyable=None)
 
 
 def get_door_edges_for_request(request, space_ids: Optional[list[int]] = None):
@@ -67,7 +74,6 @@ def get_door_edges_for_request(request, space_ids: Optional[list[int]] = None):
         qs = qs.filter(pk__in=space_ids)
     spaces = {space.pk: space for space in qs.select_related("level")}
     existing = set(tuple(item) for item in LeaveDescription.objects.values_list("space_id", "target_space_id"))
-
 
     qs = GraphEdge.objects.filter(
         from_node__space__in=spaces,
@@ -143,6 +149,7 @@ class LeaveDescriptionQuest(Quest):
                 the_point=unwrap_geom(from_point),
             )
             for (from_space, to_space), (from_point, to_point) in edges.items()
+            if spaces[to_space].identifyable is False
         ]
 
     @classmethod
@@ -220,6 +227,8 @@ class CrossDescriptionQuest(Quest):
         results = []
         for (origin_space, space), (first_point, origin_point) in edges.items():
             for target_space, target_point in from_space_conns.get(space, ()):
+                if not (spaces[target_space].identifyable is False):
+                    continue
                 line = LineString([origin_point, target_point])
                 the_point = line.interpolate(0.33, normalized=True) if line.length < 3 else line.interpolate(1)
                 results.append(cls(

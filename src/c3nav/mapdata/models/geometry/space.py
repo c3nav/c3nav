@@ -44,7 +44,7 @@ class SpaceGeometryMixin(GeometryMixin):
     @cached_property
     def main_level_id(self):
         try:
-            return self.space.level.on_top_of_id or self.space.level_id
+            return self.space.main_level_id
         except ObjectDoesNotExist:
             return None
 

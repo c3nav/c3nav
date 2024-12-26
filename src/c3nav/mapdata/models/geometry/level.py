@@ -6,6 +6,7 @@ from operator import attrgetter, itemgetter
 from typing import Sequence
 
 import numpy as np
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q
@@ -95,6 +96,13 @@ class LevelGeometryMixin(GeometryMixin):
     def pre_save_changed_geometries(self):
         self.register_change()
 
+    @cached_property
+    def main_level_id(self):
+        try:
+            return self.level.on_top_of_id or self.level_id
+        except ObjectDoesNotExist:
+            return None
+
     def save(self, *args, **kwargs):
         self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
@@ -126,6 +134,11 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
 
     load_group_contribute = models.ForeignKey(LoadGroup, on_delete=models.SET_NULL, null=True, blank=True,
                                               verbose_name=_('contribute to load group'))
+
+    identifyable = models.BooleanField(null=True, default=None,
+                                       verbose_name=_('easily identifyable/findable'),
+                                       help_text=_('if unknown, this will be a quest. if yes, quests for enter, '
+                                                   'leave or cross descriptions to this room will be generated.'))
 
     class Meta:
         verbose_name = _('Space')
