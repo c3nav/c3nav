@@ -2676,6 +2676,11 @@ QuestsControl = ExpandingControl.extend({
 
     onAdd: function () {
         this._activeQuests = new Set(this.getStored('active', []));
+        for (const name of this._activeQuests) {
+            if (!(name in c3nav.user_data.quests)) {
+                this._activeQuests.delete(name);
+            }
+        }
         this._loadedQuests = new Set();
 
         ExpandingControl.prototype.onAdd.call(this);
