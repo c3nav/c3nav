@@ -16,14 +16,13 @@ logofinder_results = {
 }
 
 favicon_package_files = {
-    'android-chrome-192x192.png',
-    'android-chrome-512x512.png',
     'apple-touch-icon.png',
-    'browserconfig.xml',
-    'mstile-150x150.png',
-    'mstile-310x310.png',
-    'safari-pinned-tab.svg',
+    'favicon-96x96.png',
+    'favicon.ico',
+    'favicon.svg',
     'site.webmanifest',
+    'web-app-manifest-192x192.png',
+    'web-app-manifest-512x512.png',
 }
 
 if settings.FAVICON_PACKAGE and os.path.isdir(settings.FAVICON_PACKAGE):
