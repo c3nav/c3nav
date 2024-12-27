@@ -471,6 +471,7 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
                     if peer.ap_name:
                         map_name.setdefault(peer.ap_name, []).append(peer.bssid)
         for beacon in RangingBeacon.objects.filter(ap_name__in=map_name.keys()):
+            print(beacon, "add ssids", set(map_name[beacon.ap_name]))
             beacon.wifi_bssids = list(set(beacon.wifi_bssids) | set(map_name[beacon.ap_name]))
             beacon.save()
 
