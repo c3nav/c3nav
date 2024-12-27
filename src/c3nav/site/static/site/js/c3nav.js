@@ -1644,7 +1644,14 @@ c3nav = {
             const level = c3nav.levels[i];
             const layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._locationLayers[level[0]] = L.markerClusterGroup({
+                maxClusterRadius: 35,
+                spiderLegPolylineOptions: {
+                    color: '#4b6c97',
+                },
+                showCoverageOnHover: false,
+                iconCreateFunction: makeClusterIconCreate('#4b6c97'),
+            }).addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._overlayLayers[level[0]] = L.layerGroup().addTo(layerGroup);
