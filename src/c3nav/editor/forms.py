@@ -398,7 +398,7 @@ def create_editor_form(editor_model):
         'stroke_opacity', 'fill_color', 'fill_opacity', 'interactive', 'point_icon', 'extra_data', 'show_label',
         'show_geometry', 'show_label', 'show_geometry', 'default_geomtype', 'cluster_points', 'update_interval',
         'load_group_display', 'load_group_contribute',
-        'altitude_quest',
+        'altitude_quest', 'fill_quest',
     ]
     field_names = [field.name for field in editor_model._meta.get_fields()
                    if not field.one_to_many and not isinstance(field, ManyToManyRel)]

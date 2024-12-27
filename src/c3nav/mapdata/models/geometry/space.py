@@ -447,6 +447,8 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
                                                     verbose_name=_('Measurement list'), 
                                                     default=BeaconMeasurementDataSchema())
 
+    fill_quest = models.BooleanField(_('create a quest to fill this'), default=False)
+
     class Meta:
         verbose_name = _('Beacon Measurement')
         verbose_name_plural = _('Beacon Measurements')
