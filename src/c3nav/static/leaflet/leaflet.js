@@ -7870,6 +7870,13 @@ var MultiPoint = Layer.extend({
 		this._latlngs = this._convertLatLngs(latlngs);
 	},
 
+
+
+    setLatLngs: function(latlngs) {
+        this._setLatLngs(latlngs);
+    },
+
+
 	// convert latlngs input into actual LatLng instances; calculate bounds along the way
 	_convertLatLngs: function (latlngs) {
 		var result = [];
