@@ -24,7 +24,8 @@ try:
 except ImportError:
     from threading import local as LocalContext
 
-LocatorPeerIdentifier: TypeAlias = MacAddress | tuple[UUID, Annotated[NonNegativeInt, Lt(2 ** 16)], Annotated[NonNegativeInt, Lt(2 ** 16)]]
+LocatorPeerIdentifier: TypeAlias = MacAddress | str | tuple[
+    UUID, Annotated[NonNegativeInt, Lt(2 ** 16)], Annotated[NonNegativeInt, Lt(2 ** 16)]]
 
 
 @dataclass
@@ -32,6 +33,7 @@ class LocatorPeer:
     identifier: LocatorPeerIdentifier
     frequencies: set[int] = field(default_factory=set)
     xyz: Optional[tuple[int, int, int]] = None
+    space_id: Optional[int] = None
 
 
 @dataclass
@@ -91,6 +93,7 @@ class Locator:
                     int(beacon.geometry.y * 100),
                     int((router.altitude_for_point(beacon.space_id, beacon.geometry) + float(beacon.altitude)) * 100),
                 )
+                self.peers[peer_id].space_id = beacon.space_id
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
 
         for space in Space.objects.prefetch_related('beacon_measurements'):
@@ -122,8 +125,11 @@ class Locator:
         for scan_value in scan_data:
             if settings.WIFI_SSIDS and scan_value.ssid not in settings.WIFI_SSIDS:
                 continue
-            peer_id = self.get_peer_id(scan_value.bssid, create=create_peers)
-            if peer_id is not None:
+            peer_ids = {
+                           self.get_peer_id(scan_value.bssid, create=create_peers),
+                           self.get_peer_id(scan_value.ap_name, create=create_peers),
+                       } - {None, ""}
+            for peer_id in peer_ids:
                 result[peer_id] = ScanDataValue(rssi=scan_value.rssi, distance=scan_value.distance)
         return result
 
@@ -201,7 +207,53 @@ class Locator:
         if result is not None:
             return result
 
+        result = self.locate_by_beacon_positions(scan_data, permissions)
+        if result is not None:
+            return result
+
         return self.locate_rssi(scan_data, permissions)
+
+    def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None):
+        scan_data_we_can_use = [
+            (peer_id, value) for peer_id, value in scan_data.items() if self.peers[peer_id].space_id
+        ]
+
+        if not scan_data_we_can_use:
+            return None
+
+        # get visible spaces
+        best_ap_id = min(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
+        space_id = self.peers[best_ap_id].space_id
+        space = self.spaces[space_id]
+
+        scan_data_in_the_same_room = sorted([
+            (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id == space_id
+        ], key=lambda a: a[1].rssi)
+
+        if len(scan_data_in_the_same_room) == 1:
+            point = space.point
+            return CustomLocation(
+                level=space.level_id,
+                x=point.x,
+                y=point.y,
+                permissions=permissions,
+                icon='my_location'
+            )
+        else:
+            the_sum = sum(a[1].rssi for a in scan_data_in_the_same_room[:3])
+
+            x = 0
+            y = 0
+            for peer_id, value in scan_data_in_the_same_room[:3]:
+                x = self.peers[peer_id].xyz[0] * value.rssi / the_sum
+                y = self.peers[peer_id].xyz[1] * value.rssi / the_sum
+            return CustomLocation(
+                level=space.level_id,
+                x=x,
+                y=y,
+                permissions=permissions,
+                icon='my_location'
+            )
 
     def locate_rssi(self, scan_data: ScanData, permissions=None):
         router = Router.load()
@@ -226,6 +278,9 @@ class Locator:
 
         if best_location is not None:
             best_location.score = best_score
+
+        if best_location is not None:
+            return None
 
         return best_location
 
@@ -312,7 +367,7 @@ class Locator:
             )],
             x=result_pos[0]/100,
             y=result_pos[1]/100,
-            permissions=(),
+            permissions=permissions,
             icon='my_location'
         )
         location.z = result_pos[2]/100
