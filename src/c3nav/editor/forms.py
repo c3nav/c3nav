@@ -384,7 +384,7 @@ def create_editor_form(editor_model):
         'ordering', 'category', 'width', 'groups', 'height', 'color', 'in_legend', 'priority', 'hierarchy', 'icon_name',
         'base_altitude', 'intermediate', 'waytype', 'access_restriction', 'edit_access_restriction', 'default_height',
         'door_height', 'outside', 'identifyable', 'can_search', 'can_describe', 'geometry', 'single', 'altitude',
-        'level_index', 'short_label', 'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor',
+        'level_index', 'short_label', 'origin_space', 'target_space', 'data', "ap_name", 'comment', 'slow_down_factor',
         'groundaltitude', 'node_number', 'wifi_bssids', 'bluetooth_address', 'group', 'ibeacon_uuid', 'ibeacon_major',
         'ibeacon_minor', 'uwb_address', 'extra_seconds', 'speed', 'can_report_missing', 'can_report_mistake',
         'description', 'speed_up', 'description_up', 'avoid_by_default', 'report_help_text', 'enter_description',

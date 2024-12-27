@@ -444,7 +444,7 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
     data: BeaconMeasurementDataSchema = SchemaField(BeaconMeasurementDataSchema,
-                                                    verbose_name=_('Measurement list'), 
+                                                    verbose_name=_('Measurement list'),
                                                     default=BeaconMeasurementDataSchema())
 
     fill_quest = models.BooleanField(_('create a quest to fill this'), default=False)
@@ -461,6 +461,22 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
     @property
     def geometry_changed(self):
         return False
+
+    @staticmethod
+    def contribute_bssid_to_beacons(items: list["BeaconMeasurement"]):
+        map_name = {}
+        for item in items:
+            for scan in item.data.wifi:
+                for peer in scan:
+                    if peer.ap_name:
+                        map_name.setdefault(peer.ap_name, []).append(peer.bssid)
+        for beacon in RangingBeacon.objects.filter(ap_name__in=map_name.keys()):
+            beacon.wifi_bssids = list(set(beacon.wifi_bssids) | set(map_name[beacon.ap_name]))
+            beacon.save()
+
+    def save(self, *args, **kwargs):
+        self.contribute_bssid_to_beacons([self])
+        return super().save(*args, **kwargs)
 
 
 class RangingBeacon(SpaceGeometryMixin, models.Model):
@@ -498,6 +514,7 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
                                    validators=[MinValueValidator(Decimal('0'))])
+    ap_name = models.TextField(null=True, blank=True, verbose_name=_('AP name'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
 
     altitude_quest = models.BooleanField(_('altitude quest'), default=True)
@@ -517,10 +534,11 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     @property
     def title(self):
-        if self.node_number is not None or self.wifi_bssids:
+        if self.node_number is not None or self.wifi_bssids or self.ap_name:
             if self.comment:
-                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])} ({self.comment})'.strip()
+                return (f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])} {self.ap_name or ''} '
+                        f' ({self.comment})').strip()
             else:
-                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])}'.strip()
+                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])} {self.ap_name or ''}'.strip()
         else:
             return self.comment

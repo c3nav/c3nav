@@ -91,8 +91,8 @@ class RangingBeaconBSSIDsQuest(Quest):
     def quest_description(self) -> list[str]:
         return [
             _("This quest only works in the app. It works fully automatically."),
-            _("We are trying to find the BSSIDs broadcast by “%s”.") % self.obj.title,
-            _("Please stand near “%s” and wait for the submit button to appear.") % self.obj.title,
+            _("We are trying to find the BSSIDs broadcast by “%s”.") % self.obj.ap_name,
+            _("Please stand near “%s” and wait for the submit button to appear.") % self.obj.ap_name,
             _("Do not close this popup until then."),
             _("This should happen within less than a minute."),
         ]
@@ -103,7 +103,7 @@ class RangingBeaconBSSIDsQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).filter(import_tag__startswith="noc:", wifi_bssids=[])
+        return RangingBeacon.qs_for_request(request).filter(ap_name__isnull=False, wifi_bssids=[])
 
 
 class BeaconMeasurementQuestForm(ChangeSetModelForm):
