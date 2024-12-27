@@ -1914,6 +1914,7 @@ blink {
     width: 40px;
     height: 8px;
     > .load-indicator {
+        --location-load-color: red;
         --location-load-color: color-mix(in hsl, green, red var(--location-load-value));
         display: block;
         width: 100%;
