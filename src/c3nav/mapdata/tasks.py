@@ -47,3 +47,9 @@ def process_map_updates(self):
             'date': date_format(updates[-1].datetime, 'DATETIME_FORMAT'),
             'id': updates[-1].pk,
         })
+
+
+@app.task(bind=True, max_retries=10)
+def delete_map_cache_key(self, cache_key):
+    for key in cache.keys(f'*{cache_key}*'):
+        cache.delete(key)
