@@ -384,6 +384,8 @@ class LocatorSpace:
         levels = np.full((len(points), len(peers)), fill_value=no_signal, dtype=np.int64)
         for i, point in enumerate(points):
             for peer_id, value in point.values.items():
+                if value.rssi is None:
+                    continue  # todo: ibeaconrange
                 levels[i][peer_lookup[peer_id]] = int(value.rssi)**2
 
         return cls(
