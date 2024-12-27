@@ -39,9 +39,6 @@ class Command(BaseCommand):
             self.do_import(items)
             MapUpdate.objects.create(type='importnoc')
 
-    def _get_space_geom(self, space):
-        return space.geometry.difference(unary_union([unwrap_geom(hole.geometry) for hole in space.holes.all()]))
-
     def do_import(self, items: dict[str, NocImportItem]):
         spaces_for_level = {}
         levels = tuple(Level.objects.values_list("pk", flat=True))
@@ -86,8 +83,11 @@ class Command(BaseCommand):
                     continue
 
                 # move point into space if needed
-                if not new_space.geometry.intersects(new_geometry):
-                    new_geometry = nearest_points(new_space.geometry.buffer(-0.05), new_geometry)[0]
+                new_space_geometry = new_space.geometry.difference(
+                    unary_union([unwrap_geom(hole.geometry) for hole in new_space.columns.all()])
+                )
+                if not new_space_geometry.intersects(new_geometry):
+                    new_geometry = nearest_points(new_space_geometry.buffer(-0.05), new_geometry)[0]
             elif len(possible_spaces) == 1:
                 new_space = possible_spaces[0]
                 print(f"SUCCESS: {name} is in {new_space.title}")
@@ -118,17 +118,22 @@ class Command(BaseCommand):
             old_result = None
 
             # build resulting object
+            altitude_quest = True
             if not result:
                 old_result = result
                 result = RangingBeacon(import_tag=import_tag)
             else:
                 if result.space == new_space and distance(unwrap_geom(result.geometry), new_geometry) < 0.03:
                     continue
+                if result.space == new_space and distance(unwrap_geom(result.geometry), new_geometry) < 0.20:
+                    altitude_quest = False
+
             result.comment = name
             result.space = new_space
             result.geometry = new_geometry
             result.altitude = 0
-            result.altitude_quest = True
+            if altitude_quest:
+                result.altitude_quest = True
             result.save()  # todo: onyl save if changes… etc
 
         for import_tag, location in beacons_so_far.items():
