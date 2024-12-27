@@ -1,3 +1,4 @@
+import itertools
 import re
 from typing import Optional, Sequence
 
@@ -6,6 +7,17 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 
 from c3nav.mapdata.models.report import Report
+
+
+def chunked_iterable(iterable, size):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(itertools.islice(it, size))
+        if not chunk:
+            break
+        yield chunk
+
+
 
 if settings.METRICS:
     from prometheus_client import Gauge
@@ -28,35 +40,37 @@ if settings.METRICS:
             metrics: dict[str, CounterMetricFamily] = dict()
             if settings.CACHES['default']['BACKEND'] == 'django.core.cache.backends.redis.RedisCache':
                 client = cache._cache.get_client()
-                for key in client.keys(f"*{settings.CACHES['default'].get('KEY_PREFIX', '')}apistats__*"):
-                    key: str = key.decode('utf-8').split(':', 2)[2]
-                    value = cache.get(key)
-                    key = key[10:]  # trim apistats__ from the beginning
+                keys = client.keys(f"*{settings.CACHES['default'].get('KEY_PREFIX', '')}apistats__*")
 
-                    # some routing stats don't use double underscores to separate fields, workaround for now
-                    if key.startswith('route_tuple_'):
-                        key = re.sub(r'^route_tuple_(.*)_(.*)$', r'route_tuple__\1__\2', key)
-                    if key.startswith('route_origin_') or key.startswith('route_destination_'):
-                        key = re.sub(r'^route_(origin|destination)_(.*)$', r'route_\1__\2', key)
+                for group in chunked_iterable(keys, settings.METRICS_REDIS_CHUNK_SIZE):
+                    values = client.mget(group)
+                    for key, value in zip(group, values):
+                        key: str = key.decode('utf-8').split(':', 2)[2]
+                        key = key[10:]  # trim apistats__ from the beginning
+                        # some routing stats don't use double underscores to separate fields, workaround for now
+                        if key.startswith('route_tuple_'):
+                            key = re.sub(r'^route_tuple_(.*)_(.*)$', r'route_tuple__\1__\2', key)
+                        if key.startswith('route_origin_') or key.startswith('route_destination_'):
+                            key = re.sub(r'^route_(origin|destination)_(.*)$', r'route_\1__\2', key)
 
-                    name, *labels = key.split('__')
-                    try:
-                        label_names = self.name_registry[name]
-                    except KeyError:
-                        continue
+                        name, *labels = key.split('__')
+                        try:
+                            label_names = self.name_registry[name]
+                        except KeyError:
+                            continue
 
-                    if label_names is None:
-                        label_names = list()
+                        if label_names is None:
+                            label_names = list()
 
-                    if len(label_names) != len(labels):
-                        raise ValueError('configured labels and number of extracted labels doesn\'t match.')
+                        if len(label_names) != len(labels):
+                            raise ValueError('configured labels and number of extracted labels doesn\'t match.')
 
-                    try:
-                        counter = metrics[name]
-                    except KeyError:
-                        counter = metrics[name] = CounterMetricFamily(f'c3nav_{name}', f'c3nav_{name}',
-                                                                      labels=label_names)
-                    counter.add_metric(labels, value)
+                        try:
+                            counter = metrics[name]
+                        except KeyError:
+                            counter = metrics[name] = CounterMetricFamily(f'c3nav_{name}', f'c3nav_{name}',
+                                                                          labels=label_names)
+                        counter.add_metric(labels, value)
             return metrics.values()
 
         def describe(self):

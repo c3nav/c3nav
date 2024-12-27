@@ -413,6 +413,7 @@ with suppress(ImportError):
     INSTALLED_APPS.append('django_extensions')
 
 METRICS = config.getboolean('c3nav', 'metrics', fallback=False)
+METRICS_REDIS_CHUNK_SIZE = config.getint('c3nav', 'metrics_redis_chunk_size', fallback=10)
 if METRICS:
     try:
         import django_prometheus  # noqa
