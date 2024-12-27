@@ -192,12 +192,17 @@ class MeshNodeQuerySet(models.QuerySet):
                 for node in self._result_cache
                 if node.last_messages[MeshMessageType.CONFIG_NODE]
             }
+            nodes_by_bssid_keys = frozenset(nodes_by_bssid.keys())
             try:
-                for ranging_beacon in RangingBeacon.objects.filter(Q(wifi_bssid__in=nodes_by_bssid.keys()) |
-                                                                   Q(node_number__in=nodes_by_id.keys())).select_related('space'):
+                for ranging_beacon in RangingBeacon.objects.filter(
+                        Q(node_number__in=nodes_by_id.keys())
+                ).select_related('space'):
+                    if not (set(ranging_beacon.wifi_bssids) & nodes_by_bssid_keys):
+                        continue
                     # noinspection PyUnresolvedReferences
-                    with suppress(KeyError):
-                        nodes_by_bssid[ranging_beacon.wifi_bssid]._ranging_beacon = ranging_beacon
+                    for bssid in ranging_beacon.wifi_bssids:
+                        with suppress(KeyError):
+                            nodes_by_bssid[bssid]._ranging_beacon = ranging_beacon
                     with suppress(KeyError):
                         nodes_by_id[ranging_beacon.node_number]._ranging_beacon = ranging_beacon
                     # todo: detect and warn about conflicts
