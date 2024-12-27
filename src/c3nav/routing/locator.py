@@ -262,7 +262,7 @@ class Locator:
         # create 2d array with x, y, z, distance as rows
         np_ranges = np.hstack((
             relevant_xyz,
-            np.array(tuple(scan_data[i].distance for i in peer_ids)).reshape((-1, 1)),
+            np.array(tuple(float(scan_data[i].distance) for i in peer_ids)).reshape((-1, 1)),
         ))
 
         #print(np_ranges)
