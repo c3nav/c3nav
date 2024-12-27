@@ -9,8 +9,10 @@ PORT = int(sys.argv[1]) if sys.argv[1:] else 8042
 
 
 def get_from_lines(lines, keyword):
-    return next(iter(l for l in lines if l.startswith(keyword))).split(keyword)[1].strip()
-
+    try: 
+        return next(iter(l for l in lines if l.startswith(keyword))).split(keyword)[1].strip()
+    except StopIteration:
+        return
 
 class FakeMobileClientHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -30,12 +32,19 @@ class FakeMobileClientHandler(http.server.BaseHTTPRequestHandler):
             stations = []
             for data in output:
                 lines = [l.strip() for l in data[5:].split('\n')]
-                stations.append({
+                
+                station = {
                     'bssid': get_from_lines(lines, 'Address:'),
                     'ssid': get_from_lines(lines, 'ESSID:')[1:-1],
                     'level': int(get_from_lines(lines, 'Quality=').split('=')[-1][:-4]),
                     'frequency': int(float(get_from_lines(lines, 'Frequency:').split(' ')[0]) * 1000)
-                })
+                }
+                
+                ap_name = get_from_lines(lines, 'IE: Unknown: DD0B000B86010300')
+                if (ap_name and ap_name != ""):
+                    station['ap_name'] = bytearray.fromhex(ap_name).decode()
+                
+                stations.append(station)
 
             if not stations:
                 continue
