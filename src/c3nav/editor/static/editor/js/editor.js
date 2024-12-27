@@ -1470,7 +1470,11 @@ editor = {
             const form = $('#sidebar').find('.content').find('form.creation-lock');
             form.removeClass('creation-lock')
             if (editor._creating_type !== 'multipoint') {
-                form.find('input:not([type=hidden], .btn)').first().focus();
+                if ($('#responsive_switch').is(':visible')) {
+                    $('#show_details').click();
+                } else {
+                    form.find('input:not([type=hidden], .btn)').first().focus();
+                }
             }
         }
     },
