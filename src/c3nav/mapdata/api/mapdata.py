@@ -80,6 +80,12 @@ class MapdataEndpoint:
     schema: Type[BaseSchema]
     filters: Type[FilterSchema] | None = None
     no_cache: bool = False
+
+    # etag_add_key is a weird, limited and hacky solution to add cache/etag invalidation for data that can be changed without triggering mapupdate
+    # if set, its value *must* be the name of an attribute in the filter schema, and the value of that filter will be used in the etag/cache key
+    # all api endpoints that have the same etag_add_key value have shared cache/etag invalidation, i.e. if one is invalidated then all are
+    # the cache is invalidated by deleting the cache key "mapdata:etag_add:<etag_add_key>:<filter-value>" where filter-value is the value of the
+    # filter attribute that etag_add_key references
     etag_add_key: Optional[str] = None
     name: Optional[str] = None
 
@@ -90,6 +96,10 @@ class MapdataEndpoint:
     @property
     def endpoint_name(self):
         return self.name if self.name is not None else self.model._meta.default_related_name
+
+    @property
+    def endpoint_operation_name(self):
+        return self.name if self.name is not None else self.model_name
 
 
 @dataclass
@@ -142,7 +152,8 @@ class MapdataAPIBuilder:
             call_func=mapdata_list_endpoint,
             add_call_params={"model": endpoint.model.__name__}
         )
-        list_func.__name__ = f"{endpoint.model_name}_list"
+        list_func.__name__ = f"{endpoint.endpoint_operation_name}_list"
+
 
         if not endpoint.no_cache:
             list_func = api_etag(
@@ -168,7 +179,7 @@ class MapdataAPIBuilder:
             call_func=mapdata_retrieve_endpoint,
             add_call_params={"model": endpoint.model.__name__, "pk": id_field}
         )
-        list_func.__name__ = f"{endpoint.model_name}_by_id"
+        list_func.__name__ = f"{endpoint.endpoint_operation_name}_by_id"
 
         self.router.get(f'/{endpoint.endpoint_name}/{{{id_field}}}/', summary=f"{endpoint.model_name} by ID",
                         tags=[f"mapdata-{tag}"], description=schema_description(endpoint.schema),
@@ -243,7 +254,6 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
             model=DataOverlayFeature,
             schema=DataOverlayFeatureGeometrySchema,
             filters=ByOverlayFilter,
-            etag_add_key="overlay",
             name='dataoverlayfeaturegeometries'
         ),
         MapdataEndpoint(
@@ -325,13 +335,9 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
 MapdataAPIBuilder(router=mapdata_api_router).build_all_endpoints(mapdata_endpoints)
 
 
-@mapdata_api_router.post('/dataoverlayfeatures/{id}', summary="update a data overlay feature (including geometries)",
+@mapdata_api_router.post('/dataoverlayfeatures/{id}', summary="update a data overlay feature (no geometries)",
                          response={204: None, **API404.dict(), **auth_permission_responses})
 def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeatureUpdateSchema):
-    """
-    update the data overlay feature
-    """
-
     feature = get_object_or_404(DataOverlayFeature, id=id)
 
     if feature.overlay.edit_access_restriction_id is None or feature.overlay.edit_access_restriction_id not in AccessPermission.get_for_request(
@@ -350,7 +356,7 @@ def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeature
     return 204, None
 
 
-@mapdata_api_router.post('/dataoverlayfeatures-bulk', summary="bulk-update data overlays (including geometries)",
+@mapdata_api_router.post('/dataoverlayfeatures-bulk', summary="bulk-update data overlays (no geometries)",
                          response={204: None, **API404.dict(), **auth_permission_responses})
 def update_data_overlay_features_bulk(request, parameters: DataOverlayFeatureBulkUpdateSchema):
     permissions = AccessPermission.get_for_request(request)

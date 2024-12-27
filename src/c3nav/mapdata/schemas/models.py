@@ -408,7 +408,6 @@ class DataOverlayFeatureUpdateSchema(BaseSchema):
     An update to a data overlay feature.
     """
     level_id: Optional[PositiveInt] = None
-    geometry: Optional[AnyGeometrySchema] = None
     stroke_color: Optional[str] = None
     stroke_width: Optional[float] = None
     stroke_opacity: Optional[float] = None
@@ -423,11 +422,10 @@ class DataOverlayFeatureUpdateSchema(BaseSchema):
 
 class DataOverlayFeatureBulkUpdateItemSchema(BaseSchema):
     """
-    An item of a bulk update to data overlay features.
+    An item of a bulk update to data overlay features (no geometries).
     """
     id: PositiveInt
     level_id: Optional[PositiveInt] = None
-    geometry: Optional[AnyGeometrySchema] = None
     stroke_color: Optional[str] = None
     stroke_width: Optional[float] = None
     stroke_opacity: Optional[float] = None

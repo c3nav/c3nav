@@ -49,6 +49,18 @@ def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_fun
                 raw_etag += 'all' if request.user.is_superuser else f':{','.join(request.user_permissions.quests)}'
             if base_mapdata:
                 raw_etag += ':%d' % request.user_permissions.can_access_base_mapdata
+
+            if etag_add_key:
+                etag_add_cache_key = (
+                    f'mapdata:etag_add:{etag_add_key[1]}:{getattr(kwargs[etag_add_key[0]], etag_add_key[1])}'
+                )
+                etag_add = cache.get(etag_add_cache_key, None)
+                if etag_add is None:
+                    etag_add = int(time.time())
+                    cache.set(etag_add_cache_key, etag_add, 300)
+                raw_etag += ':%d' % etag_add
+
+
             etag = quote_etag(raw_etag)
 
             response = get_conditional_response(request, etag)
@@ -68,19 +80,9 @@ def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_fun
                     value = model_dump()
                 data[name] = value
 
-            etag_add = ''
-            if etag_add_key:
-                etag_add_cache_key = (
-                    f'mapdata:etag_add:{etag_add_key[1]}:{getattr(kwargs[etag_add_key[0]], etag_add_key[1])}'
-                )
-                etag_add = cache.get(etag_add_cache_key, None)
-                if etag_add is None:
-                    etag_add = int(time.time())
-                    cache.set(etag_add_cache_key, etag_add, 300)
-            cache_key = 'mapdata:api:%s:%s:%s:%s' % (
+            cache_key = 'mapdata:api:%s:%s:%s' % (
                 request.resolver_match.route.replace('/', '-').strip('-'),
                 raw_etag,
-                etag_add,
                 json.dumps(data, separators=(',', ':'), sort_keys=True, cls=DjangoJSONEncoder),
             )
 
