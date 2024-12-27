@@ -309,13 +309,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug
             )
 
-    def clean_data(self):
-        data = self.cleaned_data['data']
-        if not data.wifi:
-            raise ValidationError(_('WiFi scan data is missing.'))
-        data.wifi = [[item for item in scan if item.ssid] for scan in data.wifi]
-        return data
-
     def clean(self):
         if self.is_json:
             for name, field in self.missing_fields:
@@ -324,6 +317,15 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if 'geometry' in self.fields:
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')
+
+        data = self.cleaned_data['data']
+        if self.cleaned_data['fill_quest']:
+            if self.cleaned_data['data'].wifi:
+                raise ValidationError(_('Why is there WiFi scan data if this is a fill quest?'))
+        else:
+            if not self.cleaned_data['data'].wifi:
+                raise ValidationError(_('WiFi scan data is missing.'))
+        self.cleaned_data['data'].wifi = [[item for item in scan if item.ssid] for scan in data.wifi]
 
         super().clean()
 

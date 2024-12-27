@@ -6,8 +6,9 @@ from django.utils.translation import gettext_lazy as _
 from shapely import Point
 from shapely.geometry import mapping
 
-from c3nav.mapdata.models.geometry.space import RangingBeacon
+from c3nav.mapdata.models.geometry.space import RangingBeacon, BeaconMeasurement
 from c3nav.mapdata.quests.base import ChangeSetModelForm, register_quest, Quest
+from c3nav.routing.schemas import BeaconMeasurementDataSchema
 
 
 class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
@@ -103,3 +104,49 @@ class RangingBeaconBSSIDsQuest(Quest):
     @classmethod
     def _qs_for_request(cls, request):
         return RangingBeacon.qs_for_request(request).filter(import_tag__startswith="noc:", wifi_bssids=[])
+
+
+class BeaconMeasurementQuestForm(ChangeSetModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["data"].widget = HiddenInput()
+
+    def clean_bssids(self):
+        data = self.cleaned_data["data"]
+        if not data:
+            raise ValidationError(_("Need at least one scan."))
+        return data
+
+    class Meta:
+        model = BeaconMeasurement
+        fields = ("data", )
+
+    @property
+    def changeset_title(self):
+        return f'Beacon Measurement Quest: {self.instance.title}'
+
+
+@register_quest
+@dataclass
+class BeaconMeasurementQuest(Quest):
+    quest_type = "beacon_measurement"
+    quest_type_label = _('Wifi/BLE Positioning')
+    quest_type_icon = "wifi"
+    form_class = BeaconMeasurementQuestForm
+    obj: BeaconMeasurement
+
+    @property
+    def quest_description(self) -> list[str]:
+        return [
+            _("Please stand as close to the given location as possible. "
+              "Feel free to close this window again to double-check."),
+            _("When you're ready, please click the button below and wait for measurements to arrive."),
+        ]
+
+    @property
+    def point(self) -> Point:
+        return mapping(self.obj.geometry)
+
+    @classmethod
+    def _qs_for_request(cls, request):
+        return BeaconMeasurement.qs_for_request(request).filter(data=BeaconMeasurementDataSchema())
