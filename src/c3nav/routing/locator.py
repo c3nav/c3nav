@@ -265,12 +265,12 @@ class Locator:
             np.array(tuple(scan_data[i].distance for i in peer_ids)).reshape((-1, 1)),
         ))
 
-        print(np_ranges)
+        #print(np_ranges)
 
         measured_ranges = np_ranges[:, 3]
-        print('a', measured_ranges)
+        #print('a', measured_ranges)
         # measured_ranges[measured_ranges<1] = 1
-        print('b', measured_ranges)
+        #print('b', measured_ranges)
 
         # rating the guess by calculating the distances
         def diff_func(guess):
