@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-26 22:26+0100\n"
-"PO-Revision-Date: 2024-12-26 22:25+0100\n"
+"POT-Creation-Date: 2024-12-27 01:14+0100\n"
+"PO-Revision-Date: 2024-12-27 01:14+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2137,10 +2137,8 @@ msgid "Node Number"
 msgstr "Node Nummer"
 
 #: c3nav/mapdata/models/geometry/space.py
-#, fuzzy
-#| msgid "WiFi BSSID"
 msgid "WiFi BSSIDs"
-msgstr "WLAN BSSID"
+msgstr "WLAN BSSIDs"
 
 #: c3nav/mapdata/models/geometry/space.py
 msgid "uses node's value if not set"
@@ -2643,8 +2641,8 @@ msgid "default fill color"
 msgstr "Standardfüllfarbe"
 
 #: c3nav/mapdata/models/overlay.py
-msgid "fill opacity"
-msgstr "Füllopacity"
+msgid "default fill opacity"
+msgstr "Standard-Füllopacity"
 
 #: c3nav/mapdata/models/overlay.py
 msgid "cluster points together when zoomed out"
@@ -2667,6 +2665,18 @@ msgid "pull interval"
 msgstr "Pullintervall"
 
 #: c3nav/mapdata/models/overlay.py
+msgid "frontend update interval"
+msgstr "Frontend Updateintervall"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "in seconds"
+msgstr "in Sekunden"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "Editor Access Restriction"
+msgstr "Editor Zugangs­beschränkung"
+
+#: c3nav/mapdata/models/overlay.py
 msgid "Data Overlay"
 msgstr "Datenoverlay"
 
@@ -2685,6 +2695,10 @@ msgstr "randdicke"
 #: c3nav/mapdata/models/overlay.py
 msgid "fill color"
 msgstr "Füllfarbe"
+
+#: c3nav/mapdata/models/overlay.py
+msgid "fill opacity"
+msgstr "Füllopacity"
 
 #: c3nav/mapdata/models/overlay.py
 msgid "show label"
@@ -2972,6 +2986,33 @@ msgstr "Der AP sollte sich nicht 0m über dem Boden befinden."
 #: c3nav/mapdata/quests/positioning.py
 msgid "Ranging Beacon Altitude"
 msgstr "Höhe des Ranging Beacons"
+
+#: c3nav/mapdata/quests/positioning.py
+msgid "Need at least one bssid."
+msgstr "Mindestens eine BSSID wird benötigt."
+
+#: c3nav/mapdata/quests/positioning.py
+msgid "Ranging Beacon Identifier"
+msgstr "Ranging Beacons Indentifizierung"
+
+#: c3nav/mapdata/quests/positioning.py
+msgid "This quest only works in the app. It works fully automatically."
+msgstr ""
+"Dieser Quest funktioniert nur in der App. Er funktioniert vollautomatisch."
+
+#: c3nav/mapdata/quests/positioning.py
+#, python-format
+msgid "We are trying to find the BSSIDs broadcast by “%s”."
+msgstr "Wir versuchen die BSSIDs von „%s“ zu finden."
+
+#: c3nav/mapdata/quests/positioning.py
+#, python-format
+msgid "Please stand near “%s” and wait for the submit button to appear."
+msgstr "Bitte stell dich zu „%s“ und warte bis der Absendebutton erscheint."
+
+#: c3nav/mapdata/quests/positioning.py
+msgid "This should happen within less than a minute."
+msgstr "Dies sollte weniger als eine Minute dauern."
 
 #: c3nav/mapdata/quests/route_descriptions.py
 msgid "Does this space qualify as “easily identifyable/findable”?"

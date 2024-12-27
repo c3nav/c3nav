@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from django.core.exceptions import ValidationError
+from django.forms import CharField, HiddenInput
 from django.utils.translation import gettext_lazy as _
 from shapely import Point
 from shapely.geometry import mapping
@@ -55,6 +56,12 @@ class RangingBeaconAltitudeQuest(Quest):
 
 
 class RangingBeaconBSSIDsQuestForm(ChangeSetModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["look_for_ap"] = CharField(disabled=True, initial=self.instance.import_tag[4:],
+                                               widget=HiddenInput())
+        self.fields["wifi_bssids"].widget = HiddenInput()
+
     def clean_bssids(self):
         data = self.cleaned_data["wifi_bssids"]
         if not data:
@@ -82,8 +89,9 @@ class RangingBeaconBSSIDsQuest(Quest):
     @property
     def quest_description(self) -> list[str]:
         return [
-            _("This quest is only available in the app. It works fully automatically."),
-            _("Please stand near this access point and wait for the submit button to appear."),
+            _("This quest only works in the app. It works fully automatically."),
+            _("We are trying to find the BSSIDs broadcast by “%s”."),
+            _("Please stand near “%s” and wait for the submit button to appear.") % self.obj.title,
             _("This should happen within less than a minute."),
         ]
 
@@ -93,4 +101,4 @@ class RangingBeaconBSSIDsQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).filter(import_tag__startswith="noc:", bssids=[])
+        return RangingBeacon.qs_for_request(request).filter(import_tag__startswith="noc:", wifi_bssids=[])

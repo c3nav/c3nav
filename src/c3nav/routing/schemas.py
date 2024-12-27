@@ -9,6 +9,7 @@ from pydantic.types import NonNegativeInt, NonNegativeFloat
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.schema import BaseSchema
+from c3nav.api.utils import NonEmptyStr
 
 
 class WifiPeerInformationElement(BaseSchema):
@@ -68,6 +69,15 @@ class LocateWifiPeerSchema(BaseSchema):
         title="distance standard deviation",
         description="standard deviation of measurements in meters",
         example=1.23
+    )
+    ap_name: Union[
+        NonEmptyStr,
+        Annotated[None, APIField(title="null", description="AP name not available")]
+    ] = APIField(
+        default=None,
+        title="AP name",
+        description="as broadcasted, for example, by aruba APs",
+        example="AP042"
     )
     info_elems: list[WifiPeerInformationElement] = APIField(
         default=[],

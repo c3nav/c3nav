@@ -1459,10 +1459,14 @@ c3nav = {
         }
     },
     _set_modal_content: function (content, no_close) {
-        $('#modal').toggleClass('loading', !content)
+        const $modal = $('#modal');
+        $modal.toggleClass('loading', !content)
             .find('#modal-content')
             .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
             .append(content || '<div class="loader"></div>');
+        if ($modal.find('[name=look_for_ap]').length) {
+            $modal.find('button').hide();
+        }
     },
     _modal_click: function (e) {
         if (!c3nav.modal_noclose && (e.target.id === 'modal' || e.target.id === 'close-modal')) {
@@ -2120,6 +2124,9 @@ c3nav = {
         if (c3nav.ssids) {
             peers = peers.filter(peer => c3nav.ssids.includes(peer.ssid));
         }
+        let match_ap = $('[name=look_for_ap]').val(),
+            found_bssids = [];
+
         for (const peer of peers) {
             if (peer.level !== undefined) {
                 peer.rssi = peer.level;
@@ -2129,6 +2136,25 @@ c3nav = {
                 peer.distance = peer.rtt.distance_mm / 1000;
                 peer.distance_sd = peer.rtt.distance_std_dev_mm / 1000;
                 delete peer.rtt;
+            }
+            if (match_ap && peer.ap_name === match_ap) {
+                found_bssids.push(peer.bssid);
+            }
+        }
+        if (found_bssids.length) {
+            let $wifi_bssids = $('[name=wifi_bssids]'),
+                val = JSON.parse($wifi_bssids.val()),
+                added = 0;
+            for (let bssid of found_bssids) {
+                if (!val.includes(bssid)) {
+                    val.push(bssid);
+                    added++;
+                }
+            }
+            if (added) {
+                $wifi_bssids.val(JSON.stringify(val));
+            } else {
+                $('#modal button[type=submit]').show();
             }
         }
         c3nav._last_wifi_peers = peers;
