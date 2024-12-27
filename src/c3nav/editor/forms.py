@@ -318,14 +318,15 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')
 
-        data = self.cleaned_data['data']
-        if self.cleaned_data['fill_quest']:
-            if self.cleaned_data['data'].wifi:
-                raise ValidationError(_('Why is there WiFi scan data if this is a fill quest?'))
-        else:
-            if not self.cleaned_data['data'].wifi:
-                raise ValidationError(_('WiFi scan data is missing.'))
-        self.cleaned_data['data'].wifi = [[item for item in scan if item.ssid] for scan in data.wifi]
+        if 'data' in self.fields:
+            data = self.cleaned_data['data']
+            if self.cleaned_data['fill_quest']:
+                if self.cleaned_data['data'].wifi:
+                    raise ValidationError(_('Why is there WiFi scan data if this is a fill quest?'))
+            else:
+                if not self.cleaned_data['data'].wifi:
+                    raise ValidationError(_('WiFi scan data is missing.'))
+            self.cleaned_data['data'].wifi = [[item for item in scan if item.ssid] for scan in data.wifi]
 
         super().clean()
 
