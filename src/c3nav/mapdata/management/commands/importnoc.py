@@ -115,12 +115,9 @@ class Command(BaseCommand):
             # find existing location
             result = beacons_so_far.pop(import_tag, None)
 
-            old_result = None
-
             # build resulting object
             altitude_quest = True
             if not result:
-                old_result = result
                 result = RangingBeacon(import_tag=import_tag)
             else:
                 if result.space == new_space and distance(unwrap_geom(result.geometry), new_geometry) < 0.03:
