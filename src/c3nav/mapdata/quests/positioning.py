@@ -90,7 +90,7 @@ class RangingBeaconBSSIDsQuest(Quest):
     def quest_description(self) -> list[str]:
         return [
             _("This quest only works in the app. It works fully automatically."),
-            _("We are trying to find the BSSIDs broadcast by “%s”."),
+            _("We are trying to find the BSSIDs broadcast by “%s”.") % self.obj.title,
             _("Please stand near “%s” and wait for the submit button to appear.") % self.obj.title,
             _("This should happen within less than a minute."),
         ]
