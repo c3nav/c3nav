@@ -134,7 +134,7 @@ class Command(BaseCommand):
             result.altitude = 0
             if altitude_quest:
                 result.altitude_quest = True
-            result.save()  # todo: onyl save if changes… etc
+            result.save()
 
         for import_tag, location in beacons_so_far.items():
             location.delete()
