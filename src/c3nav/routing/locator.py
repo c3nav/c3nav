@@ -242,8 +242,6 @@ class Locator:
         return norm
 
     def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None):
-        pprint(scan_data)
-
         peer_ids = tuple(i for i in scan_data if i < len(self.xyz))
 
         if len(peer_ids) < 3:
@@ -296,8 +294,8 @@ class Locator:
             # jac="3-point",
             loss="linear",
             bounds=(
-                np.min(self.beacon_positions[:, :dimensions], axis=0) - np.array([200, 200, 100])[:dimensions],
-                np.max(self.beacon_positions[:, :dimensions], axis=0) + np.array([200, 200, 100])[:dimensions],
+                np.min(self.xyz[:, :dimensions], axis=0) - np.array([200, 200, 100])[:dimensions],
+                np.max(self.xyz[:, :dimensions], axis=0) + np.array([200, 200, 100])[:dimensions],
             ),
             x0=initial_guess,
         )
