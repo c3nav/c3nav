@@ -5,6 +5,7 @@ from collections import deque, namedtuple
 from dataclasses import dataclass, field
 from functools import reduce
 from itertools import chain
+from operator import itemgetter
 from typing import Optional, TypeVar, Generic, Mapping, Any, Sequence, TypeAlias, ClassVar, NamedTuple
 
 import numpy as np
@@ -391,7 +392,7 @@ class Router:
             raise LocationUnreachable
         return result
 
-    def space_for_point(self, level: int, point: PointCompatible, restrictions) -> Optional['RouterSpace']:
+    def space_for_point(self, level: int, point: PointCompatible, restrictions, max_distance=20) -> Optional['RouterSpace']:
         point = Point(point.x, point.y)
         level = self.levels[level]
         excluded_spaces = restrictions.spaces if restrictions else ()
@@ -402,13 +403,25 @@ class Router:
                 return self.spaces[space]
         spaces = (self.spaces[space] for space in level.spaces if space not in excluded_spaces)
         spaces = ((space, space.geometry.distance(point)) for space in spaces)
-        spaces = tuple((space, distance) for space, distance in spaces if distance < 20)
+        spaces = tuple((space, distance) for space, distance in spaces if distance < max_distance)
         if not spaces:
             return None
         return min(spaces, key=operator.itemgetter(1))[0]
 
     def altitude_for_point(self, space: int, point: PointCompatible) -> float:
         return self.spaces[space].altitudearea_for_point(point).get_altitude(point)
+
+    def level_id_for_xyz(self, xyz: tuple[float, float, float], restrictions):
+        xy = Point(xyz[0], xyz[1])
+        z = xyz[2]
+        possible_levels = {}
+        for level_id, level in self.levels.items():
+            space = self.space_for_point(level=level_id, point=xy, restrictions=restrictions)
+            if space:
+                possible_levels[level_id] = abs(space.altitudearea_for_point(xy).get_altitude(xy)-z)
+        if possible_levels:
+            return min(possible_levels.items(), key=itemgetter(1))[0]
+        return min(self.levels.items(), key=lambda a: abs(float(a[1].base_altitude)-z))[0]
 
     def describe_custom_location(self, location):
         restrictions = self.get_restrictions(location.permissions)

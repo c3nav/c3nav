@@ -288,7 +288,7 @@ class Locator:
         # initial guess i the average of all beacons, with scale 1
         initial_guess = np.average(np_ranges[:, :dimensions], axis=0)
 
-        # here the magic happens
+        # here the magic happen
         results = self.least_squares_func(
             fun=cost_func,
             # jac="3-point",
@@ -301,19 +301,18 @@ class Locator:
         )
 
         # create result
-        # todo: figure out level
+        router = Router.load()
+        restrictions = router.get_restrictions(permissions)
+
         result_pos = results.x
-        from c3nav.mapdata.models import Level
         location = CustomLocation(
-            level=Level.objects.first(),
+            level=router.levels[router.level_id_for_xyz(result_pos, restrictions)],
             x=result_pos[0]/100,
             y=result_pos[1]/100,
             permissions=(),
             icon='my_location'
         )
         location.z = result_pos[2]/100
-
-        pprint(relevant_xyz)
 
         orig_xyz = None
         print('orig_addr', orig_addr)
