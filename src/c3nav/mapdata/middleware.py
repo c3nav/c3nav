@@ -1,6 +1,7 @@
 import re
 from functools import wraps
 
+from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.user import get_user_data_lazy
 
 
@@ -54,4 +55,16 @@ class UserDataMiddleware:
 
     def __call__(self, request):
         request.user_data = get_user_data_lazy(request)
+        return self.get_response(request)
+
+
+class RequestCacheMiddleware:
+    """
+    Resets the request_cache at the start of every request.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        per_request_cache.clear()
         return self.get_response(request)

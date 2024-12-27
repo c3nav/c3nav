@@ -23,6 +23,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
 
@@ -620,10 +621,10 @@ class Position(CustomLocationProxyMixin, models.Model):
         if not user.is_authenticated:
             return False
         cache_key = 'user_has_positions:%d' % user.pk
-        result = cache.get(cache_key, None)
+        result = per_request_cache.get(cache_key, None)
         if result is None:
             result = cls.objects.filter(owner=user).exists()
-            cache.set(cache_key, result, 600)
+            per_request_cache.set(cache_key, result, 600)
         return result
 
     def serialize_position(self, request=None):

@@ -16,6 +16,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.tasks import process_map_updates
 from c3nav.mapdata.utils.cache.changes import GeometryChangeTracker
+from c3nav.mapdata.utils.cache.local import per_request_cache
 
 
 class MapUpdate(models.Model):
@@ -48,47 +49,47 @@ class MapUpdate(models.Model):
     @classmethod
     def last_update(cls, force=False):
         if not force:
-            last_update = cache.get('mapdata:last_update', None)
+            last_update = per_request_cache.get('mapdata:last_update', None)
             if last_update is not None:
                 return last_update
         try:
             with cls.lock():
                 last_update = cls.objects.latest().to_tuple
-                cache.set('mapdata:last_update', last_update, None)
+                per_request_cache.set('mapdata:last_update', last_update, None)
         except cls.DoesNotExist:
             last_update = (0, 0)
-            cache.set('mapdata:last_update', last_update, None)
+            per_request_cache.set('mapdata:last_update', last_update, None)
         return last_update
 
     @classmethod
     def last_processed_update(cls, force=False, lock=True):
         if not force:
-            last_processed_update = cache.get('mapdata:last_processed_update', None)
+            last_processed_update = per_request_cache.get('mapdata:last_processed_update', None)
             if last_processed_update is not None:
                 return last_processed_update
         try:
             with (cls.lock() if lock else nullcontext()):
                 last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
-                cache.set('mapdata:last_processed_update', last_processed_update, None)
+                per_request_cache.set('mapdata:last_processed_update', last_processed_update, None)
         except cls.DoesNotExist:
             last_processed_update = (0, 0)
-            cache.set('mapdata:last_processed_update', last_processed_update, None)
+            per_request_cache.set('mapdata:last_processed_update', last_processed_update, None)
         return last_processed_update
 
     @classmethod
     def last_processed_geometry_update(cls, force=False):
         if not force:
-            last_processed_geometry_update = cache.get('mapdata:last_processed_geometry_update', None)
+            last_processed_geometry_update = per_request_cache.get('mapdata:last_processed_geometry_update', None)
             if last_processed_geometry_update is not None:
                 return last_processed_geometry_update
         try:
             with cls.lock():
                 last_processed_geometry_update = cls.objects.filter(processed=True,
                                                                     geometries_changed=True).latest().to_tuple
-                cache.set('mapdata:last_processed_geometry_update', last_processed_geometry_update, None)
+                per_request_cache.set('mapdata:last_processed_geometry_update', last_processed_geometry_update, None)
         except cls.DoesNotExist:
             last_processed_geometry_update = (0, 0)
-            cache.set('mapdata:last_processed_geometry_update', last_processed_geometry_update, None)
+            per_request_cache.set('mapdata:last_processed_geometry_update', last_processed_geometry_update, None)
         return last_processed_geometry_update
 
     @property
@@ -239,7 +240,8 @@ class MapUpdate(models.Model):
                 LevelRenderData.rebuild(geometry_update_cache_key)
 
                 transaction.on_commit(
-                    lambda: cache.set('mapdata:last_processed_geometry_update', last_geometry_update.to_tuple, None)
+                    lambda: per_request_cache.set('mapdata:last_processed_geometry_update',
+                                              last_geometry_update.to_tuple, None)
                 )
             else:
                 logger.info('No geometries affected.')
@@ -282,7 +284,7 @@ class MapUpdate(models.Model):
 
         if new:
             transaction.on_commit(
-                lambda: cache.set('mapdata:last_update', self.to_tuple, None)
+                lambda: per_request_cache.set('mapdata:last_update', self.to_tuple, None)
             )
             if settings.HAS_CELERY and settings.AUTO_PROCESS_UPDATES:
                 transaction.on_commit(

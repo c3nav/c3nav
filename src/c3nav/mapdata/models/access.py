@@ -14,6 +14,7 @@ from django.utils.translation import ngettext_lazy
 
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.utils.cache.local import per_request_cache
 
 
 class AccessRestriction(TitledMixin, models.Model):
@@ -38,20 +39,20 @@ class AccessRestriction(TitledMixin, models.Model):
     @staticmethod
     def get_all() -> set[int]:
         cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
-        access_restriction_ids = cache.get(cache_key, None)
+        access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
             access_restriction_ids = set(AccessRestriction.objects.values_list('pk', flat=True))
-            cache.set(cache_key, access_restriction_ids, 300)
+            per_request_cache.set(cache_key, access_restriction_ids, 300)
         return access_restriction_ids
 
     @staticmethod
     def get_all_public() -> set[int]:
         cache_key = 'public_access_restrictions:%s' % MapUpdate.current_cache_key()
-        access_restriction_ids = cache.get(cache_key, None)
+        access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
             access_restriction_ids = set(AccessRestriction.objects.filter(public=True)
                                          .values_list('pk', flat=True))
-            cache.set(cache_key, access_restriction_ids, 300)
+            per_request_cache.set(cache_key, access_restriction_ids, 300)
         return access_restriction_ids
 
 
@@ -321,14 +322,14 @@ class AccessPermission(models.Model):
             return AccessRestriction.get_all()
 
         cache_key = cls.request_access_permission_key(request)+f':{can_grant}'
-        access_restriction_ids = cache.get(cache_key, None)
+        access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
             permissions = cls.get_for_request_with_expire_date(request, can_grant=can_grant)
 
             access_restriction_ids = set(permissions.keys())
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now() + timedelta(seconds=120))
-            cache.set(cache_key, access_restriction_ids, min(300, (expire_date - timezone.now()).total_seconds()))
+            per_request_cache.set(cache_key, access_restriction_ids, min(300, (expire_date - timezone.now()).total_seconds()))
         return set(access_restriction_ids) | (set() if can_grant else AccessRestriction.get_all_public())
 
     @classmethod
