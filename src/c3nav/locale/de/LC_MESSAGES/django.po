@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-27 01:14+0100\n"
-"PO-Revision-Date: 2024-12-27 01:14+0100\n"
+"POT-Creation-Date: 2024-12-27 13:48+0100\n"
+"PO-Revision-Date: 2024-12-27 14:44+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -3009,6 +3009,10 @@ msgstr "Wir versuchen die BSSIDs von „%s“ zu finden."
 #, python-format
 msgid "Please stand near “%s” and wait for the submit button to appear."
 msgstr "Bitte stell dich zu „%s“ und warte bis der Absendebutton erscheint."
+
+#: c3nav/mapdata/quests/positioning.py
+msgid "Do not close this popup until then."
+msgstr "Bitte lass diesen Dialog bis dahin offen."
 
 #: c3nav/mapdata/quests/positioning.py
 msgid "This should happen within less than a minute."
