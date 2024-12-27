@@ -306,7 +306,10 @@ class Locator:
 
         result_pos = results.x
         location = CustomLocation(
-            level=router.levels[router.level_id_for_xyz(result_pos, restrictions)],
+            level=router.levels[router.level_id_for_xyz(
+                (result_pos[0], result_pos[1], result_pos[2]-1.3),  # -1.3m cause we assume people to be above ground
+                restrictions
+            )],
             x=result_pos[0]/100,
             y=result_pos[1]/100,
             permissions=(),
