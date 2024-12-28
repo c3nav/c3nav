@@ -80,7 +80,7 @@ class Command(BaseCommand):
                 if result.space == new_space and distance(unwrap_geom(result.geometry), point) < 0.20:
                     altitude_quest = False
 
-            result.comment = name
+            result.ap_name = name
             result.space = new_space
             result.geometry = point
             result.altitude = 0
