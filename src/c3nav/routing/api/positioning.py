@@ -8,6 +8,7 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
+from c3nav.editor.models import ChangeSet
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -40,7 +41,7 @@ class PositioningResult(BaseSchema):
                              description="determine position based on wireless measurements "
                                          "(including ranging, if available)",
                              response={200: PositioningResult, **auth_responses})
-def get_position(request, parameters: LocateRequestSchema):
+def get_position(request, parameters: LocateRequestSchema, update_ap_names_bssid_mapping=None):
     try:
         location = Locator.load().locate(parameters.wifi_peers,
                                          permissions=AccessPermission.get_for_request(request))
@@ -50,6 +51,15 @@ def get_position(request, parameters: LocateRequestSchema):
     except ValidationError:
         # todo: validation error, seriously? this shouldn't happen anyways
         raise
+
+    if request.user_permissions.passive_ap_name_scanning:
+        bssid_mapping = {}
+        for peer in parameters.wifi_peers:
+            if not peer.ap_name:
+                continue
+            bssid_mapping.setdefault(peer.ap_name, set()).add(peer.bssid)
+        if bssid_mapping:
+            update_ap_names_bssid_mapping.delay(map_name=bssid_mapping, user=request.user)
 
     return {
         "location": location
