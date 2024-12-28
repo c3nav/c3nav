@@ -109,6 +109,7 @@ class RangingBeaconBSSIDsQuest(Quest):
 class BeaconMeasurementQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["beacon_measurement_quest"] = CharField(disabled=True, initial='', widget=HiddenInput(), required=False)
         self.fields["data"].widget = HiddenInput()
 
     def clean_data(self):

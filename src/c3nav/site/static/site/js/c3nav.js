@@ -1471,17 +1471,112 @@ c3nav = {
     },
     _set_modal_content: function (content, no_close) {
         const $modal = $('#modal');
+        const $content = $modal.find('#modal-content');
         $modal.toggleClass('loading', !content)
-            .find('#modal-content')
-            .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
+        $content.html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
             .append(content || '<div class="loader"></div>');
-        if ($modal.find('[name=look_for_ap]').length) {
+        if ($content.find('[name=look_for_ap]').length) {
+            $content.find('button[type=submit]').hide();
             if (!window.mobileclient) {
-                alert('need app!')
+                $content.find('p, form').remove();
+                $content.append('<p>This quest is only available in the android app.</p>'); // TODO translate
+            } else {
+                c3nav._ap_name_scan_result_update();
             }
-            $modal.find('button').hide();
+        } else if ($content.find('[name=beacon_measurement_quest]').length) {
+            $content.find('button[type=submit]').hide();
+            if (!window.mobileclient) {
+                $content.find('p, form').remove();
+                $content.append('<p>This quest is only available in the android app.</p>'); // TODO translate
+            } else {
+                const $scanner = $('<div class="beacon-quest-scanner"></div>');
+                const $button = $('<button class="button">start scanning</button>')
+                    .click(() => {
+                        $button.remove();
+                        $scanner.append('<p>Scanning… Please do not close this popup and do not move.</p>');
+                        c3nav._quest_wifi_scans = [];
+                        c3nav._beacon_quest_scanning = true;
+                    })
+                $scanner.append($button);
+                $content.find('form').prev().after($scanner)
+            }
         }
     },
+    _quest_wifi_scans: [],
+    _quest_ibeacon_scans: [],
+    _wifi_measurement_scan_update: function () {
+
+        const wifi_display_results = [];
+        const bluetooth_display_results = [];
+        for (const scan of c3nav._quest_wifi_scans) {
+            for (const peer of scan) {
+                let found = false;
+                for (const existing_peer of wifi_display_results) {
+                    if (peer.bssid === existing_peer.bssid && peer.ssid === existing_peer.ssid) {
+                        existing_peer.rssi = peer.rssi;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    wifi_display_results.push(peer);
+                }
+            }
+        }
+        for (const scan of c3nav._quest_ibeacon_scans) {
+            for (const peer of scan) {
+                let found = false;
+                for (const existing_peer of bluetooth_display_results) {
+                    if (peer.uuid === existing_peer.uuid && peer.major === existing_peer.major && peer.minor === existing_peer.minor) {
+                        existing_peer.distance = peer.distance;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    bluetooth_display_results.push(peer);
+                }
+            }
+        }
+
+        const $scanner = $('#modal .beacon-quest-scanner');
+
+        const $wifi_table = $(`<table><tr><td colspan="3"><i>${c3nav._quest_wifi_scans.length} wifi scans</i></td></tr><tr><th>BSSID</th><th>SSID</th><th>RSSI</th></tr></table>`);
+
+        for (const peer of wifi_display_results) {
+            $wifi_table.append(`<tr><td>${peer.bssid}</td><td>${peer.ssid}</td><td>${peer.rssi}</td></tr>`);
+        }
+
+
+        const $bluetooth_table = $(`<table><tr><td colspan="3"><i>${c3nav._quest_ibeacon_scans.length} wifi scans</i></td></tr><tr><th>ID</th><th>Distance</th></table>`);
+
+        for (const peer of bluetooth_display_results) {
+            $bluetooth_table.append(`<tr><td>${peer.major}</td><td>${peer.minor}</td><td>${peer.distance}</td></tr>`);
+        }
+
+
+        $scanner.empty();
+        if (c3nav._quest_wifi_scans.length < 2) {
+            $scanner.append('<p>Scanning… Please do not close this popup and do not move.</p>');
+        } else {
+            if (c3nav._quest_wifi_scans.length > 2) {
+                $('#modal input[name=data]').val(JSON.stringify({
+                    wifi: c3nav._quest_wifi_scans,
+                    ibeacon: c3nav._quest_ibeacon_scans,
+                }))
+                $('#modal button[type=submit]').show();
+            }
+        }
+
+        if (wifi_display_results.length > 0) {
+            $scanner.append($wifi_table);
+        }
+        if (bluetooth_display_results.length > 0) {
+            $scanner.append($bluetooth_table);
+        }
+
+    },
+
     _ap_name_scan_result_update: function () {
         const $modal = $('#modal');
         const $match_ap = $modal.find('[name=look_for_ap]');
@@ -2178,6 +2273,7 @@ c3nav = {
     _last_ibeacon_peers: [],
     _no_scan_count: 0,
     _ap_name_mappings: {},
+    _beacon_quest_scan_results: {},
     _enable_scan_debugging: false,
     _scan_debugging_results: [],
     _wifi_scan_results: function (peers) {
@@ -2221,12 +2317,23 @@ c3nav = {
 
         c3nav._ap_name_scan_result_update();
 
+        if (c3nav._beacon_quest_scanning) {
+            c3nav._quest_wifi_scans.push(peers);
+            c3nav._wifi_measurement_scan_update();
+        }
+
         c3nav._last_wifi_peers = peers;
         c3nav._after_scan_results();
     },
     _ibeacon_scan_results: function (peers) {
         peers = JSON.parse(peers);
         c3nav._last_ibeacon_peers = peers;
+
+        if (c3nav._beacon_quest_scanning) {
+            c3nav._quest_ibeacon_scans.push(peers);
+            c3nav._wifi_measurement_scan_update();
+        }
+
         c3nav._after_scan_results();
     },
     _after_scan_results: function () {
