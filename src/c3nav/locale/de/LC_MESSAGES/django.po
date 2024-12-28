@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-27 13:48+0100\n"
-"PO-Revision-Date: 2024-12-27 14:44+0100\n"
+"POT-Creation-Date: 2024-12-28 18:12+0100\n"
+"PO-Revision-Date: 2024-12-28 18:20+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -708,6 +708,10 @@ msgid "Can not add redirecting slug “%s”: it is already used elsewhere."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Er wird bereits an "
 "anderer Stelle verwendet."
+
+#: c3nav/editor/forms.py
+msgid "Why is there WiFi scan data if this is a fill quest?"
+msgstr "Warum sind WLAN daten in einem Füll Quest?"
 
 #: c3nav/editor/forms.py
 msgid "WiFi scan data is missing."
@@ -2125,6 +2129,10 @@ msgid "Measurement list"
 msgstr "Messungsliste"
 
 #: c3nav/mapdata/models/geometry/space.py
+msgid "create a quest to fill this"
+msgstr "Füll-Quest erstellen"
+
+#: c3nav/mapdata/models/geometry/space.py
 msgid "Beacon Measurement"
 msgstr "Beacon Messung"
 
@@ -2133,12 +2141,24 @@ msgid "Beacon Measurements"
 msgstr "Beacon Messungen"
 
 #: c3nav/mapdata/models/geometry/space.py
+msgid "Event WiFi AP"
+msgstr "Event-WLAN AP"
+
+#: c3nav/mapdata/models/geometry/space.py
+msgid "DECT antenna"
+msgstr "DECT Antenne"
+
+#: c3nav/mapdata/models/geometry/space.py
+msgid "beacon type"
+msgstr "Beacon-Typ"
+
+#: c3nav/mapdata/models/geometry/space.py
 msgid "Node Number"
 msgstr "Node Nummer"
 
 #: c3nav/mapdata/models/geometry/space.py
-msgid "WiFi BSSIDs"
-msgstr "WLAN BSSIDs"
+msgid "Mac Address / BSSIDs"
+msgstr "Mac-Adresse / BSSIDs"
 
 #: c3nav/mapdata/models/geometry/space.py
 msgid "uses node's value if not set"
@@ -2163,6 +2183,10 @@ msgstr "iBeacon minor value"
 #: c3nav/mapdata/models/geometry/space.py
 msgid "UWB Address"
 msgstr "UWB Adresse"
+
+#: c3nav/mapdata/models/geometry/space.py
+msgid "AP name"
+msgstr "AP Name"
 
 #: c3nav/mapdata/models/geometry/space.py
 msgid "altitude quest"
@@ -2976,12 +3000,12 @@ msgstr "Kartenänderung"
 
 #: c3nav/mapdata/quests/positioning.py
 #, python-format
-msgid "How many meters above ground is the access point “%s” mounted?"
-msgstr "Wie viele meter über dem Boden ist der access point „%s“ befestigt?"
+msgid "How many meters above ground is “%s” mounted?"
+msgstr "Wie viele meter über dem Boden ist „%s“ befestigt?"
 
 #: c3nav/mapdata/quests/positioning.py
-msgid "The AP should not be 0m above ground."
-msgstr "Der AP sollte sich nicht 0m über dem Boden befinden."
+msgid "The device should not be 0m above ground."
+msgstr "Das Gerät sollte sich nicht 0m über dem Boden befinden."
 
 #: c3nav/mapdata/quests/positioning.py
 msgid "Ranging Beacon Altitude"
@@ -3017,6 +3041,30 @@ msgstr "Bitte lass diesen Dialog bis dahin offen."
 #: c3nav/mapdata/quests/positioning.py
 msgid "This should happen within less than a minute."
 msgstr "Dies sollte weniger als eine Minute dauern."
+
+#: c3nav/mapdata/quests/positioning.py
+msgid "Need at least one scan."
+msgstr "Mindestens ein scan wird benötigt."
+
+#: c3nav/mapdata/quests/positioning.py
+msgid "Wifi/BLE Positioning"
+msgstr "WLAN/BLE-Ortung"
+
+#: c3nav/mapdata/quests/positioning.py
+msgid ""
+"Please stand as close to the given location as possible. Feel free to close "
+"this window again to double-check."
+msgstr ""
+"Bitte stehe so nah wie möglcih an dem angezeigten Punkt. Du kannst dieses "
+"Fenster schließen um dir die Position nochmal anzugucken."
+
+#: c3nav/mapdata/quests/positioning.py
+msgid ""
+"When you're ready, please click the button below and wait for measurements "
+"to arrive."
+msgstr ""
+"Wenn du bereit bist, klicke auf den Butten unten und warte darauf, dass "
+"Messwerte erscheinen."
 
 #: c3nav/mapdata/quests/route_descriptions.py
 msgid "Does this space qualify as “easily identifyable/findable”?"
@@ -4613,6 +4661,9 @@ msgid "API secret created. Save it now, cause it will not be shown again!"
 msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
+
+#~ msgid "WiFi BSSIDs"
+#~ msgstr "WLAN BSSIDs"
 
 #~ msgid "WiFi scan data is not a list."
 #~ msgstr "WifFi Scandaten sind keine Liste."

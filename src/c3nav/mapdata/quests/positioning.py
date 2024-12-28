@@ -15,13 +15,13 @@ class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["altitude"].label = (
-            _('How many meters above ground is the access point “%s” mounted?') % self.instance.title
+            _('How many meters above ground is “%s” mounted?') % self.instance.title
         )
 
     def clean_altitude(self):
         data = self.cleaned_data["altitude"]
         if not data:
-            raise ValidationError(_("The AP should not be 0m above ground."))
+            raise ValidationError(_("The device should not be 0m above ground."))
         return data
 
     class Meta:
@@ -102,7 +102,8 @@ class RangingBeaconBSSIDsQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).filter(ap_name__isnull=False, addresses=[])
+        return RangingBeacon.qs_for_request(request).filter(ap_name__isnull=False, addresses=[],
+                                                            beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
 
 
 class BeaconMeasurementQuestForm(ChangeSetModelForm):
