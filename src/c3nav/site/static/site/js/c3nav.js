@@ -1556,16 +1556,14 @@ c3nav = {
 
 
         $scanner.empty();
-        if (c3nav._quest_wifi_scans.length < 2) {
+        if (c3nav._quest_wifi_scans.length < 1) {
             $scanner.append('<p>Scanning… Please do not close this popup and do not move.</p>');
         } else {
-            if (c3nav._quest_wifi_scans.length > 2) {
-                $('#modal input[name=data]').val(JSON.stringify({
-                    wifi: c3nav._quest_wifi_scans,
-                    ibeacon: c3nav._quest_ibeacon_scans,
-                }))
-                $('#modal button[type=submit]').show();
-            }
+            $('#modal input[name=data]').val(JSON.stringify({
+                wifi: c3nav._quest_wifi_scans,
+                ibeacon: c3nav._quest_ibeacon_scans,
+            }))
+            $('#modal button[type=submit]').show();
         }
 
         if (wifi_display_results.length > 0) {
