@@ -1314,9 +1314,30 @@ c3nav = {
     },
     _locationinput_click_suggestion: function () {
         const $locationinput = $('#' + c3nav.current_locationinput);
-        c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
-        c3nav.update_state();
-        c3nav.fly_to_bounds(true);
+        const $this = $(this);
+        const locationId = $this.attr('data-id');
+        if (locationId) {
+            c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
+            c3nav.update_state();
+            c3nav.fly_to_bounds(true);
+        } else {
+            const overlayId = $this.attr('data-overlay-id');
+            if (overlayId) {
+                const featureId = $this.attr('data-feature-id');
+
+                const overlay = c3nav._overlayControl._overlays[overlayId];
+                const featureLayer = overlay.feature_layers[featureId];
+                const feature = overlay.features_by_id[featureId];
+                const bounds = featureLayer.getBounds();
+                c3nav.update_map_state(true, feature.level_id, bounds.getCenter(), c3nav.map.getZoom());
+                c3nav._locationLayerBounds = {[feature.level_id]: bounds};
+                c3nav.fly_to_bounds(true);
+                featureLayer.fire('click');
+
+                c3nav._locationinput_clear();
+            }
+        }
+
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
@@ -1386,6 +1407,11 @@ c3nav = {
 
             matches.push([location.elem, leading_words_count, words_total_count, words_start_count, -location.title.length, i])
         }
+
+        for (const overlay of c3nav.activeOverlays()) {
+            matches.push(...overlay.search(val_words));
+        }
+
 
         matches.sort(c3nav._locationinput_matches_compare);
 
@@ -2218,6 +2244,11 @@ c3nav = {
             c3nav._overlayControl = control.addTo(c3nav.map);
         }
     },
+
+    activeOverlays: function () {
+        return Object.values(c3nav._overlayControl._overlays).filter(o => o.active);
+    },
+
     _update_quests: function () {
         if (!c3nav.map) return;
         if (c3nav._questsControl) {
@@ -3339,9 +3370,13 @@ L.SquareGridLayer = L.Layer.extend({
 
 class DataOverlay {
     levels = null;
+    features = [];
+    features_by_id = {};
+    feature_layers = {};
     feature_geometries = {};
     fetch_timeout = null;
     etag = null;
+    active = false;
 
     constructor(options) {
         this.id = options.id;
@@ -3365,6 +3400,7 @@ class DataOverlay {
             c3nav_api.get(`mapdata/dataoverlayfeaturegeometries/?overlay=${this.id}`)
         ]);
         this.etag = etag;
+        this.features = features;
 
         this.feature_geometries = Object.fromEntries(feature_geometries.map(f => [f.id, f.geometry]));
 
@@ -3407,7 +3443,11 @@ class DataOverlay {
             this.levels[id].clearLayers();
         }
 
+        this.feature_layers = {};
+        this.features_by_id = {};
+
         for (const feature of features) {
+            this.features_by_id[feature.id] = feature;
             const geometry = this.feature_geometries[feature.id]
             const level_id = feature.level_id;
             if (!(level_id in this.levels)) {
@@ -3470,6 +3510,8 @@ class DataOverlay {
                 }
             });
 
+            this.feature_layers[feature.id] = layer;
+
             this.levels[level_id].addLayer(layer);
         }
     }
@@ -3486,9 +3528,11 @@ class DataOverlay {
                 levels[id].addLayer(this.levels[id]);
             }
         }
+        this.active = true;
     }
 
     disable(levels) {
+        this.active = false;
         for (const id in levels) {
             if (id in this.levels) {
                 levels[id].removeLayer(this.levels[id]);
@@ -3496,5 +3540,44 @@ class DataOverlay {
         }
         window.clearTimeout(this.fetch_timeout);
         this.fetch_timeout = null;
+    }
+
+    search(words) {
+        const feature_matches = (feature, word) => {
+            if (feature.title.toLowerCase().includes(word)) return true;
+            for (const lang in feature.titles) {
+                if (feature.titles[lang].toLowerCase().includes(word)) return true;
+            }
+            for (const key in feature.extra_data) {
+                if (`${feature.extra_data[key]}`.toLowerCase().includes(word)) return true;
+            }
+            return false;
+        }
+
+        const matches = [];
+
+        for (const feature of this.features) {
+            let nomatch = false;
+            for (const word of words) {
+                if (this.title.toLowerCase().includes(word)) continue;
+
+                if (!feature_matches(feature, word)) {
+                    nomatch = true;
+                }
+            }
+            if (nomatch) continue;
+
+             const html = $('<div class="location">')
+                .append($('<i class="icon material-symbols">').text(c3nav._map_material_icon(feature.point_icon ?? 'place')))
+                .append($('<span>').text(feature.title))
+                .append($('<small>').text(`${this.title} (Overlay)`))
+                 .attr('data-overlay-id', this.id)
+                 .attr('data-feature-id', feature.id);
+            html.attr('data-location', JSON.stringify(location));
+
+            matches.push([html[0].outerHTML, 0, 0, 0, -feature.title.length, 0])
+        }
+
+        return matches;
     }
 }
