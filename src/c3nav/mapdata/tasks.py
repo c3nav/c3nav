@@ -59,7 +59,9 @@ def delete_map_cache_key(self, cache_key):
 
 @app.task(bind=True, max_retries=10)
 def update_ap_names_bssid_mapping(self, map_name, user_id):
-    user = get_user_model().objects.filter(pk=user_id)
+    user = get_user_model().objects.filter(pk=user_id).first()
+    if user is None:
+        return
     from c3nav.mapdata.models.geometry.space import RangingBeacon
     todo = []
     for beacon in RangingBeacon.objects.filter(ap_name__in=map_name.keys(),
