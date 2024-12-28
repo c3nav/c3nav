@@ -15,7 +15,7 @@ class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["altitude"].label = (
-            _('How many meters above ground is the access point “%s” mounted?') % self.instance.comment
+            _('How many meters above ground is the access point “%s” mounted?') % self.instance.title
         )
 
     def clean_altitude(self):
@@ -59,8 +59,7 @@ class RangingBeaconAltitudeQuest(Quest):
 class RangingBeaconBSSIDsQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["look_for_ap"] = CharField(disabled=True, initial=self.instance.import_tag[4:],
-                                               widget=HiddenInput())
+        self.fields["look_for_ap"] = CharField(disabled=True, initial=self.instance.ap_name, widget=HiddenInput())
         self.fields["addresses"].widget = HiddenInput()
 
     def clean_addresses(self):
@@ -91,8 +90,8 @@ class RangingBeaconBSSIDsQuest(Quest):
     def quest_description(self) -> list[str]:
         return [
             _("This quest only works in the app. It works fully automatically."),
-            _("We are trying to find the BSSIDs broadcast by “%s”.") % self.obj.ap_name,
-            _("Please stand near “%s” and wait for the submit button to appear.") % self.obj.ap_name,
+            _("We are trying to find the BSSIDs broadcast by “%s”.") % self.obj.title,
+            _("Please stand near “%s” and wait for the submit button to appear.") % self.obj.title,
             _("Do not close this popup until then."),
             _("This should happen within less than a minute."),
         ]
