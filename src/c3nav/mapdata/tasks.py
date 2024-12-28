@@ -51,5 +51,6 @@ def process_map_updates(self):
 
 @app.task(bind=True, max_retries=10)
 def delete_map_cache_key(self, cache_key):
-    for key in cache.keys(f'*{cache_key}*'):
-        cache.delete(key)
+    if hasattr(cache, 'keys'):
+        for key in cache.keys(f'*{cache_key}*'):
+            cache.delete(key)
