@@ -1,11 +1,9 @@
 import hashlib
-from typing import Literal, Optional
 from uuid import UUID
 
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.utils.text import slugify
 from pydantic import BaseModel, Field, PositiveInt
 from shapely import Point
 from shapely.geometry import shape
@@ -13,7 +11,6 @@ from shapely.geometry import shape
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import Area, LocationGroup, LocationSlug, MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import POI
-from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.models.report import Report
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 

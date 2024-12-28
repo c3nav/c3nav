@@ -249,7 +249,7 @@ class Locator:
         if len(scan_data_in_the_same_room) == 1:
             point = router.spaces[space.pk].point
             return CustomLocation(
-                level=router.spaces[space.pk].level_id,
+                level=router.levels[router.spaces[space.pk].level_id],
                 x=point.x,
                 y=point.y,
                 permissions=permissions,
@@ -264,7 +264,7 @@ class Locator:
                 x = self.peers[peer_id].xyz[0] * value.rssi / the_sum
                 y = self.peers[peer_id].xyz[1] * value.rssi / the_sum
             return CustomLocation(
-                level=router.spaces[space.pk].level_id,
+                level=router.levels[router.spaces[space.pk].level_id],
                 x=x,
                 y=y,
                 permissions=permissions,
