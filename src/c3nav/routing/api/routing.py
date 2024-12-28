@@ -140,7 +140,7 @@ class RouteLevelSchema(DjangoModelSchema):
     )
 
 class RouteItemSchema(BaseSchema):
-    id: PositiveInt
+    id: Optional[PositiveInt]
     coordinates: Coordinates3D
     waytype: Union[
         Annotated[ShortWayTypeSchema, APIField(title="waytype", descripiton="waytype used for this segment")],
