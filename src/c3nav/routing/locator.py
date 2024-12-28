@@ -261,12 +261,12 @@ class Locator:
             x = 0
             y = 0
             for peer_id, value in scan_data_in_the_same_room[:3]:
-                x = self.peers[peer_id].xyz[0] * value.rssi / the_sum
-                y = self.peers[peer_id].xyz[1] * value.rssi / the_sum
+                x = float(self.peers[peer_id].xyz[0]) * value.rssi / the_sum
+                y = float(self.peers[peer_id].xyz[1]) * value.rssi / the_sum
             return CustomLocation(
                 level=router.levels[router.spaces[space.pk].level_id],
-                x=x,
-                y=y,
+                x=x/100,
+                y=y/100,
                 permissions=permissions,
                 icon='my_location'
             )
