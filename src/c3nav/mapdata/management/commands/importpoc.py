@@ -36,7 +36,7 @@ class Command(BaseCommand):
     help = 'import APs from noc'
 
     def handle(self, *args, **options):
-        r = requests.get(settings.POC_BASE+"antenna-locations")
+        r = requests.get(settings.POC_BASE+"/antenna-locations", headers={'ApiKey': settings.POC_API_SECRET})
         r.raise_for_status()
         items = TypeAdapter(list[PocImportItem]).validate_python(r.json())
 
