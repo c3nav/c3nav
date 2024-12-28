@@ -236,13 +236,13 @@ class Locator:
             return None
 
         # get visible spaces
-        best_ap_id = min(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
+        best_ap_id = max(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
         space_id = self.peers[best_ap_id].space_id
         space = self.spaces[space_id]
 
         scan_data_in_the_same_room = sorted([
             (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id == space_id
-        ], key=lambda a: a[1].rssi)
+        ], key=lambda a: -a[1].rssi)
 
         router = Router.load()
 
