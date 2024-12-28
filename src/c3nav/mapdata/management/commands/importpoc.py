@@ -27,7 +27,7 @@ class PocImportItem(BaseModel):
     """
     Something imported from the NOC
     """
-    type: Literal["Point"] = "Point"
+    type: Literal["Feature"] = "Feature"
     geometry: PointSchema
     properties: PocImportItemProperties
 
@@ -36,7 +36,7 @@ class Command(BaseCommand):
     help = 'import APs from noc'
 
     def handle(self, *args, **options):
-        r = requests.get(settings.POC_BASE+"/antenna-locations", headers={'ApiKey': settings.POC_API_SECRET})
+        r = requests.get(settings.POC_API_BASE+"/antenna-locations", headers={'ApiKey': settings.POC_API_SECRET})
         r.raise_for_status()
         items = TypeAdapter(list[PocImportItem]).validate_python(r.json())
 
@@ -59,7 +59,7 @@ class Command(BaseCommand):
             import_tag = f"poc:{item.properties.name}"
 
             # determine geometry
-            level_id = levels_by_level_index[item.properties.level]
+            level_id = levels_by_level_index[item.properties.level].pk
 
             point: Point = shape(item.geometry.model_dump())  # nowa
 
