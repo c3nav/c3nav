@@ -2893,7 +2893,7 @@ QuestsControl = ExpandingControl.extend({
                     .addTo(c3nav._questsLayers[quest.level_id])
                     .on('click', function () {
                         c3nav.open_modal();
-                        $.get(`/editor/quests/${quest_type}/${quest.identifier}`, c3nav._modal_loaded).fail(c3nav._modal_error);
+                        $.get(`/editor/quests/${quest_type}/${quest.identifier}/`, c3nav._modal_loaded).fail(c3nav._modal_error);
                     });
             }
 
