@@ -1975,21 +1975,23 @@ c3nav = {
         c3nav._visible_map_locations = [];
         if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? c3nav.icons.default : c3nav.icons.origin));
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? c3nav.icons.default : c3nav.icons.destination));
-        const done = [];
+        const done = new Set();
         if (c3nav.state.nearby && destination && 'areas' in destination) {
             if (destination.space) {
+                done.add(destination.space);
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true));
             }
             if (destination.near_area) {
-                done.push(destination.near_area);
+                done.add(destination.near_area);
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true));
             }
             for (const area of destination.areas) {
-                done.push(area);
+                if (done.has(area)) continue;
+                done.add(area);
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true));
             }
             for (const location of destination.nearby) {
-                if (location in done) continue;
+                if (done.has(location)) continue;
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true));
             }
         }
