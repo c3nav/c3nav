@@ -2,6 +2,7 @@ import logging
 import time
 
 from celery.exceptions import MaxRetriesExceededError
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.utils.formats import date_format
 from django.utils.translation import gettext_lazy as _
@@ -57,7 +58,8 @@ def delete_map_cache_key(self, cache_key):
 
 
 @app.task(bind=True, max_retries=10)
-def update_ap_names_bssid_mapping(self, map_name, user):
+def update_ap_names_bssid_mapping(self, map_name, user_id):
+    user = get_user_model().objects.filter(pk=user_id)
     from c3nav.mapdata.models.geometry.space import RangingBeacon
     todo = []
     for beacon in RangingBeacon.objects.filter(ap_name__in=map_name.keys(),

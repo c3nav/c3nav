@@ -61,7 +61,7 @@ def get_position(request, parameters: LocateRequestSchema):
         if bssid_mapping:
             update_ap_names_bssid_mapping.delay(
                 map_name={str(name): [str(b) for b in bssids] for name, bssids in bssid_mapping.items()},
-                user=request.user
+                user_id=request.user.pk
             )
 
     return {
