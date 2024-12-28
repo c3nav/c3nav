@@ -235,21 +235,21 @@ class Locator:
         if not scan_data_we_can_use:
             return None
 
+        router = Router.load()
+
         # get visible spaces
         best_ap_id = max(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
         space_id = self.peers[best_ap_id].space_id
-        space = self.spaces[space_id]
+        space = router.spaces[space_id]
 
         scan_data_in_the_same_room = sorted([
             (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id == space_id
         ], key=lambda a: -a[1].rssi)
 
-        router = Router.load()
-
         if len(scan_data_in_the_same_room) == 1:
-            point = router.spaces[space.pk].point
+            point = space.point
             return CustomLocation(
-                level=router.levels[router.spaces[space.pk].level_id],
+                level=router.levels[space.level_id],
                 x=point.x,
                 y=point.y,
                 permissions=permissions,
@@ -264,7 +264,7 @@ class Locator:
                 x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
                 y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
             return CustomLocation(
-                level=router.levels[router.spaces[space.pk].level_id],
+                level=router.levels[space.level_id],
                 x=x/100,
                 y=y/100,
                 permissions=permissions,
