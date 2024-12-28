@@ -46,8 +46,7 @@ def get_position(request, parameters: LocateRequestSchema):
         location = Locator.load().locate(parameters.wifi_peers,
                                          permissions=AccessPermission.get_for_request(request))
         if location is not None:
-            # todo: this will overload us probably, group these
-            increment_cache_key('apistats__locate__%s' % location.pk)
+            increment_cache_key('apistats__locate__%s' % location.rounded_pk)
     except ValidationError:
         # todo: validation error, seriously? this shouldn't happen anyways
         raise
