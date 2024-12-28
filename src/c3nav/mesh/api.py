@@ -272,7 +272,7 @@ def mesh_map(request, level_id: int):
             "geometry": mapping(beacon.geometry),
             "properties": {
                 "node_number": beacon.node_number,
-                "wifi_bssid": (beacon.wifi_bssids + [None])[0],
+                "wifi_bssid": (beacon.addresses + [None])[0],
                 "comment": beacon.comment,
                 "mesh_node": None if node is None else {
                     "address": node.address,

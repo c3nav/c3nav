@@ -61,17 +61,17 @@ class RangingBeaconBSSIDsQuestForm(ChangeSetModelForm):
         super().__init__(*args, **kwargs)
         self.fields["look_for_ap"] = CharField(disabled=True, initial=self.instance.import_tag[4:],
                                                widget=HiddenInput())
-        self.fields["wifi_bssids"].widget = HiddenInput()
+        self.fields["addresses"].widget = HiddenInput()
 
-    def clean_bssids(self):
-        data = self.cleaned_data["wifi_bssids"]
+    def clean_addresses(self):
+        data = self.cleaned_data["addresses"]
         if not data:
             raise ValidationError(_("Need at least one bssid."))
         return data
 
     class Meta:
         model = RangingBeacon
-        fields = ("wifi_bssids", )
+        fields = ("addresses", )
 
     @property
     def changeset_title(self):
@@ -103,7 +103,7 @@ class RangingBeaconBSSIDsQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).filter(ap_name__isnull=False, wifi_bssids=[])
+        return RangingBeacon.qs_for_request(request).filter(ap_name__isnull=False, addresses=[])
 
 
 class BeaconMeasurementQuestForm(ChangeSetModelForm):

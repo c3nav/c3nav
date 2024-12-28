@@ -1486,7 +1486,7 @@ c3nav = {
         const $modal = $('#modal');
         const $match_ap = $modal.find('[name=look_for_ap]');
         if ($match_ap.length) {
-            const $wifi_bssids = $('[name=wifi_bssids]');
+            const $addresses = $('[name=addresses]');
             const ap_name = $match_ap.val();
             const found_bssids = {};
             let scan_complete = false;
@@ -1515,7 +1515,7 @@ c3nav = {
 
             if (scan_complete) {
                 // todo only bssids that have count > 1
-                $wifi_bssids.val(JSON.stringify(Object.keys(found_bssids)));
+                $addresses.val(JSON.stringify(Object.keys(found_bssids)));
                 $('#modal button[type=submit]').show();
             }
         }

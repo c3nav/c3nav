@@ -94,7 +94,7 @@ class Locator:
         calculated = get_nodes_and_ranging_beacons()
         for beacon in calculated.beacons.values():
             identifiers = []
-            for bssid in beacon.wifi_bssids:
+            for bssid in beacon.addresses:
                 identifiers.append(TypedIdentifier(PeerType.WIFI, bssid))
             if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
                 identifiers.append(

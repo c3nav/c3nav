@@ -197,10 +197,10 @@ class MeshNodeQuerySet(models.QuerySet):
                 for ranging_beacon in RangingBeacon.objects.filter(
                         Q(node_number__in=nodes_by_id.keys())
                 ).select_related('space'):
-                    if not (set(ranging_beacon.wifi_bssids) & nodes_by_bssid_keys):
+                    if not (set(ranging_beacon.addresses) & nodes_by_bssid_keys):
                         continue
                     # noinspection PyUnresolvedReferences
-                    for bssid in ranging_beacon.wifi_bssids:
+                    for bssid in ranging_beacon.addresses:
                         with suppress(KeyError):
                             nodes_by_bssid[bssid]._ranging_beacon = ranging_beacon
                     with suppress(KeyError):

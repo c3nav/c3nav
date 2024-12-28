@@ -470,9 +470,10 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
                 for peer in scan:
                     if peer.ap_name:
                         map_name.setdefault(peer.ap_name, []).append(peer.bssid)
-        for beacon in RangingBeacon.objects.filter(ap_name__in=map_name.keys()):
+        for beacon in RangingBeacon.objects.filter(ap_name__in=map_name.keys(),
+                                                   beacon_type=RangingBeacon.BeaconType.EVENT_WIFI):
             print(beacon, "add ssids", set(map_name[beacon.ap_name]))
-            beacon.wifi_bssids = list(set(beacon.wifi_bssids) | set(map_name[beacon.ap_name]))
+            beacon.addresses = list(set(beacon.addresses) | set(map_name[beacon.ap_name]))
             beacon.save()
 
     def save(self, *args, **kwargs):
@@ -495,8 +496,8 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     node_number = models.PositiveSmallIntegerField(_('Node Number'), unique=True, null=True, blank=True)
 
-    wifi_bssids: list[MacAddress] = SchemaField(list[MacAddress], verbose_name=_('WiFi BSSIDs'), default=list,
-                                                help_text=_("uses node's value if not set"))
+    addresses: list[MacAddress] = SchemaField(list[MacAddress], verbose_name=_('Mac Address / BSSIDs'), default=list,
+                                              help_text=_("uses node's value if not set"))
     bluetooth_address = models.CharField(_('Bluetooth Address'), unique=True, null=True, blank=True,
                                          max_length=17,
                                          validators=[RegexValidator(
@@ -522,7 +523,7 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
                                    validators=[MinValueValidator(Decimal('0'))])
-    ap_name = models.TextField(null=True, blank=True, verbose_name=_('AP name'))
+    ap_name = models.CharField(null=True, blank=True, verbose_name=_('AP name'), max_length=32)
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
 
     altitude_quest = models.BooleanField(_('altitude quest'), default=True)
@@ -551,8 +552,8 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
             title = ' - '.join(segments).strip()
         else:
             title = f'#{self.pk}'
-        if self.wifi_bssids:
-            ssids = self.wifi_bssids[0] + (', …' if len(self.wifi_bssids) > 1 else '')
+        if self.addresses:
+            ssids = self.addresses[0] + (', …' if len(self.adresses) > 1 else '')
             title += f' ({ssids})'
         if self.comment:
             title += f' ({self.comment})'

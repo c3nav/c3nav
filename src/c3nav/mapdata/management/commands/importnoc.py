@@ -48,7 +48,8 @@ class Command(BaseCommand):
             spaces_for_level.setdefault(space.level_id, []).append(space)
 
         beacons_so_far: dict[str, RangingBeacon] = {
-            **{m.import_tag: m for m in RangingBeacon.objects.filter(import_tag__startswith="noc:")},
+            **{m.import_tag: m for m in RangingBeacon.objects.filter(import_tag__startswith="noc:",
+                                                                     beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)},
         }
 
         for name, item in items.items():
@@ -118,7 +119,7 @@ class Command(BaseCommand):
             # build resulting object
             altitude_quest = True
             if not result:
-                result = RangingBeacon(import_tag=import_tag)
+                result = RangingBeacon(import_tag=import_tag, beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
             else:
                 if result.space == new_space and distance(unwrap_geom(result.geometry), new_geometry) < 0.03:
                     continue
