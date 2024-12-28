@@ -246,9 +246,17 @@ class Locator:
             (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id == space_id
         ], key=lambda a: -a[1].rssi)
 
+        deduplicized_scan_data_in_the_same_room = []
+        already_got = set()
+        for peer_id, value in scan_data_in_the_same_room:
+            key = tuple(self.peers[peer_id].xyz)
+            if key in already_got:
+                continue
+            deduplicized_scan_data_in_the_same_room.append((peer_id, value))
+
         the_sum = sum((value.rssi + 90) for peer_id, value in scan_data_in_the_same_room[:3])
 
-        if len(scan_data_in_the_same_room) == 1 or not the_sum:
+        if not the_sum:
             point = space.point
             return CustomLocation(
                 level=router.levels[space.level_id],
