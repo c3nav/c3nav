@@ -111,7 +111,7 @@ class BeaconMeasurementQuestForm(ChangeSetModelForm):
         super().__init__(*args, **kwargs)
         self.fields["data"].widget = HiddenInput()
 
-    def clean_bssids(self):
+    def clean_data(self):
         data = self.cleaned_data["data"]
         if not data:
             raise ValidationError(_("Need at least one scan."))
