@@ -484,7 +484,14 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
     """
     A ranging beacon
     """
+    class BeaconType(models.TextChoices):
+        EVENT_WIFI = "event_wifi", _("Event WiFi AP")
+        DECT = "dect", _("DECT antenna")
+
     geometry = GeometryField('point')
+
+    beacon_type = models.CharField(_('beacon type'), choices=BeaconType.choices,
+                                   null=True, blank=True, max_length=16)
 
     node_number = models.PositiveSmallIntegerField(_('Node Number'), unique=True, null=True, blank=True)
 
@@ -535,11 +542,19 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     @property
     def title(self):
-        if self.node_number is not None or self.wifi_bssids or self.ap_name:
-            if self.comment:
-                return (f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])} {self.ap_name or ''} '
-                        f' ({self.comment})').strip()
-            else:
-                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])} {self.ap_name or ''}'.strip()
+        segments = []
+        if self.node_number is not None:
+            segments.append(self.node_number)
+        if self.ap_name is not None:
+            segments.append(f'"{self.ap_name}"')
+        if segments:
+            title = ' - '.join(segments).strip()
         else:
-            return self.comment
+            title = f'#{self.pk}'
+        if self.wifi_bssids:
+            ssids = self.wifi_bssids[0] + (', …' if len(self.wifi_bssids) > 1 else '')
+            title += f' ({ssids})'
+        if self.comment:
+            title += f' ({self.comment})'
+
+        return f'{self.get_beacon_type_display() if self.beacon_type else self._meta.verbose_name} {title}'
