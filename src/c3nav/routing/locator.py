@@ -256,13 +256,13 @@ class Locator:
                 icon='my_location'
             )
         else:
-            the_sum = sum((a[1].rssi+90) for a in scan_data_in_the_same_room[:3])
+            the_sum = sum((value.rssi+90) for peer_id, value in scan_data_in_the_same_room[:3])
 
             x = 0
             y = 0
             for peer_id, value in scan_data_in_the_same_room[:3]:
-                x = float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
-                y = float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
+                x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
+                y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
             return CustomLocation(
                 level=router.levels[router.spaces[space.pk].level_id],
                 x=x/100,
