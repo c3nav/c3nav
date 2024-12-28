@@ -78,7 +78,7 @@ class Command(BaseCommand):
             # build resulting object
             altitude_quest = True
             if not result:
-                result = RangingBeacon(import_tag=import_tag, beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
+                result = RangingBeacon(import_tag=import_tag, beacon_type=RangingBeacon.BeaconType.DECT)
             else:
                 if result.space == new_space and distance(unwrap_geom(result.geometry), point) < 0.03:
                     continue

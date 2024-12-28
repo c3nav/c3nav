@@ -20,16 +20,17 @@ class PointImportHelper:
                            if space.geometry.intersects(point)]
         if not possible_spaces:
             possible_spaces = [space for space in self.spaces_for_level[level_id]
-                               if distance(unwrap_geom(space.geometry), point) < 0.3]
+                               if distance(unwrap_geom(space.geometry), point) < 1.5]
             if len(possible_spaces) == 1:
                 new_space = possible_spaces[0]
                 the_distance = distance(unwrap_geom(new_space.geometry), point)
                 print(f"SUCCESS: {name} is {the_distance:.02f}m away from {new_space.title}")
-            elif len(possible_spaces) == 2:
+            elif len(possible_spaces) > 1:
                 new_space = min(possible_spaces, key=lambda s: distance(unwrap_geom(s.geometry), point))
-                print(f"WARNING: {name} could be in multiple spaces ({possible_spaces}, picking {new_space}...")
+                print(f"WARNING: {name} could be in multiple spaces ({possible_spaces}, picking {new_space}, "
+                      f"which is {distance(unwrap_geom(new_space.geometry), point)}m away...")
             else:
-                print(f"ERROR: {name} is not within any space ({point})")
+                print(f"ERROR: {name} is not within any space on level {level_id} ({point})")
                 return None, None
 
             # move point into space if needed

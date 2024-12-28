@@ -553,7 +553,7 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
         else:
             title = f'#{self.pk}'
         if self.addresses:
-            ssids = self.addresses[0] + (', …' if len(self.adresses) > 1 else '')
+            ssids = self.addresses[0] + (', …' if len(self.addresses) > 1 else '')
             title += f' ({ssids})'
         if self.comment:
             title += f' ({self.comment})'
