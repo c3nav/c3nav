@@ -256,10 +256,13 @@ class Locator:
 
         the_sum = sum((value.rssi + 90) for peer_id, value in scan_data_in_the_same_room[:3])
 
+        level = router.levels[space.level_id]
+        if level.on_top_of_id:
+            level = router.levels[level.on_top_of_id]
         if not the_sum:
             point = space.point
             return CustomLocation(
-                level=router.levels[space.level_id],
+                level=level,
                 x=point.x,
                 y=point.y,
                 permissions=permissions,
@@ -272,7 +275,7 @@ class Locator:
                 x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
                 y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
             return CustomLocation(
-                level=router.levels[space.level_id],
+                level=level,
                 x=x/100,
                 y=y/100,
                 permissions=permissions,
@@ -384,11 +387,16 @@ class Locator:
         restrictions = router.get_restrictions(permissions)
 
         result_pos = results.x
+
+        level = router.levels[router.level_id_for_xyz(
+            (result_pos[0], result_pos[1], result_pos[2] - 1.3),  # -1.3m cause we assume people to be above ground
+            restrictions
+        )]
+        if level.on_top_of_id:
+            level = router.levels[level.on_top_of_id]
+
         location = CustomLocation(
-            level=router.levels[router.level_id_for_xyz(
-                (result_pos[0], result_pos[1], result_pos[2]-1.3),  # -1.3m cause we assume people to be above ground
-                restrictions
-            )],
+            level=level,
             x=result_pos[0]/100,
             y=result_pos[1]/100,
             permissions=permissions,
