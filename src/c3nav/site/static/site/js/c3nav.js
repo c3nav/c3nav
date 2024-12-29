@@ -184,23 +184,22 @@ c3nav = {
             });
     },
     _load_indicator_timer: null,
-    load_load_indicator_data: function () {
-        return;
+    load_load_indicator_data: async function () {
         c3nav._load_indicator_timer = null;
-        c3nav_api.get('map/load')
-            .then(data => {
-                if (data) {
-                    c3nav._location_load_groups = data;
-                }
+        try {
+            const data = await c3nav_api.get('map/load');
+            if (data) {
+                c3nav._location_load_groups = data;
+            }
+            c3nav.update_load_data();
+        } catch (err) {
+            console.error(err);
+        }
 
-                if (c3nav._load_indicator_timer === null) {
-                    c3nav._load_indicator_timer = window.setTimeout(c3nav.load_load_indicator_data, c3nav._load_indicator_interval);
-                }
-                c3nav.update_load_data();
-            })
-            .catch(err => {
-                console.error(err);
-            });
+        if (c3nav._load_indicator_timer === null) {
+            c3nav._load_indicator_timer = window.setTimeout(c3nav.load_load_indicator_data, c3nav._load_indicator_interval);
+        }
+
     },
     _sort_labels: function (a, b) {
         let result = (a[0].effective_label_settings.min_zoom || -10) - (b[0].effective_label_settings.min_zoom || -10);
@@ -292,7 +291,6 @@ c3nav = {
         c3nav._update_loadinfo_labels();
     },
     _update_loadinfo_labels: function () {
-        return;
         if (!c3nav._loadIndicatorLayer) return;
         c3nav._loadIndicatorLayer.clearLayers();
         if (!c3nav._loadIndicatorControl.enabled) return;
@@ -1812,17 +1810,17 @@ c3nav = {
             },
         }).addTo(c3nav.map);
 
-        // c3nav._loadIndicatorControl = new ToggleControl({
-        //     storageId: 'load_indicator',
-        //     enabledIcon: c3nav._map_material_icon('bar_chart'),
-        //     disabledIcon: c3nav._map_material_icon('bar_chart_off'),
-        //     onEnable: () => {
-        //         c3nav._update_loadinfo_labels();
-        //     },
-        //     onDisable: () => {
-        //         c3nav._update_loadinfo_labels();
-        //     },
-        // }).addTo(c3nav.map);
+        c3nav._loadIndicatorControl = new ToggleControl({
+            storageId: 'load_indicator',
+            enabledIcon: c3nav._map_material_icon('bar_chart'),
+            disabledIcon: c3nav._map_material_icon('bar_chart_off'),
+            onEnable: () => {
+                c3nav._update_loadinfo_labels();
+            },
+            onDisable: () => {
+                c3nav._update_loadinfo_labels();
+            },
+        }).addTo(c3nav.map);
 
         // setup grid control
         if ($map.is('[data-grid]')) {
