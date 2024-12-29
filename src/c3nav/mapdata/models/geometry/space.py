@@ -528,6 +528,9 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     altitude_quest = models.BooleanField(_('altitude quest'), default=True)
 
+    num_clients = models.IntegerField(_('current number of clients'), default=0)
+    max_observed_num_clients = models.IntegerField(_('highest observed number of clients'), default=0)
+
     class Meta:
         verbose_name = _('Ranging beacon')
         verbose_name_plural = _('Ranging beacons')
