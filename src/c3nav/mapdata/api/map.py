@@ -3,7 +3,7 @@ from typing import Annotated, Union, Optional
 
 from celery import chain
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.shortcuts import redirect
 from django.utils import timezone
 from ninja import Query
@@ -30,6 +30,7 @@ from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableL
                                           SlimListableLocationSchema, SlimLocationSchema, all_location_definitions,
                                           listable_location_definitions, LegendSchema, LegendItemSchema)
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.user import can_access_editor
@@ -443,13 +444,55 @@ Room load
 @map_api_router.get('/load/', summary="get load group loads",
                     response={200: dict[PositiveInt, float], **auth_responses})
 def get_load(request):
-    # todo: cache
-    import random
-    return {pk: random.randrange(0, 100)/100 for pk in LoadGroup.objects.values_list("pk", flat=True)}
+    load_groups = {g.pk: g for g in LoadGroup.objects.all()}
+
+    # per group
+    max_values: dict[int, int] = {pk: 0 for pk in load_groups.keys()}
+    current_values: dict[int, int] = {pk: 0 for pk in load_groups.keys()}
+
+    beacons_by_space = {}
+    for beacon in RangingBeacon.objects.filter(max_observed_num_clients__gt=0):
+        beacons_by_space.setdefault(beacon.space_id, {})[beacon.pk] = beacon
+
+    locationgroups_contribute_to = dict(
+        LocationGroup.objects.filter(load_contribute_to__isnull=False).values_list("pk", "load_contribute_to")
+    )
+    for area in Area.objects.filter((Q(load_contribute_to__isnull=False)
+                                     | Q(groups__in=locationgroups_contribute_to.keys()))).prefetch_related("groups"):
+        contribute_to = set()
+        if area.load_contribute_to_id:
+            contribute_to.add(area.load_contribute_to_id)
+        for group in area.groups.all():
+            if group.load_contribute_to_id:
+                contribute_to.add(group.load_contribute_to_id)
+        for beacon in beacons_by_space.get(area.space_id, {}).values():
+            if area.geometry.intersects(unwrap_geom(beacon.geometry)):
+                for load_group_id in contribute_to:
+                    max_values[load_group_id] += beacon.max_observed_num_clients
+                    current_values[load_group_id] += beacon.num_clients
+
+    for space in Space.objects.filter((Q(load_contribute_to__isnull=False)
+                                      | Q(groups__in=locationgroups_contribute_to.keys()))).prefetch_related("groups"):
+        contribute_to = set()
+        if space.load_contribute_to_id:
+            contribute_to.add(space.load_contribute_to_id)
+        for group in space.groups.all():
+            if group.load_contribute_to_id:
+                contribute_to.add(group.load_contribute_to_id)
+        for beacon in beacons_by_space.get(space.pk, {}).values():
+            for load_group_id in contribute_to:
+                max_values[load_group_id] += beacon.max_observed_num_clients
+                current_values[load_group_id] += beacon.num_clients
+
+    return {
+        pk: (min(1.0, current_values[pk] / (max_value*0.9)) if max_value else 0)
+        for pk, max_value in max_values.items()
+    }
 
 
 class ApLoadSchema(BaseSchema):
     aps: dict[str, int]
+
 
 @map_api_router.post('/load/', summary="update current load data", response={204: None, **auth_responses})
 def post_load(request, parameters: ApLoadSchema):
