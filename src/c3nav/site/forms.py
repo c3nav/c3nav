@@ -108,7 +108,7 @@ class APISecretForm(ModelForm):
 
     class Meta:
         model = Secret
-        fields = ['name', 'readonly', 'scope_grant_permissions', 'scope_editor', 'scope_mesh']
+        fields = ['name', 'readonly', 'scope_grant_permissions', 'scope_editor', 'scope_mesh', "scope_load"]
 
     def clean(self):
         try:

@@ -27,6 +27,7 @@ class Secret(models.Model):
     scope_grant_permissions = models.BooleanField(_('grant map access permissions'), default=False)
     scope_editor = models.BooleanField(_('editor access'), default=False)
     scope_mesh = models.BooleanField(_('mesh access'), default=False)
+    scope_load = models.BooleanField(_('load write access'), default=False)
     valid_until = models.DateTimeField(null=True, verbose_name=_('valid_until'))
 
     objects = models.Manager.from_queryset(SecretQuerySet)()

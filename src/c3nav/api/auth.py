@@ -89,6 +89,8 @@ class APIKeyAuth(APIKeyHeader):
                 user_permissions.editor_access = False
             if secret.scope_grant_permissions is False:
                 user_permissions.grant_permissions = False
+            if secret.scope_load is False:
+                user_permissions.can_write_laod_data = False
 
             request.user = secret.user
             request.user_permissions = user_permissions
