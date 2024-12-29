@@ -1749,6 +1749,7 @@ c3nav = {
         // setup level control
         c3nav._levelControl = new LevelControl({initialTheme: c3nav.theme}).addTo(c3nav.map);
         c3nav._locationLayers = {};
+        c3nav._nearbyLayers = {};
         c3nav._locationLayerBounds = {};
         c3nav._detailLayers = {};
         c3nav._routeLayers = {};
@@ -1763,7 +1764,8 @@ c3nav = {
             const level = c3nav.levels[i];
             const layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._locationLayers[level[0]] = L.markerClusterGroup({
+            c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._nearbyLayers[level[0]] = L.markerClusterGroup({
                 maxClusterRadius: 35,
                 spiderLegPolylineOptions: {
                     color: '#4b6c97',
@@ -1996,6 +1998,9 @@ c3nav = {
         for (const level_id in c3nav._locationLayers) {
             c3nav._locationLayers[level_id].clearLayers()
         }
+        for (const level_id in c3nav._nearbyLayers) {
+            c3nav._nearbyLayers[level_id].clearLayers()
+        }
         c3nav._visible_map_locations = [];
         if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? c3nav.icons.default : c3nav.icons.origin));
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? c3nav.icons.default : c3nav.icons.destination));
@@ -2003,20 +2008,21 @@ c3nav = {
         if (c3nav.state.nearby && destination && 'areas' in destination) {
             if (destination.space) {
                 done.add(destination.space);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
             if (destination.near_area) {
                 done.add(destination.near_area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
             for (const area of destination.areas) {
                 if (done.has(area)) continue;
                 done.add(area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
             for (const location of destination.nearby) {
                 if (done.has(location)) continue;
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true));
+                done.add(destination.nearby);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
         }
         c3nav._locationLayerBounds = bounds;
@@ -2081,7 +2087,10 @@ c3nav = {
         ];
     },
     _location_point_overrides: {},
-    _add_location_to_map: function (location, icon, no_geometry) {
+    _add_location_to_map: function (location, icon, no_geometry, layers) {
+        if (!layers) {
+            layers = c3nav._locationLayers;
+        }
         if (!location) {
             // if location is not in the searchable list...
             return
@@ -2124,7 +2133,7 @@ c3nav = {
         }).bindPopup(location.elem + buttons_html, c3nav._add_map_padding({
             className: 'location-popup',
             maxWidth: 500
-        }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
+        }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[location.point[0]]);
 
         const result = {};
         result[location.point[0]] = L.latLngBounds(
