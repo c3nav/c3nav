@@ -1,0 +1,4 @@
+For Wifi Scanning you need wireless_tools
+
+For Bluetooth Scanning you need BlueZ bluetooth + Dev Lib libbluetooth and pip install bleak
+Edit /lib/systemd/system/bluetooth.service and add --experimental to ExecStart Line for bluetoothd
