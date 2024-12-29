@@ -14,7 +14,7 @@ from c3nav.mapdata.models import MapUpdate, Level
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.mapdata.utils.importer import PointImportHelper
+from c3nav.mapdata.utils.placement import PointPlacementHelper
 
 
 class PocImportItemProperties(BaseModel):
@@ -46,7 +46,7 @@ class Command(BaseCommand):
             MapUpdate.objects.create(type='importnoc')
 
     def do_import(self, items: list[PocImportItem]):
-        import_helper = PointImportHelper()
+        import_helper = PointPlacementHelper()
 
         beacons_so_far: dict[str, RangingBeacon] = {
             **{m.import_tag: m for m in RangingBeacon.objects.filter(import_tag__startswith="poc:",

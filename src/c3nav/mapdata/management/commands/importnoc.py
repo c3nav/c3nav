@@ -6,7 +6,7 @@ from shapely import distance
 
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.geometry.space import RangingBeacon
-from c3nav.mapdata.utils.importer import PointImportHelper
+from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
@@ -37,7 +37,7 @@ class Command(BaseCommand):
             MapUpdate.objects.create(type='importnoc')
 
     def do_import(self, items: dict[str, NocImportItem]):
-        import_helper = PointImportHelper()
+        import_helper = PointPlacementHelper()
 
         beacons_so_far: dict[str, RangingBeacon] = {
             **{m.import_tag: m for m in RangingBeacon.objects.filter(import_tag__startswith="noc:",

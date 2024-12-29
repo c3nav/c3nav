@@ -12,9 +12,11 @@ from annotated_types import Lt
 from django.conf import settings
 from pydantic.types import NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
+from shapely import Point
 
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.utils.locations import CustomLocation
+from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
 from c3nav.routing.router import Router
 from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema, LocateIBeaconPeerSchema
@@ -82,6 +84,7 @@ class Locator:
     peer_lookup: dict[TypedIdentifier, int] = field(default_factory=dict)
     xyz: np.array = field(default_factory=(lambda: np.empty((0,))))
     spaces: dict[int, "LocatorSpace"] = field(default_factory=dict)
+    placement_helper: Optional[PointPlacementHelper] = None
 
     @classmethod
     def rebuild(cls, update, router):
@@ -126,6 +129,8 @@ class Locator:
             )
             if new_space.points:
                 self.spaces[space.pk] = new_space
+
+        self.placement_helper = PointPlacementHelper()
 
     def get_peer_id(self, identifier: TypedIdentifier, create=False) -> Optional[int]:
         peer_id = self.peer_lookup.get(identifier, None)
@@ -239,6 +244,7 @@ class Locator:
             return None
 
         router = Router.load()
+        restrictions = router.get_restrictions(permissions)
 
         # get visible spaces
         best_ap_id = max(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
@@ -261,17 +267,8 @@ class Locator:
         the_sum = sum((value.rssi + 90) for peer_id, value in deduplicized_scan_data_in_the_same_room[:3])
 
         level = router.levels[space.level_id]
-        if level.on_top_of_id:
-            level = router.levels[level.on_top_of_id]
         if not the_sum:
             point = space.point
-            return CustomLocation(
-                level=level,
-                x=point.x,
-                y=point.y,
-                permissions=permissions,
-                icon='my_location'
-            )
         else:
             x = 0
             y = 0
@@ -279,13 +276,24 @@ class Locator:
             for peer_id, value in deduplicized_scan_data_in_the_same_room[:3]:
                 x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
                 y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
-            return CustomLocation(
-                level=level,
-                x=x/100,
-                y=y/100,
-                permissions=permissions,
-                icon='my_location'
-            )
+            point = Point(x/100, y/100)
+
+        new_space, new_point = self.placement_helper.get_point_and_space(
+            level_id=level.pk, point=point, restrictions=restrictions,
+            max_space_distance=20,
+        )
+
+        level = router.levels[new_space.level_id]
+        if level.on_top_of_id:
+            level = router.levels[level.on_top_of_id]
+
+        return CustomLocation(
+            level=level,
+            x=x / 100,
+            y=y / 100,
+            permissions=permissions,
+            icon='my_location'
+        )
 
     def locate_rssi(self, scan_data: ScanData, permissions=None):
         router = Router.load()
