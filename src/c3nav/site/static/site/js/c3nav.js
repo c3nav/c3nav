@@ -50,8 +50,16 @@
 function makeClusterIconCreate(color) {
     return function(cluster) {
         const childCount = cluster.getChildCount();
+        // TODO: use color based on children?
+
+        const div = document.createElement('div');
+        div.style.setProperty('--cluster-marker-color', color);
+        const span = document.createElement('span');
+        span.innerText = childCount;
+        div.append(span);
+
         return new L.DivIcon({
-            html: `<div style="--cluster-marker-color: ${color};"><span>${childCount}</span></div>`,
+            html: div,
             className: 'marker-cluster',
             iconSize: new L.Point(30, 30)
         });
@@ -3027,10 +3035,12 @@ QuestsControl = ExpandingControl.extend({
             for (const quest of quests) {
                 L.geoJson(quest.point, {
                     pointToLayer: (geom, latlng) => {
+                        const span = document.createElement('span');
+                        span.innerText = quest_icon;
                         return L.marker(latlng, {
                             icon: L.divIcon({
                                 className: 'symbol-icon symbol-icon-interactive',
-                                html: `<span>${quest_icon}</span>`,
+                                html: span,
                                 iconSize: [24, 24],
                                 iconAnchor: [12, 12],
                             })
@@ -3486,11 +3496,15 @@ class DataOverlay {
                 style,
                 interactive: feature.interactive,
                 pointToLayer: (geom, latlng) => {
+                    const span = document.createElement('span');
+                    span.style.setProperty('--icon-color', style.color);
+                    span.innerText = feature.point_icon ?? '';
+
                     return L.marker(latlng, {
                         title: feature.title,
                         icon: L.divIcon({
                             className: 'symbol-icon ' + (feature.point_icon ? '' : 'symbol-icon-empty ') + (feature.interactive ? 'symbol-icon-interactive' : ''),
-                            html: `<span style="--icon-color: ${style.color}">${feature.point_icon ?? ''}</span>`,
+                            html: span,
                             iconSize: [24, 24],
                             iconAnchor: [12, 12],
                         })
@@ -3499,19 +3513,31 @@ class DataOverlay {
                 onEachFeature: (f, layer) => {
                     if (feature.interactive) {
                         layer.bindPopup(() => {
-                            let html = `<h4>${feature.title}</h4>`;
+                            const f = document.createDocumentFragment();
+                            const h4 = document.createElement('h4');
+                            h4.innerText = feature.title;
+                            f.append(h4);
                             if (feature.external_url != null) {
-                                html += `<a href="${feature.external_url}" target="_blank">open external link</a>`;
+                                const a = document.createElement('a');
+                                a.href = feature.external_url;
+                                a.target = '_blank';
+                                a.innerText = 'open external link';
+                                f.append(a);
                             }
                             if (feature.extra_data != null) {
-                                html += '<table>';
+                                const table = document.createElement('table');
                                 for (const key in feature.extra_data) {
-                                    html += `<tr><th>${key}</th><td>${feature.extra_data[key]}</td></tr>`;
+                                    const tr = document.createElement('tr');
+                                    const th = document.createElement('th');
+                                    th.innerText = key;
+                                    const td = document.createElement('td');
+                                    td.innerText = feature.extra_data[key];
+                                    tr.append(th, td);
+                                    table.append(tr);
                                 }
-
-                                html += '</table>';
+                                f.append(table);
                             }
-                            return html;
+                            return f;
                         }, {
                             className: 'data-overlay-popup'
                         });
