@@ -350,7 +350,7 @@ CustomLocationID = Annotated[NonEmptyStr, APIField(
 )]
 PositionID = Annotated[NonEmptyStr, APIField(
     title="position ID",
-    pattern=r"p:[A-Za-z0-9]+$",
+    pattern=r"m:[A-Za-z0-9]+$",
     description="the ID of a user-defined tracked position is made up of its secret"
 )]
 Coordinates3D = tuple[float, float, float]

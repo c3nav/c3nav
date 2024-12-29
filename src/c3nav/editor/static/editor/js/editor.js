@@ -458,7 +458,10 @@ editor = {
                 collector.find('.wifi-count').text(existing_data?.wifi?.length);
                 collector.find('.ibeacon-count').text(existing_data?.ibeacon?.length);
             } else {
-                data_field.closest('form').addClass('scan-lock');
+                if (window.mobileclient) {
+                    $('[for=id_fill_quest]').hide();
+                    data_field.closest('form').addClass('scan-lock');
+                }
             }
             data_field.after(collector);
         }

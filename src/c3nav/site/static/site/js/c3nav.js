@@ -140,6 +140,17 @@ c3nav = {
         if (window.mobileclient) {
             $body.addClass('mobileclient');
             c3nav._set_user_location(null);
+
+            try {
+                c3nav._ap_name_mappings = JSON.parse(localStorageWrapper.getItem('c3nav.wifi-scanning.ap-names'));
+            } catch (e) {
+                // ignore
+            }
+
+            if (c3nav._ap_name_mappings === null) {
+                c3nav._ap_name_mappings = {};
+            }
+
         } else {
             document.addEventListener('visibilitychange', c3nav.on_visibility_change, false);
         }
@@ -1465,7 +1476,48 @@ c3nav = {
             .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
             .append(content || '<div class="loader"></div>');
         if ($modal.find('[name=look_for_ap]').length) {
+            if (!window.mobileclient) {
+                alert('need app!')
+            }
             $modal.find('button').hide();
+        }
+    },
+    _ap_name_scan_result_update: function () {
+        const $modal = $('#modal');
+        const $match_ap = $modal.find('[name=look_for_ap]');
+        if ($match_ap.length) {
+            const $wifi_bssids = $('[name=wifi_bssids]');
+            const ap_name = $match_ap.val();
+            const found_bssids = {};
+            let scan_complete = false;
+            if (ap_name in c3nav._ap_name_mappings) {
+                const mappings = c3nav._ap_name_mappings[ap_name];
+                for (const mapping of mappings) {
+                    scan_complete = true;
+                    for (const bssid of mapping) {
+                        found_bssids[bssid] = (found_bssids[bssid] ?? 0) + 1;
+                        if (found_bssids[bssid] === 1) {
+                            scan_complete = false;
+                        }
+                    }
+                }
+            }
+
+            const $table = $('<table class="ap-name-bssid-result"><thead><tr><th>BSSID</th><th>count</th></tr></thead></table>')
+
+            for (const [bssid, count] of Object.entries(found_bssids)) {
+                $table.append(`<tr><td>${bssid}</td><td>${count}</td></tr>`);
+            }
+
+            $modal.find('.ap-name-bssid-result').remove();
+
+            $modal.find('form').before($table);
+
+            if (scan_complete) {
+                // todo only bssids that have count > 1
+                $wifi_bssids.val(JSON.stringify(Object.keys(found_bssids)));
+                $('#modal button[type=submit]').show();
+            }
         }
     },
     _modal_click: function (e) {
@@ -2118,14 +2170,24 @@ c3nav = {
     _last_wifi_peers: [],
     _last_ibeacon_peers: [],
     _no_scan_count: 0,
+    _ap_name_mappings: {},
+    _enable_scan_debugging: false,
+    _scan_debugging_results: [],
     _wifi_scan_results: function (peers) {
         peers = JSON.parse(peers);
+
+        if (c3nav._enable_scan_debugging) {
+            c3nav._scan_debugging_results.push({
+                timestamp: Date.now(),
+                peers: peers,
+            });
+        }
 
         if (c3nav.ssids) {
             peers = peers.filter(peer => c3nav.ssids.includes(peer.ssid));
         }
-        let match_ap = $('[name=look_for_ap]').val(),
-            found_bssids = [];
+
+        const ap_name_mappings = {};
 
         for (const peer of peers) {
             if (peer.level !== undefined) {
@@ -2137,26 +2199,21 @@ c3nav = {
                 peer.distance_sd = peer.rtt.distance_std_dev_mm / 1000;
                 delete peer.rtt;
             }
-            if (match_ap && peer.ap_name === match_ap) {
-                found_bssids.push(peer.bssid);
+            if (peer.ap_name) {
+                let mapping = ap_name_mappings[peer.ap_name] =(ap_name_mappings[peer.ap_name] ?? new Set());
+                mapping.add(peer.bssid);
             }
         }
-        if (found_bssids.length) {
-            let $wifi_bssids = $('[name=wifi_bssids]'),
-                val = JSON.parse($wifi_bssids.val()),
-                added = 0;
-            for (let bssid of found_bssids) {
-                if (!val.includes(bssid)) {
-                    val.push(bssid);
-                    added++;
-                }
-            }
-            if (added) {
-                $wifi_bssids.val(JSON.stringify(val));
-            } else {
-                $('#modal button[type=submit]').show();
-            }
+
+        for (const [name, mapping] of Object.entries(ap_name_mappings)) {
+            let mappings = c3nav._ap_name_mappings[name] = (c3nav._ap_name_mappings[name] ?? []);
+            mappings.push([...mapping]);
         }
+
+        localStorageWrapper.setItem('c3nav.wifi-scanning.ap-names', JSON.stringify(c3nav._ap_name_mappings));
+
+        c3nav._ap_name_scan_result_update();
+
         c3nav._last_wifi_peers = peers;
         c3nav._after_scan_results();
     },

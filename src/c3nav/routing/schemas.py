@@ -115,3 +115,6 @@ class LocateIBeaconPeerSchema(BaseSchema):
 class BeaconMeasurementDataSchema(BaseSchema):
     wifi: list[list[LocateWifiPeerSchema]] = []
     ibeacon: list[list[LocateIBeaconPeerSchema]] = []
+
+    def __bool__(self):
+        return bool(self.wifi or self.ibeacon)

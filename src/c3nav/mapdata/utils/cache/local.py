@@ -1,8 +1,7 @@
 from collections import OrderedDict
 
 from django.core.cache import cache
-
-from c3nav.mapdata.models import MapUpdate
+from django.conf import settings
 
 
 class NoneFromCache:
@@ -42,6 +41,9 @@ class LocalCacheProxy:
             self._items.pop(next(iter(self._items.keys())))
 
     def _check_mapupdate(self):
+        # todo: would be nice to not need this… why do we need this?
+
+        from c3nav.mapdata.models import MapUpdate
         mapupdate = MapUpdate.current_cache_key()
         if self._mapupdate != mapupdate:
             self._items = OrderedDict()
@@ -52,3 +54,18 @@ class LocalCacheProxy:
         cache.set(key, value, expire)
         self._items[key] = value
         self._prune()
+
+    def clear(self):
+        self._items.clear()
+
+
+class RequestLocalCacheProxy(LocalCacheProxy):
+    """ this is a subclass without prune, to be cleared after every request """
+    def _prune(self):
+        pass
+
+    def _check_mapupdate(self):
+        pass
+
+
+per_request_cache = RequestLocalCacheProxy(maxsize=settings.CACHE_SIZE_LOCATIONS)

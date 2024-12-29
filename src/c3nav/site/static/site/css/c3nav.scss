@@ -1999,3 +1999,21 @@ blink {
         }
     }
 }
+
+
+.ap-name-bssid-result {
+    border-radius: 4px;
+    border: 1px solid gray;
+    padding: 4px 0;
+    box-shadow: inset 0px 0px 1px gray;
+
+    thead {
+        border-bottom: 1px solid gray;
+    }
+
+    td, th {
+        padding: 0 8px;
+        border: none;
+        font-size: 0.9em;
+    }
+}

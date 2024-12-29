@@ -242,7 +242,7 @@ class Locator:
         return norm
 
     def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None):
-        peer_ids = tuple(i for i in scan_data if i < len(self.xyz))
+        peer_ids = tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
 
         if len(peer_ids) < 3:
             # can't get a good result from just two beacons
@@ -262,7 +262,7 @@ class Locator:
         # create 2d array with x, y, z, distance as rows
         np_ranges = np.hstack((
             relevant_xyz,
-            np.array(tuple(scan_data[i].distance for i in peer_ids)).reshape((-1, 1)),
+            np.array(tuple(float(scan_data[i].distance) for i in peer_ids)).reshape((-1, 1)),
         ))
 
         #print(np_ranges)

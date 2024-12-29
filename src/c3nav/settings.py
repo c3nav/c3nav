@@ -390,6 +390,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'c3nav.mapdata.middleware.RequestCacheMiddleware',
     'c3nav.mapdata.middleware.UserDataMiddleware',
     'c3nav.site.middleware.MobileclientMiddleware',
     'c3nav.control.middleware.UserPermissionsMiddleware',

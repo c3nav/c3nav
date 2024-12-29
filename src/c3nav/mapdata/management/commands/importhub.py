@@ -354,15 +354,18 @@ class Command(BaseCommand):
                           ", is now"+str([group.title for group in new_groups]), new_group_ids, old_group_ids)
 
         for import_tag, location in locations_so_far.items():
-            self.do_report(
-                prefix='hub:new_groups',
-                obj_id=import_tag,
-                obj=import_tag,
-                report=Report(
-                    category="location-issue",
-                    title="importhub: delete this",
-                    description="hub wants to delete this",
-                    location=location,
+            if location.import_block_data:
+                self.do_report(
+                    prefix='hub:new_groups',
+                    obj_id=import_tag,
+                    obj=import_tag,
+                    report=Report(
+                        category="location-issue",
+                        title="importhub: delete this",
+                        description="hub wants to delete this but it's blocked",
+                        location=location,
+                    )
                 )
-            )
-            print(f"NOTE: {location.slug} / {import_tag} should be deleted")
+                print(f"NOTE: {location.slug} / {import_tag} should be deleted")
+            else:
+                location.delete()
