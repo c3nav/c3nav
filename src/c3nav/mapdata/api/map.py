@@ -19,7 +19,7 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
-from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle
+from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup, LoadGroup
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
@@ -446,3 +446,21 @@ def get_load(request):
     # todo: cache
     import random
     return {pk: random.randrange(0, 100)/100 for pk in LoadGroup.objects.values_list("pk", flat=True)}
+
+
+class ApLoadSchema(BaseSchema):
+    aps: dict[str, int]
+
+@map_api_router.post('/load/', summary="update current load data", response={204: None, **auth_responses})
+def post_load(request, parameters: ApLoadSchema):
+    # TODO: check if user has permission
+
+    names = parameters.aps.keys()
+
+    for beacon in RangingBeacon.objects.filter(ap_name__in=names):
+        beacon.num_clients = parameters.aps[beacon.ap_name]
+        if beacon.num_clients > beacon.max_observed_num_clients:
+            beacon.max_observed_num_clients = beacon.num_clients
+        beacon.save()
+
+    return 204, None
