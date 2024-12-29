@@ -461,30 +461,30 @@ def get_load(request):
         beacons_by_space.setdefault(beacon.space_id, {})[beacon.pk] = beacon
 
     locationgroups_contribute_to = dict(
-        LocationGroup.objects.filter(load_group_continue__isnull=False).values_list("pk", "load_group_continue")
+        LocationGroup.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
     )
-    for area in Area.objects.filter((Q(load_group_continue__isnull=False)
+    for area in Area.objects.filter((Q(load_group_contribute__isnull=False)
                                      | Q(groups__in=locationgroups_contribute_to.keys()))).prefetch_related("groups"):
         contribute_to = set()
-        if area.load_group_continue_id:
-            contribute_to.add(area.load_group_continue_id)
+        if area.load_group_contribute_id:
+            contribute_to.add(area.load_group_contribute_id)
         for group in area.groups.all():
-            if group.load_group_continue_id:
-                contribute_to.add(group.load_group_continue_id)
+            if group.load_group_contribute_id:
+                contribute_to.add(group.load_group_contribute_id)
         for beacon in beacons_by_space.get(area.space_id, {}).values():
             if area.geometry.intersects(unwrap_geom(beacon.geometry)):
                 for load_group_id in contribute_to:
                     max_values[load_group_id] += beacon.max_observed_num_clients
                     current_values[load_group_id] += beacon.num_clients
 
-    for space in Space.objects.filter((Q(load_group_continue__isnull=False)
+    for space in Space.objects.filter((Q(load_group_contribute__isnull=False)
                                       | Q(groups__in=locationgroups_contribute_to.keys()))).prefetch_related("groups"):
         contribute_to = set()
-        if space.load_group_continue_id:
-            contribute_to.add(space.load_group_continue_id)
+        if space.load_group_contribute_id:
+            contribute_to.add(space.load_group_contribute_id)
         for group in space.groups.all():
-            if group.load_group_continue_id:
-                contribute_to.add(group.load_group_continue_id)
+            if group.load_group_contribute_id:
+                contribute_to.add(group.load_group_contribute_id)
         for beacon in beacons_by_space.get(space.pk, {}).values():
             for load_group_id in contribute_to:
                 max_values[load_group_id] += beacon.max_observed_num_clients
