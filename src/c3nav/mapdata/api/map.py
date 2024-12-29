@@ -450,6 +450,9 @@ def get_load(request):
     if result is not None:
         return result
 
+    if not cache.get('mapdata:load_is_recent', False):
+        return {}
+
     load_groups = {g.pk: g for g in LoadGroup.objects.all()}
 
     # per group
@@ -518,5 +521,6 @@ def post_load(request, parameters: ApLoadSchema):
             beacon.save()
 
     cache.delete('mapdata:get_load')
+    cache.set('mapdata:load_is_recent', True, 300)
 
     return 204, None
