@@ -80,7 +80,7 @@ class ReportUpdateForm(ModelForm):
 class PositionForm(ModelForm):
     class Meta:
         model = Position
-        fields = ['name', 'timeout']
+        fields = ['name' ,"short_name", 'timeout']
 
 
 class PositionSetForm(Form):

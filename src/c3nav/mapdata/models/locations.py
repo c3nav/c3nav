@@ -587,6 +587,7 @@ class Position(CustomLocationProxyMixin, models.Model):
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)
+    short_name = models.CharField(_('abbreviation'), help_text=_('two characters maximum'), max_length=2)
     secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
     last_coordinates_update = models.DateTimeField(_('last coordinates update'), null=True)
     timeout = models.PositiveSmallIntegerField(_('timeout (in seconds)'), default=0, blank=True,
