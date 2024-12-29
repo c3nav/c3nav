@@ -625,6 +625,9 @@ class TrackablePositionSchema(BaseSchema):
                     "preferred language based on the Accept-Language header.",
         example="Near Bällebad"
     )
+    short_name: NonEmptyStr = APIField(
+        description="short name for icons",
+    )
 
     @classmethod
     def get_overrides(cls, value) -> dict:
