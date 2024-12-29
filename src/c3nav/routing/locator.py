@@ -96,6 +96,8 @@ class Locator:
             identifiers = []
             for bssid in beacon.addresses:
                 identifiers.append(TypedIdentifier(PeerType.WIFI, bssid))
+            if beacon.ap_name:
+                identifiers.append(TypedIdentifier(PeerType.WIFI, beacon.ap_name))
             if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
                 identifiers.append(
                     TypedIdentifier(PeerType.IBEACON, (beacon.ibeacon_uuid, beacon.ibeacon_major, beacon.ibeacon_minor))
