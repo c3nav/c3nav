@@ -22,6 +22,8 @@ from bleak.backends.scanner import AdvertisementData
 
 PORT = int(sys.argv[1]) if sys.argv[1:] else 8042
 
+last_bt_time = {}
+
 ibeacon_format = Struct(
     "type_length" / Const(b"\x02\x15"),
     "uuid" / Array(16, Byte),
@@ -63,7 +65,15 @@ async def ble_scan():
             apple_data = advertisement_data.manufacturer_data[0x004C]
             ibeacon = ibeacon_format.parse(apple_data)
             uuid = UUID(bytes=bytes(ibeacon.uuid))
-            beacons.append({'uuid': str(uuid), 'major': ibeacon.major, 'minor': ibeacon.minor, 'distance': calc_distance(ibeacon.power, advertisement_data.rssi), 'last_seen_ago': 0 })
+
+            now = time.time()
+            if str(uuid) in last_bt_time:
+                lastTime = last_bt_time[str(uuid)]
+            else:
+                lastTime = now
+                        
+            last_bt_time[str(uuid)] = now
+            beacons.append({'uuid': str(uuid), 'major': ibeacon.major, 'minor': ibeacon.minor, 'distance': calc_distance(ibeacon.power, advertisement_data.rssi), 'last_seen_ago': lastTime })
         except KeyError:
             # Apple company ID (0x004c) not found
             pass
