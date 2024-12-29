@@ -217,9 +217,9 @@ class Locator:
         if not scan_data:
             return None
 
-        #result = self.locate_range(scan_data, permissions)
-        #if result is not None:
-        #    return result
+        result = self.locate_range(scan_data, permissions)
+        if result is not None:
+            return result
 
         result = self.locate_by_beacon_positions(scan_data, permissions)
         if result is not None:
