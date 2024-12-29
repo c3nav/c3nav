@@ -15,13 +15,13 @@ class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["altitude"].label = (
-            _('How many meters above ground is the access point “%s” mounted?') % self.instance.comment
+            _('How many meters above ground is “%s” mounted?') % self.instance.title
         )
 
     def clean_altitude(self):
         data = self.cleaned_data["altitude"]
         if not data:
-            raise ValidationError(_("The AP should not be 0m above ground."))
+            raise ValidationError(_("The device should not be 0m above ground."))
         return data
 
     class Meta:
@@ -59,19 +59,18 @@ class RangingBeaconAltitudeQuest(Quest):
 class RangingBeaconBSSIDsQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["look_for_ap"] = CharField(disabled=True, initial=self.instance.import_tag[4:],
-                                               widget=HiddenInput())
-        self.fields["wifi_bssids"].widget = HiddenInput()
+        self.fields["look_for_ap"] = CharField(disabled=True, initial=self.instance.ap_name, widget=HiddenInput())
+        self.fields["addresses"].widget = HiddenInput()
 
-    def clean_bssids(self):
-        data = self.cleaned_data["wifi_bssids"]
+    def clean_addresses(self):
+        data = self.cleaned_data["addresses"]
         if not data:
             raise ValidationError(_("Need at least one bssid."))
         return data
 
     class Meta:
         model = RangingBeacon
-        fields = ("wifi_bssids", )
+        fields = ("addresses", )
 
     @property
     def changeset_title(self):
@@ -103,15 +102,17 @@ class RangingBeaconBSSIDsQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).filter(import_tag__startswith="noc:", wifi_bssids=[])
+        return RangingBeacon.qs_for_request(request).filter(ap_name__isnull=False, addresses=[],
+                                                            beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
 
 
 class BeaconMeasurementQuestForm(ChangeSetModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["beacon_measurement_quest"] = CharField(disabled=True, initial='', widget=HiddenInput(), required=False)
         self.fields["data"].widget = HiddenInput()
 
-    def clean_bssids(self):
+    def clean_data(self):
         data = self.cleaned_data["data"]
         if not data:
             raise ValidationError(_("Need at least one scan."))

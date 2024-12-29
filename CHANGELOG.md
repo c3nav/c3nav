@@ -10,11 +10,12 @@ and potential backwards incompatibilities.
 
 Big stuff:
 
-- Quest support to categorize rooms, find AP altitudes and generate route descriptions
+- Quest support to categorize rooms, find AP altitudes, AP names, do wifi scanning and generate route descriptions
 - data overlay support
 - complete rewrite of editor changesets as a base for a more modern editor – you will lose all changesets!
 - new map settings API endpoint
 - ability to import APs from NOC eventmap
+- ability to import Antennas from POC
 
 Semi-big stuff:
 
@@ -29,6 +30,9 @@ Semi-big stuff:
 - support for various SSOs
 - various compliance checkboxes
 - support for importing projects and rooms from hub
+- match APs using name broadcast in Aruba vendor-data instead of just BSSIDs
+- fewer and more performant calls to redis
+- pruning redis cache automatically after a new map update is created
 
 Small stuff:
 
@@ -37,6 +41,8 @@ Small stuff:
 - Level short_label has been split into short_label (for displaying) and level_index (for internal use like coordinates)
 - some API mapdata endpoints were moved, some lesser used properties renamed
 - proper support for access restricted levels
+- ability to store mutiple BSSIDs per beacon
+- importhub can now import projects and rooms as well
 
 Behind the scenes, comfort, bug fixes:
 

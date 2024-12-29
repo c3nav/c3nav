@@ -170,7 +170,7 @@ def beacons_lookup(request):
             "name": node.name if node else ("Beacon #%d" % beacon.pk),
             "point": mapping(beacon.geometry),
         }
-        for bssid in beacon.wifi_bssids:
+        for bssid in beacon.addresses:
             wifi_beacons[bssid] = beacon_data
         if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
             ibeacons.setdefault(

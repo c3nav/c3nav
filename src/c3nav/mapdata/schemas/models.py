@@ -601,6 +601,10 @@ class TrackablePositionSchema(BaseSchema):
         description="slug representing the position",
         example="p:adskjfalskdj",
     )
+    effective_slug: PositionID = APIField(
+        description="slug representing the position",
+        example="p:adskjfalskdj",
+    )
     icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
         title="set icon name",
         description="icon as set in the location specifically (any material design icon name)",

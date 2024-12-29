@@ -1,9 +1,9 @@
 import operator
 import pickle
 from dataclasses import dataclass, field
+from enum import StrEnum
 from functools import cached_property, reduce
-from pprint import pprint
-from typing import Annotated
+from typing import Annotated, NamedTuple, Union
 from typing import Optional, Self, Sequence, TypeAlias
 from uuid import UUID
 
@@ -12,9 +12,11 @@ from annotated_types import Lt
 from django.conf import settings
 from pydantic.types import NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
+from shapely import Point
 
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.utils.locations import CustomLocation
+from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
 from c3nav.routing.router import Router
 from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema, LocateIBeaconPeerSchema
@@ -24,14 +26,28 @@ try:
 except ImportError:
     from threading import local as LocalContext
 
-LocatorPeerIdentifier: TypeAlias = MacAddress | tuple[UUID, Annotated[NonNegativeInt, Lt(2 ** 16)], Annotated[NonNegativeInt, Lt(2 ** 16)]]
+
+class PeerType(StrEnum):
+    WIFI = "wifi"
+    DECT = "dect"
+    IBEACON = "ibeacon"
+
+
+class TypedIdentifier(NamedTuple):
+    peer_type: PeerType
+    identifier: Union[
+        MacAddress,
+        str,
+        tuple[UUID, Annotated[NonNegativeInt, Lt(2 ** 16)], Annotated[NonNegativeInt, Lt(2 ** 16)]]
+    ]
 
 
 @dataclass
 class LocatorPeer:
-    identifier: LocatorPeerIdentifier
+    identifier: TypedIdentifier
     frequencies: set[int] = field(default_factory=set)
     xyz: Optional[tuple[int, int, int]] = None
+    space_id: Optional[int] = None
 
 
 @dataclass
@@ -65,9 +81,10 @@ class LocatorPoint:
 @dataclass
 class Locator:
     peers: list[LocatorPeer] = field(default_factory=list)
-    peer_lookup: dict[LocatorPeerIdentifier, int] = field(default_factory=dict)
+    peer_lookup: dict[TypedIdentifier, int] = field(default_factory=dict)
     xyz: np.array = field(default_factory=(lambda: np.empty((0,))))
     spaces: dict[int, "LocatorSpace"] = field(default_factory=dict)
+    placement_helper: Optional[PointPlacementHelper] = None
 
     @classmethod
     def rebuild(cls, update, router):
@@ -80,10 +97,14 @@ class Locator:
         calculated = get_nodes_and_ranging_beacons()
         for beacon in calculated.beacons.values():
             identifiers = []
-            for bssid in beacon.wifi_bssids:
-                identifiers.append(bssid)
+            for bssid in beacon.addresses:
+                identifiers.append(TypedIdentifier(PeerType.WIFI, bssid.lower()))
+            if beacon.ap_name:
+                identifiers.append(TypedIdentifier(PeerType.WIFI, beacon.ap_name))
             if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
-                identifiers.append((beacon.ibeacon_uuid, beacon.ibeacon_major, beacon.ibeacon_minor))
+                identifiers.append(
+                    TypedIdentifier(PeerType.IBEACON, (beacon.ibeacon_uuid, beacon.ibeacon_major, beacon.ibeacon_minor))
+                )
             for identifier in identifiers:
                 peer_id = self.get_peer_id(identifier, create=True)
                 self.peers[peer_id].xyz = (
@@ -91,6 +112,7 @@ class Locator:
                     int(beacon.geometry.y * 100),
                     int((router.altitude_for_point(beacon.space_id, beacon.geometry) + float(beacon.altitude)) * 100),
                 )
+                self.peers[peer_id].space_id = beacon.space_id
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
 
         for space in Space.objects.prefetch_related('beacon_measurements'):
@@ -108,7 +130,9 @@ class Locator:
             if new_space.points:
                 self.spaces[space.pk] = new_space
 
-    def get_peer_id(self, identifier: LocatorPeerIdentifier, create=False) -> Optional[int]:
+        self.placement_helper = PointPlacementHelper()
+
+    def get_peer_id(self, identifier: TypedIdentifier, create=False) -> Optional[int]:
         peer_id = self.peer_lookup.get(identifier, None)
         if peer_id is None and create:
             peer = LocatorPeer(identifier=identifier)
@@ -122,8 +146,11 @@ class Locator:
         for scan_value in scan_data:
             if settings.WIFI_SSIDS and scan_value.ssid not in settings.WIFI_SSIDS:
                 continue
-            peer_id = self.get_peer_id(scan_value.bssid, create=create_peers)
-            if peer_id is not None:
+            peer_ids = {
+                self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.bssid.lower()), create=create_peers),
+                self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.ap_name), create=create_peers),
+            } - {None, ""}
+            for peer_id in peer_ids:
                 result[peer_id] = ScanDataValue(rssi=scan_value.rssi, distance=scan_value.distance)
         return result
 
@@ -131,7 +158,7 @@ class Locator:
         result = {}
         for scan_value in scan_data:
             peer_id = self.get_peer_id(
-                (scan_value.uuid, scan_value.major, scan_value.minor),
+                TypedIdentifier(PeerType.IBEACON, (scan_value.uuid, scan_value.major, scan_value.minor)),
                 create=create_peers
             )
             if peer_id is not None:
@@ -179,13 +206,13 @@ class Locator:
     def convert_raw_scan_data(self, raw_scan_data: list[LocateWifiPeerSchema]) -> ScanData:
         return self.convert_wifi_scan(raw_scan_data, create_peers=False)
 
-    def get_xyz(self, identifier: LocatorPeerIdentifier) -> tuple[int, int, int] | None:
+    def get_xyz(self, identifier: TypedIdentifier) -> tuple[int, int, int] | None:
         i = self.get_peer_id(identifier)
         if i is None:
             return None
         return self.peers[i].xyz
 
-    def get_all_nodes_xyz(self) -> dict[LocatorPeerIdentifier, tuple[float, float, float]]:
+    def get_all_nodes_xyz(self) -> dict[TypedIdentifier, tuple[float, float, float]]:
         return {
             peer.identifier: peer.xyz for peer in self.peers[:len(self.xyz)]
             if isinstance(peer.identifier, MacAddress)
@@ -201,7 +228,73 @@ class Locator:
         if result is not None:
             return result
 
+        result = self.locate_by_beacon_positions(scan_data, permissions)
+        if result is not None:
+            return result
+
         return self.locate_rssi(scan_data, permissions)
+
+    def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None):
+        scan_data_we_can_use = [
+            (peer_id, value) for peer_id, value in scan_data.items()
+            if self.peers[peer_id].space_id and -90 < value.rssi < -10
+        ]
+
+        if not scan_data_we_can_use:
+            return None
+
+        router = Router.load()
+        restrictions = router.get_restrictions(permissions)
+
+        # get visible spaces
+        best_ap_id = max(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
+        space_id = self.peers[best_ap_id].space_id
+        space = router.spaces[space_id]
+
+        scan_data_in_the_same_room = sorted([
+            (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id == space_id
+        ], key=lambda a: -a[1].rssi)
+
+        deduplicized_scan_data_in_the_same_room = []
+        already_got = set()
+        for peer_id, value in scan_data_in_the_same_room:
+            key = tuple(self.peers[peer_id].xyz)
+            if key in already_got:
+                continue
+            already_got.add(key)
+            deduplicized_scan_data_in_the_same_room.append((peer_id, value))
+
+        the_sum = sum((value.rssi + 90) for peer_id, value in deduplicized_scan_data_in_the_same_room[:3])
+
+        level = router.levels[space.level_id]
+        if not the_sum:
+            point = space.point
+        else:
+            x = 0
+            y = 0
+            # sure this can be better probably
+            for peer_id, value in deduplicized_scan_data_in_the_same_room[:3]:
+                x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
+                y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
+            point = Point(x/100, y/100)
+
+        new_space, new_point = self.placement_helper.get_point_and_space(
+            level_id=level.pk, point=point,
+            max_space_distance=20,
+        )
+
+        if new_space is not None:
+            level = router.levels[new_space.level_id]
+        if level.on_top_of_id:
+            level = router.levels[level.on_top_of_id]
+
+        return CustomLocation(
+            level=level,
+            x=point.x,
+            y=point.y,
+            permissions=permissions,
+            icon='my_location'
+        )
 
     def locate_rssi(self, scan_data: ScanData, permissions=None):
         router = Router.load()
@@ -226,6 +319,9 @@ class Locator:
 
         if best_location is not None:
             best_location.score = best_score
+
+        if best_location is not None:
+            return None
 
         return best_location
 
@@ -305,14 +401,19 @@ class Locator:
         restrictions = router.get_restrictions(permissions)
 
         result_pos = results.x
+
+        level = router.levels[router.level_id_for_xyz(
+            (result_pos[0], result_pos[1], result_pos[2] - 1.3),  # -1.3m cause we assume people to be above ground
+            restrictions
+        )]
+        if level.on_top_of_id:
+            level = router.levels[level.on_top_of_id]
+
         location = CustomLocation(
-            level=router.levels[router.level_id_for_xyz(
-                (result_pos[0], result_pos[1], result_pos[2]-1.3),  # -1.3m cause we assume people to be above ground
-                restrictions
-            )],
+            level=level,
             x=result_pos[0]/100,
             y=result_pos[1]/100,
-            permissions=(),
+            permissions=permissions,
             icon='my_location'
         )
         location.z = result_pos[2]/100

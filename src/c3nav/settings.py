@@ -223,6 +223,9 @@ if not HUB_API_SECRET:
 NOC_BASE = config.get('c3nav', 'noc_base', fallback='').removesuffix('/')
 NOC_LAYERS = NocLayersSchema.validate_json(config.get('c3nav', 'noc_layers', fallback='{}'))
 
+POC_API_BASE = config.get('c3nav', 'poc_api_base', fallback='').removesuffix('/')
+POC_API_SECRET = config.get('c3nav', 'poc_api_secret', fallback='')
+
 _db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES: dict[str, dict[str, str | int | Path]] = {
     'default': env.db_url('C3NAV_DATABASE') if 'C3NAV_DATABASE' in env else {

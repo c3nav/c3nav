@@ -60,8 +60,8 @@ def get_nodes_and_ranging_beacons():
         ranging_beacon = beacons[ranging_beacon_id]
         ranging_beacon.save = None
 
-        if not ranging_beacon.wifi_bssids:
-            ranging_beacon.wifi_bssids = [node.address]
+        if not ranging_beacon.addresses:
+            ranging_beacon.addresses = [node.address]
         if not ranging_beacon.bluetooth_address:
             ranging_beacon.bluetooth_address = node.address[:-2] + hex(int(node.address[-2:], 16)+1)[2:]
 

@@ -294,6 +294,10 @@ class CustomLocation:
         self.pk = 'c:%s:%s:%s' % (self.level.level_index, x, y)
 
     @property
+    def rounded_pk(self):
+        return 'c:%s:%s:%s' % (self.level.level_index, self.x//5*5, self.y//5*5)
+
+    @property
     def serialized_geometry(self):
         return {
             'type': 'Point',

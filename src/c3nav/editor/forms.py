@@ -262,7 +262,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.add_redirect_slugs = None
         self.remove_redirect_slugs = None
         if 'slug' in self.fields:
-            self.redirect_slugs = (sorted(self.instance.redirects.values_list('slug', flat=True))
+            self.redirect_slugs = (sorted(slug for slug in self.instance.redirects.values_list('slug', flat=True)
+                                          if slug)  # THIS SHOULD NEVER BE NONE
                                    if self.instance.pk else [])
             self.fields['redirect_slugs'] = CharField(label=_('Redirecting Slugs (comma separated)'), required=False,
                                                       initial=','.join(self.redirect_slugs))
@@ -384,12 +385,12 @@ def create_editor_form(editor_model):
         'ordering', 'category', 'width', 'groups', 'height', 'color', 'in_legend', 'priority', 'hierarchy', 'icon_name',
         'base_altitude', 'intermediate', 'waytype', 'access_restriction', 'edit_access_restriction', 'default_height',
         'door_height', 'outside', 'identifyable', 'can_search', 'can_describe', 'geometry', 'single', 'altitude',
-        'level_index', 'short_label', 'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor',
-        'groundaltitude', 'node_number', 'wifi_bssids', 'bluetooth_address', 'group', 'ibeacon_uuid', 'ibeacon_major',
-        'ibeacon_minor', 'uwb_address', 'extra_seconds', 'speed', 'can_report_missing', 'can_report_mistake',
-        'description', 'speed_up', 'description_up', 'avoid_by_default', 'report_help_text', 'enter_description',
-        'level_change_description', 'base_mapdata_accessible', 'label_settings', 'label_override', 'min_zoom',
-        'max_zoom', 'font_size', 'members', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
+        "beacon_type", 'level_index', 'short_label', 'origin_space', 'target_space', 'data', "ap_name", 'comment',
+        'slow_down_factor', 'groundaltitude', 'node_number', 'addresses', 'bluetooth_address', 'group',
+        'ibeacon_uuid', 'ibeacon_major', 'ibeacon_minor', 'uwb_address', 'extra_seconds', 'speed', 'can_report_missing',
+        'can_report_mistake', 'description', 'speed_up', 'description_up', 'avoid_by_default', 'report_help_text',
+        'enter_description', 'level_change_description', 'base_mapdata_accessible', 'label_settings', 'label_override',
+        'min_zoom', 'max_zoom', 'font_size', 'members', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
         'allow_dynamic_locations', 'left', 'top', 'right', 'bottom', 'import_tag', 'import_block_data',
         'import_block_geom', 'public', 'default', 'dark', 'high_contrast', 'funky', 'randomize_primary_color',
         'color_logo', 'color_css_initial', 'color_css_primary', 'color_css_secondary', 'color_css_tertiary',

@@ -1314,9 +1314,30 @@ c3nav = {
     },
     _locationinput_click_suggestion: function () {
         const $locationinput = $('#' + c3nav.current_locationinput);
-        c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
-        c3nav.update_state();
-        c3nav.fly_to_bounds(true);
+        const $this = $(this);
+        const locationId = $this.attr('data-id');
+        if (locationId) {
+            c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
+            c3nav.update_state();
+            c3nav.fly_to_bounds(true);
+        } else {
+            const overlayId = $this.attr('data-overlay-id');
+            if (overlayId) {
+                const featureId = $this.attr('data-feature-id');
+
+                const overlay = c3nav._overlayControl._overlays[overlayId];
+                const featureLayer = overlay.feature_layers[featureId];
+                const feature = overlay.features_by_id[featureId];
+                const bounds = featureLayer.getBounds();
+                c3nav.update_map_state(true, feature.level_id, bounds.getCenter(), c3nav.map.getZoom());
+                c3nav._locationLayerBounds = {[feature.level_id]: bounds};
+                c3nav.fly_to_bounds(true);
+                featureLayer.fire('click');
+
+                c3nav._locationinput_clear();
+            }
+        }
+
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
@@ -1386,6 +1407,11 @@ c3nav = {
 
             matches.push([location.elem, leading_words_count, words_total_count, words_start_count, -location.title.length, i])
         }
+
+        for (const overlay of c3nav.activeOverlays()) {
+            matches.push(...overlay.search(val_words));
+        }
+
 
         matches.sort(c3nav._locationinput_matches_compare);
 
@@ -1471,22 +1497,115 @@ c3nav = {
     },
     _set_modal_content: function (content, no_close) {
         const $modal = $('#modal');
+        const $content = $modal.find('#modal-content');
         $modal.toggleClass('loading', !content)
-            .find('#modal-content')
-            .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
+        $content.html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
             .append(content || '<div class="loader"></div>');
-        if ($modal.find('[name=look_for_ap]').length) {
+        if ($content.find('[name=look_for_ap]').length) {
+            $content.find('button[type=submit]').hide();
             if (!window.mobileclient) {
-                alert('need app!')
+                $content.find('p, form').remove();
+                $content.append('<p>This quest is only available in the android app.</p>'); // TODO translate
+            } else {
+                c3nav._ap_name_scan_result_update();
             }
-            $modal.find('button').hide();
+        } else if ($content.find('[name=beacon_measurement_quest]').length) {
+            $content.find('button[type=submit]').hide();
+            if (!window.mobileclient) {
+                $content.find('p, form').remove();
+                $content.append('<p>This quest is only available in the android app.</p>'); // TODO translate
+            } else {
+                const $scanner = $('<div class="beacon-quest-scanner"></div>');
+                const $button = $('<button class="button">start scanning</button>')
+                    .click(() => {
+                        $button.remove();
+                        $scanner.append('<p>Scanning… Please do not close this popup and do not move.</p>');
+                        c3nav._quest_wifi_scans = [];
+                        c3nav._beacon_quest_scanning = true;
+                    })
+                $scanner.append($button);
+                $content.find('form').prev().after($scanner)
+            }
         }
     },
+    _quest_wifi_scans: [],
+    _quest_ibeacon_scans: [],
+    _wifi_measurement_scan_update: function () {
+
+        const wifi_display_results = [];
+        const bluetooth_display_results = [];
+        for (const scan of c3nav._quest_wifi_scans) {
+            for (const peer of scan) {
+                let found = false;
+                for (const existing_peer of wifi_display_results) {
+                    if (peer.bssid === existing_peer.bssid && peer.ssid === existing_peer.ssid) {
+                        existing_peer.rssi = peer.rssi;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    wifi_display_results.push(peer);
+                }
+            }
+        }
+        for (const scan of c3nav._quest_ibeacon_scans) {
+            for (const peer of scan) {
+                let found = false;
+                for (const existing_peer of bluetooth_display_results) {
+                    if (peer.uuid === existing_peer.uuid && peer.major === existing_peer.major && peer.minor === existing_peer.minor) {
+                        existing_peer.distance = peer.distance;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    bluetooth_display_results.push(peer);
+                }
+            }
+        }
+
+        const $scanner = $('#modal .beacon-quest-scanner');
+
+        const $wifi_table = $(`<table><tr><td colspan="3"><i>${c3nav._quest_wifi_scans.length} wifi scans</i></td></tr><tr><th>BSSID</th><th>SSID</th><th>RSSI</th></tr></table>`);
+
+        for (const peer of wifi_display_results) {
+            $wifi_table.append(`<tr><td>${peer.bssid}</td><td>${peer.ssid}</td><td>${peer.rssi}</td></tr>`);
+        }
+
+
+        const $bluetooth_table = $(`<table><tr><td colspan="3"><i>${c3nav._quest_ibeacon_scans.length} wifi scans</i></td></tr><tr><th>ID</th><th>Distance</th></table>`);
+
+        for (const peer of bluetooth_display_results) {
+            $bluetooth_table.append(`<tr><td>${peer.major}</td><td>${peer.minor}</td><td>${peer.distance}</td></tr>`);
+        }
+
+
+        $scanner.empty();
+        if (c3nav._quest_wifi_scans.length < 1) {
+            $scanner.append('<p>Scanning… Please do not close this popup and do not move.</p>');
+        } else {
+            $('#modal input[name=data]').val(JSON.stringify({
+                wifi: c3nav._quest_wifi_scans,
+                ibeacon: c3nav._quest_ibeacon_scans,
+            }))
+            $('#modal button[type=submit]').show();
+        }
+
+        if (wifi_display_results.length > 0) {
+            $scanner.append($wifi_table);
+        }
+        if (bluetooth_display_results.length > 0) {
+            $scanner.append($bluetooth_table);
+        }
+
+    },
+
     _ap_name_scan_result_update: function () {
         const $modal = $('#modal');
         const $match_ap = $modal.find('[name=look_for_ap]');
         if ($match_ap.length) {
-            const $wifi_bssids = $('[name=wifi_bssids]');
+            const $addresses = $('[name=addresses]');
             const ap_name = $match_ap.val();
             const found_bssids = {};
             let scan_complete = false;
@@ -1515,7 +1634,7 @@ c3nav = {
 
             if (scan_complete) {
                 // todo only bssids that have count > 1
-                $wifi_bssids.val(JSON.stringify(Object.keys(found_bssids)));
+                $addresses.val(JSON.stringify(Object.keys(found_bssids)));
                 $('#modal button[type=submit]').show();
             }
         }
@@ -1630,6 +1749,7 @@ c3nav = {
         // setup level control
         c3nav._levelControl = new LevelControl({initialTheme: c3nav.theme}).addTo(c3nav.map);
         c3nav._locationLayers = {};
+        c3nav._nearbyLayers = {};
         c3nav._locationLayerBounds = {};
         c3nav._detailLayers = {};
         c3nav._routeLayers = {};
@@ -1645,6 +1765,14 @@ c3nav = {
             const layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._nearbyLayers[level[0]] = L.markerClusterGroup({
+                maxClusterRadius: 35,
+                spiderLegPolylineOptions: {
+                    color: '#4b6c97',
+                },
+                showCoverageOnHover: false,
+                iconCreateFunction: makeClusterIconCreate('#4b6c97'),
+            }).addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._overlayLayers[level[0]] = L.layerGroup().addTo(layerGroup);
@@ -1870,25 +1998,31 @@ c3nav = {
         for (const level_id in c3nav._locationLayers) {
             c3nav._locationLayers[level_id].clearLayers()
         }
+        for (const level_id in c3nav._nearbyLayers) {
+            c3nav._nearbyLayers[level_id].clearLayers()
+        }
         c3nav._visible_map_locations = [];
         if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? c3nav.icons.default : c3nav.icons.origin));
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? c3nav.icons.default : c3nav.icons.destination));
-        const done = [];
+        const done = new Set();
         if (c3nav.state.nearby && destination && 'areas' in destination) {
             if (destination.space) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true));
+                done.add(destination.space);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
             if (destination.near_area) {
-                done.push(destination.near_area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true));
+                done.add(destination.near_area);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
             for (const area of destination.areas) {
-                done.push(area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true));
+                if (done.has(area)) continue;
+                done.add(area);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
             for (const location of destination.nearby) {
-                if (location in done) continue;
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true));
+                if (done.has(location)) continue;
+                done.add(destination.nearby);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
         }
         c3nav._locationLayerBounds = bounds;
@@ -1953,12 +2087,15 @@ c3nav = {
         ];
     },
     _location_point_overrides: {},
-    _add_location_to_map: function (location, icon, no_geometry) {
+    _add_location_to_map: function (location, icon, no_geometry, layers) {
+        if (!layers) {
+            layers = c3nav._locationLayers;
+        }
         if (!location) {
             // if location is not in the searchable list...
             return
         }
-        if (location.dynamic || location.locationtype === "dynamiclocation") {
+        if (location.dynamic || location.locationtype === "dynamiclocation" || location.locationtype === "position") {
             if (!('available' in location)) {
                 c3nav_api.get(`map/positions/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
@@ -1996,7 +2133,7 @@ c3nav = {
         }).bindPopup(location.elem + buttons_html, c3nav._add_map_padding({
             className: 'location-popup',
             maxWidth: 500
-        }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
+        }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[location.point[0]]);
 
         const result = {};
         result[location.point[0]] = L.latLngBounds(
@@ -2116,6 +2253,11 @@ c3nav = {
             c3nav._overlayControl = control.addTo(c3nav.map);
         }
     },
+
+    activeOverlays: function () {
+        return Object.values(c3nav._overlayControl._overlays).filter(o => o.active);
+    },
+
     _update_quests: function () {
         if (!c3nav.map) return;
         if (c3nav._questsControl) {
@@ -2171,6 +2313,7 @@ c3nav = {
     _last_ibeacon_peers: [],
     _no_scan_count: 0,
     _ap_name_mappings: {},
+    _beacon_quest_scan_results: {},
     _enable_scan_debugging: false,
     _scan_debugging_results: [],
     _wifi_scan_results: function (peers) {
@@ -2214,12 +2357,23 @@ c3nav = {
 
         c3nav._ap_name_scan_result_update();
 
+        if (c3nav._beacon_quest_scanning) {
+            c3nav._quest_wifi_scans.push(peers);
+            c3nav._wifi_measurement_scan_update();
+        }
+
         c3nav._last_wifi_peers = peers;
         c3nav._after_scan_results();
     },
     _ibeacon_scan_results: function (peers) {
         peers = JSON.parse(peers);
         c3nav._last_ibeacon_peers = peers;
+
+        if (c3nav._beacon_quest_scanning) {
+            c3nav._quest_ibeacon_scans.push(peers);
+            c3nav._wifi_measurement_scan_update();
+        }
+
         c3nav._after_scan_results();
     },
     _after_scan_results: function () {
@@ -2886,7 +3040,7 @@ QuestsControl = ExpandingControl.extend({
                     .addTo(c3nav._questsLayers[quest.level_id])
                     .on('click', function () {
                         c3nav.open_modal();
-                        $.get(`/editor/quests/${quest_type}/${quest.identifier}`, c3nav._modal_loaded).fail(c3nav._modal_error);
+                        $.get(`/editor/quests/${quest_type}/${quest.identifier}/`, c3nav._modal_loaded).fail(c3nav._modal_error);
                     });
             }
 
@@ -3225,9 +3379,13 @@ L.SquareGridLayer = L.Layer.extend({
 
 class DataOverlay {
     levels = null;
+    features = [];
+    features_by_id = {};
+    feature_layers = {};
     feature_geometries = {};
     fetch_timeout = null;
     etag = null;
+    active = false;
 
     constructor(options) {
         this.id = options.id;
@@ -3251,6 +3409,7 @@ class DataOverlay {
             c3nav_api.get(`mapdata/dataoverlayfeaturegeometries/?overlay=${this.id}`)
         ]);
         this.etag = etag;
+        this.features = features;
 
         this.feature_geometries = Object.fromEntries(feature_geometries.map(f => [f.id, f.geometry]));
 
@@ -3293,7 +3452,11 @@ class DataOverlay {
             this.levels[id].clearLayers();
         }
 
+        this.feature_layers = {};
+        this.features_by_id = {};
+
         for (const feature of features) {
+            this.features_by_id[feature.id] = feature;
             const geometry = this.feature_geometries[feature.id]
             const level_id = feature.level_id;
             if (!(level_id in this.levels)) {
@@ -3356,6 +3519,8 @@ class DataOverlay {
                 }
             });
 
+            this.feature_layers[feature.id] = layer;
+
             this.levels[level_id].addLayer(layer);
         }
     }
@@ -3372,9 +3537,11 @@ class DataOverlay {
                 levels[id].addLayer(this.levels[id]);
             }
         }
+        this.active = true;
     }
 
     disable(levels) {
+        this.active = false;
         for (const id in levels) {
             if (id in this.levels) {
                 levels[id].removeLayer(this.levels[id]);
@@ -3382,5 +3549,44 @@ class DataOverlay {
         }
         window.clearTimeout(this.fetch_timeout);
         this.fetch_timeout = null;
+    }
+
+    search(words) {
+        const feature_matches = (feature, word) => {
+            if (feature.title.toLowerCase().includes(word)) return true;
+            for (const lang in feature.titles) {
+                if (feature.titles[lang].toLowerCase().includes(word)) return true;
+            }
+            for (const key in feature.extra_data) {
+                if (`${feature.extra_data[key]}`.toLowerCase().includes(word)) return true;
+            }
+            return false;
+        }
+
+        const matches = [];
+
+        for (const feature of this.features) {
+            let nomatch = false;
+            for (const word of words) {
+                if (this.title.toLowerCase().includes(word)) continue;
+
+                if (!feature_matches(feature, word)) {
+                    nomatch = true;
+                }
+            }
+            if (nomatch) continue;
+
+             const html = $('<div class="location">')
+                .append($('<i class="icon material-symbols">').text(c3nav._map_material_icon(feature.point_icon ?? 'place')))
+                .append($('<span>').text(feature.title))
+                .append($('<small>').text(`${this.title} (Overlay)`))
+                 .attr('data-overlay-id', this.id)
+                 .attr('data-feature-id', feature.id);
+            html.attr('data-location', JSON.stringify(location));
+
+            matches.push([html[0].outerHTML, 0, 0, 0, -feature.title.length, 0])
+        }
+
+        return matches;
     }
 }

@@ -295,6 +295,18 @@ def get_position_by_id(request, position_id: AnyPositionID):
     return location.serialize_position(request=request)
 
 
+@map_api_router.get('/positions/my/', summary="all moving position coordinates",
+                    description="get current coordinates of all moving positions owned be the current users",
+                    response={200: list[AnyPositionStatusSchema], **API404.dict(), **auth_responses})
+@api_stats('get_position')
+def get_my_positions(request, position_id: AnyPositionID):
+    # no caching for obvious reasons!
+    return [
+        position.serialize_position(request=request)
+        for position in Position.objects.filter(owner=request.user)
+    ]
+
+
 class UpdatePositionSchema(BaseSchema):
     coordinates_id: Union[
         Annotated[CustomLocationID, APIField(title="set coordinates")],
@@ -332,7 +344,7 @@ def set_position(request, position_id: AnyPositionID, update: UpdatePositionSche
         raise APIRequestValidationFailed('Cant resolve coordinates.')
 
     location.coordinates_id = update.coordinates_id
-    location.timeout = update.timeout
+    location.timeout = update.timeout or 0
     location.last_coordinates_update = timezone.now()
     location.save()
 

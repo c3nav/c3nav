@@ -444,7 +444,7 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
     data: BeaconMeasurementDataSchema = SchemaField(BeaconMeasurementDataSchema,
-                                                    verbose_name=_('Measurement list'), 
+                                                    verbose_name=_('Measurement list'),
                                                     default=BeaconMeasurementDataSchema())
 
     fill_quest = models.BooleanField(_('create a quest to fill this'), default=False)
@@ -462,17 +462,42 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
     def geometry_changed(self):
         return False
 
+    @staticmethod
+    def contribute_bssid_to_beacons(items: list["BeaconMeasurement"]):
+        map_name = {}
+        for item in items:
+            for scan in item.data.wifi:
+                for peer in scan:
+                    if peer.ap_name:
+                        map_name.setdefault(peer.ap_name, []).append(peer.bssid)
+        for beacon in RangingBeacon.objects.filter(ap_name__in=map_name.keys(),
+                                                   beacon_type=RangingBeacon.BeaconType.EVENT_WIFI):
+            print(beacon, "add ssids", set(map_name[beacon.ap_name]))
+            beacon.addresses = list(set(beacon.addresses) | set(map_name[beacon.ap_name]))
+            beacon.save()
+
+    def save(self, *args, **kwargs):
+        self.contribute_bssid_to_beacons([self])
+        return super().save(*args, **kwargs)
+
 
 class RangingBeacon(SpaceGeometryMixin, models.Model):
     """
     A ranging beacon
     """
+    class BeaconType(models.TextChoices):
+        EVENT_WIFI = "event_wifi", _("Event WiFi AP")
+        DECT = "dect", _("DECT antenna")
+
     geometry = GeometryField('point')
+
+    beacon_type = models.CharField(_('beacon type'), choices=BeaconType.choices,
+                                   null=True, blank=True, max_length=16)
 
     node_number = models.PositiveSmallIntegerField(_('Node Number'), unique=True, null=True, blank=True)
 
-    wifi_bssids: list[MacAddress] = SchemaField(list[MacAddress], verbose_name=_('WiFi BSSIDs'), default=list,
-                                                help_text=_("uses node's value if not set"))
+    addresses: list[MacAddress] = SchemaField(list[MacAddress], verbose_name=_('Mac Address / BSSIDs'), default=list,
+                                              help_text=_("uses node's value if not set"))
     bluetooth_address = models.CharField(_('Bluetooth Address'), unique=True, null=True, blank=True,
                                          max_length=17,
                                          validators=[RegexValidator(
@@ -498,6 +523,7 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
                                    validators=[MinValueValidator(Decimal('0'))])
+    ap_name = models.CharField(null=True, blank=True, verbose_name=_('AP name'), max_length=32)
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
 
     altitude_quest = models.BooleanField(_('altitude quest'), default=True)
@@ -517,10 +543,19 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
 
     @property
     def title(self):
-        if self.node_number is not None or self.wifi_bssids:
-            if self.comment:
-                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])} ({self.comment})'.strip()
-            else:
-                return f'{self.node_number or ''} {''.join(self.wifi_bssids[:1])}'.strip()
+        segments = []
+        if self.node_number is not None:
+            segments.append(self.node_number)
+        if self.ap_name is not None:
+            segments.append(f'"{self.ap_name}"')
+        if segments:
+            title = ' - '.join(segments).strip()
         else:
-            return self.comment
+            title = f'#{self.pk}'
+        if self.addresses:
+            ssids = self.addresses[0] + (', …' if len(self.addresses) > 1 else '')
+            title += f' ({ssids})'
+        if self.comment:
+            title += f' ({self.comment})'
+
+        return f'{self.get_beacon_type_display() if self.beacon_type else self._meta.verbose_name} {title}'

@@ -587,6 +587,7 @@ class Position(CustomLocationProxyMixin, models.Model):
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)
+    short_name = models.CharField(_('abbreviation'), help_text=_('two characters maximum'), max_length=2)
     secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
     last_coordinates_update = models.DateTimeField(_('last coordinates update'), null=True)
     timeout = models.PositiveSmallIntegerField(_('timeout (in seconds)'), default=0, blank=True,
@@ -639,8 +640,9 @@ class Position(CustomLocationProxyMixin, models.Model):
                 'title': self.name,
                 'subtitle': _('currently unavailable'),
             }
-        from c3nav.mapdata.schemas.models import CustomLocationSchema
-        result = CustomLocationSchema.model_validate(custom_location).model_dump()
+        # todo: is this good?
+        from c3nav.mapdata.schemas.models import CustomLocationLocationSchema
+        result = CustomLocationLocationSchema.model_validate(custom_location).model_dump()
         result.update({
             'available': True,
             'id': 'm:%s' % self.secret,

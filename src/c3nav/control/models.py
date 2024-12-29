@@ -44,6 +44,7 @@ class UserPermissions(models.Model):
     nonpublic_themes = models.BooleanField(default=False, verbose_name=_('show non-public themes in theme selector'))
     quests: list[str] = SchemaField(schema=list[str], default=list)
     impolite_quests = models.BooleanField(default=False, verbose_name=_('dont say thanks after completing a quest'))
+    passive_ap_name_scanning = models.BooleanField(default=False, verbose_name=_('passive ap name scanning'))
 
     class Meta:
         verbose_name = _('User Permissions')
