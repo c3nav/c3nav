@@ -23,7 +23,6 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
-from c3nav.mapdata.schemas.models import CustomLocationLocationSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
@@ -640,8 +639,8 @@ class Position(CustomLocationProxyMixin, models.Model):
                 'title': self.name,
                 'subtitle': _('currently unavailable'),
             }
-        from c3nav.mapdata.schemas.models import CustomLocationSchema
         # todo: is this good?
+        from c3nav.mapdata.schemas.models import CustomLocationLocationSchema
         result = CustomLocationLocationSchema.model_validate(custom_location).model_dump()
         result.update({
             'available': True,
