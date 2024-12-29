@@ -231,7 +231,8 @@ class Locator:
 
     def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None):
         scan_data_we_can_use = [
-            (peer_id, value) for peer_id, value in scan_data.items() if self.peers[peer_id].space_id
+            (peer_id, value) for peer_id, value in scan_data.items()
+            if self.peers[peer_id].space_id and -90 < value.rssi < -10
         ]
 
         if not scan_data_we_can_use:
@@ -257,7 +258,7 @@ class Locator:
             already_got.add(key)
             deduplicized_scan_data_in_the_same_room.append((peer_id, value))
 
-        the_sum = sum((value.rssi + 100) for peer_id, value in deduplicized_scan_data_in_the_same_room[:3])
+        the_sum = sum((value.rssi + 90) for peer_id, value in deduplicized_scan_data_in_the_same_room[:3])
 
         level = router.levels[space.level_id]
         if level.on_top_of_id:
@@ -276,8 +277,8 @@ class Locator:
             y = 0
             # sure this can be better probably
             for peer_id, value in deduplicized_scan_data_in_the_same_room[:3]:
-                x += float(self.peers[peer_id].xyz[0]) * (value.rssi+100) / the_sum
-                y += float(self.peers[peer_id].xyz[1]) * (value.rssi+100) / the_sum
+                x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
+                y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
             return CustomLocation(
                 level=level,
                 x=x/100,
