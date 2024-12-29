@@ -2670,7 +2670,7 @@ ExpandingControl = L.Control.extend({
         $(this._container).on('click', 'div.pin-toggle', e => {
             this.togglePinned();
         });
-        $(this._container).on('mousedown pointerdown wheel', e => {
+        $(this._container).on('click dblclick mousedown pointerdown wheel', e => {
             e.stopPropagation();
         });
 
