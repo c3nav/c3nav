@@ -1,4 +1,5 @@
 import json
+import math
 from typing import Annotated, Union, Optional
 
 from celery import chain
@@ -494,7 +495,7 @@ def get_load(request):
                 current_values[load_group_id] += beacon.num_clients
 
     result = {
-        pk: round((min(1.0, (current_values[pk] / max_value)**2/0.5) if max_value else 0), 1)
+        pk: math.sin(3.14159 / 2 * (max(current_values[pk] / max_value - 0.2, 0) / 0.65)) if max_value else 0
         for pk, max_value in max_values.items()
     }
     cache.set('mapdata:get_load', result, 300)
