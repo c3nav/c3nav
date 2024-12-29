@@ -279,7 +279,7 @@ class Locator:
             point = Point(x/100, y/100)
 
         new_space, new_point = self.placement_helper.get_point_and_space(
-            level_id=level.pk, point=point, restrictions=restrictions,
+            level_id=level.pk, point=point,
             max_space_distance=20,
         )
 
