@@ -275,6 +275,18 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
     )
 
 
+@map_api_router.get('/positions/my/', summary="all moving position coordinates",
+                    description="get current coordinates of all moving positions owned be the current users",
+                    response={200: list[AnyPositionStatusSchema], **API404.dict(), **auth_responses})
+@api_stats('get_positions')
+def get_my_positions(request):
+    # no caching for obvious reasons!
+    return [
+        position.serialize_position(request=request)
+        for position in Position.objects.filter(owner=request.user)
+    ]
+
+
 @map_api_router.get('/positions/{position_id}/', summary="moving position coordinates",
                     description="get current coordinates of a moving position / dynamic location",
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses})
@@ -293,18 +305,6 @@ def get_position_by_id(request, position_id: AnyPositionID):
             raise API404()
 
     return location.serialize_position(request=request)
-
-
-@map_api_router.get('/positions/my/', summary="all moving position coordinates",
-                    description="get current coordinates of all moving positions owned be the current users",
-                    response={200: list[AnyPositionStatusSchema], **API404.dict(), **auth_responses})
-@api_stats('get_position')
-def get_my_positions(request, position_id: AnyPositionID):
-    # no caching for obvious reasons!
-    return [
-        position.serialize_position(request=request)
-        for position in Position.objects.filter(owner=request.user)
-    ]
 
 
 class UpdatePositionSchema(BaseSchema):

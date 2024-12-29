@@ -635,9 +635,12 @@ class Position(CustomLocationProxyMixin, models.Model):
             return {
                 'id': 'm:%s' % self.secret,
                 'slug': 'm:%s' % self.secret,
+                'effective_slug': 'm:%s' % self.secret,
                 'available': False,
                 'icon': 'my_location',
+                'effective_icon': 'my_location',
                 'title': self.name,
+                'short_name': self.short_name,
                 'subtitle': _('currently unavailable'),
             }
         # todo: is this good?
@@ -647,8 +650,10 @@ class Position(CustomLocationProxyMixin, models.Model):
             'available': True,
             'id': 'm:%s' % self.secret,
             'slug': 'm:%s' % self.secret,
+            'effective_slug': 'm:%s' % self.secret,
             'icon': 'my_location',
             'title': self.name,
+            'short_name': self.short_name,
             'subtitle': '%s, %s, %s' % (
                 _('Position'),
                 result['title'],

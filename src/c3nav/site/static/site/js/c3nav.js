@@ -1765,6 +1765,7 @@ c3nav = {
         c3nav._userLocationLayers = {};
         c3nav._overlayLayers = {};
         c3nav._questsLayers = {};
+        c3nav._positionsLayers = {};
         c3nav._firstRouteLevel = null;
         c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
         c3nav._loadIndicatorLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
@@ -1791,6 +1792,7 @@ c3nav = {
                 showCoverageOnHover: false,
                 iconCreateFunction: makeClusterIconCreate('var(--color-primary)'),
             }).addTo(layerGroup);
+            c3nav._positionsLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
@@ -1849,6 +1851,7 @@ c3nav = {
 
         c3nav._update_overlays();
         c3nav._update_quests();
+        c3nav._update_positions();
         c3nav._update_loadinfo_labels();
 
         c3nav.map.on('click', c3nav._click_anywhere);
@@ -2275,6 +2278,18 @@ c3nav = {
             }
         } else {
             if (Object.keys(c3nav.user_data.quests).length) c3nav._questsControl = (new QuestsControl()).addTo(c3nav.map);
+        }
+    },
+
+    _update_positions: function () {
+        if (!c3nav.map) return;
+        if (c3nav._positionsControl) {
+            if (!c3nav.user_data.has_positions) {
+                c3nav.map.removeControl(c3nav._positionsControl);
+                c3nav._positionsControl = null;
+            }
+        } else {
+            if (c3nav.user_data.has_positions) c3nav._positionsControl = (new PositionsControl()).addTo(c3nav.map);
         }
     },
 
@@ -2996,7 +3011,7 @@ QuestsControl = ExpandingControl.extend({
         this.reloadQuests().catch(err => console.error(err));
     },
 
-     reloadQuests: async function (force = false) {
+    reloadQuests: async function (force = false) {
         const activeQuests = this._activeQuests;
         const removed = this._loadedQuests.difference(activeQuests);
         const added = force ? activeQuests : activeQuests.difference(this._loadedQuests);
@@ -3055,6 +3070,54 @@ QuestsControl = ExpandingControl.extend({
             }
 
 
+        }
+    },
+});
+
+PositionsControl = ToggleControl.extend({
+    options: {
+        position: 'topright',
+        addClasses: 'leaflet-control-positions',
+        enabledIcon: c3nav._map_material_icon('location_on'),
+        disabledIcon: c3nav._map_material_icon('location_off'),
+        storageId: 'positions',
+        onEnable: () => {
+            c3nav._positionsControl.reloadPositions().catch(err => console.error(err));
+        },
+    },
+
+    reloadPositions: async function () {
+        console.log("abc");
+        for (const level_id in c3nav._positionsLayers) {
+            c3nav._positionsLayers[level_id].clearLayers();
+        }
+
+        const data = await c3nav_api.get(`map/positions/my/`);
+
+        for (const position of data) {
+            if (!position.available) continue;
+            L.geoJson(position.geometry, {
+                pointToLayer: (geom, latlng) => {
+                    const span = document.createElement('span');
+                    span.innerText = position.short_name;
+                    return L.marker(latlng, {
+                        icon: L.divIcon({
+                            className: 'text-icon symbol-icon-interactive',
+                            html: span,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12],
+                        })
+                    });
+                }
+            })
+                .addTo(c3nav._positionsLayers[position.level])
+                .bindPopup(() => {
+                    const span = document.createElement('span');
+                    span.innerText = position.name;
+                    return span;
+                }, {
+                    className: 'data-overlay-popup'
+                })
         }
     },
 });

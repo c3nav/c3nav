@@ -1933,7 +1933,7 @@ blink {
     }
 }
 
-.symbol-icon {
+.symbol-icon, .text-icon {
     --icon-color: var(--color-primary);
     > span {
         display: inline-block;
@@ -1942,7 +1942,6 @@ blink {
         line-height: 30px;
         text-align: center;
         font-size: 22px;
-        font-family: 'Material Symbols Outlined';
         background-color: white;
         color: var(--icon-color);
         border-radius: 100%;
@@ -1953,8 +1952,11 @@ blink {
         cursor: default;
     }
 
+    &.symbol-icon {
+        font-family: 'Material Symbols Outlined';
+    }
 
-    &.symbol-icon-interactive {
+    &.symbol-icon-interactive, &.text-icon-interactive {
         > span {
             cursor: pointer;
 
