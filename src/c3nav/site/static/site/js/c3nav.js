@@ -1799,6 +1799,7 @@ c3nav = {
 
         c3nav._labelControl = new ToggleControl({
             storageId: 'labels',
+            initialOn: true,
             enabledIcon: c3nav._map_material_icon('label'),
             disabledIcon: c3nav._map_material_icon('label_off'),
             onEnable: () => {
@@ -1828,6 +1829,7 @@ c3nav = {
             c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
             c3nav._gridControl = new ToggleControl({
                 storageId: 'grid',
+                initialOn: true,
                 enabledIcon: c3nav._map_material_icon('grid_on'),
                 disabledIcon: c3nav._map_material_icon('grid_off'),
                 onEnable: () => {
@@ -2878,9 +2880,15 @@ ToggleControl = L.Control.extend({
         this._button.innerText = this.options.enabledIcon;
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', false);
+
         let initialOn = this.options.initialOn;
         if (this.options.storageId) {
-            initialOn = !localStorageWrapper.getItem(`c3nav.toggle-control.${this.options.storageId}.hide`);
+            const onValue = localStorageWrapper.getItem(`c3nav.toggle-control.${this.options.storageId}.on`);
+            if (onValue === '1') {
+                initialOn = true;
+            } else if (onValue === '0') {
+                initialOn = false;
+            }
         }
 
         window.setTimeout(() => {
@@ -2912,7 +2920,7 @@ ToggleControl = L.Control.extend({
         }
         this._button.innerText = this.options.enabledIcon;
         this._button.classList.toggle('control-disabled', false);
-        localStorageWrapper.removeItem(`c3nav.toggle-control.${this.options.storageId}.hide`);
+        localStorageWrapper.setItem(`c3nav.toggle-control.${this.options.storageId}.on`, '1');
     },
 
     toggleOff: function () {
@@ -2923,7 +2931,7 @@ ToggleControl = L.Control.extend({
         }
         this._button.innerText = this.options.disabledIcon;
         this._button.classList.toggle('control-disabled', true);
-        localStorageWrapper.setItem(`c3nav.toggle-control.${this.options.storageId}.hide`, '1');
+        localStorageWrapper.setItem(`c3nav.toggle-control.${this.options.storageId}.on`, '0');
     }
 });
 
