@@ -254,7 +254,7 @@ class Locator:
                 continue
             deduplicized_scan_data_in_the_same_room.append((peer_id, value))
 
-        the_sum = sum((value.rssi + 90) for peer_id, value in scan_data_in_the_same_room[:3])
+        the_sum = sum((value.rssi + 90) for peer_id, value in deduplicized_scan_data_in_the_same_room[:3])
 
         level = router.levels[space.level_id]
         if level.on_top_of_id:
@@ -271,7 +271,7 @@ class Locator:
         else:
             x = 0
             y = 0
-            for peer_id, value in scan_data_in_the_same_room[:3]:
+            for peer_id, value in deduplicized_scan_data_in_the_same_room[:3]:
                 x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
                 y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
             return CustomLocation(
