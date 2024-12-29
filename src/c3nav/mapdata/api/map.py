@@ -494,7 +494,7 @@ def get_load(request):
                 current_values[load_group_id] += beacon.num_clients
 
     result = {
-        pk: round((min(1.0, current_values[pk] / (max_value*0.9)) if max_value else 0), 1)
+        pk: round((min(1.0, current_values[pk] / (max_value*0.75)) if max_value else 0), 1)
         for pk, max_value in max_values.items()
     }
     cache.set('mapdata:get_load', result, 300)
