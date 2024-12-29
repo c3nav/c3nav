@@ -95,7 +95,7 @@ class Locator:
         for beacon in calculated.beacons.values():
             identifiers = []
             for bssid in beacon.addresses:
-                identifiers.append(TypedIdentifier(PeerType.WIFI, bssid))
+                identifiers.append(TypedIdentifier(PeerType.WIFI, bssid.lower()))
             if beacon.ap_name:
                 identifiers.append(TypedIdentifier(PeerType.WIFI, beacon.ap_name))
             if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
@@ -142,7 +142,7 @@ class Locator:
             if settings.WIFI_SSIDS and scan_value.ssid not in settings.WIFI_SSIDS:
                 continue
             peer_ids = {
-                self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.bssid), create=create_peers),
+                self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.bssid.lower()), create=create_peers),
                 self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.ap_name), create=create_peers),
             } - {None, ""}
             for peer_id in peer_ids:
@@ -254,6 +254,7 @@ class Locator:
             key = tuple(self.peers[peer_id].xyz)
             if key in already_got:
                 continue
+            already_got.add(key)
             deduplicized_scan_data_in_the_same_room.append((peer_id, value))
 
         the_sum = sum((value.rssi + 90) for peer_id, value in deduplicized_scan_data_in_the_same_room[:3])
