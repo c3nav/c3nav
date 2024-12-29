@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='userpermissions',
-            name='can_write_laod_data',
+            name='can_write_load_data',
             field=models.BooleanField(default=False, verbose_name='write load data'),
         ),
     ]

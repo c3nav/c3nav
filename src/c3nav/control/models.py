@@ -45,7 +45,7 @@ class UserPermissions(models.Model):
     quests: list[str] = SchemaField(schema=list[str], default=list)
     impolite_quests = models.BooleanField(default=False, verbose_name=_('dont say thanks after completing a quest'))
     passive_ap_name_scanning = models.BooleanField(default=False, verbose_name=_('passive ap name scanning'))
-    can_write_laod_data = models.BooleanField(default=False, verbose_name=_('write load data'))
+    can_write_load_data = models.BooleanField(default=False, verbose_name=_('write load data'))
 
     class Meta:
         verbose_name = _('User Permissions')

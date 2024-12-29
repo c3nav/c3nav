@@ -2,7 +2,9 @@ import json
 from typing import Annotated, Union, Optional
 
 from celery import chain
+from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -444,6 +446,10 @@ Room load
 @map_api_router.get('/load/', summary="get load group loads",
                     response={200: dict[PositiveInt, float], **auth_responses})
 def get_load(request):
+    result = cache.get('mapdata:get_load', None)
+    if result is not None:
+        return result
+
     load_groups = {g.pk: g for g in LoadGroup.objects.all()}
 
     # per group
@@ -484,26 +490,33 @@ def get_load(request):
                 max_values[load_group_id] += beacon.max_observed_num_clients
                 current_values[load_group_id] += beacon.num_clients
 
-    return {
+    result = {
         pk: (min(1.0, current_values[pk] / (max_value*0.9)) if max_value else 0)
         for pk, max_value in max_values.items()
     }
+    cache.set('mapdata:get_load', result, 300)
+    return result
 
 
 class ApLoadSchema(BaseSchema):
     aps: dict[str, int]
 
 
-@map_api_router.post('/load/', summary="update current load data", response={204: None, **auth_responses})
+@map_api_router.post('/load/', summary="update current load data",
+                     response={204: None, **auth_permission_responses})
 def post_load(request, parameters: ApLoadSchema):
-    # TODO: check if user has permission
+    if not request.user_permissions.can_write_load_data:
+        raise APIPermissionDenied()
 
     names = parameters.aps.keys()
 
-    for beacon in RangingBeacon.objects.filter(ap_name__in=names):
-        beacon.num_clients = parameters.aps[beacon.ap_name]
-        if beacon.num_clients > beacon.max_observed_num_clients:
-            beacon.max_observed_num_clients = beacon.num_clients
-        beacon.save()
+    with transaction.atomic():
+        for beacon in RangingBeacon.objects.filter(ap_name__in=names):
+            beacon.num_clients = parameters.aps[beacon.ap_name]
+            if beacon.num_clients > beacon.max_observed_num_clients:
+                beacon.max_observed_num_clients = beacon.num_clients
+            beacon.save()
+
+    cache.delete('mapdata:get_load')
 
     return 204, None
