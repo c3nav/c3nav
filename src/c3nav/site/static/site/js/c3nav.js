@@ -2095,7 +2095,7 @@ c3nav = {
             // if location is not in the searchable list...
             return
         }
-        if (location.dynamic || location.locationtype === "dynamiclocation") {
+        if (location.dynamic || location.locationtype === "dynamiclocation" || location.locationtype === "position") {
             if (!('available' in location)) {
                 c3nav_api.get(`map/positions/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
