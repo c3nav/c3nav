@@ -283,14 +283,15 @@ class Locator:
             max_space_distance=20,
         )
 
-        level = router.levels[new_space.level_id]
+        if new_space is not None:
+            level = router.levels[new_space.level_id]
         if level.on_top_of_id:
             level = router.levels[level.on_top_of_id]
 
         return CustomLocation(
             level=level,
-            x=x / 100,
-            y=y / 100,
+            x=point.x,
+            y=point.y,
             permissions=permissions,
             icon='my_location'
         )
