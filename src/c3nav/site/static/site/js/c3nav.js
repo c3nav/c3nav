@@ -2545,6 +2545,10 @@ c3nav = {
             c3nav.resume_level = c3nav._levelControl.currentLevel;
             c3nav._levelControl.setLevel(null);
         }
+
+        if (c3nav._overlayControl) {
+            c3nav._overlayControl.pause();
+        }
     },
     _resume: function () {
         if (c3nav._fetch_updates_timer === null) {
@@ -2563,6 +2567,10 @@ c3nav = {
                 c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, scheduled_load_in);
                 console.info("c3nav._resume() -> scheduling searchable locations timeout: " + scheduled_load_in);
             }
+        }
+
+        if (c3nav._overlayControl) {
+            c3nav._overlayControl.resume();
         }
     },
     _visibility_hidden_timer: null,
@@ -3182,6 +3190,18 @@ OverlayControl = ExpandingControl.extend({
         this._levels = levels;
     },
 
+    pause: function () {
+        for (const overlay of Object.values(this._overlays)) {
+            overlay.pause();
+        }
+    },
+
+    resume: function () {
+        for (const overlay of Object.values(this._overlays)) {
+            overlay.resume();
+        }
+    },
+
     onAdd: function () {
 
         const initialActiveOverlays = this.getStored('active', []);
@@ -3496,16 +3516,34 @@ class DataOverlay {
         }
     }
 
+    pause() {
+        if (this.fetch_timeout !== null) {
+            window.clearTimeout(this.fetch_timeout);
+            this.fetch_timeout = null;
+        }
+    }
+
+    resume() {
+        if (this.active && this.update_interval !== null) {
+            // noinspection JSIgnoredPromiseFromCall
+            this.fetch_features();
+        }
+    }
+
     async fetch_features() {
         if (this.fetch_timeout !== null) {
             window.clearTimeout(this.fetch_timeout);
             this.fetch_timeout = null;
         }
-        const {data: features, etag} = await c3nav_api.get_with_etag(`mapdata/dataoverlayfeatures/?overlay=${this.id}`, this.etag);
+        try {
+            const {data: features, etag} = await c3nav_api.get_with_etag(`mapdata/dataoverlayfeatures/?overlay=${this.id}`, this.etag);
 
-        if (features !== null) {
-            this.update_features(features);
-            this.etag = etag;
+            if (features !== null) {
+                this.update_features(features);
+                this.etag = etag;
+            }
+        } catch (err) {
+            console.error(err);
         }
 
         if (this.update_interval !== null && this.fetch_timeout === null) {
