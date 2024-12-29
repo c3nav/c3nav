@@ -332,7 +332,7 @@ def set_position(request, position_id: AnyPositionID, update: UpdatePositionSche
         raise APIRequestValidationFailed('Cant resolve coordinates.')
 
     location.coordinates_id = update.coordinates_id
-    location.timeout = update.timeout
+    location.timeout = update.timeout or 0
     location.last_coordinates_update = timezone.now()
     location.save()
 
