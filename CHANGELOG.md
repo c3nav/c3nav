@@ -16,9 +16,13 @@ Big stuff:
 - new map settings API endpoint
 - ability to import APs from NOC eventmap
 - ability to import Antennas from POC
+- introducing load groups, a way to display how crowded certain parts of the map are based on statistics from WiFi APs
+- new positioning algorithm based on AP positions, not very good but results look convincing
+- overlay to show all your own moving positions
 
 Semi-big stuff:
 
+- "show nearby" is now clustered for points too close together
 - Doors now have a UI to easily manage edges that go through them, as well as a To Do feature
 - space can now be classified as "identifyable" to determine which route descriptions they need
 - reports for wrong locations can now be auto-rejected based on location g
