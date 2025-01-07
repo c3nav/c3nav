@@ -6,7 +6,7 @@ This file aims to give you an idea of what has changed between events where c3na
 development team. These lists do not aim to be complete but help you get an overview about the most iportant changes
 and potential backwards incompatibilities.
 
-# 38. Chaos Communication Congress (development ongoing)
+# 38. Chaos Communication Congress ([38c3](https://github.com/c3nav/c3nav/tree/38c3))
 
 Big stuff:
 
