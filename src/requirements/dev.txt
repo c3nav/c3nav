@@ -1,4 +1,4 @@
-flake8==6.1.0
-pycodestyle==2.11.1
+flake8==7.1.1
+pycodestyle==2.12.1
 isort
 django-debug-toolbar
