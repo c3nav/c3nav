@@ -255,6 +255,7 @@ STATIC_URL = config.get('django', 'static_url', fallback='/static/', env='C3NAV_
 MEDIA_URL = config.get('django', 'media_url', fallback='/media/', env='C3NAV_MEDIA_URL')
 
 ALLOWED_HOSTS = config.getlist('django', 'allowed_hosts', fallback='*')
+CSRF_TRUSTED_ORIGINS = config.getlist('django', 'csrf_trusted_origins', fallback='[]')
 
 if config.getboolean('django', 'reverse_proxy', fallback=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
