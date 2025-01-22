@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 from c3nav import settings
 from c3nav.mapdata.utils.cache.cache_decorator import mapdata_cache
 
@@ -69,7 +71,8 @@ def make_themes(theme_models):
         modify_vars(css_vars)
         primary_color = css_vars['primary'] if 'primary' in css_vars else base_theme['primary_color']
         if theme.randomize_primary_color:
-            del css_vars['primary']
+            with suppress(KeyError):
+                del css_vars['primary']
         css_vars_str = css_vars_as_str(css_vars)
         css_code = (':root{%s}' % css_vars_str)
         themes[theme.pk] = {
