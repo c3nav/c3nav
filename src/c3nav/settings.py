@@ -74,6 +74,8 @@ with suppress(ImportError):
             enable_tracing=bool(config.getfloat('sentry', 'traces_sample_rate', fallback=0.0)),
             traces_sample_rate=config.getfloat('sentry', 'traces_sample_rate', fallback=0.0),
         )
+        if INSTANCE_NAME:
+            sentry_sdk.set_tag('instance', INSTANCE_NAME)
 
 # Build paths inside the project like this: BASE_DIR / 'something'
 PROJECT_DIR = Path(__file__).resolve().parent
