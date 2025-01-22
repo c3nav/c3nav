@@ -2266,6 +2266,7 @@ c3nav = {
     },
 
     activeOverlays: function () {
+        if (!c3nav._overlayControl) return [];
         return Object.values(c3nav._overlayControl._overlays).filter(o => o.active);
     },
 
