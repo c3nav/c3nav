@@ -121,7 +121,7 @@ class Building(LevelGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(LevelGeometryMixin, SpecificLocation, models.Model):
+class Space(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
     """

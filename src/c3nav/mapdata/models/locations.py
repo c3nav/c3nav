@@ -1,8 +1,10 @@
+import operator
 import string
 import typing
 from contextlib import suppress
 from datetime import timedelta
 from decimal import Decimal
+from functools import reduce
 from operator import attrgetter
 
 from django.conf import settings
@@ -10,7 +12,7 @@ from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -34,6 +36,7 @@ if typing.TYPE_CHECKING:
 class LocationSlugManager(models.Manager):
     def get_queryset(self):
         result = super().get_queryset()
+        return result
         if self.model == LocationSlug:
             for model in get_submodels(Location) + [LocationRedirect]:
                 result = result.select_related(model._meta.default_related_name)
@@ -63,6 +66,8 @@ validate_slug = RegexValidator(
     'invalid'
 )
 
+possible_slug_targets = ('group', 'specific')  # todo: can we generate this?
+
 
 class LocationSlug(SerializableMixin, models.Model):
     LOCATION_TYPE_CODES = {
@@ -73,7 +78,12 @@ class LocationSlug(SerializableMixin, models.Model):
         'LocationGroup': 'g'
     }
     LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
-    slug = models.SlugField(_('Slug'), unique=True, null=True, blank=True, max_length=50, validators=[validate_slug])
+
+    slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
+    redirect = models.BooleanField(default=False)
+
+    group = models.ForeignKey('LocationGroup', null=True, on_delete=models.CASCADE, related_name='slug_set')
+    specific = models.ForeignKey('SpecificLocation', null=True, on_delete=models.CASCADE, related_name='slug_set')
 
     objects = LocationSlugManager()
 
@@ -101,8 +111,15 @@ class LocationSlug(SerializableMixin, models.Model):
         verbose_name_plural = _('Location with Slug')
         default_related_name = 'locationslugs'
 
+        constraints = [
+            models.CheckConstraint(condition=reduce(operator.or_, (
+                Q(**{f'{name}__isnull': (name != set_name) for name in possible_slug_targets})
+                for set_name in possible_slug_targets
+            )), name="only_one_slug_target"),
+        ]
 
-class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
+
+class Location(AccessRestrictionMixin, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can describe'))
     icon = models.CharField(_('icon'), max_length=32, null=True, blank=True, help_text=_('any material icons name'))
@@ -171,6 +188,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         return None
 
 
+possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation')  # todo: can we generate this?
+
 
 class SpecificLocation(Location, models.Model):
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
@@ -183,8 +202,23 @@ class SpecificLocation(Location, models.Model):
     load_group_display = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                            related_name='+', verbose_name=_('display load group'))
 
+    level = models.OneToOneField('Level', null=True, on_delete=models.CASCADE, related_name='location')
+    space = models.OneToOneField('Space', null=True, on_delete=models.CASCADE, related_name='location')
+    area = models.OneToOneField('Area', null=True, on_delete=models.CASCADE, related_name='location')
+    poi = models.OneToOneField('POI', null=True, on_delete=models.CASCADE, related_name='location')
+    dynamiclocation = models.OneToOneField('DynamicLocation', null=True, on_delete=models.CASCADE, related_name='location')
+
     class Meta:
-        abstract = True
+        verbose_name = _('Specific Location')
+        verbose_name_plural = _('Specific Locations')
+        default_related_name = 'specific_locations'
+
+        constraints = [
+            models.CheckConstraint(condition=reduce(operator.or_, (
+                Q(**{f'{name}__isnull': (name != set_name) for name in possible_specific_locations})
+                for set_name in possible_specific_locations
+            )), name="only_one_specific_location_target"),
+        ]
 
     @property
     def effective_label_settings(self):
@@ -450,20 +484,6 @@ class LocationGroup(Location, models.Model):
         super().delete(*args, **kwargs)
 
 
-class LocationRedirect(LocationSlug):
-    target = models.ForeignKey(LocationSlug, related_name='redirects', on_delete=models.CASCADE,
-                               verbose_name=_('target'))
-
-    @property
-    def target_slug(self):
-        if type(self.target) is LocationSlug:
-            return self.target.get_child().effective_slug
-        return self.target.effective_slug
-
-    class Meta:
-        default_related_name = 'locationredirects'
-
-
 class LabelSettings(SerializableMixin, models.Model):
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
     min_zoom = models.DecimalField(_('min zoom'), max_digits=3, decimal_places=1, default=-10,
@@ -522,7 +542,7 @@ class CustomLocationProxyMixin:
         raise NotImplementedError
 
 
-class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
+class DynamicLocation(CustomLocationProxyMixin, AccessRestrictionMixin, models.Model):
     position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
 
     class Meta:
