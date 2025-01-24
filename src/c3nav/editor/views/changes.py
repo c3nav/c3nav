@@ -19,7 +19,6 @@ from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import sidebar_view
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import LocationSlug
-from c3nav.mapdata.models.locations import LocationRedirect
 
 
 @sidebar_view(select_related=('last_update', 'last_state_update', 'last_change', 'author'))
