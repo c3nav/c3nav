@@ -129,7 +129,7 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
         default_related_name = 'columns'
 
 
-class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
+class Area(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     An area in a space.
     """
@@ -309,7 +309,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         return result
 
 
-class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
+class POI(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     A point of interest
     """

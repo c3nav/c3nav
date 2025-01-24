@@ -23,7 +23,7 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin, Space
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug, Position, SpecificLocation
+from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.models import get_submodels
