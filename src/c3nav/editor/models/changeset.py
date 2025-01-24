@@ -16,13 +16,13 @@ from django_pydantic_field import SchemaField
 from c3nav.editor.changes import ChangedObjectCollection, ChangeProblems
 from c3nav.editor.operations import DatabaseOperationCollection
 from c3nav.editor.tasks import send_changeset_proposed_notification
-from c3nav.mapdata.models import LocationSlug, MapUpdate, DataOverlayFeature, DataOverlay
+from c3nav.mapdata.models import MapUpdate, DataOverlayFeature, DataOverlay
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.locations import LocationRedirect
 
 
 def _changed_object_collection_default() -> ChangedObjectCollection:
     return ChangedObjectCollection()
+
 
 class ChangeSet(models.Model):
     STATES = (
