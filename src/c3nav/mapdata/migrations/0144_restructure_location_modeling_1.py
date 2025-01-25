@@ -87,7 +87,7 @@ def unmigrate_locations(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0138_rangingbeacon_max_observed_num_clients_and_more'),
+        ('mapdata', '0143_report_image_alter_locationgroup_can_report_missing_and_more'),
     ]
 
     operations = [
@@ -169,6 +169,8 @@ class Migration(migrations.Migration):
                 ('level', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='mapdata.level', verbose_name='level')),
                 ('load_group_contribute', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='mapdata.loadgroup', verbose_name='contribute to load group')),
                 ('access_restriction', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='mapdata.accessrestriction', verbose_name='Access Restriction')),
+                ('internal_room_number', models.CharField(blank=True, null=True, verbose_name='Internal Room Number')),
+                ('media_panel_done', models.BooleanField(default=False, verbose_name='All media panels mapped')),             
             ],
             options={
                 'verbose_name': 'Space',
@@ -234,7 +236,7 @@ class Migration(migrations.Migration):
                 ('external_url', models.URLField(blank=True, null=True, verbose_name='external URL')),
                 ('priority', models.IntegerField(db_index=True, default=0)),
                 ('hierarchy', models.IntegerField(db_index=True, default=0, verbose_name='hierarchy')),
-                ('can_report_missing', models.CharField(choices=[('dont_offer', "don't offer"), ('reject', 'offer in first step, then reject'), ('single', 'offer in first step, exclusive choice'), ('multiple', 'offer if nothing in the first step matches, multiple choice')], default='dont_offer', max_length=16, verbose_name='report missing location')),
+                ('can_report_missing', models.CharField(choices=[('dont_offer', "don't offer"), ('reject', 'offer in first step, then reject'), ('single', 'offer in first step, exclusive choice'), ('image', 'offer in first step, then only query image'), ('multiple', 'offer if nothing in the first step matches, multiple choice')], default='dont_offer', max_length=16, verbose_name='report missing location')),
                 ('can_report_mistake', models.CharField(choices=[('allow', 'allow'), ('reject', 'reject for all locations with this group')], default='allow', max_length=16, verbose_name='report mistakes')),
                 ('description', c3nav.mapdata.fields.I18nField(blank=True, fallback_any=True, fallback_value='', help_text='to aid with selection in the report form', plural_name='descriptions', verbose_name='description')),
                 ('report_help_text', c3nav.mapdata.fields.I18nField(blank=True, fallback_any=True, fallback_value='', help_text='to explain the report form or rejection', plural_name='report_help_texts', verbose_name='report help text')),

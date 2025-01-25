@@ -82,8 +82,8 @@ class LocationSlug(SerializableMixin, models.Model):
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
 
-    group = models.ForeignKey('LocationGroup', null=True, on_delete=models.CASCADE, related_name='slug_set')
-    specific = models.ForeignKey('SpecificLocation', null=True, on_delete=models.CASCADE, related_name='slug_set')
+    group = models.OneToOneField('LocationGroup', null=True, on_delete=models.CASCADE, related_name='slug_set')
+    specific = models.OneToOneField('SpecificLocation', null=True, on_delete=models.CASCADE, related_name='slug_set')
 
     objects = LocationSlugManager()
 
