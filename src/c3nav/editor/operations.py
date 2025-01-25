@@ -11,7 +11,6 @@ from pydantic.types import Discriminator
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models import LocationSlug
 
 ModelName: TypeAlias = str
 ObjectID: TypeAlias = int
@@ -87,23 +86,11 @@ class CreateObjectOperation(BaseOperation):
     fields: FieldValuesDict
 
     def get_data(self):
-        model = apps.get_model('mapdata', self.obj.model)
-        data = []
-        if issubclass(model, LocationSlug):
-            data.append({
-                "model": f"mapdata.locationslug",
-                "pk": self.obj.id,
-                "fields": {
-                    "slug": self.fields.get("slug", None)
-                },
-            })
-        values = self.fields
-        data.append({
+        return [{
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
-            "fields": values,
-        })
-        return data
+            "fields": self.fields,
+        }]
 
     def apply_create(self) -> dict[ObjectReference, Model]:
         data = self.get_data()
@@ -149,12 +136,11 @@ class UpdateObjectOperation(BaseOperation):
                                       if val is not None}
             else:
                 values[field_name] = value
-        data = []
-        data.append({
+        data = [{
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
             "fields": values,
-        })
+        }]
         instances = list(serializers.deserialize("json", json.dumps(data)))
         for i in instances:
             new_instance = i.object
