@@ -39,10 +39,9 @@ class LocationSlugManager(models.Manager):
 
 
 validate_slug = RegexValidator(
-    r'^[a-z0-9]+(--?[a-z0-9]+)*\Z',
+    r'^[a-z0-9-]*[a-z]+[a-z0-9-]*\Z',
     # Translators: "letters" means latin letters: a-z and A-Z.
-    _('Enter a valid location slug consisting of lowercase letters, numbers or hyphens, '
-      'not starting or ending with hyphens or containing consecutive hyphens.'),
+    _('Enter a valid location slug consisting of lowercase letters, numbers or hyphens, with at least one letter.'),
     'invalid'
 )
 
@@ -51,13 +50,12 @@ possible_slug_targets = ('group', 'specific')  # todo: can we generate this?
 
 class LocationSlug(SerializableMixin, models.Model):
     LOCATION_TYPE_CODES = {
-        'Level': 'l',
-        'Space': 's',
-        'Area': 'a',
-        'POI': 'p',
+        'SpecificLocation': 'l',
         'LocationGroup': 'g'
     }
-    LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
+    LOCATION_TYPE_BY_CODE = {
+        **{code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
+    }
 
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
@@ -67,12 +65,8 @@ class LocationSlug(SerializableMixin, models.Model):
 
     objects = LocationSlugManager()
 
-    def get_target(self):
+    def get_target(self) -> typing.Union['LocationGroup', 'SpecificLocation']:
         return self.group if self.group_id is not None else self.specific
-
-    @property
-    def effective_slug(self):
-        return self.slug
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
@@ -108,6 +102,13 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
         abstract = True
 
     @property
+    def slug(self) -> str | None:
+        try:
+            return next(iter(locationslug.slug for locationslug in self.slug_set if not locationslug.redirect))
+        except StopIteration:
+            return None
+
+    @property
     def add_search(self):
         return ' '.join((
             *(redirect.slug for redirect in self.redirects.all() if redirect.slug),
@@ -131,11 +132,7 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def effective_slug(self):
-        if self.slug is None:
-            code = self.LOCATION_TYPE_CODES.get(self.__class__.__name__)
-            if code is not None:
-                return code+':'+str(self.id)
-        return self.slug
+        return self.slug or str(self.pk)
 
     @property
     def subtitle(self):
@@ -169,7 +166,9 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
 
 class SpecificLocationManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().select_related('level', 'space', 'area', 'poi', 'dynamiclocation')
+        return super().get_queryset().select_related(
+            'level', 'space', 'area', 'poi', 'dynamiclocation'
+        ).prefetch_related('slug_set')
 
 
 possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation')  # todo: can we generate this?
@@ -376,7 +375,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
 
 class LocationGroupManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().select_related('category')
+        return super().get_queryset().select_related('category', 'slug_set')
 
 
 class LocationGroup(Location, models.Model):

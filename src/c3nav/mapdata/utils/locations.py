@@ -31,39 +31,29 @@ from c3nav.mapdata.utils.models import get_submodels
 proxied_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_LOCATIONS)
 
 
-def locations_for_request(request) -> Mapping[int, LocationSlug]:
+@dataclass
+class LocationRedirect:
+    slug: str
+    target: Location
+
+
+def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
     # todo this takes a long time because it's a lot of data, we might want to change that
     cache_key = 'mapdata:locations:%s' % AccessPermission.cache_key_for_request(request)
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
 
-    locations = LocationSlug.objects.all().order_by('id')
-
-    conditions = []
-    for model in get_submodels(Location):
-        related_name = model._meta.default_related_name
-        for prefix in ('', 'locationredirects__target__'):
-            condition = Q(**{prefix + related_name + '__isnull': False})
-            # noinspection PyUnresolvedReferences
-            condition &= model.q_for_request(request, prefix=prefix + related_name + '__')
-            conditions.append(condition)
-        locations = locations.select_related(
-            related_name + '__label_settings'
-        ).prefetch_related(
-            related_name + '__redirects'
-        )
-
-    locations = locations.filter(reduce(operator.or_, conditions))
-    locations = locations.select_related('locationredirects', 'locationgroups__category')
-
-    # prefetch locationgroups
-    base_qs = LocationGroup.qs_for_request(request).select_related('category', 'label_settings')
-    for model in get_submodels(SpecificLocation):
-        locations = locations.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
-                                                        queryset=base_qs))
-
-    locations = {obj.pk: obj.get_child() for obj in locations}
+    # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
+    locations = {
+        **{redirect_slug.pk: LocationRedirect(slug=redirect_slug.slug, target=redirect_slug.get_target())
+           for redirect_slug in LocationSlug.objects.filter(redirect=True).order_by('id')},
+        **{location.pk: location for location in SpecificLocation.objects.prefetch_related(
+            Prefetch('groups', LocationGroup.qs_for_request(request).select_related('category',
+                                                                                    'label_settings'))
+        ).select_related('label_settings')},
+        **{group.pk: group for group in LocationGroup.objects.select_related('category', 'label_settings')},
+    }
 
     # add locations to groups
     locationgroups = {pk: obj for pk, obj in locations.items() if isinstance(obj, LocationGroup)}
@@ -77,46 +67,51 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
             if group is not None:
                 group.locations.append(obj)
 
-    # add levels to spaces
+    levels = {level.pk: level for level in Level.qs_for_request(request)}
+    spaces = {space.pk: space for space in Space.qs_for_request(request)}
+
+    # add levels to spaces: todo: fix this! hide locations etc bluh bluh
     remove_pks = set()
-    levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
     for pk, obj in locations.items():
-        if isinstance(obj, LevelGeometryMixin):
-            level = levels.get(obj.level_id, None)
+        if not isinstance(obj, SpecificLocation):
+            continue
+        target = obj.target
+        if isinstance(target, LevelGeometryMixin):
+            level = levels.get(target.level_id, None)
             if level is None:
                 remove_pks.add(pk)
                 continue
             obj._level_cache = level
-
-    # hide spaces on hidden levels
-    for pk in remove_pks:
-        locations.pop(pk)
-
-    # add spaces to areas and POIs
-    remove_pks = set()
-    spaces = {pk: obj for pk, obj in locations.items() if isinstance(obj, Space)}
-    for pk, obj in locations.items():
-        if isinstance(obj, SpaceGeometryMixin):
+        elif isinstance(obj, SpaceGeometryMixin):
             space = spaces.get(obj.space_id, None)
             if space is None:
                 remove_pks.add(pk)
                 continue
             obj._space_cache = space
 
-    # hide locations on hidden spaces
+    # hide locations in hidden spaces or levels
     for pk in remove_pks:
         locations.pop(pk)
 
     # add targets to LocationRedirects
-    levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
-    for obj in locations.values():
-        if isinstance(obj, LocationRedirect):
-            obj.target = locations.get(obj.target_id, None)
+    remove_pks = set()
+    for pk, obj in locations.items():
+        if not isinstance(obj, LocationRedirect):
+            continue
+        target = locations.get(obj.target.pk, None)
+        if target is None:
+            remove_pks.add(pk)
+            continue
+        obj.target = target
 
-    # apply better space geometries
-    for pk, geometry in get_better_space_geometries().items():
-        if pk in locations:
-            locations[pk].geometry = geometry
+    # hide redirects to hidden locations
+    for pk in remove_pks:
+        locations.pop(pk)
+
+    # apply better space geometries TODO: do this again?
+    #for pk, geometry in get_better_space_geometries().items():
+    #    if pk in locations:
+    #        locations[pk].geometry = geometry
 
     # precache cached properties
     for obj in locations.values():
@@ -124,7 +119,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
             continue
         # noinspection PyStatementEffect
         obj.subtitle, obj.order
-        if isinstance(obj, GeometryMixin):
+        if isinstance(obj, GeometryMixin):  # TODO: do this again
             # noinspection PyStatementEffect
             obj.point
 
@@ -160,7 +155,7 @@ def visible_locations_for_request(request) -> Mapping[int, Location]:
         return locations
 
     locations = {pk: location for pk, location in locations_for_request(request).items()
-                 if not isinstance(location, LocationRedirect) and (location.can_search or location.can_describe)}
+                 if not isinstance(location, LocationSlug) and (location.can_search or location.can_describe)}
 
     proxied_cache.set(cache_key, locations, 1800)
 
@@ -183,7 +178,7 @@ def searchable_locations_for_request(request) -> List[Location]:
     return locations
 
 
-def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug]:
+def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug | Location]:
     cache_key = 'mapdata:locations:by_slug:%s' % AccessPermission.cache_key_for_request(request)
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
@@ -245,16 +240,18 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[Locat
             return Position.objects.get(secret=slug[2:])
         except Position.DoesNotExist:
             return None
-    elif ':' in slug:
-        code, pk = slug.split(':', 1)
-        model_name = LocationSlug.LOCATION_TYPE_BY_CODE.get(code)
-        if model_name is None or not pk.isdigit():
-            return None
+    elif ':' in slug or slug.isdigit():
+        if ':' in slug:
+            code, pk = slug.split(':', 1)
+            model_name = LocationSlug.LOCATION_TYPE_BY_CODE.get(code, 'SpecificLocation')  # legacy fallback todo remove
+            if model_name is None or not pk.isdigit():
+                return None
+        else:
+            model_name = None
+            pk = slug
 
-        model = apps.get_model('mapdata', model_name)
         location = locations_for_request(request).get(int(pk), None)
-
-        if location is None or not isinstance(location, model):
+        if location is None or (model_name is not None and location._meta.model_name != model_name.lower()):
             return None
 
         if location.slug is not None:
