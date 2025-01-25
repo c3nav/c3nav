@@ -152,7 +152,7 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
         # don't filter in the query here so prefetch_related works
         for group in self.groups.all():
             color = color_manager.locationgroup_fill_color(group)
-            if color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
+            if color:  # todo: put allow_x check in here again?
                 return (0, group.category.priority, group.hierarchy, group.priority), color
         return None
 
@@ -298,6 +298,26 @@ class SpecificLocation(Location, models.Model):
             if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
                 return group.external_url_label
         return None
+
+
+class SpecificLocationTargetMixin(models.Model):
+    class Meta:
+        abstract = True
+
+    @property
+    def effective_icon(self) -> str | None:
+        try:
+            location = self.location
+        except AttributeError:
+            return None
+        return location.effective_icon
+
+    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
+        try:
+            location = self.location
+        except AttributeError:
+            return None
+        return self.location.get_color(color_manager)
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
@@ -538,7 +558,7 @@ class CustomLocationProxyMixin:
         raise NotImplementedError
 
 
-class DynamicLocation(CustomLocationProxyMixin, AccessRestrictionMixin, models.Model):
+class DynamicLocation(CustomLocationProxyMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
 
     class Meta:
