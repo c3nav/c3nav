@@ -16,7 +16,6 @@ from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Fo
 from django.forms.widgets import HiddenInput, TextInput
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
-from pydantic import ValidationError as PydanticValidationError
 from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
@@ -24,10 +23,9 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge, LocationGroup, Source, LocationGroupCategory, GraphNode, Space, \
     LocationSlug, WayType
-from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup, AccessRestriction
-from c3nav.mapdata.models.geometry.space import ObstacleGroup, BeaconMeasurement
+from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
+from c3nav.mapdata.models.geometry.space import ObstacleGroup
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
-from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
