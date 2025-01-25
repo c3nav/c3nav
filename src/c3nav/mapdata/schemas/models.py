@@ -25,8 +25,6 @@ from c3nav.mapdata.utils.json import format_geojson
 class LevelSchema(SpecificLocationSchema, DjangoModelSchema):
     """
     A physical level of the map, containing building, spaces, doors…
-
-    A level is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     short_label: NonEmptyStr = APIField(
         title="short label (for level selector)",
@@ -69,8 +67,6 @@ class BuildingSchema(WithPolygonGeometrySchema, WithLevelSchema, DjangoModelSche
 class SpaceSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithLevelSchema, DjangoModelSchema):
     """
     An accessible area on a level. It can be outside-only or inside-only.
-
-    A space is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     outside: bool = APIField(
         title="outside only",
@@ -99,8 +95,6 @@ class HoleSchema(WithPolygonGeometrySchema, WithSpaceSchema):
 class AreaSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithSpaceSchema, DjangoModelSchema):
     """
     An area inside a space.
-
-    An area is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     slow_down_factor: PositiveFloat = APIField(
         title="slow-down factor",
@@ -191,8 +185,6 @@ class ColumnSchema(WithPolygonGeometrySchema, WithSpaceSchema, DjangoModelSchema
 class POISchema(WithPointGeometrySchema, SpecificLocationSchema, WithSpaceSchema, DjangoModelSchema):
     """
     A point of interest inside a space.
-
-    A POI is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     pass
 
@@ -358,9 +350,6 @@ class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
 class DynamicLocationSchema(SpecificLocationSchema, DjangoModelSchema):
     """
     Represents a moving object. Its position has to be separately queried through the position API.
-
-    A dynamic location is a specific location, and can therefore be routed to and from,
-    as well as belong to location groups.
     """
     pass
 
@@ -844,7 +833,7 @@ SlimLocationSchema = Annotated[
 ]
 
 listable_location_definitions = schema_definitions(
-    (LevelSchema, SpaceSchema, AreaSchema, POISchema, DynamicLocationSchema, LocationGroupSchema)
+    (SpecificLocationSchema, LocationGroupSchema)
 )
 all_location_definitions = listable_location_definitions + "\n" + schema_definitions(
     (CustomLocationSchema, TrackablePositionSchema)
