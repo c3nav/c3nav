@@ -75,7 +75,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
     for pk, obj in locations.items():
         if not isinstance(obj, SpecificLocation):
             continue
-        target = obj.target
+        target = obj.get_target()
         if isinstance(target, LevelGeometryMixin):
             level = levels.get(target.level_id, None)
             if level is None:
@@ -155,7 +155,7 @@ def visible_locations_for_request(request) -> Mapping[int, Location]:
         return locations
 
     locations = {pk: location for pk, location in locations_for_request(request).items()
-                 if not isinstance(location, LocationSlug) and (location.can_search or location.can_describe)}
+                 if not isinstance(location, LocationRedirect) and (location.can_search or location.can_describe)}
 
     proxied_cache.set(cache_key, locations, 1800)
 

@@ -1,9 +1,8 @@
 from enum import StrEnum
 from typing import Annotated, Any, Optional, Union
 
-from django.core.exceptions import ValidationError
 from django.conf import settings
-from django.db.models import Model
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from ninja import Field as APIField
@@ -18,9 +17,8 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
-from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D, TitledSchema, DjangoModelSchema
-from c3nav.mapdata.schemas.models import SlimLocationSchema, SpaceSchema, LevelSchema, SlimSpaceLocationSchema, \
-    SlimLevelLocationSchema
+from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D, DjangoModelSchema
+from c3nav.mapdata.schemas.models import SlimLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
