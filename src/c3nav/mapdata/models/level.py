@@ -11,8 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.access import AccessRestrictionMixin
-from c3nav.mapdata.models.locations import SpecificLocation
-
+from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
 
 level_index_re = _lazy_re_compile(r"^[-a-zA-Z0-9._]+\Z")
 validate_level_index = RegexValidator(
@@ -23,7 +22,7 @@ validate_level_index = RegexValidator(
 )
 
 
-class Level(AccessRestrictionMixin, models.Model):
+class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     """
     A physical level of the map, containing building, spaces, doors…
 
