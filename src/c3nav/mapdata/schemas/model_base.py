@@ -159,6 +159,9 @@ class EffectiveLabelSettingsSchema(LabelSettingsSchema):
 
 
 class SpecificLocationSchema(LocationSchema):
+    """
+    A location refering to a level, space, area, point of interest, or dynamic location. It can belong to groups.
+    """
     grid_square: Union[
         Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
         Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
@@ -342,25 +345,30 @@ class SimpleGeometryLocationsSchema(BaseSchema):
     )
 
 
+LocationSlugStr = Annotated[NonEmptyStr, APIField(
+    title="location slug",
+    pattern=r"^[a-z0-9-]*[a-z]+[a-z0-9-]*$",
+    description="a slug refering to a location"
+)]
 CustomLocationID = Annotated[NonEmptyStr, APIField(
     title="custom location ID",
-    pattern=r"c:[a-z0-9-_.]+:(-?\d+(\.\d+)?):(-?\d+(\.\d+)?)$",
+    pattern=r"^c:[a-z0-9-_.]+:(-?\d+(\.\d+)?):(-?\d+(\.\d+)?)$",
     example="c:0:-7.23:12.34",
-    description="level short_name and x/y coordinates form the ID of a custom location"
+    description="level identifier and x/y coordinates form the ID of a custom location"
 )]
 PositionID = Annotated[NonEmptyStr, APIField(
     title="position ID",
-    pattern=r"m:[A-Za-z0-9]+$",
+    pattern=r"^m:[A-Za-z0-9]+$",
     description="the ID of a user-defined tracked position is made up of its secret"
 )]
 Coordinates3D = tuple[float, float, float]
-
 
 AnyLocationID = Union[
     Annotated[PositiveInt, APIField(
         title="location ID",
         description="numeric ID of any lcation – all locations have a shared ID space"
     )],
+    LocationSlugStr,
     CustomLocationID,
     PositionID,
 ]
