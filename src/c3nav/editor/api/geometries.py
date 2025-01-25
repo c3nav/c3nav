@@ -15,7 +15,11 @@ from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
 def space_sorting_func(space):
-    groups = tuple(space.groups.all())
+    try:
+        location = space.location
+    except AttributeError:
+        return (0, 0, 0)
+    groups = tuple(location.groups.all())
     if not groups:
         return (0, 0, 0)
     return (1, groups[0].category.priority, groups[0].hierarchy, groups[0].priority)
@@ -102,7 +106,11 @@ class LevelsForLevel:
 
 
 def area_sorting_func(area):
-    groups = tuple(area.groups.all())
+    try:
+        location = area.location
+    except AttributeError:
+        return (0, 0, 0)
+    groups = tuple(location.groups.all())
     if not groups:
         return (0, 0, 0)
     return (1, groups[0].category.priority, groups[0].hierarchy, groups[0].priority)
@@ -134,14 +142,14 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     levels = Level.objects.filter(pk__in=levels_for_level.levels).filter(Level.q_for_request(request))
     graphnodes_qs = GraphNode.objects.all()
     levels = levels.prefetch_related(
-        Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
+        Prefetch('spaces', Space.objects.select_related('location').filter(Space.q_for_request(request)).only(
             'geometry', 'level', 'outside'
         )),
         Prefetch('doors', Door.objects.filter(Door.q_for_request(request)).only('geometry', 'level')),
         Prefetch('spaces__columns', Column.objects.filter(
             Q(access_restriction__isnull=True) | ~Column.q_for_request(request)
         ).only('geometry', 'space')),
-        Prefetch('spaces__groups', LocationGroup.objects.only(
+        Prefetch('spaces__location__groups', LocationGroup.objects.only(
             'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
         )),
         Prefetch('buildings', Building.objects.only('geometry', 'level')),
@@ -220,9 +228,9 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
 
         levels_for_level = LevelsForLevel.for_level(request, level.primary_level, special_if_on_top=True)
         other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels_for_level.levels).only(
-            'geometry', 'level'
+            'geometry', 'level', 'location',
         ).prefetch_related(
-            Prefetch('groups', LocationGroup.objects.only(
+            Prefetch('location__groups', LocationGroup.objects.only(
                 'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
             ).filter(color__isnull=False))
         )
@@ -278,7 +286,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
     areas = space.areas.filter(Area.q_for_request(request)).only(
         'geometry', 'space'
     ).prefetch_related(
-        Prefetch('groups', LocationGroup.objects.order_by(
+        Prefetch('location__groups', LocationGroup.objects.order_by(
             '-category__priority', '-hierarchy', '-priority'
         ).only(
             'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_areas'
@@ -305,7 +313,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         space.beacon_measurements.all().only('geometry', 'space'),
         space.ranging_beacons.all().only('geometry', 'space'),
         space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
-            Prefetch('groups', LocationGroup.objects.only(
+            Prefetch('location__groups', LocationGroup.objects.only(
                 'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
             ).filter(color__isnull=False))
         ),
