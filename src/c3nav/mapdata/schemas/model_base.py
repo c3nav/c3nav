@@ -95,7 +95,7 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
                     "preferred language based on the Accept-Language header.",
         example="near Area 51",
     )
-    icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
+    icon: Optional[NonEmptyStr] = APIField(
         title="set icon name",
         description="as set in the object specifically (any material design icon name)",
         example="pin_drop",
