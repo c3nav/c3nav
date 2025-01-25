@@ -12,7 +12,6 @@ from c3nav.editor.operations import CreateObjectOperation, \
     UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, \
     DatabaseOperationCollection, FieldValuesDict, ObjectReference
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models import LocationSlug
 
 try:
     from asgiref.local import Local as LocalContext
@@ -64,10 +63,7 @@ class DatabaseOverlayManager:
 
     @staticmethod
     def get_model_field_values(instance: Model) -> FieldValuesDict:
-        values = json.loads(serializers.serialize("json", [instance]))[0]["fields"]
-        if issubclass(instance._meta.model, LocationSlug):
-            values["slug"] = instance.slug
-        return values
+        return json.loads(serializers.serialize("json", [instance]))[0]["fields"]
 
     def get_ref_and_pre_change_values(self, instance: Model) -> tuple[ObjectReference, FieldValuesDict]:
         ref = ObjectReference.from_instance(instance)
@@ -121,8 +117,6 @@ class DatabaseOverlayManager:
 
     def handle_post_delete(self, instance: Model, **kwargs):
         # not isinstance() cause it would match submodels
-        if instance._meta.model is LocationSlug:
-            return
         ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
         self.operations.append(DeleteObjectOperation(obj=ref))
 
