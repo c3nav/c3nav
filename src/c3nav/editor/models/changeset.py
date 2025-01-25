@@ -194,8 +194,6 @@ class ChangeSet(models.Model):
 
         for modelname in self.changes.objects.keys():
             model = apps.get_model('mapdata', modelname)
-            if issubclass(model, LocationRedirect):
-                continue
             if issubclass(model, (DataOverlay, DataOverlayFeature)):
                 continue
             try:
@@ -211,8 +209,6 @@ class ChangeSet(models.Model):
         result = True
         for model_name, objects in self.changes.objects.items():
             model = apps.get_model('mapdata', model_name)
-            if issubclass(model, LocationRedirect):
-                continue
 
             if issubclass(model, DataOverlay):
                 ids = [obj.obj.id for obj in objects.values()]
