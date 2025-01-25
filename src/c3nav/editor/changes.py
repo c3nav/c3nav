@@ -19,7 +19,6 @@ from c3nav.editor.operations import DatabaseOperationCollection, CreateObjectOpe
     DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection, \
     DatabaseOperation, ObjectID, FieldName, ModelName, CreateMultipleObjectsOperation, UpdateManyToManyOperation
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models import LocationSlug
 
 
 class ChangedManyToMany(BaseSchema):
@@ -376,7 +375,7 @@ class ChangedObjectCollection(BaseSchema):
                             )))
                     if field.unique:
                         dependencies.add(OperationDependencyUniqueValue(
-                            model="locationslug" if issubclass(model, LocationSlug) else model._meta.model_name,
+                            model=model._meta.model_name,
                             field=field_name,
                             value=value,
                         ))
@@ -608,9 +607,6 @@ class ChangedObjectCollection(BaseSchema):
                             new_remaining_operations.append(sub_op)
 
                 model_cls = apps.get_model('mapdata', new_operation.obj.model)
-                operation_model_name = ("locationslug"
-                                        if issubclass(model_cls, LocationSlug)
-                                        else new_operation.obj.model)
                 if isinstance(new_operation, (CreateObjectOperation, UpdateObjectOperation)):
                     couldnt_fill_dummy = False
                     for field_name, value in tuple(new_operation.fields.items()):
@@ -628,18 +624,19 @@ class ChangedObjectCollection(BaseSchema):
                                 if field.unique:
                                     # if the field is unique we need to find a value that isn't occupied
                                     # and, to be sure, that we haven't used as a dummyvalue before
-                                    if dummy_unique_value_avoid.get(operation_model_name, {}).get(field_name) is None:
+                                    if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(
+                                            field_name) is None:
                                         dummy_unique_value_avoid.setdefault(
-                                            operation_model_name, {}
+                                            new_operation.obj.model, {}
                                         )[field_name] = frozenset(
                                             model_cls.objects.values_list(field_name.attname, flat=True)
-                                        ) | unique_values_needed.get(operation_model_name, {}).get(field_name, set())
+                                        ) | unique_values_needed.get(new_operation.obj.model, {}).get(field_name, set())
 
                                     choices = (
-                                        available_model_ids[field.related_model._meta.model_name] -
-                                        dummy_unique_value_avoid[operation_model_name][field_name] -
-                                        set(val for val, id_ in situation.occupied_unique_values[
-                                                operation_model_name
+                                            available_model_ids[field.related_model._meta.model_name] -
+                                            dummy_unique_value_avoid[new_operation.obj.model][field_name] -
+                                            set(val for val, id_ in situation.occupied_unique_values[
+                                                new_operation.obj.model
                                             ][field_name].items() if id_ is not None)
                                     )
                                 else:
@@ -651,17 +648,18 @@ class ChangedObjectCollection(BaseSchema):
                             else:
                                 if field.unique:
                                     # otherwise, an non-relational field needs a unique value
-                                    if dummy_unique_value_avoid.get(operation_model_name, {}).get(field_name) is None:
+                                    if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(
+                                            field_name) is None:
                                         dummy_unique_value_avoid.setdefault(
-                                            operation_model_name, {}
+                                            new_operation.obj.model, {}
                                         )[field_name] = frozenset(
                                             model_cls.objects.values_list(field_name, flat=True)
-                                        ) | unique_values_needed.get(operation_model_name, {}).get(field_name, set())
+                                        ) | unique_values_needed.get(new_operation.obj.model, {}).get(field_name, set())
                                     occupied = (
-                                        dummy_unique_value_avoid[operation_model_name][field_name] -
-                                        set(val for val, id_ in situation.occupied_unique_values[
-                                            operation_model_name
-                                        ][field_name].items() if id_ is not None)
+                                            dummy_unique_value_avoid[new_operation.obj.model][field_name] -
+                                            set(val for val, id_ in situation.occupied_unique_values[
+                                                new_operation.obj.model
+                                            ][field_name].items() if id_ is not None)
                                     )
                                 else:
                                     # this shouldn't happen, because dummy values are only used by non-relation fields
@@ -744,7 +742,7 @@ class ChangedObjectCollection(BaseSchema):
 
                 if isinstance(new_operation, CreateObjectOperation):
                     # if an object was created it's no longer missing
-                    for mn in {new_operation.obj.model, operation_model_name}:
+                    for mn in {new_operation.obj.model, (new_operation.obj.model)}:
                         missing_objects = new_situation.missing_objects.get(mn, {})
                         if new_operation.obj.id in missing_objects:
                             missing_objects[new_operation.obj.id] = False
@@ -773,7 +771,7 @@ class ChangedObjectCollection(BaseSchema):
 
                 if isinstance(new_operation, DeleteObjectOperation):
                     # if an object was deleted it will now be missing
-                    for mn in {new_operation.obj.model, operation_model_name}:
+                    for mn in {new_operation.obj.model, (new_operation.obj.model)}:
                         missing_objects = new_situation.missing_objects.get(mn, {})
                         if new_operation.obj.id in missing_objects:
                             missing_objects[new_operation.obj.id] = True
