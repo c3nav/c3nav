@@ -40,7 +40,7 @@ class Report(models.Model):
                                    help_text=_('tell us precisely what\'s wrong'))
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_reports', verbose_name=_('assigned to'))
-    location = models.ForeignKey('mapdata.LocationSlug', null=True, on_delete=models.SET_NULL,
+    location = models.ForeignKey('mapdata.SpecificLocation', null=True, on_delete=models.SET_NULL,
                                  related_name='reports', verbose_name=_('location'))
     coordinates_id = models.CharField(_('coordinates'), null=True, max_length=48)
     origin_id = models.CharField(_('origin'), null=True, max_length=48)
