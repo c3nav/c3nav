@@ -22,7 +22,7 @@ from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
 
-class LevelSchema(SpecificLocationSchema, DjangoModelSchema):
+class LevelSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
     A physical level of the map, containing building, spaces, doors…
     """
@@ -64,7 +64,7 @@ class BuildingSchema(WithPolygonGeometrySchema, WithLevelSchema, DjangoModelSche
     pass
 
 
-class SpaceSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithLevelSchema, DjangoModelSchema):
+class SpaceSchema(WithPolygonGeometrySchema, WithAccessRestrictionSchema, WithLevelSchema, DjangoModelSchema):
     """
     An accessible area on a level. It can be outside-only or inside-only.
     """
@@ -92,7 +92,7 @@ class HoleSchema(WithPolygonGeometrySchema, WithSpaceSchema):
     pass
 
 
-class AreaSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithSpaceSchema, DjangoModelSchema):
+class AreaSchema(WithPolygonGeometrySchema, WithAccessRestrictionSchema, WithSpaceSchema, DjangoModelSchema):
     """
     An area inside a space.
     """
@@ -182,7 +182,7 @@ class ColumnSchema(WithPolygonGeometrySchema, WithSpaceSchema, DjangoModelSchema
     pass
 
 
-class POISchema(WithPointGeometrySchema, SpecificLocationSchema, WithSpaceSchema, DjangoModelSchema):
+class POISchema(WithPointGeometrySchema, WithAccessRestrictionSchema, WithSpaceSchema, DjangoModelSchema):
     """
     A point of interest inside a space.
     """
@@ -347,7 +347,7 @@ class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
     priority: int = APIField()  # todo: ???
 
 
-class DynamicLocationSchema(SpecificLocationSchema, DjangoModelSchema):
+class DynamicLocationSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
     Represents a moving object. Its position has to be separately queried through the position API.
     """
@@ -639,36 +639,12 @@ def LocationTypeAPIField():
                                 "different location types have different fields.")
 
 
-class FullLevelLocationSchema(LevelSchema, LocationTypeSchema):
+class FullSpecificLocationSchema(SpecificLocationSchema, LocationTypeSchema):
     """
-    A level for the location API.
-    See Level schema for details.
+    A specific location with some additional information for the location API.
+    See SpecificLocation schema for details.
     """
-    locationtype: Literal["level"] = LocationTypeAPIField()
-
-
-class FullSpaceLocationSchema(SimpleGeometryPointAndBoundsSchema, SpaceSchema, LocationTypeSchema):
-    """
-    A space with some additional information for the location API.
-    See Space schema for details.
-    """
-    locationtype: Literal["space"] = LocationTypeAPIField()
-
-
-class FullAreaLocationSchema(SimpleGeometryPointAndBoundsSchema, AreaSchema, LocationTypeSchema):
-    """
-    An area with some additional information for the location API.
-    See Area schema for details.
-    """
-    locationtype: Literal["area"] = LocationTypeAPIField()
-
-
-class FullPOILocationSchema(SimpleGeometryPointSchema, POISchema, LocationTypeSchema):
-    """
-    A point of interest with some additional information for the location API.
-    See POI schema for details.
-    """
-    locationtype: Literal["poi"] = LocationTypeAPIField()
+    locationtype: Literal["specificlocation"] = LocationTypeAPIField()
 
 
 class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGroupSchema, LocationTypeSchema):
@@ -677,14 +653,6 @@ class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGro
     See LocationGroup schema for details.
     """
     locationtype: Literal["locationgroup"] = LocationTypeAPIField()
-
-
-class FullDynamicLocationLocationSchema(DynamicLocationSchema, LocationTypeSchema):
-    """
-    A dynamic location for the location API.
-    See DynamicLocation schema for details.
-    """
-    locationtype: Literal["dynamiclocation"] = LocationTypeAPIField()
 
 
 class CustomLocationLocationSchema(SimpleGeometryPointAndBoundsSchema, CustomLocationSchema, LocationTypeSchema):
@@ -715,41 +683,11 @@ class SlimLocationMixin(BaseSchema):
     geometry: ClassVar[None]
 
 
-class SlimLevelLocationSchema(SlimLocationMixin, FullLevelLocationSchema):
+class SlimSpecificLocationSchema(SlimLocationMixin, FullSpecificLocationSchema):
     """
-    A level for the location API with some rarely needed fields removed.
-    See Level schema for details.
+    A specific location for the location API with some rarely needed fields removed.
+    See SpecificLocation schema for details.
     """
-    short_label: ClassVar[None]
-    on_top_of: ClassVar[None]
-    base_altitude: ClassVar[None]
-    default_height: ClassVar[None]
-    door_height: ClassVar[None]
-
-
-class SlimSpaceLocationSchema(SlimLocationMixin, FullSpaceLocationSchema):
-    """
-    A space with some rarely needed fields removed and some additional information for the location API.
-    See Space schema for details.
-    """
-    outside: ClassVar[None]
-    height: ClassVar[None]
-
-
-class SlimAreaLocationSchema(SlimLocationMixin, FullAreaLocationSchema):
-    """
-    An area with some rarely needed fields removed and some additional information for the location API.
-    See Area schema for details.
-    """
-    slow_down_factor: ClassVar[None]
-
-
-class SlimPOILocationSchema(SlimLocationMixin, FullPOILocationSchema):
-    """
-    A point of interest with some rarely needed fields removed and some additional information for the location API.
-    See POI schema for details.
-    """
-    pass
 
 
 class SlimLocationGroupLocationSchema(SlimLocationMixin, FullLocationGroupLocationSchema):
@@ -764,14 +702,6 @@ class SlimLocationGroupLocationSchema(SlimLocationMixin, FullLocationGroupLocati
     can_report_missing: ClassVar[None]
 
 
-class SlimDynamicLocationLocationSchema(SlimLocationMixin, FullDynamicLocationLocationSchema):
-    """
-    A dynamic location with some rarely needed fields removed for the location API.
-    See DynamicLocation schema for details.
-    """
-    pass
-
-
 def get_locationtype(v: Any):
     if isinstance(v, Model):
         return v._meta.model_name
@@ -782,24 +712,16 @@ def get_locationtype(v: Any):
 
 FullListableLocationSchema = Annotated[
     Union[
-        Annotated[FullLevelLocationSchema, Tag("level")],
-        Annotated[FullSpaceLocationSchema, Tag("space")],
-        Annotated[FullAreaLocationSchema, Tag("area")],
-        Annotated[FullPOILocationSchema, Tag("poi")],
+        Annotated[FullSpecificLocationSchema, Tag("specificlocation")],
         Annotated[FullLocationGroupLocationSchema, Tag("locationgroup")],
-        Annotated[FullDynamicLocationLocationSchema, Tag("dynamiclocation")],
     ],
     Discriminator(get_locationtype),
 ]
 
 FullLocationSchema = Annotated[
     Union[
-        Annotated[FullLevelLocationSchema, Tag("level")],
-        Annotated[FullSpaceLocationSchema, Tag("space")],
-        Annotated[FullAreaLocationSchema, Tag("area")],
-        Annotated[FullPOILocationSchema, Tag("poi")],
+        Annotated[FullSpecificLocationSchema, Tag("specificlocation")],
         Annotated[FullLocationGroupLocationSchema, Tag("locationgroup")],
-        Annotated[FullDynamicLocationLocationSchema, Tag("dynamiclocation")],
         Annotated[CustomLocationLocationSchema, Tag("customlocation")],
         Annotated[TrackablePositionLocationSchema, Tag("position")],
     ],
@@ -808,24 +730,16 @@ FullLocationSchema = Annotated[
 
 SlimListableLocationSchema = Annotated[
     Union[
-        Annotated[SlimLevelLocationSchema, Tag("level")],
-        Annotated[SlimSpaceLocationSchema, Tag("space")],
-        Annotated[SlimAreaLocationSchema, Tag("area")],
-        Annotated[SlimPOILocationSchema, Tag("poi")],
+        Annotated[SlimSpecificLocationSchema, Tag("specificlocation")],
         Annotated[SlimLocationGroupLocationSchema, Tag("locationgroup")],
-        Annotated[SlimDynamicLocationLocationSchema, Tag("dynamiclocation")],
     ],
     Discriminator(get_locationtype),
 ]
 
 SlimLocationSchema = Annotated[
     Union[
-        Annotated[SlimLevelLocationSchema, Tag("level")],
-        Annotated[SlimSpaceLocationSchema, Tag("space")],
-        Annotated[SlimAreaLocationSchema, Tag("area")],
-        Annotated[SlimPOILocationSchema, Tag("poi")],
+        Annotated[SlimSpecificLocationSchema, Tag("specificlocation")],
         Annotated[SlimLocationGroupLocationSchema, Tag("locationgroup")],
-        Annotated[SlimDynamicLocationLocationSchema, Tag("dynamiclocation")],
         Annotated[CustomLocationLocationSchema, Tag("customlocation")],
         Annotated[TrackablePositionLocationSchema, Tag("position")],
     ],
