@@ -35,27 +35,7 @@ if typing.TYPE_CHECKING:
 
 class LocationSlugManager(models.Manager):
     def get_queryset(self):
-        result = super().get_queryset()
-        return result
-        if self.model == LocationSlug:
-            for model in get_submodels(Location) + [LocationRedirect]:
-                result = result.select_related(model._meta.default_related_name)
-                try:
-                    model._meta.get_field('space')
-                except FieldDoesNotExist:
-                    pass
-                else:
-                    result = result.select_related(model._meta.default_related_name+'__space')
-        return result
-
-    def select_related_target(self):
-        if self.model != LocationSlug:
-            raise TypeError
-        qs = self.get_queryset()
-        qs = qs.select_related('locationredirects__target',
-                               *('locationredirects__target__'+model._meta.default_related_name
-                                 for model in get_submodels(Location) + [LocationRedirect]))
-        return qs
+        return super().get_queryset().select_related('group', 'specific')
 
 
 validate_slug = RegexValidator(
@@ -87,11 +67,8 @@ class LocationSlug(SerializableMixin, models.Model):
 
     objects = LocationSlugManager()
 
-    def get_child(self):
-        for model in get_submodels(Location)+[LocationRedirect]:
-            with suppress(AttributeError):
-                return getattr(self, model._meta.default_related_name)
-        return None
+    def get_target(self):
+        return self.group if self.group_id is not None else self.specific
 
     @property
     def effective_slug(self):
@@ -188,6 +165,11 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
         return None
 
 
+class SpecificLocationManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().select_related('level', 'space', 'area', 'poi', 'dynamiclocation')
+
+
 possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation')  # todo: can we generate this?
 
 
@@ -208,6 +190,8 @@ class SpecificLocation(Location, models.Model):
     poi = models.OneToOneField('POI', null=True, on_delete=models.CASCADE, related_name='location')
     dynamiclocation = models.OneToOneField('DynamicLocation', null=True, on_delete=models.CASCADE, related_name='location')
 
+    objects = SpecificLocationManager()
+
     class Meta:
         verbose_name = _('Specific Location')
         verbose_name_plural = _('Specific Locations')
@@ -219,6 +203,19 @@ class SpecificLocation(Location, models.Model):
                 for set_name in possible_specific_locations
             )), name="only_one_specific_location_target"),
         ]
+
+    def get_target(self):
+        if self.level_id:
+            return self.level
+        if self.space_id:
+            return self.space
+        if self.area_id:
+            return self.area
+        if self.poi_id:
+            return self.poi
+        if self.dynamiclocation_id:
+            return self.dynamiclocation
+        raise ValueError('SpecificLocation with no target')
 
     @property
     def effective_label_settings(self):
