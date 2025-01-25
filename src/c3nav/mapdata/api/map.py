@@ -79,7 +79,7 @@ class LocationEndpointParameters(BaseSchema):
     )
 
 
-class LocationListFilters(BySearchableFilter, RemoveGeometryFilter):
+class LocationListFilters(BySearchableFilter):
     pass
 
 
@@ -88,10 +88,6 @@ def _location_list(request, filters: LocationListFilters):
         locations = searchable_locations_for_request(request)
     else:
         locations = visible_locations_for_request(request).values()
-
-    for location in locations:
-        if not filters.geometry or not can_access_geometry(request, location):
-            location._hide_geometry = True
 
     return locations
 

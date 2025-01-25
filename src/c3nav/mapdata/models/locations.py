@@ -104,14 +104,18 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
     @property
     def slug(self) -> str | None:
         try:
-            return next(iter(locationslug.slug for locationslug in self.slug_set if not locationslug.redirect))
+            return next(iter(locationslug.slug for locationslug in self.slug_set.all() if not locationslug.redirect))
         except StopIteration:
             return None
 
     @property
+    def redirect_slugs(self) -> set[str]:
+        return set(locationslug.slug for locationslug in self.slug_set.all() if locationslug.redirect)
+
+    @property
     def add_search(self):
         return ' '.join((
-            *(redirect.slug for redirect in self.redirects.all() if redirect.slug),
+            *self.redirect_slugs,
             *self.other_titles,
         ))
 
@@ -157,7 +161,7 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def effective_icon(self):
-        return self.icon or None
+        return self.icon or "location"
 
     @property
     def external_url_label(self):
@@ -233,8 +237,7 @@ class SpecificLocation(Location, models.Model):
         for group in self.groups.all():
             groups_by_category.setdefault(group.category, []).append(group.pk)
         groups_by_category = {category.name: (items[0] if items else None) if category.single else items
-                  for category, items in groups_by_category.items()
-                  if getattr(category, 'allow_' + self.__class__._meta.default_related_name)}
+                              for category, items in groups_by_category.items()}
         return groups_by_category
 
     def details_display(self, **kwargs):
@@ -375,7 +378,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
 
 class LocationGroupManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().select_related('category', 'slug_set')
+        return super().get_queryset().select_related('category').prefetch_related('slug_set')
 
 
 class LocationGroup(Location, models.Model):
