@@ -19,7 +19,7 @@ from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestriction
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup
+from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup, SpecificLocationTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -129,7 +129,7 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
         default_related_name = 'columns'
 
 
-class Area(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
+class Area(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     """
     An area in a space.
     """
@@ -309,7 +309,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         return result
 
 
-class POI(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
+class POI(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     """
     A point of interest
     """
