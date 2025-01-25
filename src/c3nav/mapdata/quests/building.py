@@ -13,7 +13,6 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import Space, GraphEdge
 from c3nav.mapdata.models.geometry.space import LeaveDescription, CrossDescription
 from c3nav.mapdata.quests.base import ChangeSetModelForm, register_quest, Quest
-from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
 class InternalRoomNumberQuestForm(ChangeSetModelForm):
