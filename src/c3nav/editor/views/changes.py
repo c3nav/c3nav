@@ -266,7 +266,7 @@ def changeset_detail(request, pk):
 
     for changed_object in changeset.changes:
         model = apps.get_model("mapdata", changed_object.obj.model)
-        if model == LocationRedirect:
+        if model == LocationSlug:
             continue
         changes = []
 
