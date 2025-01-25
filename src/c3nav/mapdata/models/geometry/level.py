@@ -29,7 +29,7 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup
+from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup, SpecificLocationTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
@@ -120,7 +120,7 @@ class Building(LevelGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
+class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
