@@ -93,6 +93,8 @@ class LocationSlug(SerializableMixin, models.Model):
                 Q(**{f'{name}__isnull': (name != set_name) for name in possible_slug_targets})
                 for set_name in possible_slug_targets
             )), name="only_one_slug_target"),
+            models.UniqueConstraint(fields=["group", "specific"], condition=Q(redirect=False),
+                                    name="unique_non_redirect_slugs")
         ]
 
 
