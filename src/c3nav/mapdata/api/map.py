@@ -23,7 +23,7 @@ from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup
+from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, LocationSlug
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
@@ -35,7 +35,8 @@ from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableL
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
-                                           searchable_locations_for_request, visible_locations_for_request)
+                                           searchable_locations_for_request, visible_locations_for_request,
+                                           LocationRedirect)
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -119,7 +120,7 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
 
     if isinstance(location, LocationRedirect):
         if not show_redirects:
-            return redirect('../' + str(location.target.slug))  # todo: use reverse, make pk and slug both work
+            return redirect('../' + str(location.get_target().effective_slug))  # todo: use reverse, make pk and slug both work
 
     if isinstance(location, (DynamicLocation, Position)):
         request._target_etag = None
@@ -171,112 +172,89 @@ class ShowRedirects(BaseSchema):
     )
 
 
-@map_api_router.get('/locations/{location_id}/', summary="location by ID (slim)",
-                    description=("Get locations by ID (with all attributes set)\n\n"
+@map_api_router.get('/locations/{location}/', summary="get location (slim)",
+                    description=("Retrieve location (with some attributes set)\n\n"
                                  "Possible location types:\n"+all_location_definitions),
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
-def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
-                   redirects: Query[ShowRedirects]):
+def get_location(request, location: AnyLocationID, filters: Query[RemoveGeometryFilter],
+                      redirects: Query[ShowRedirects]):
     return _location_retrieve(
         request,
-        get_location_by_id_for_request(location_id, request),
+        get_location_by_id_for_request(location, request),
         detailed=False, geometry=filters.geometry, show_redirects=redirects.show_redirects,
     )
 
 
-@map_api_router.get('/locations/{location_id}/full/', summary="location by ID (full)",
-                    description=("Get location by ID (with all attributes set)\n\n"
+@map_api_router.get('/locations/{location}/full/', summary="get location (full)",
+                    description=("Retrieve location (with all attributes set)\n\n"
                                  "Possible location types:\n"+all_location_definitions),
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
-def location_by_id_full(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
-                        redirects: Query[ShowRedirects]):
+def get_location_full(request, location: AnyLocationID, filters: Query[RemoveGeometryFilter],
+                      redirects: Query[ShowRedirects]):
     return _location_retrieve(
         request,
-        get_location_by_id_for_request(location_id, request),
+        get_location_by_id_for_request(location, request),
         detailed=True, geometry=filters.geometry, show_redirects=redirects.show_redirects,
     )
 
 
-@map_api_router.get('/locations/{location_id}/display/', summary="location display by ID",
-                    description="Get location display information by ID",
+@map_api_router.get('/locations/{location}/display/', summary="location display",
+                    description=("Retrieve displayable information about location\n\n"
+                                 "Possible location types:\n"+all_location_definitions),
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')
 @api_etag(base_mapdata=True)
-def location_by_id_display(request, location_id: AnyLocationID):
+def location_display(request, location: AnyLocationID):
     return _location_display(
         request,
-        get_location_by_id_for_request(location_id, request),
+        get_location_by_id_for_request(location, request),
     )
 
 
-@map_api_router.get('/locations/{location_id}/geometry/', summary="location geometry by id",
-                    description="Get location geometry (if available) by ID",
+@map_api_router.get('/locations/{location_id}/geometry/', summary="location geometry",
+                    description="Get location geometry (if available)",
                     response={200: LocationGeometry, **API404.dict(), **auth_responses})
 @api_stats('location_geometry')
 @api_etag(base_mapdata=True)
-def location_by_id_geometry(request, location_id: AnyLocationID):
+def location_geometry(request, location_id: AnyLocationID):
     return _location_geometry(
         request,
         get_location_by_id_for_request(location_id, request),
     )
 
 
-@map_api_router.get('/locations/by-slug/{location_slug}/', summary="location by slug (slim)",
-                    description=("Get location by slug (with most important attributes set)\n\n"
-                                 "Possible location types:\n"+all_location_definitions),
+@map_api_router.get('/locations/by-slug/{location_slug}/', summary="get location by slug (slim)",
+                    deprecated=True, description="deprecated – alias of get location which also accepts slugs",
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-@api_stats('location_get')
-@api_etag(base_mapdata=True)
 def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
                      redirects: Query[ShowRedirects]):
-    return _location_retrieve(
-        request,
-        get_location_by_slug_for_request(location_slug, request),
-        detailed=False, geometry=filters.geometry, show_redirects=redirects.show_redirects,
-    )
+    return get_location(request, location_slug, filters, redirects)
 
 
-@map_api_router.get('/locations/by-slug/{location_slug}/full/', summary="location by slug (full)",
-                    description=("Get location by slug (with all attributes set)\n\n"
-                                 "Possible location types:\n"+all_location_definitions),
+@map_api_router.get('/locations/by-slug/{location_slug}/full/', summary="get location by slug (full)",
+                    deprecated=True, description="deprecated – alias of get location which also accepts slugs",
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-@api_stats('location_get')
-@api_etag(base_mapdata=True)
 def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
                           redirects: Query[ShowRedirects]):
-    return _location_retrieve(
-        request,
-        get_location_by_slug_for_request(location_slug, request),
-        detailed=True, geometry=filters.geometry, show_redirects=redirects.show_redirects,
-    )
+    return get_location_full(request, location_slug, filters, redirects)
 
 
 @map_api_router.get('/locations/by-slug/{location_slug}/display/', summary="location display by slug",
-                    description="Get location display information by slug",
+                    deprecated=True, description="deprecated – alias of location display which also accepts slugs",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
-@api_stats('location_display')
-@api_etag(base_mapdata=True)
 def location_by_slug_display(request, location_slug: NonEmptyStr):
-    return _location_display(
-        request,
-        get_location_by_slug_for_request(location_slug, request),
-    )
+    return location_display(request, location_slug)
 
 
 @map_api_router.get('/locations/by-slug/{location_slug}/geometry/', summary="location geometry by slug",
-                    description="Get location geometry (if available) by slug",
+                    deprecated=True, description="deprecated – alias of location geometry which also accepts slugs",
                     response={200: LocationGeometry, **API404.dict(), **auth_responses})
-@api_stats('location_geometry')
-@api_etag(base_mapdata=True)
 def location_by_slug_geometry(request, location_slug: NonEmptyStr):
-    return _location_geometry(
-        request,
-        get_location_by_slug_for_request(location_slug, request),
-    )
+    return location_geometry(request, location_slug)
 
 
 @map_api_router.get('/positions/my/', summary="all moving position coordinates",
