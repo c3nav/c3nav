@@ -10,6 +10,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.base import SerializableMixin
+from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsSchema
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -82,13 +83,13 @@ class GeometryMixin(SerializableMixin):
         return good_representative_point(self.geometry)
 
     @cached_property
-    def point(self):
+    def point(self) -> LocationPoint:
         if self.level_id is None:
             return None
         return (self.level_id, *(round(i, 2) for i in self.good_representative_point.coords[0]))
 
     @cached_property
-    def bounds(self):
+    def bounds(self) -> BoundsSchema:
         return tuple(batched((round(i, 2) for i in self.geometry.bounds), 2))
 
     @property
