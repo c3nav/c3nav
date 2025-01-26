@@ -24,6 +24,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
@@ -350,11 +351,11 @@ class SpecificLocationTargetMixin(models.Model):
         return self.location.get_color(color_manager)
 
     @property
-    def point(self) -> typing.Optional[tuple[int, float, float]]:
+    def point(self) -> typing.Optional[LocationPoint]:
         return None
 
     @property
-    def bounds(self) -> typing.Optional[tuple[float, float, float, float]]:
+    def bounds(self) -> typing.Optional[BoundsSchema]:
         return None
 
     @property
