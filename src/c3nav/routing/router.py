@@ -67,11 +67,12 @@ class Router:
 
     @classmethod
     def rebuild(cls, update):
-        levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'groups',
-                                                      'spaces__holes', 'spaces__columns', 'spaces__groups',
+        levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'location__groups',
+                                                      'spaces__holes', 'spaces__columns', 'spaces__location__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
-                                                      'spaces__graphnodes', 'spaces__areas', 'spaces__areas__groups',
-                                                      'spaces__pois',  'spaces__pois__groups')
+                                                      'spaces__graphnodes',
+                                                      'spaces__areas', 'spaces__areas__location__groups',
+                                                      'spaces__pois',  'spaces__pois__location__groups')
 
         levels: dict[int, RouterLevel] = {}
         spaces: dict[int, RouterSpace] = {}
@@ -85,8 +86,9 @@ class Router:
 
             nodes_before_count = len(nodes)
 
-            for group in level.groups.all():
-                groups.setdefault(group.pk, RouterGroup()).levels.add(level.pk)
+            if level.location:
+                for group in level.location.groups.all():
+                    groups.setdefault(group.pk, RouterGroup()).levels.add(level.pk)
 
             if level.access_restriction_id:
                 restrictions.setdefault(level.access_restriction_id, RouterRestriction()).spaces.update(
@@ -109,8 +111,9 @@ class Router:
                 clear_geom = unary_union(tuple(get_rings(accessible_geom.difference(obstacles_geom))))
                 clear_geom_prep = prepared.prep(clear_geom)
 
-                for group in space.groups.all():
-                    groups.setdefault(group.pk, RouterGroup()).spaces.add(space.pk)
+                if space.location:
+                    for group in space.location.groups.all():
+                        groups.setdefault(group.pk, RouterGroup()).spaces.add(space.pk)
 
                 if space.access_restriction_id:
                     restrictions.setdefault(space.access_restriction_id, RouterRestriction()).spaces.add(space.pk)
@@ -126,8 +129,9 @@ class Router:
                 space.nodes = set(node.i for node in space_nodes)
 
                 for area in space_obj.areas.all():
-                    for group in area.groups.all():
-                        groups.setdefault(group.pk, RouterGroup()).areas.add(area.pk)
+                    if area.location:
+                        for group in area.location.groups.all():
+                            groups.setdefault(group.pk, RouterGroup()).areas.add(area.pk)
                     area._prefetched_objects_cache = {}
 
                     area = RouterArea(area)
@@ -206,8 +210,9 @@ class Router:
                             )
 
                 for poi in space_obj.pois.all():
-                    for group in poi.groups.all():
-                        groups.setdefault(group.pk, RouterGroup()).pois.add(poi.pk)
+                    if poi.location:
+                        for group in poi.location.groups.all():
+                            groups.setdefault(group.pk, RouterGroup()).pois.add(poi.pk)
                     poi._prefetched_objects_cache = {}
 
                     poi = RouterPoint(poi)
