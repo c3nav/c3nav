@@ -110,7 +110,7 @@ def location_list_full(request, filters: Query[LocationListFilters]):
     return _location_list(request, filters=filters)
 
 
-def _location_retrieve(request, location, detailed: bool, geometry: bool, show_redirects: bool):
+def _location_retrieve(request, location, show_redirects: bool):
     if location is None:
         raise API404()
 
@@ -121,9 +121,6 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
     if isinstance(location, (DynamicLocation, Position)):
         request._target_etag = None
         request._target_cache_key = None
-
-    if not geometry or not can_access_geometry(request, location):
-        location._hide_geometry = True
 
     return location
 
@@ -174,12 +171,11 @@ class ShowRedirects(BaseSchema):
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
-def get_location(request, location: AnyLocationID, filters: Query[RemoveGeometryFilter],
-                      redirects: Query[ShowRedirects]):
+def get_location(request, location: AnyLocationID, redirects: Query[ShowRedirects]):
     return _location_retrieve(
         request,
         get_location_by_id_for_request(location, request),
-        detailed=False, geometry=filters.geometry, show_redirects=redirects.show_redirects,
+        show_redirects=redirects.show_redirects,
     )
 
 
@@ -189,12 +185,11 @@ def get_location(request, location: AnyLocationID, filters: Query[RemoveGeometry
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
-def get_location_full(request, location: AnyLocationID, filters: Query[RemoveGeometryFilter],
-                      redirects: Query[ShowRedirects]):
+def get_location_full(request, location: AnyLocationID, redirects: Query[ShowRedirects]):
     return _location_retrieve(
         request,
         get_location_by_id_for_request(location, request),
-        detailed=True, geometry=filters.geometry, show_redirects=redirects.show_redirects,
+        show_redirects=redirects.show_redirects,
     )
 
 
@@ -226,17 +221,15 @@ def location_geometry(request, location_id: AnyLocationID):
 @map_api_router.get('/locations/by-slug/{location_slug}/', summary="get location by slug (slim)",
                     deprecated=True, description="deprecated – alias of get location which also accepts slugs",
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
-                     redirects: Query[ShowRedirects]):
-    return get_location(request, location_slug, filters, redirects)
+def location_by_slug(request, location_slug: NonEmptyStr, redirects: Query[ShowRedirects]):
+    return get_location(request, location_slug, redirects)
 
 
 @map_api_router.get('/locations/by-slug/{location_slug}/full/', summary="get location by slug (full)",
                     deprecated=True, description="deprecated – alias of get location which also accepts slugs",
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
-                          redirects: Query[ShowRedirects]):
-    return get_location_full(request, location_slug, filters, redirects)
+def location_by_slug_full(request, location_slug: NonEmptyStr, redirects: Query[ShowRedirects]):
+    return get_location_full(request, location_slug, redirects)
 
 
 @map_api_router.get('/locations/by-slug/{location_slug}/display/', summary="location display by slug",

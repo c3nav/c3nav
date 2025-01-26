@@ -1,6 +1,6 @@
 import math
 import re
-from typing import Annotated, Optional, Union, Literal, ClassVar
+from typing import Annotated, Optional, Union, ClassVar
 
 from pydantic import Field as APIField
 from pydantic import PositiveInt
@@ -158,91 +158,18 @@ class EffectiveLabelSettingsSchema(LabelSettingsSchema):
     titles: ClassVar[None]
 
 
-class SpecificLocationSchema(LocationSchema):
-    """
-    A location refering to a level, space, area, point of interest, or dynamic location. It can belong to groups.
-    """
-    grid_square: Union[
-        Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
-        Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
-        Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
-    ] = APIField(
-        default=None,
-        title="grid square",
-        description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
-        example="C3",
+LocationPoint = Annotated[
+    tuple[
+        Annotated[PositiveInt, APIField(title="level ID")],
+        Annotated[float, APIField(title="x coordinate")],
+        Annotated[float, APIField(title="y coordinate")]
+    ],
+    APIField(
+        title="point representation",
+        description="representative point for the location",
+        example=(1, 4.2, 13.37)
     )
-    groups: list[PositiveInt] = APIField(
-        title="location groups",
-        description="location group(s) that this specific location belongs to.",
-        example=[5, 1, 3, 7],
-    )
-    groups_by_category: dict[
-        Annotated[NonEmptyStr, APIField(title="location group category name")],
-        Union[
-            Annotated[list[PositiveInt], APIField(
-                title="array of location IDs",
-                description="for categories that have `single` set to `false`. can be an empty array.",
-                example=[1, 4, 5],
-            )],
-            Annotated[PositiveInt, APIField(
-                title="one location ID",
-                description="for categories that have `single` set to `true`.",
-                example=1,
-            )],
-            Annotated[None, APIField(
-                title="null",
-                description="for categories that have `single` set to `true`."
-            )],
-        ]
-    ] = APIField(
-        title="location groups by category",
-        description="location group(s) that this specific location belongs to, grouped by categories.\n\n"
-                    "keys are location group category names. see location group category endpoint for details.\n\n"
-                    "categories may be missing if no groups apply.",
-        example={
-            "category_with_single_true": 5,
-            "other_category_with_single_true": None,
-            "category_with_single_false": [1, 3, 7],
-        }
-    )
-    label_settings: Optional[PositiveInt] = APIField(
-        default=None,
-        title="label settings",
-        description=(
-                schema_description(LabelSettingsSchema) +
-                "\n\nif not set, label settings of location groups should be used"
-        )
-    )
-    effective_label_settings: Union[
-        Annotated[EffectiveLabelSettingsSchema, APIField(
-            title="label settings",
-            description="label settings to use",
-        )],
-        Annotated[None, APIField(
-            title="null",
-            description="don't display a label"
-        )],
-    ] = APIField(
-        default=None,
-        title="label settings",
-        description=(
-            schema_description(LabelSettingsSchema) +
-            "\n\neffective label settings to use for this location"
-        )
-    )
-    label_override: Union[
-        Annotated[NonEmptyStr, APIField(title="label override", description="text to use for label")],
-        Annotated[None, APIField(title="null", description="title will be used")],
-    ] = APIField(
-        default=None,
-        title="label override (preferred language)",
-        description="text to use for the label. by default (null), the title would be used."
-    )
-    load_group_display: Optional[PositiveInt] = APIField(
-        default=None,
-        title="load group to display",
-    )
+]
 
 
 class WithGeometrySchema(BaseSchema):
@@ -316,25 +243,6 @@ class WithSpaceSchema(BaseSchema):
         title="space",
         description="space id this object belongs to.",
         example=1,
-    )
-
-
-class SimpleGeometryPointSchema(BaseSchema):
-    point: tuple[
-        Annotated[PositiveInt, APIField(title="level ID")],
-        Annotated[float, APIField(title="x coordinate")],
-        Annotated[float, APIField(title="y coordinate")]
-    ] = APIField(
-        title="point representation",
-        description="representative point for the location",
-        example=(1, 4.2, 13.37)
-    )
-
-
-class SimpleGeometryPointAndBoundsSchema(SimpleGeometryPointSchema):
-    bounds: BoundsSchema = APIField(
-        description="location bounding box",
-        example=((-10, -20), (20, 30)),
     )
 
 

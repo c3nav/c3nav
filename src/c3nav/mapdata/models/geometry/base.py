@@ -1,5 +1,5 @@
-import math
 from contextlib import contextmanager
+from itertools import batched
 
 from django.db import models
 from django.utils.functional import cached_property
@@ -8,6 +8,7 @@ from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -77,10 +78,20 @@ class GeometryMixin(SerializableMixin):
         return result
 
     @cached_property
-    def point(self):
-        if "geometry" in self.get_deferred_fields():
-            raise ValueError
+    def good_representative_point(self):
         return good_representative_point(self.geometry)
+
+    @cached_property
+    def point(self):
+        return (self.level_id, *(round(i, 2) for i in self.good_representative_point.coords[0]))
+
+    @cached_property
+    def bounds(self):
+        return tuple(batched((round(i, 2) for i in self.geometry.bounds), 2))
+
+    @property
+    def grid_square(self):
+        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     def details_display(self, detailed_geometry=True, **kwargs):
         result = super().details_display(**kwargs)
