@@ -25,11 +25,10 @@ from shapely.ops import unary_union
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
-from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup, SpecificLocationTargetMixin
+from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
@@ -69,13 +68,10 @@ class LevelGeometryMixin(GeometryMixin):
 
     @property
     def subtitle(self):
-        base_subtitle = super().subtitle
         level = getattr(self, '_level_cache', None)
         if level is not None:
-            return format_lazy(_('{category}, {level}'),
-                               category=base_subtitle,
-                               level=level.title)
-        return base_subtitle
+            return level.title
+        return None
 
     def register_change(self, force=False):
         all_geometry_changed = force or self._state.adding or self.all_geometry_changed
@@ -148,12 +144,6 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
         verbose_name = _('Space')
         verbose_name_plural = _('Spaces')
         default_related_name = 'spaces'
-
-    @property
-    def grid_square(self):
-        if "geometry" in self.get_deferred_fields():
-            return None
-        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     @property
     def subtitle(self):
