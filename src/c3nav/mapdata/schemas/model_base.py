@@ -1,15 +1,19 @@
 import math
 import re
-from typing import Annotated, Optional, Union, ClassVar
+import typing
+from typing import Annotated, Optional, Union, ClassVar, TYPE_CHECKING
 
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
 from c3nav.api.schema import BaseSchema, LineStringSchema, PointSchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
+
+
+if TYPE_CHECKING:
+    from c3nav.mapdata.models.geometry.base import GeometryMixin
 
 
 def schema_description(schema):
@@ -176,7 +180,7 @@ class WithGeometrySchema(BaseSchema):
     @classmethod
     def get_overrides(cls, value) -> dict:
         # todo: move into model
-        value: GeometryMixin
+        value: "GeometryMixin"
         if "geometry" in value.get_deferred_fields() or value.geometry is None:
             return {
                 **super().get_overrides(value),

@@ -61,7 +61,7 @@ class LevelRenderData:
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
-                                                      'spaces__groups', 'spaces__ramps'))
+                                                      'spaces__location__groups', 'spaces__ramps'))
 
         package = CachePackage(bounds=tuple(chain(*Source.max_bounds())))
 
