@@ -332,6 +332,8 @@ class SpecificLocation(Location, models.Model):
 
 
 class SpecificLocationTargetMixin(models.Model):
+    location: SpecificLocation
+
     class Meta:
         abstract = True
 
@@ -365,6 +367,9 @@ class SpecificLocationTargetMixin(models.Model):
     @property
     def subtitle(self):
         return None
+
+    def get_color_sorted(self, color_manager) -> tuple[tuple, str] | None:
+        return self.location.get_color_sorted(color_manager)
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
