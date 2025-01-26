@@ -107,3 +107,7 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     @property
     def effective_icon(self):
         return super().effective_icon or 'layers'
+
+    @property
+    def title(self):
+        return self._meta.verbose_name + ' ' + str(self.short_label)
