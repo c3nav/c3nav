@@ -65,7 +65,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
                 group.locations.append(obj)
 
     levels = {level.pk: level for level in Level.qs_for_request(request)}
-    spaces = {space.pk: space for space in Space.qs_for_request(request)}
+    spaces = {space.pk: space for space in Space.qs_for_request(request).select_related('level')}
 
     # add levels to spaces: todo: fix this! hide locations etc bluh bluh
     remove_pks = set()
@@ -78,13 +78,13 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
             if level is None:
                 remove_pks.add(pk)
                 continue
-            obj._level_cache = level
+            target._level_cache = level
         elif isinstance(obj, SpaceGeometryMixin):
-            space = spaces.get(obj.space_id, None)
+            space = spaces.get(target.space_id, None)
             if space is None:
                 remove_pks.add(pk)
                 continue
-            obj._space_cache = space
+            target._space_cache = space
 
     # hide locations in hidden spaces or levels
     for pk in remove_pks:
