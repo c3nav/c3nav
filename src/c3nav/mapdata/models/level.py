@@ -1,6 +1,7 @@
 from decimal import Decimal
-from itertools import chain
+from itertools import chain, batched
 from operator import attrgetter
+from typing import Optional
 
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -11,7 +12,8 @@ from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.access import AccessRestrictionMixin
-from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
+from c3nav.mapdata.models.locations import SpecificLocationTargetMixin
+from c3nav.mapdata.schemas.model_base import BoundsSchema
 
 level_index_re = _lazy_re_compile(r"^[-a-zA-Z0-9._]+\Z")
 validate_level_index = RegexValidator(
@@ -100,9 +102,10 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
         return min(self.altitudeareas.all(), key=attrgetter('altitude'), default=self.base_altitude).altitude
 
     @cached_property
-    def bounds(self):
-        return unary_union(tuple(item.geometry.buffer(0)
-                                 for item in chain(self.altitudeareas.all(), self.buildings.all()))).bounds
+    def bounds(self) -> Optional[BoundsSchema]:
+        return tuple(batched((round(i, 2) for i in unary_union(
+            tuple(item.geometry.buffer(0) for item in chain(self.altitudeareas.all(), self.buildings.all()))
+        ).bounds), 2))
 
     @property
     def effective_icon(self):

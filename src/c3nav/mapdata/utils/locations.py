@@ -3,13 +3,11 @@ import operator
 import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from functools import reduce
 from itertools import chain
 from typing import Any, List, Mapping, Optional, Union, ClassVar
 
-from django.apps import apps
 from django.conf import settings
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
@@ -23,7 +21,6 @@ from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.mapdata.utils.models import get_submodels
 
 proxied_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_LOCATIONS)
 
@@ -79,7 +76,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
                 remove_pks.add(pk)
                 continue
             target._level_cache = level
-        elif isinstance(obj, SpaceGeometryMixin):
+        elif isinstance(target, SpaceGeometryMixin):
             space = spaces.get(target.space_id, None)
             if space is None:
                 remove_pks.add(pk)
