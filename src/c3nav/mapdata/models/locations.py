@@ -1,15 +1,14 @@
 import operator
 import string
 import typing
-from contextlib import suppress
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce
+from itertools import chain
 from operator import attrgetter
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.exceptions import FieldDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Prefetch, Q
@@ -161,7 +160,7 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def effective_icon(self):
-        return self.icon or "location"
+        return self.icon or None
 
     @property
     def external_url_label(self):
@@ -232,6 +231,18 @@ class SpecificLocation(Location, models.Model):
         return None
 
     @property
+    def point(self):
+        return self.get_target().point
+
+    @property
+    def bounds(self):
+        return self.get_target().bounds
+
+    @property
+    def grid_square(self):
+        return self.get_target().grid_square
+
+    @property
     def groups_by_category(self):
         groups_by_category = {}
         for group in self.groups.all():
@@ -274,9 +285,24 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def subtitle(self):
-        subtitle = self.describing_groups[0].title if self.describing_groups else self.__class__._meta.verbose_name
+        subtitle = self.describing_groups[0].title if self.describing_groups else None
         if self.grid_square:
-            return '%s, %s' % (subtitle, self.grid_square)
+            if subtitle:
+                subtitle = format_lazy(_('{describing_group}, {grid_square}'),
+                                       describing_group=subtitle,
+                                       grid_square=self.grid_square)
+            else:
+                subtitle = self.grid_square
+        target_subtitle = self.get_target().subtitle
+        if target_subtitle:
+            if subtitle:
+                subtitle = format_lazy(_('{subtitle}, {space_level_etc}'),
+                                       subtitle=subtitle,
+                                       space_level_etc=target_subtitle)
+            else:
+                subtitle = target_subtitle
+        if subtitle is None:
+            subtitle = _('Location')
         return subtitle
 
     @cached_property
@@ -291,10 +317,10 @@ class SpecificLocation(Location, models.Model):
         icon = super().effective_icon
         if icon:
             return icon
-        for group in self.groups.all():
-            if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
-                return group.icon
-        return None
+        return next(iter((icon for icon in chain(
+            (group.icon for group in self.groups.all()),
+            ("location", )
+        ) if icon)))
 
     @property
     def external_url_label(self):
@@ -322,6 +348,22 @@ class SpecificLocationTargetMixin(models.Model):
         except AttributeError:
             return None
         return self.location.get_color(color_manager)
+
+    @property
+    def point(self) -> typing.Optional[tuple[int, float, float]]:
+        return None
+
+    @property
+    def bounds(self) -> typing.Optional[tuple[float, float, float, float]]:
+        return None
+
+    @property
+    def grid_square(self):
+        return None
+
+    @property
+    def subtitle(self):
+        return None
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):

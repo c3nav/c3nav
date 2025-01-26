@@ -69,13 +69,10 @@ class LevelGeometryMixin(GeometryMixin):
 
     @property
     def subtitle(self):
-        base_subtitle = super().subtitle
         level = getattr(self, '_level_cache', None)
         if level is not None:
-            return format_lazy(_('{category}, {level}'),
-                               category=base_subtitle,
-                               level=level.title)
-        return base_subtitle
+            return level.title
+        return None
 
     def register_change(self, force=False):
         if force or self._state.adding or self.geometry_changed or self.all_geometry_changed:
@@ -145,12 +142,6 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
         verbose_name = _('Space')
         verbose_name_plural = _('Spaces')
         default_related_name = 'spaces'
-
-    @property
-    def grid_square(self):
-        if "geometry" in self.get_deferred_fields():
-            return None
-        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)

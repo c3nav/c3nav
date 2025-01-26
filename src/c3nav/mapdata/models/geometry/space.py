@@ -15,11 +15,11 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models import Space, Level
+from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup, SpecificLocationTargetMixin
+from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -38,14 +38,18 @@ class SpaceGeometryMixin(GeometryMixin):
     @cached_property
     def level_id(self):
         try:
-            return self.space.level_id
+            space = getattr(self, '_space_cache', None)
+            if space is not None:
+                return space.level_id
         except ObjectDoesNotExist:
             return None
 
     @cached_property
     def main_level_id(self):
         try:
-            return self.space.main_level_id
+            space = getattr(self, '_space_cache', None)
+            if space is not None:
+                return space.main_level_id
         except ObjectDoesNotExist:
             return None
 
@@ -62,19 +66,15 @@ class SpaceGeometryMixin(GeometryMixin):
 
     @property
     def subtitle(self):
-        base_subtitle = super().subtitle
         space = getattr(self, '_space_cache', None)
         if space is not None:
             level = getattr(space, '_level_cache', None)
             if level is not None:
-                return format_lazy(_('{category}, {space}, {level}'),
-                                   category=base_subtitle,
+                return format_lazy(_('{space}, {level}'),
                                    space=space.title,
                                    level=level.title)
-            return format_lazy(_('{category}, {space}'),
-                               category=base_subtitle,
-                               level=space.title)
-        return base_subtitle
+            return space.title
+        return None
 
     @classmethod
     def q_for_request(cls, request, prefix='', allow_none=False):
@@ -146,12 +146,6 @@ class Area(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMix
         verbose_name = _('Area')
         verbose_name_plural = _('Areas')
         default_related_name = 'areas'
-
-    @property
-    def grid_square(self):
-        if "geometry" in self.get_deferred_fields():
-            return None
-        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
@@ -324,12 +318,6 @@ class POI(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixi
         if editor_url:
             result['editor_url'] = reverse('editor.pois.edit', kwargs={'space': self.space_id, 'pk': self.pk})
         return result
-
-    @property
-    def grid_square(self):
-        if "geometry" in self.get_deferred_fields():
-            return None
-        return grid.get_square_for_point(self.x, self.y) or ''
 
     @property
     def x(self):
