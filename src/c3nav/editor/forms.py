@@ -175,8 +175,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['members'].queryset = AccessRestriction.qs_for_request(self.request)
 
         elif 'groups' in self.fields:
-            kwargs = {'allow_'+self._meta.model._meta.default_related_name.replace('dynamicl', 'dynamic_l'): True}
-            categories = LocationGroupCategory.objects.filter(**kwargs).prefetch_related('groups')
+            categories = LocationGroupCategory.objects.prefetch_related('groups')
             if self.instance.pk:
                 instance_groups = tuple(self.instance.groups.values_list('pk', flat=True))
             else:
