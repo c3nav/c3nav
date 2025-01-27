@@ -4,6 +4,7 @@ import os
 from functools import reduce
 from itertools import chain
 from operator import attrgetter, itemgetter
+from typing import Optional
 
 from django.conf import settings
 from django.core.cache import cache
@@ -25,7 +26,7 @@ from c3nav.mapdata.models import GraphEdge, LocationGroup, Source, LocationGroup
     LocationSlug, WayType
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import SpecificLocation, Location
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
 
 
@@ -256,15 +257,20 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     self.fields[space_field].label_from_instance = lambda obj: obj.title
                     self.fields[space_field].queryset = space_qs
 
-        self.redirect_slugs = None
-        self.add_redirect_slugs = None
-        self.remove_redirect_slugs = None
-        if 'slug' in self.fields:
-            self.redirect_slugs = (sorted(slug for slug in self.instance.redirects.values_list('slug', flat=True)
-                                          if slug)  # THIS SHOULD NEVER BE NONE
-                                   if self.instance.pk else [])
+        self.slugs: Optional[dict[str, bool]] = None
+        self.remove_slugs: Optional[set[str]] = None
+        self.make_redirect_slug: Optional[str] = None
+        self.make_main_slug: Optional[str] = None
+        self.add_slugs: Optional[dict[str, bool]] = None
+        if isinstance(self.instance, Location):
+            self.slugs = {s.slug: s.redirect for s in self.instance.slug_set.all()} if self.instance.pk else {}
+            slug = next(iter(chain((s for s, r in self.slugs.items() if not r), (None, ))))
+            redirect_slugs = [s for s, r in self.slugs.items() if r]
+
+            self.fields['slug'] = CharField(label=_('Slug'), required=False, initial=slug)
             self.fields['redirect_slugs'] = CharField(label=_('Redirecting Slugs (comma separated)'), required=False,
-                                                      initial=','.join(self.redirect_slugs))
+                                                      initial=','.join(redirect_slugs))
+
             self.fields.move_to_end('redirect_slugs', last=False)
             self.fields.move_to_end('slug', last=False)
 
@@ -281,32 +287,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
     @staticmethod
     def sort_group(group):
         return (-group.priority, group.title)
-
-    def clean_redirect_slugs(self):
-        old_redirect_slugs = set(self.redirect_slugs)
-        new_redirect_slugs = set(s for s in (s.strip() for s in self.cleaned_data['redirect_slugs'].split(',')) if s)
-
-        self.add_redirect_slugs = new_redirect_slugs - old_redirect_slugs
-        self.remove_redirect_slugs = old_redirect_slugs - new_redirect_slugs
-
-        model_slug_field = self._meta.model._meta.get_field('slug')
-        for slug in self.add_redirect_slugs:
-            self.fields['slug'].run_validators(slug)
-            model_slug_field.run_validators(slug)
-
-        qs = LocationSlug.objects.filter(slug__in=self.add_redirect_slugs)
-
-        if 'slug' in self.cleaned_data and self.cleaned_data['slug'] in self.add_redirect_slugs:
-            raise ValidationError(
-                _('Can not add redirecting slug “%s”: it\'s the slug of this object.') % self.cleaned_data['slug']
-            )
-        else:
-            qs = qs.exclude(pk=self.instance.pk)
-
-        for slug in qs.values_list('slug', flat=True)[:1]:
-            raise ValidationError(
-                _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug
-            )
 
     def clean(self):
         if self.is_json:
@@ -327,6 +307,39 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     raise ValidationError(_('WiFi scan data is missing.'))
             self.cleaned_data['data'].wifi = [[item for item in scan if item.ssid] for scan in data.wifi]
 
+        if 'slug' in self.fields:
+            cleaned_slug = self.cleaned_data['slug']
+            cleaned_redirect_slugs = tuple(
+                filter(None, (s.strip() for s in self.cleaned_data['redirect_slugs'].split(',')))
+            )
+
+            if cleaned_slug in cleaned_redirect_slugs:
+                raise ValidationError(
+                    _('Can not add redirecting slug “%s”: it\'s the slug of this object.') % cleaned_slug
+                )
+
+            new_slugs = {
+                **({cleaned_slug: False} if cleaned_slug else {}),
+                **{s: True for s in cleaned_redirect_slugs}
+            }
+            model_slug_field = LocationSlug._meta.get_field('slug')
+            for slug in new_slugs.keys():
+                model_slug_field.run_validators(slug)
+
+            self.remove_slugs = set(self.slugs) - set(new_slugs)
+            self.make_redirect_slug = next(iter(chain(
+                (slug for slug, r in new_slugs.items() if r and not self.slugs.get(slug, True)), (None, )
+            )))
+            self.make_main_slug = next(iter(chain(
+                (slug for slug, r in new_slugs.items() if not r and self.slugs.get(slug, False)), (None,)
+            )))
+            self.add_slugs = {s: r for s, r in new_slugs.items() if s not in self.slugs}
+
+            for slug in LocationSlug.objects.filter(slug__in=self.add_slugs.keys()).values_list('slug', flat=True)[:1]:
+                raise ValidationError(
+                    _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug
+                )
+
         super().clean()
 
     def _save_m2m(self):
@@ -344,6 +357,22 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                                   if name.startswith('group_') and value)
                     groups = tuple((int(val) if val.isdigit() else val) for val in groups)
                     self.instance.groups.set(groups)
+
+        if 'slug' in self.fields:
+            slug_to_make_main = None
+            for s in self.instance.slug_set.all():
+                if s.slug in self.remove_slugs:
+                    s.delete()
+                elif s.slug == self.make_redirect_slug:
+                    s.redirect = True
+                    s.save()
+                elif s.slug == self.make_main_slug:
+                    slug_to_make_main = s
+            if slug_to_make_main:
+                slug_to_make_main.redirect = False
+                slug_to_make_main.save()
+            for slug, r in self.add_slugs.items():
+                self.instance.slug_set.create(slug=slug, redirect=r)
 
         if self._meta.model.__name__ == 'Theme':
             locationgroup_colors = {theme_location_group.location_group_id: theme_location_group
