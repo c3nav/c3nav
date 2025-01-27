@@ -222,6 +222,22 @@ class SpecificLocation(Location, models.Model):
             return self.dynamiclocation
         raise ValueError('SpecificLocation with no target')
 
+    @classmethod
+    def q_for_request(cls, request, prefix='', allow_none=False):
+        from c3nav.mapdata.models import Level
+        from c3nav.mapdata.models import Space
+        from c3nav.mapdata.models import Area
+        from c3nav.mapdata.models.geometry.space import POI
+        return (
+            super().q_for_request(request, prefix=prefix, allow_none=allow_none)
+            & (Q(level__isnull=True) | Level.q_for_request(request, prefix=prefix + 'level__', allow_none=allow_none))
+            & (Q(space__isnull=True) | Space.q_for_request(request, prefix=prefix + 'space__', allow_none=allow_none))
+            & (Q(area__isnull=True) | Area.q_for_request(request, prefix=prefix + 'area__', allow_none=allow_none))
+            & (Q(poi__isnull=True) | POI.q_for_request(request, prefix=prefix + 'poi__', allow_none=allow_none))
+            & (Q(dynamiclocation__isnull=True) |
+               DynamicLocation.q_for_request(request, prefix=prefix + 'dynamiclocation__', allow_none=allow_none))
+        )
+
     @property
     def effective_label_settings(self):
         if self.label_settings:
