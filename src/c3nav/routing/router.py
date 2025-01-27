@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from functools import reduce
 from itertools import chain
 from operator import itemgetter
-from typing import Optional, TypeVar, Generic, Mapping, Any, Sequence, TypeAlias, ClassVar, NamedTuple
+from typing import Optional, TypeVar, Generic, Mapping, Sequence, TypeAlias, ClassVar, NamedTuple, Union
 
 import numpy as np
 from django.conf import settings
@@ -20,7 +20,7 @@ from twisted.protocols.amp import Decimal
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
-from c3nav.mapdata.models.locations import CustomLocationProxyMixin, Location
+from c3nav.mapdata.models.locations import CustomLocationProxyMixin, Location, SpecificLocation
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
 from c3nav.mapdata.utils.index import Index
 from c3nav.mapdata.utils.locations import CustomLocation
@@ -54,6 +54,7 @@ class Router:
     spaces: dict[int, "RouterSpace"]
     areas: dict[int, "RouterArea"]
     pois: dict[int, "RouterPoint"]
+    specificlocations: dict[int, Union["RouterLocation"]]
     groups: dict[int, "RouterGroup"]
     restrictions: dict[int, "RouterRestriction"]
     nodes: deque["RouterNode"]
@@ -78,6 +79,7 @@ class Router:
         spaces: dict[int, RouterSpace] = {}
         areas: dict[int, RouterArea] = {}
         pois: dict[int, RouterPoint] = {}
+        specificlocations: dict[int, RouterLocation] = {}
         groups: dict[int, RouterGroup] = {}
         restrictions: dict[int, RouterRestriction] = {}
         nodes: deque[RouterNode] = deque()
@@ -88,7 +90,7 @@ class Router:
 
             if level.location:
                 for group in level.location.groups.all():
-                    groups.setdefault(group.pk, RouterGroup()).levels.add(level.pk)
+                    groups.setdefault(group.pk, RouterGroup()).specificlocations.add(level.location.pk)
 
             if level.access_restriction_id:
                 restrictions.setdefault(level.access_restriction_id, RouterRestriction()).spaces.update(
@@ -113,7 +115,7 @@ class Router:
 
                 if space.location:
                     for group in space.location.groups.all():
-                        groups.setdefault(group.pk, RouterGroup()).spaces.add(space.pk)
+                        groups.setdefault(group.pk, RouterGroup()).specificlocations.add(space.location.pk)
 
                 if space.access_restriction_id:
                     restrictions.setdefault(space.access_restriction_id, RouterRestriction()).spaces.add(space.pk)
@@ -131,7 +133,7 @@ class Router:
                 for area in space_obj.areas.all():
                     if area.location:
                         for group in area.location.groups.all():
-                            groups.setdefault(group.pk, RouterGroup()).areas.add(area.pk)
+                            groups.setdefault(group.pk, RouterGroup()).specificlocations.add(area.location.pk)
                     area._prefetched_objects_cache = {}
 
                     area = RouterArea(area)
@@ -144,6 +146,8 @@ class Router:
                         area.nodes.add(nearest_node.i)
                     areas[area.pk] = area
                     space.areas.add(area.pk)
+                    if area.location:
+                        specificlocations[area.location.pk] = RouterLocation(area.location, target=area)
 
                 for area in level.altitudeareas.all():
                     area.geometry = unwrap_geom(area.geometry).buffer(0)
@@ -212,7 +216,7 @@ class Router:
                 for poi in space_obj.pois.all():
                     if poi.location:
                         for group in poi.location.groups.all():
-                            groups.setdefault(group.pk, RouterGroup()).pois.add(poi.pk)
+                            groups.setdefault(group.pk, RouterGroup()).specificlocations.add(poi.location.pk)
                     poi._prefetched_objects_cache = {}
 
                     poi = RouterPoint(poi)
@@ -226,6 +230,8 @@ class Router:
                     poi.nodes_addition = poi_nodes
                     pois[poi.pk] = poi
                     space.pois.add(poi.pk)
+                    if poi.location:
+                        specificlocations[poi.location.pk] = RouterLocation(poi.location, target=poi)
 
                 for column in space_obj.columns.all():
                     if column.access_restriction_id is None:
@@ -241,6 +247,8 @@ class Router:
                 space.src.geometry = accessible_geom
 
                 spaces[space.pk] = space
+                if space.location:
+                    specificlocations[space.location.pk] = RouterLocation(space.location, target=space)
 
             level_spaces = set(space.pk for space in level.spaces.all())
             level._prefetched_objects_cache = {}
@@ -248,6 +256,8 @@ class Router:
             level = RouterLevel(level, spaces=level_spaces)
             level.nodes = set(range(nodes_before_count, len(nodes)))
             levels[level.pk] = level
+            if level.location:
+                specificlocations[level.location.pk] = RouterLocation(level.location, target=level)
 
         # add graph descriptions
         for description in LeaveDescription.objects.all():
@@ -311,6 +321,7 @@ class Router:
             spaces=spaces,
             areas=areas,
             pois=pois,
+            specificlocations=specificlocations,
             groups=groups,
             restrictions=restrictions,
             nodes=nodes,
@@ -359,57 +370,38 @@ class Router:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
-    def get_locations(self, location: Location, restrictions) -> "RouterLocation":
+    def get_locations(self, location: Location, restrictions) -> "RouterLocationSet":
         locations = ()
-        if isinstance(location, Level):
-            if location.access_restriction_id not in restrictions:
-                if location.pk not in self.levels:
-                    raise NotYetRoutable
-                locations = (self.levels[location.pk], )
-        elif isinstance(location, Space):
-            if location.pk not in restrictions.spaces:
-                if location.pk not in self.spaces:
-                    raise NotYetRoutable
-                locations = (self.spaces[location.pk], )
-        elif isinstance(location, Area):
-            if location.space_id not in restrictions.spaces and location.access_restriction_id not in restrictions:
-                if location.pk not in self.areas:
-                    raise NotYetRoutable
-                locations = (self.areas[location.pk], )
-        elif isinstance(location, POI):
-            if location.space_id not in restrictions.spaces and location.access_restriction_id not in restrictions:
-                if location.pk not in self.pois:
-                    raise NotYetRoutable
-                locations = (self.pois[location.pk], )
-        elif isinstance(location, LocationGroup):
+        if isinstance(location, LocationGroup):
             if location.pk not in self.groups:
                 raise NotYetRoutable
             group = self.groups[location.pk]
-            locations = tuple(chain(
-                (level for level in (self.levels[pk] for pk in group.levels)
-                 if level.access_restriction_id not in restrictions),
-                (space for space in (self.spaces[pk] for pk in group.spaces)
-                 if space.pk not in restrictions.spaces),
-                (area for area in (self.areas[pk] for pk in group.areas)
-                 if area.space_id not in restrictions.spaces and area.access_restriction_id not in restrictions),
-                (poi for poi in (self.pois[pk] for pk in group.pois)
-                 if poi.space_id not in restrictions.spaces and poi.access_restriction_id not in restrictions),
-            ))
+            locations = tuple(
+                specificlocation 
+                for specificlocation in (self.specificlocations[pk] for pk in group.specificlocations)
+                if specificlocation.can_see(restrictions)
+            )
         elif isinstance(location, (CustomLocation, CustomLocationProxyMixin)):
             if isinstance(location, CustomLocationProxyMixin) and not location.available:
                 raise LocationUnreachable
             point = Point(location.x, location.y)
-            location = RouterPoint(location)
-            space = self.space_for_point(location.level.pk, point, restrictions)
+            routerpoint = RouterPoint(location)
+            space = self.space_for_point(routerpoint.level.pk, point, restrictions)
             if space is None:
                 raise LocationUnreachable
             altitudearea = space.altitudearea_for_point(point)
-            location.altitude = altitudearea.get_altitude(point)
+            routerpoint.altitude = altitudearea.get_altitude(point)
             location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
-            location.nodes = set(i for i in location_nodes.keys())
-            location.nodes_addition = location_nodes
-            locations = tuple((location, ))
-        result = RouterLocation(locations)
+            routerpoint.nodes = set(i for i in location_nodes.keys())
+            routerpoint.nodes_addition = location_nodes
+            locations = tuple((RouterLocation(location, target=routerpoint),))
+        else:
+            if location.pk not in self.specificlocations:
+                raise NotYetRoutable
+            specificlocation = self.specificlocations[location.pk]
+            if specificlocation.can_see(restrictions):  # todo: used to be run on the incoming object, do that again
+                locations = (specificlocation, )
+        result = RouterLocationSet(locations)
         if not result.nodes:
             raise LocationUnreachable
         return result
@@ -641,6 +633,9 @@ class BaseRouterProxy(Generic[RouterProxiedType]):
     nodes: set[int] = field(default_factory=set)
     nodes_addition: NodeConnectionsByNode = field(default_factory=dict)
 
+    def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
+        raise NotImplementedError
+
     @cached_property
     def geometry_prep(self):
         return prepared.prep(unwrap_geom(self.src.geometry))
@@ -661,6 +656,9 @@ class RouterLevel(BaseRouterProxy[Level]):
     spaces: set[int] = field(default_factory=set)
     space_index: Index = field(default_factory=Index)
 
+    def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
+        return self.access_restriction_id not in restrictions
+
 
 @dataclass
 class RouterSpace(BaseRouterProxy[Space]):
@@ -673,6 +671,9 @@ class RouterSpace(BaseRouterProxy[Space]):
     areas_index: Index = field(default_factory=Index)
     pois_index: Index = field(default_factory=Index)
     altitudeareas_index: Index = field(default_factory=Index)
+
+    def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
+        return self.pk not in restrictions.spaces
 
     def altitudearea_for_point(self, point: PointCompatible):
         point = Point(point.x, point.y)
@@ -731,24 +732,48 @@ class RouterSpace(BaseRouterProxy[Space]):
 
 @dataclass
 class RouterArea(BaseRouterProxy[Area]):
-    pass
+    def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
+        return self.space_id not in restrictions.spaces and self.access_restriction_id not in restrictions
 
 
 @dataclass
 class RouterPoint(BaseRouterProxy[Point]):
     altitude: float | None = None
 
+    def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
+        return self.space_id not in restrictions.spaces and self.access_restriction_id not in restrictions
+
     @cached_property
     def xyz(self):
         return np.array((self.x, self.y, self.altitude))
+    
+    
+@dataclass
+class RouterLocation:
+    src: SpecificLocation | CustomLocation
+    target: Union["RouterLevel", "RouterSpace", "RouterArea", "RouterPoint"]
+    
+    def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
+        # todo: implement this differently, obviously
+        return self.access_restriction_id not in restrictions and self.target.can_see(restrictions)
+
+    def __getattr__(self, name):
+        if name == '__setstate__':
+            raise AttributeError
+        return getattr(self.src, name)
+
+    @property
+    def nodes(self):
+        return self.target.nodes
+
+    @property
+    def nodes_addition(self):
+        return self.target.nodes_addition
 
 
 @dataclass
 class RouterGroup:
-    levels: set[int] = field(default_factory=set)
-    spaces: set[int] = field(default_factory=set)
-    areas: set[int] = field(default_factory=set)
-    pois: set[int] = field(default_factory=set)
+    specificlocations: set[int] = field(default_factory=set)
 
 
 @dataclass
@@ -871,12 +896,12 @@ class RouterWayType:
 
 
 @dataclass
-class RouterLocation:
+class RouterLocationSet:
     """
     Describes a Location selected as an origin or destination for a route. This might match multiple locations,
     for example if we route to a group, in which case we select the nearest/best specific location.
     """
-    locations: tuple[RouterPoint]
+    locations: tuple[RouterLocation, ...]
 
     @cached_property
     def nodes(self) -> frozenset[int]:
