@@ -23,6 +23,7 @@ from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateRespon
                                      editor_etag_func, sidebar_view, accesses_mapdata)
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -135,6 +136,11 @@ def get_changeset_exceeded(request):
     return request.user_permissions.max_changeset_changes <= len(request.changeset.as_operations)
 
 
+class TopItem(typing.NamedTuple):
+    label: str
+    url: str | None = None
+
+
 @etag(editor_etag_func)
 @accesses_mapdata
 @sidebar_view(api_hybrid=True)
@@ -183,6 +189,27 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     new = obj is None
 
+    top_items: list[TopItem] = []
+
+    if obj is not None and isinstance(obj, SpecificLocation):
+        # redirect to editing the target
+        target_obj = obj.get_target()
+        if target_obj is None:
+            top_items.append(TopItem(
+                label=_('This specific location has no target')
+            ))
+        else:
+            reverse_kwargs = {'pk': target_obj.pk}
+            if hasattr(target_obj, "space_id"):
+                reverse_kwargs["space"] = target_obj.space_id
+            elif hasattr(target_obj, "level_id"):
+                reverse_kwargs["level"] = target_obj.level_id
+
+            top_items.append(TopItem(
+                label=_('Edit target %(target_type)s') % {"target_type": target_obj._meta.verbose_name},
+                url=reverse('editor.' + target_obj._meta.default_related_name + '.edit', kwargs=reverse_kwargs)
+            ))
+
     if new and not edit_utils.can_create:
         raise PermissionDenied
 
@@ -200,6 +227,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'new': new,
         'title': obj.title if obj else None,
         'geometry_url': geometry_url,
+        'top_items': top_items,
     }
 
     with suppress(FieldDoesNotExist):

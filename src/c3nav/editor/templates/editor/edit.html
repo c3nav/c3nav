@@ -20,6 +20,13 @@
     {% endif %}
 </h3>
 {% bootstrap_messages %}
+{% for top_item in top_items %}
+    <div class="well well-sm">
+        {% if top_item.url %}<a href="{{ top_item.url }}">{% endif %}
+        {{ top_item.label }}
+        {% if top_item.url %}</a>{% endif %}
+    </div>
+{% endfor %}
 <form action="{{ path }}" method="post" {% if nozoom %}data-nozoom {% endif %}data-onbeforeunload {% if new %}data-new="{{ model_name }}" data-geomtype="{{ geomtype }}" {% if default_geomtype %}data-default-geomtype="{{ default_geomtype }}{% endif %}"{% else %}data-editing="{{ model_name }}-{{ pk }}"{% endif %}{% if access_restriction_select %} data-access-restriction-select{% endif %}>
     {% csrf_token %}
     {% bootstrap_form form %}
