@@ -54,6 +54,7 @@ def main_index(request):
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
         'child_models': [
+            child_model(request, 'SpecificLocation'),
             child_model(request, 'LocationGroupCategory'),
             child_model(request, 'LocationGroup'),
             child_model(request, 'ObstacleGroup'),
@@ -235,14 +236,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'back_url': reverse('editor.spaces.list', kwargs={'level': level.pk}),
             'nozoom': True,
         })
-    elif hasattr(model, 'level') and 'Dynamic' not in model.__name__:
+    elif hasattr(model, 'level') and 'Dynamic' not in model.__name__ and 'Specific' not in model.__name__:
         if not new:
             level = obj.level
         ctx.update({
             'level': level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'level': level.pk}),
         })
-    elif hasattr(model, 'space'):
+    elif hasattr(model, 'space') and 'Specific' not in model.__name__:
         if not new:
             space = obj.space
         space_id = space.pk
