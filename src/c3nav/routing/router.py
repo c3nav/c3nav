@@ -424,8 +424,10 @@ class Router:
         restrictions = self.get_restrictions(location.permissions)
         space = self.space_for_point(level=location.level.pk, point=location, restrictions=restrictions)
         if not space:
-            return CustomLocationDescription(space=space, altitude=None, areas=(), near_area=None, near_poi=None,
-                                             nearby=())
+            return CustomLocationDescription(
+                space=space.get_location(can_describe=True) if space else None,
+                altitude=None, areas=(), near_area=None, near_poi=None, nearby=()
+            )
         try:
             altitude = space.altitudearea_for_point(location).get_altitude(location)
         except LocationUnreachable:
@@ -437,7 +439,7 @@ class Router:
             pois=self.pois, point=location, restrictions=restrictions
         )
         nearby = tuple(sorted(
-            tuple(location for location in nearby_areas+nearby_pois if location[0].can_search),
+            tuple(nearby_areas+nearby_pois),
             key=operator.itemgetter(1)
         ))
         # show all location within 5 meters, but at least 20
@@ -446,8 +448,14 @@ class Router:
             if distance > 5:
                 min_i = i
         nearby = tuple(location for location, distance in nearby[:max(20, min_i)])
-        return CustomLocationDescription(space=space, altitude=altitude,
-                                         areas=areas, near_area=near_area, near_poi=near_poi, nearby=nearby)
+        return CustomLocationDescription(
+            space=space.get_location(can_describe=True) if space else None,
+            altitude=altitude,
+            areas=tuple(filter(None, (area.get_location(can_describe=True) for area in areas))),
+            near_area=near_area.get_location(can_describe=True) if near_area else None,
+            near_poi=space.get_location(can_describe=True) if near_poi else None,
+            nearby=tuple(filter(None, (n.get_location(can_describe=True) for n in nearby)))
+        )
 
     @cached_property
     def shortest_path_func(self):
@@ -587,8 +595,14 @@ class Router:
         )
 
 
-CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude',
-                                                                     'areas', 'near_area', 'near_poi', 'nearby'))
+class CustomLocationDescription(NamedTuple):
+    space: Optional[SpecificLocation]
+    altitude: Optional[float]
+    areas: Sequence[SpecificLocation]
+    near_area: Optional[SpecificLocation]
+    near_poi: Optional[SpecificLocation]
+    nearby: Sequence[SpecificLocation]
+
 
 # todo: switch to new syntax… bound?
 RouterProxiedType = TypeVar('RouterProxiedType')
@@ -649,7 +663,7 @@ class RouterSpace(BaseRouterProxy[Space]):
     def areas_for_point(self, areas, point, restrictions):
         point = Point(point.x, point.y)
         areas = {pk: area for pk, area in areas.items()
-                 if pk in self.areas and area.can_describe and area.access_restriction_id not in restrictions}
+                 if pk in self.areas and area.can_see(restrictions)}
 
         nearby = ((area, area.geometry.distance(point)) for area in areas.values())
         nearby = tuple((area, distance) for area, distance in nearby if distance < 20)
@@ -666,7 +680,7 @@ class RouterSpace(BaseRouterProxy[Space]):
     def poi_for_point(self, pois, point, restrictions):
         point = Point(point.x, point.y)
         pois = {pk: poi for pk, poi in pois.items()
-                if pk in self.pois and poi.can_describe and poi.access_restriction_id not in restrictions}
+                if pk in self.pois and poi.can_see(restrictions)}
 
         nearby = ((poi, poi.geometry.distance(point)) for poi in pois.values())
         nearby = tuple((poi, distance) for poi, distance in nearby if distance < 20)
