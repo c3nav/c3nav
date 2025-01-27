@@ -172,7 +172,7 @@ class SpecificLocationManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().select_related(
             'level', 'space', 'area', 'poi', 'dynamiclocation'
-        ).prefetch_related('slug_set')
+        )  # .prefetch_related('slug_set')  # todo: put this back in?
 
 
 possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation')  # todo: can we generate this?
@@ -189,11 +189,11 @@ class SpecificLocation(Location, models.Model):
     load_group_display = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                            related_name='+', verbose_name=_('display load group'))
 
-    level = models.OneToOneField('Level', null=True, on_delete=models.CASCADE, related_name='location')
-    space = models.OneToOneField('Space', null=True, on_delete=models.CASCADE, related_name='location')
-    area = models.OneToOneField('Area', null=True, on_delete=models.CASCADE, related_name='location')
-    poi = models.OneToOneField('POI', null=True, on_delete=models.CASCADE, related_name='location')
-    dynamiclocation = models.OneToOneField('DynamicLocation', null=True, on_delete=models.CASCADE, related_name='location')
+    level = models.OneToOneField('Level', null=True, on_delete=models.PROTECT, related_name='location')
+    space = models.OneToOneField('Space', null=True, on_delete=models.PROTECT, related_name='location')
+    area = models.OneToOneField('Area', null=True, on_delete=models.PROTECT, related_name='location')
+    poi = models.OneToOneField('POI', null=True, on_delete=models.PROTECT, related_name='location')
+    dynamiclocation = models.OneToOneField('DynamicLocation', null=True, on_delete=models.PROTECT, related_name='location')
 
     objects = SpecificLocationManager()
 
@@ -205,7 +205,7 @@ class SpecificLocation(Location, models.Model):
         constraints = [
             models.CheckConstraint(condition=reduce(operator.or_, (
                 Q(**{f'{name}__isnull': (name != set_name) for name in possible_specific_locations})
-                for set_name in possible_specific_locations
+                for set_name in (*possible_specific_locations, None)
             )), name="only_one_specific_location_target"),
         ]
 
@@ -220,7 +220,7 @@ class SpecificLocation(Location, models.Model):
             return self.poi
         if self.dynamiclocation_id:
             return self.dynamiclocation
-        raise ValueError('SpecificLocation with no target')
+        return None
 
     @classmethod
     def q_for_request(cls, request, prefix='', allow_none=False):
@@ -451,7 +451,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
 
 class LocationGroupManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().select_related('category').prefetch_related('slug_set')
+        return super().get_queryset().select_related('category')  # .prefetch_related('slug_set')  # todo: put this back in?
 
 
 class LocationGroup(Location, models.Model):
