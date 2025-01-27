@@ -2,7 +2,6 @@ import typing
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.urls import reverse
@@ -14,7 +13,6 @@ from pydantic_extra_types.mac_address import MacAddress
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
-from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
@@ -37,21 +35,15 @@ class SpaceGeometryMixin(GeometryMixin):
 
     @cached_property
     def level_id(self):
-        try:
-            space = getattr(self, '_space_cache', None)
-            if space is not None:
-                return space.level_id
-        except ObjectDoesNotExist:
-            return None
+        if "space" in self._state.fields_cache:
+            return self.space.level_id
+        return None
 
     @cached_property
     def main_level_id(self):
-        try:
-            space = getattr(self, '_space_cache', None)
-            if space is not None:
-                return space.main_level_id
-        except ObjectDoesNotExist:
-            return None
+        if "space" in self._state.fields_cache:
+            return self.space.main_level_id
+        return None
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
@@ -66,14 +58,12 @@ class SpaceGeometryMixin(GeometryMixin):
 
     @property
     def subtitle(self):
-        space = getattr(self, '_space_cache', None)
-        if space is not None:
-            level = getattr(space, '_level_cache', None)
-            if level is not None:
+        if "space" in self._state.fields_cache:
+            if "level" in self.space._state.fields_cache:
                 return format_lazy(_('{space}, {level}'),
-                                   space=space.title,
-                                   level=level.title)
-            return space.title
+                                   space=self.space.title,
+                                   level=self.space.level.title)
+            return self.space.title
         return None
 
     @classmethod

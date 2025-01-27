@@ -150,4 +150,6 @@ class BeaconMeasurementQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return BeaconMeasurement.qs_for_request(request).filter(data=BeaconMeasurementDataSchema())
+        return BeaconMeasurement.qs_for_request(request).select_related("space", "space__level").filter(
+            data=BeaconMeasurementDataSchema()
+        )

@@ -69,9 +69,8 @@ class LevelGeometryMixin(GeometryMixin):
 
     @property
     def subtitle(self):
-        level = getattr(self, '_level_cache', None)
-        if level is not None:
-            return level.title
+        if "level" in self._state.fields_cache:
+            return self.level.title
         return None
 
     def register_change(self, force=False):
