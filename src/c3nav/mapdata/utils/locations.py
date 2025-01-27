@@ -78,13 +78,13 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
             if level is None:
                 remove_pks.add(pk)
                 continue
-            target._level_cache = level
+            target.level = level
         elif isinstance(target, SpaceGeometryMixin):
             space = spaces.get(target.space_id, None)
             if space is None:
                 remove_pks.add(pk)
                 continue
-            target._space_cache = space
+            target.space = space
 
     # hide locations in hidden spaces or levels
     for pk in remove_pks:
