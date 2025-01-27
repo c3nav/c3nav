@@ -17,12 +17,13 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import etag
 from shapely import LineString
 
-from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm
+from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm, \
+    LinkSpecificLocationForm, UnlinkSpecificLocationForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -135,11 +136,6 @@ def get_changeset_exceeded(request):
     return request.user_permissions.max_changeset_changes <= len(request.changeset.as_operations)
 
 
-class TopItem(typing.NamedTuple):
-    label: str
-    url: str | None = None
-
-
 @etag(editor_etag_func)
 @accesses_mapdata
 @sidebar_view
@@ -188,27 +184,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     new = obj is None
 
-    top_items: list[TopItem] = []
-
-    if obj is not None and isinstance(obj, SpecificLocation):
-        # redirect to editing the target
-        target_obj = obj.get_target()
-        if target_obj is None:
-            top_items.append(TopItem(
-                label=_('This specific location has no target')
-            ))
-        else:
-            reverse_kwargs = {'pk': target_obj.pk}
-            if hasattr(target_obj, "space_id"):
-                reverse_kwargs["space"] = target_obj.space_id
-            elif hasattr(target_obj, "level_id"):
-                reverse_kwargs["level"] = target_obj.level_id
-
-            top_items.append(TopItem(
-                label=_('Edit target %(target_type)s') % {"target_type": target_obj._meta.verbose_name},
-                url=reverse('editor.' + target_obj._meta.default_related_name + '.edit', kwargs=reverse_kwargs)
-            ))
-
     if new and not edit_utils.can_create:
         raise PermissionDenied
 
@@ -226,8 +201,28 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'new': new,
         'title': obj.title if obj else None,
         'geometry_url': geometry_url,
-        'top_items': top_items,
     }
+
+    if not new and isinstance(obj, SpecificLocation):
+        # redirect to editing the target
+        target_obj = obj.get_target()
+        if target_obj is None:
+            ctx["secondary"] = {
+                "title": _('Target'),
+                "text": _('This specific location has no target'),
+            }
+        else:
+            reverse_kwargs = {'pk': target_obj.pk}
+            if hasattr(target_obj, "space_id"):
+                reverse_kwargs["space"] = target_obj.space_id
+            elif hasattr(target_obj, "level_id"):
+                reverse_kwargs["level"] = target_obj.level_id
+
+            ctx["secondary"] = {
+                "title": _('Target'),
+                "text": _('Go to target %(target_type)s') % {"target_type": target_obj._meta.verbose_name},
+                "url": reverse('editor.' + target_obj._meta.default_related_name + '.edit', kwargs=reverse_kwargs),
+            }
 
     with suppress(FieldDoesNotExist):
         ctx.update({
@@ -313,7 +308,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         messages.info(request, _('You need to log in to create Beacon Measurements.'))
         return redirect_to_login(request.path_info, 'editor.login')
 
-    graph_form = None
+    secondary_form = None
+
     if model == Door and not new:
         door_geom = unwrap_geom(obj.geometry)
         spaces = {
@@ -337,6 +333,23 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             if (to_node, from_node) not in edges:
                 edges[(to_node, from_node)] = None
         ctx["door"] = {"spaces": spaces}
+        ctx["secondary"] = {"title": _('Connecting spaces')}
+
+    specific_location_form_cls = None
+    if not new and isinstance(obj, SpecificLocationTargetMixin):
+        ctx["secondary"] = {"title": SpecificLocation._meta.verbose_name}
+        try:
+            specific_location = obj.location
+        except SpecificLocation.DoesNotExist:
+            specific_location_form_cls = LinkSpecificLocationForm
+            ctx["secondary"]["text"] = (_('There is no specific location associated with this %(target_type)s.')
+                                        % {"target_type": obj._meta.verbose_name})
+        else:
+            specific_location_form_cls = UnlinkSpecificLocationForm
+            ctx["secondary"].update({
+                "text": _('Go to specific location “%(title)s”') % {"title": specific_location.title},
+                "url": reverse('editor.specific_locations.edit', kwargs={"pk": specific_location.pk}),
+            })
 
     error = None
     delete = getattr(request, 'is_delete', None)
@@ -379,10 +392,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
 
         if "door" in ctx:
-            graph_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges, data=data)
-            ctx["door"]["form"] = graph_form
+            secondary_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges, data=data)
+        elif specific_location_form_cls:
+            secondary_form = specific_location_form_cls(target=obj, data=data)
 
-        if form.is_valid() and (graph_form is None or graph_form.is_valid()):
+        if secondary_form is not None:
+            ctx["secondary"]["form"] = secondary_form
+
+        if form.is_valid() and (secondary_form is None or secondary_form.is_valid()):
             # Update/create objects
             obj = form.save(commit=False)
 
@@ -407,8 +424,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
                         for slug in form.remove_redirect_slugs:
                             obj.redirects.filter(slug=slug).delete()
-                    if graph_form is not None:
-                        graph_form.save()
+                    if secondary_form is not None:
+                        secondary_form.save()
                     form.save_m2m()
                     messages.success(request, _('Object was successfully saved.'))
                     return redirect(ctx['back_url'])
@@ -419,8 +436,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         form = get_editor_form(model)(instance=obj, request=request, space_id=space_id,
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
         if "door" in ctx:
-            graph_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges)
-            ctx["door"]["form"] = graph_form
+            secondary_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges)
+        elif specific_location_form_cls:
+            secondary_form = specific_location_form_cls(target=obj)
+
+        if secondary_form is not None:
+            ctx["secondary"]["form"] = secondary_form
 
     ctx.update({
         'form': form,

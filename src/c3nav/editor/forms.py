@@ -25,6 +25,7 @@ from c3nav.mapdata.models import GraphEdge, LocationGroup, Source, LocationGroup
     LocationSlug, WayType
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
 
 
@@ -510,3 +511,36 @@ class DoorGraphForm(Form):
                 elif edge.access_restriction_id != (cleaned_value or None):
                     edge.access_restriction_id = (cleaned_value or None)
                     edge.save()
+
+
+class LinkSpecificLocationForm(Form):
+    # todo: jo, permissions and stuff!
+    def __init__(self, *args, target, **kwargs):
+        self.target = target
+        super().__init__(*args, **kwargs)
+
+    specific_location = ModelChoiceField(
+        SpecificLocation.objects.filter(level=None, space=None, area=None, poi=None, dynamiclocation=None),
+        required=False,
+        widget=TextInput(),
+        label=_('Add specific location by ID'),
+        help_text=_('You can only specify a location that is not linked to anything.'),
+    )
+
+    def save(self):
+        specific_location = self.cleaned_data["specific_location"]
+        setattr(specific_location, self.target._meta.model_name.replace('_', ''), self.target)
+        specific_location.save()
+
+
+class UnlinkSpecificLocationForm(Form):
+    def __init__(self, *args, target, **kwargs):
+        self.target = target
+        super().__init__(*args, **kwargs)
+
+    unlink_specific_location = BooleanField(label=_('Unlink specific location'), required=False)
+
+    def save(self):
+        specific_location = self.target.location
+        setattr(specific_location, self.target._meta.model_name.replace('_', ''), None)
+        specific_location.save()
