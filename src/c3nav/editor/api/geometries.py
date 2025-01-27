@@ -142,7 +142,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     levels = Level.objects.filter(pk__in=levels_for_level.levels).filter(Level.q_for_request(request))
     graphnodes_qs = GraphNode.objects.all()
     levels = levels.prefetch_related(
-        Prefetch('spaces', Space.objects.select_related('location').filter(Space.q_for_request(request)).only(
+        Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
             'geometry', 'level', 'outside'
         )),
         Prefetch('doors', Door.objects.filter(Door.q_for_request(request)).only('geometry', 'level')),
