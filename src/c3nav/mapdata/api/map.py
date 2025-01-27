@@ -25,7 +25,8 @@ from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, \
     BeaconMeasurement
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, LocationSlug
+from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, LocationSlug, \
+    SpecificLocation
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
@@ -356,9 +357,7 @@ def legend_for_theme(request, theme_id: int):
     except Theme.DoesNotExist:
         raise API404()
     locationgroups = LocationGroup.qs_for_request(request).filter(in_legend=True).prefetch_related(
-        Prefetch('areas', Area.qs_for_request(request))
-    ).prefetch_related(
-        Prefetch('spaces', Space.qs_for_request(request))
+        Prefetch('specific_locations', SpecificLocation.qs_for_request(request))
     )
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
@@ -369,7 +368,7 @@ def legend_for_theme(request, theme_id: int):
         groups=[item for item in (LegendItemSchema(title=group.title,
                                                    fill=manager.locationgroup_fill_color(group),
                                                    border=manager.locationgroup_border_color(group))
-                                  for group in locationgroups if group.areas.all() or group.spaces.all())
+                                  for group in locationgroups if group.specific_locations.all())
                 if item.fill or item.border],
         obstacles=[item for item in (LegendItemSchema(title=group.title,
                                                       fill=manager.obstaclegroup_fill_color(group),
