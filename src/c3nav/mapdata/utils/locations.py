@@ -43,10 +43,13 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
         **{redirect_slug.pk: LocationRedirect(slug=redirect_slug.slug, target=redirect_slug.get_target())
            for redirect_slug in LocationSlug.objects.filter(redirect=True).order_by('id')},
         **{location.pk: location for location in SpecificLocation.objects.prefetch_related(
-            Prefetch('groups', LocationGroup.qs_for_request(request).select_related('category',
-                                                                                    'label_settings'))
-        ).select_related('label_settings')},
-        **{group.pk: group for group in LocationGroup.objects.select_related('category', 'label_settings')},
+            Prefetch('groups', LocationGroup.qs_for_request(request).select_related(
+                'category', 'label_settings'
+            ).prefetch_related("slug_set"))
+        ).select_related('label_settings').prefetch_related("slug_set")},
+        **{group.pk: group for group in LocationGroup.objects.select_related(
+            'category', 'label_settings'
+        ).prefetch_related("slug_set")},
     }
 
     # add locations to groups
