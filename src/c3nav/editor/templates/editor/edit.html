@@ -30,23 +30,33 @@
 <form action="{{ path }}" method="post" {% if nozoom %}data-nozoom {% endif %}data-onbeforeunload {% if new %}data-new="{{ model_name }}" data-geomtype="{{ geomtype }}" {% if default_geomtype %}data-default-geomtype="{{ default_geomtype }}{% endif %}"{% else %}data-editing="{{ model_name }}-{{ pk }}"{% endif %}{% if access_restriction_select %} data-access-restriction-select{% endif %}>
     {% csrf_token %}
     {% bootstrap_form form %}
-    {% if door %}
+    {% if secondary %}
         <hr>
-        <h4>{% trans 'Connecting spaces:' %}</h4>
-        <ul>
-        {% for space in door.spaces.values %}
-            <li>
-                {{ space.title }}
-                {% if space.access_restriction %}
-                    <small>({{ space.access_restriction.title }})</small>
-                {% else %}
-                    <small>(<em>no restriction</em>)</small>
-                {% endif %}
-            </li>
-        {% endfor %}
-        </ul>
-        {% bootstrap_form door.form %}
-        <hr>
+        <h4>{{ secondary.title }}</h4>
+        {% if secondary.text %}
+            <p>
+                {% if secondary.url %}<a href="{{ secondary.url }}">{% endif %}
+                {{ secondary.text }}
+                {% if secondary.url %}</a>{% endif %}
+            </p>
+        {% endif %}
+        {% if door %}
+            <ul>
+            {% for space in door.spaces.values %}
+                <li>
+                    {{ space.title }}
+                    {% if space.access_restriction %}
+                        <small>({{ space.access_restriction.title }})</small>
+                    {% else %}
+                        <small>(<em>no restriction</em>)</small>
+                    {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+        {% if secondary.form %}
+            {% bootstrap_form secondary.form %}
+        {% endif %}
     {% endif %}
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
