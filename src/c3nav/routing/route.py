@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 def describe_location(location, locations):
-    if location.can_describe:
+    if hasattr(location, "can_describe") and location.can_describe:
         final_location = locations.get(location.pk)
         if final_location is not None:
             location = final_location
@@ -260,9 +260,11 @@ class RouteItem:
             result['waytype'] = self.waytype
 
         if self.new_space:
+            # todo: we should describe spaces more nicely
             result['space'] = describe_location(self.space, self.route.visible_locations)
 
         if self.new_level:
+            # todo: we should describe levels more nicely
             result['level'] = describe_location(self.level, self.route.visible_locations)
 
         result['descriptions'] = [(icon, instruction) for (icon, instruction) in self.descriptions]

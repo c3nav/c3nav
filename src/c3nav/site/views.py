@@ -39,7 +39,7 @@ from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLoca
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.models import SlimLocationSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
-                                           levels_by_level_index_for_request)
+                                           levels_by_level_index_for_request, LocationRedirect)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
