@@ -385,7 +385,16 @@ class SpecificLocationTargetMixin(models.Model):
         return None
 
     def get_color_sorted(self, color_manager) -> tuple[tuple, str] | None:
-        return self.location.get_color_sorted(color_manager)
+        try:
+            return self.location.get_color_sorted(color_manager)
+        except SpecificLocation.DoesNotExist:
+            return None
+
+    def get_location(self, can_describe=False) -> typing.Optional[SpecificLocation]:
+        try:
+            return self.location if not can_describe or self.location.can_describe else None
+        except SpecificLocation.DoesNotExist:
+            return None
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):

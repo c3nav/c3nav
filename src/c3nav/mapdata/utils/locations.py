@@ -381,19 +381,19 @@ class CustomLocation:
 
     @cached_property
     def areas(self):
-        return self.description.areas
+        return [a.pk for a in self.description.areas]
 
     @cached_property
     def near_area(self):
-        return self.description.near_area
+        return self.description.near_area.pk if self.description.near_area else None
 
     @cached_property
     def near_poi(self):
-        return self.description.near_poi
+        return self.description.near_poi.pk if self.description.near_poi else None
 
     @cached_property
     def nearby(self):
-        return self.description.nearby
+        return [n.pk for n in self.description.nearby]
 
     @cached_property
     def grid_square(self):
