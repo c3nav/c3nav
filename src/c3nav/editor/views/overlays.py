@@ -216,13 +216,6 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
                     except IntegrityError as e:
                         error = APIHybridError(status_code=400, message=_('Duplicate entry.'))
                     else:
-                        if form.redirect_slugs is not None:
-                            for slug in form.add_redirect_slugs:
-                                obj.redirects.create(slug=slug)
-
-                            for slug in form.remove_redirect_slugs:
-                                obj.redirects.filter(slug=slug).delete()
-
                         form.save_m2m()
                         return APIHybridMessageRedirectResponse(
                             level='success',
