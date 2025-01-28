@@ -316,27 +316,14 @@ class CustomLocation:
                 (int(math.ceil(self.x)), int(math.ceil(self.y))))
 
     def details_display(self, **kwargs):
-        level_location = self.level.get_location()
-        space_location = self.space.get_location() if self.space else None
         result = {
             'id': self.pk,
             'display': [
                 (_('Type'), _('Coordinates')),
                 (_('ID'), self.pk),
                 (_('Slug'), self.pk),
-                # todo: more useful information here?
-                (_('Level'), {
-                    'id': level_location.pk,
-                    'slug': level_location.effective_slug,
-                    'title': level_location.title,
-                    'can_search': level_location.can_search,
-                } if level_location else None),
-                (_('Space'), {
-                    'id': space_location.pk,
-                    'slug': space_location.effective_slug,
-                    'title': space_location.title,
-                    'can_search': space_location.can_search,
-                } if space_location else None),
+                (_('Level'), self.level.for_details_display()),
+                (_('Space'), self.space.for_details_display() if self.space else None),
                 (_('Areas'), tuple({
                     'id': area.pk,
                     'slug': area.effective_slug,
