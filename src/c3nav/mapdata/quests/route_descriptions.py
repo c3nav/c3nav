@@ -61,7 +61,7 @@ class SpaceIdentifyableQuest(Quest):
 
     @property
     def point(self) -> Point:
-        return mapping(self.obj.point)
+        return mapping(self.obj.good_representative_point)
 
     @classmethod
     def _qs_for_request(cls, request):
