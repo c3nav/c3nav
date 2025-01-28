@@ -346,7 +346,7 @@ class SpecificLocation(Location, models.Model):
     @property
     def external_url_label(self):
         for group in self.groups.all():
-            if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
+            if group.icon:
                 return group.external_url_label
         return None
 
