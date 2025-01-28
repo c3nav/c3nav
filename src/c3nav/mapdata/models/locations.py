@@ -211,7 +211,7 @@ class SpecificLocation(Location, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._orig = {"target": self.get_target()}
+        self._orig = {"target": (self.level_id, self.space_id, self.area_id, self.poi_id, self.dynamiclocation_id)}
 
     def get_target(self):
         if self.level_id:
@@ -351,12 +351,21 @@ class SpecificLocation(Location, models.Model):
         return None
 
     def register_changed_geometries(self, force=False):
-        target = self.get_target()
-        if target != self._orig["target"]:
-            self._orig["target"].register_change(force=True)
-            target.register_change(force=True)
-        elif force:
-            target.register_change(force=True)
+        changed = (
+          self.level_id, self.space_id, self.area_id, self.poi_id, self.dynamiclocation_id
+        ) != self._orig["target"]
+        if changed and any(self._orig["target"]):
+            if any(self._orig["target"]):
+                from c3nav.mapdata.models import Level, Space, Area, POI
+                target_i = next(iter(i for i, t in enumerate(self._orig["target"]) if t))
+                target_model = (Level, Space, Area, POI, DynamicLocation)[target_i]
+                target_id = self._orig["target"][target_i]
+                for old_target in target_model.objects.filter(pk=target_id):
+                    old_target.register_change(force=True)
+        if changed or force:
+            target = self.get_target()
+            if target:
+                target.register_change(force=True)
 
     def pre_save_changed_geometries(self):
         if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
