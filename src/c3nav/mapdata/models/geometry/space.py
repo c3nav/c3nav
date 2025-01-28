@@ -82,14 +82,15 @@ class SpaceGeometryMixin(GeometryMixin):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
+        space_location = self.space.get_location()
         result['display'].insert(3, (
             _('Space'),
             {
-                'id': self.space_id,
-                'slug': self.space.effective_slug,
-                'title': self.space.title,
-                'can_search': self.space.can_search,
-            },
+                'id': space_location.pk,
+                'slug': space_location.effective_slug,
+                'title': space_location.title,
+                'can_search': space_location.can_search,
+            } if space_location else None,
         ))
         result['level'] = self.level_id
         return result
