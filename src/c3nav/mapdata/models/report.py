@@ -69,12 +69,6 @@ class Report(models.Model):
         from c3nav.site.forms import ReportIssueForm, ReportMissingLocationForm
         return ReportMissingLocationForm if self.category == 'missing-location' else ReportIssueForm
 
-    @cached_property
-    def location_specific(self):
-        if self.location is None:
-            return None
-        return self.location.get_child()
-
     @classmethod
     def qs_for_request(cls, request):
         if request.user_permissions.review_all_reports:
@@ -137,27 +131,15 @@ class Report(models.Model):
             space = self.coordinates.space
             if space is not None:
                 return reverse('editor.spaces.detail', kwargs={
-                    'pk': space.pk,
-                    'level': space.level_id,
+                    'pk': space.get_target().pk,
+                    'level': space.get_target().level_id,
                 })+'?x=%.2f&y=%.2f' % (self.coordinates.x, self.coordinates.y)
             return None
         elif self.category == 'location-issue':
-            location = self.location_specific
-            if location is None:
+            if self.location is None:
                 return None
-            url_name = 'editor.%s.edit' % location.__class__._meta.default_related_name
-            if isinstance(location, SpaceGeometryMixin):
-                return reverse(url_name, kwargs={
-                    'pk': location.pk,
-                    'space': location.space.pk
-                })
-            if isinstance(location, LevelGeometryMixin):
-                return reverse(url_name, kwargs={
-                    'pk': location.pk,
-                    'level': location.level.pk
-                })
-            return reverse(url_name, kwargs={
-                'pk': location.pk,
+            return reverse('editor.specificlocation.edit', kwargs={
+                'pk': self.location.pk,
             })
 
     def save(self, *args, **kwargs):
