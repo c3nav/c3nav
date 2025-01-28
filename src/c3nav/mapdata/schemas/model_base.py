@@ -195,7 +195,6 @@ class WithGeometrySchema(BaseSchema):
                 format_geojson(smart_mapping(value.geometry), rounded=False)
                 if not getattr(value, '_hide_geometry', False) else None
             ),
-            "point": (value.level_id,) + tuple(round(i, 2) for i in value.point.coords[0]),
             "bounds": ((int(math.floor(minx)), int(math.floor(miny))),
                        (int(math.ceil(maxx)), int(math.ceil(maxy))))
         }
