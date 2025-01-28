@@ -663,6 +663,10 @@ class CustomLocationSchema(BaseSchema):
             "id": value.pk,
             "space": value.space.pk if value.space else None,
             "level": value.level.pk,
+            "areas": [a.pk for a in value.areas],
+            "near_area": value.near_area.pk if value.near_area else None,
+            "near_poi": value.near_poi.pk if value.near_poi else None,
+            "nearby": [l.pk for l in value.nearby],
             "geometry": value.serialized_geometry,
             "grid_square": value.grid_square if grid.enabled else None
         }
