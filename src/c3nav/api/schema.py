@@ -31,8 +31,6 @@ def make_serializable(values: Any):
         if values and isinstance(next(iter(values)), (Model, BaseRouterProxy)):
             return type(values)(val.pk for val in values)
         return type(values)(make_serializable(val) for val in values)
-    if isinstance(values, BaseRouterProxy):
-        return values.pk
     if isinstance(values, Promise):
         # This is needed for lazy attributes that evaluate to `None` to be serialized properly.
         # Without this `None` is returned as the string 'None'.
