@@ -397,6 +397,14 @@ class SpecificLocationTargetMixin(models.Model):
             return None
         return location.effective_icon
 
+    @property
+    def title(self) -> str:
+        try:
+            location = self.location
+        except AttributeError:
+            return super().title
+        return location.title
+
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
         try:
             location = self.location
