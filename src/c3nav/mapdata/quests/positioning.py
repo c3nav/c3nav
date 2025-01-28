@@ -102,8 +102,11 @@ class RangingBeaconBSSIDsQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return RangingBeacon.qs_for_request(request).filter(ap_name__isnull=False, addresses=[],
-                                                            beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
+        return RangingBeacon.qs_for_request(request).select_related('space', 'space__level').filter(
+            ap_name__isnull=False,
+            addresses=[],
+            beacon_type=RangingBeacon.BeaconType.EVENT_WIFI
+        )
 
 
 class BeaconMeasurementQuestForm(ChangeSetModelForm):
