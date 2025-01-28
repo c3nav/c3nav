@@ -169,6 +169,7 @@ class RouteItemSchema(BaseSchema):
         )]
     ]]
 
+
 class RouteSchema(BaseSchema):
     origin: SlimLocationSchema  # todo: is this fine? works? no issues?
     destination: SlimLocationSchema  # todo: is this fine? works? no issues?
