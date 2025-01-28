@@ -54,14 +54,15 @@ class LevelGeometryMixin(GeometryMixin):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
+        level_location = self.level.get_location()
         result['display'].insert(3, (
             _('Level'),
             {
-                'id': self.level_id,
-                'slug': self.level.effective_slug,
-                'title': self.level.title,
-                'can_search': self.level.can_search,
-            },
+                'id': level_location.pk,
+                'slug': level_location.effective_slug,
+                'title': level_location.title,
+                'can_search': level_location.can_search,
+            } if level_location else None,
         ))
         result['level'] = self.level_id
         return result
