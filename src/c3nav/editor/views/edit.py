@@ -158,6 +158,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if hasattr(model, 'q_for_request'):
             qs = qs.filter(model.q_for_request(request))
 
+        if issubclass(model, SpecificLocationTargetMixin):
+            qs = qs.select_related('location')
+
         utils_cls = DefaultEditUtils
         if level is not None:
             # parent object is a level
@@ -572,6 +575,9 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'back_url': reverse('editor.index'),
             'back_title': _('back to overview'),
         })
+
+    if issubclass(model, SpecificLocationTargetMixin):
+        queryset = queryset.select_related('location')
 
     edit_url_name = resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
     for obj in queryset:
