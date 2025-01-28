@@ -1,10 +1,9 @@
 import os
 
-from django.db.models.signals import m2m_changed, post_delete
+from django.db.models.signals import m2m_changed
 from shapely.ops import unary_union
 
 from c3nav.mapdata.utils.cache.maphistory import MapHistory
-from c3nav.mapdata.utils.models import get_submodels
 
 
 class GeometryChangeTracker:
