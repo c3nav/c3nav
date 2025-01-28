@@ -209,6 +209,10 @@ class SpecificLocation(Location, models.Model):
             )), name="only_one_specific_location_target"),
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._orig = {"target": self.get_target()}
+
     def get_target(self):
         if self.level_id:
             return self.level
@@ -346,6 +350,29 @@ class SpecificLocation(Location, models.Model):
                 return group.external_url_label
         return None
 
+    def register_changed_geometries(self, force=False):
+        target = self.get_target()
+        if target != self._orig["target"]:
+            self._orig["target"].register_change(force=True)
+            target.register_change(force=True)
+        elif force:
+            target.register_change(force=True)
+
+    def pre_save_changed_geometries(self):
+        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
+            self.register_changed_geometries()
+
+    def save(self, *args, **kwargs):
+        self.pre_save_changed_geometries()
+        super().save(*args, **kwargs)
+
+    def pre_delete_changed_geometries(self):
+        self.register_changed_geometries(force=True)
+
+    def delete(self, *args, **kwargs):
+        self.pre_delete_changed_geometries()
+        super().delete(*args, **kwargs)
+
 
 class SpecificLocationTargetMixin(models.Model):
     location: SpecificLocation
@@ -421,17 +448,8 @@ class LocationGroupCategory(SerializableMixin, models.Model):
         ordering = ('-priority', )
 
     def register_changed_geometries(self):
-        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-        query = self.groups.all()
-        for model in get_submodels(SpecificLocation):
-            related_name = model._meta.default_related_name
-            subquery = model.objects.all()
-            if issubclass(model, SpaceGeometryMixin):
-                subquery = subquery.select_related('space')
-            query.prefetch_related(Prefetch('groups__'+related_name, subquery))
-
-        for group in query:
-            group.register_changed_geometries(do_query=False)
+        for group in  self.groups.prefetch_related('groups__specific_locations'):
+            group.register_changed_geometries()
 
     def pre_save_changed_geometries(self):
         if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
@@ -538,15 +556,9 @@ class LocationGroup(Location, models.Model):
             attributes.append(_('internal'))
         return self.title + ' ('+', '.join(str(s) for s in attributes)+')'
 
-    def register_changed_geometries(self, do_query=True):
-        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-        for model in get_submodels(SpecificLocation):
-            query = getattr(self, model._meta.default_related_name).all()
-            if do_query:
-                if issubclass(model, SpaceGeometryMixin):
-                    query = query.select_related('space')
-            for obj in query:
-                obj.register_change(force=True)
+    def register_changed_geometries(self):
+        for obj in self.specific_locations.all():
+            obj.register_change(force=True)
 
     @property
     def subtitle(self):
