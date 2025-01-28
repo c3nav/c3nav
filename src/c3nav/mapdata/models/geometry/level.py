@@ -54,15 +54,9 @@ class LevelGeometryMixin(GeometryMixin):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        level_location = self.level.get_location()
         result['display'].insert(3, (
             _('Level'),
-            {
-                'id': level_location.pk,
-                'slug': level_location.effective_slug,
-                'title': level_location.title,
-                'can_search': level_location.can_search,
-            } if level_location else None,
+            self.level.for_details_display(),
         ))
         result['level'] = self.level_id
         return result
@@ -163,6 +157,17 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
         if editor_url:
             result['editor_url'] = reverse('editor.spaces.detail', kwargs={'level': self.level_id, 'pk': self.pk})
         return result
+
+    def for_details_display(self):
+        location = self.get_location()
+        if location:
+            return {
+                'id': location.pk,
+                'slug': location.effective_slug,
+                'title': location.title,
+                'can_search': location.can_search,
+            }
+        return _('Unnamed space')
 
 
 class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
