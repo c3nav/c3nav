@@ -329,30 +329,30 @@ class CustomLocation:
                     'can_search': self.level.can_search,
                 }),
                 (_('Space'), {
-                    'id': self.space.pk,
-                    'slug': self.space.effective_slug,
-                    'title': self.space.title,
-                    'can_search': self.space.can_search,
-                } if self.space else None),
+                    'id': self.description.space.pk,
+                    'slug': self.description.space.effective_slug,
+                    'title': self.description.space.title,
+                    'can_search': self.description.space.can_search,
+                } if self.description.space else None),
                 (_('Areas'), tuple({
                     'id': area.pk,
                     'slug': area.effective_slug,
                     'title': area.title,
                     'can_search': area.can_search,
-                } for area in self.areas)),
+                } for area in self.description.areas)),
                 (_('Grid Square'), self.grid_square or None),
                 (_('Near Area'), {
-                    'id': self.near_area.pk,
-                    'slug': self.near_area.effective_slug,
-                    'title': self.near_area.title,
-                    'can_search': self.near_area.can_search,
-                } if self.near_area else None),
+                    'id': self.description.near_area.pk,
+                    'slug': self.description.near_area.effective_slug,
+                    'title': self.description.near_area.title,
+                    'can_search': self.description.near_area.can_search,
+                } if self.description.near_area else None),
                 (_('Near POI'), {
-                    'id': self.near_poi.pk,
-                    'slug': self.near_poi.effective_slug,
-                    'title': self.near_poi.title,
-                    'can_search': self.near_poi.can_search,
-                } if self.near_poi else None),
+                    'id': self.description.near_poi.pk,
+                    'slug': self.description.near_poi.effective_slug,
+                    'title': self.description.near_poi.title,
+                    'can_search': self.description.near_poi.can_search,
+                } if self.description.near_poi else None),
                 (_('X Coordinate'), str(self.x)),
                 (_('Y Coordinate'), str(self.y)),
                 (_('Altitude'), None if self.altitude is None else str(round(self.altitude, 2))),
@@ -412,18 +412,18 @@ class CustomLocation:
             return title, level_subtitle
 
         subtitle = ()
-        if self.near_poi:
-            title = _('Near %(poi)s') % {'poi': self.near_poi.title}
-            if self.areas:
-                subtitle = (area.title for area in self.areas[:2])
-            elif self.near_area:
-                subtitle = (_('near %(area)s') % {'area': self.near_area.title}, )
-        elif self.areas:
-            title = _('In %(area)s') % {'area': self.areas[0].title}
-            if self.areas:
-                subtitle = (area.title for area in self.areas[1:2])
-        elif self.near_area:
-            title = _('Near %(area)s') % {'area': self.near_area.title}
+        if self.description.near_poi:
+            title = _('Near %(poi)s') % {'poi': self.description.near_poi.title}
+            if self.description.areas:
+                subtitle = (area.title for area in self.description.areas[:2])
+            elif self.description.near_area:
+                subtitle = (_('near %(area)s') % {'area': self.description.near_area.title}, )
+        elif self.description.areas:
+            title = _('In %(area)s') % {'area': self.description.areas[0].title}
+            if self.description.areas:
+                subtitle = (area.title for area in self.description.areas[1:2])
+        elif self.description.near_area:
+            title = _('Near %(area)s') % {'area': self.description.near_area.title}
         else:
             return _('In %(space)s') % {'space': self.space.title}, level_subtitle
 
