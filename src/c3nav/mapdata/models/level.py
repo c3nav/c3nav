@@ -97,6 +97,17 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
             result['editor_url'] = reverse('editor.levels.detail', kwargs={'pk': self.pk})
         return result
 
+    def for_details_display(self):
+        location = self.level.get_location()
+        if location:
+            return {
+                'id': location.pk,
+                'slug': location.effective_slug,
+                'title': location.title,
+                'can_search': location.can_search,
+            }
+        return self.title
+
     @cached_property
     def min_altitude(self):
         return min(self.altitudeareas.all(), key=attrgetter('altitude'), default=self.base_altitude).altitude
@@ -113,4 +124,4 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
 
     @property
     def title(self):
-        return self._meta.verbose_name + ' ' + str(self.short_label)
+        return _('Level %(short_label)s') % {"short_label": self.short_label}
