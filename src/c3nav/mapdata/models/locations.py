@@ -367,8 +367,7 @@ class SpecificLocation(Location, models.Model):
                 target.register_change(force=True)
 
     def pre_save_changed_geometries(self):
-        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
-            self.register_changed_geometries()
+        self.register_changed_geometries()
 
     def save(self, *args, **kwargs):
         self.pre_save_changed_geometries()
