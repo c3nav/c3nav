@@ -78,22 +78,15 @@ changed_geometries = GeometryChangeTracker()  # todo: no longer needed if we use
 def locationgroup_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
     if action not in ('post_add', 'post_remove', 'post_clear'):
         return
-    print("locationgroup_changed", instance, action, pk_set)
-
-    return
-    # todo: track changes properly!
 
     if not reverse:
-        instance.register_change(force=True)
+        instance.register_changed_geometries(force=True)
     else:
-        if action not in 'post_clear':
+        if action not in ('post_clear', ):
             raise NotImplementedError
-        query = model.objects.filter(pk__in=pk_set)
-        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-        if issubclass(model, SpaceGeometryMixin):
-            query = query.select_related('space')
-        for obj in query:
-            obj.register_change(force=True)
+        from c3nav.mapdata.models.locations import SpecificLocation
+        for obj in SpecificLocation.objects.filter(pk__in=pk_set):
+            obj.register_changed_geometries(force=True)
 
 
 def register_signals():
