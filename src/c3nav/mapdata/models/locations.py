@@ -203,20 +203,15 @@ class SpecificLocation(Location, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._orig = {"target": (self.level_id, self.space_id, self.area_id, self.poi_id, self.dynamiclocation_id)}
 
-    def get_target(self):
-        if self.level_id:
-            return self.level
-        if self.space_id:
-            return self.space
-        if self.area_id:
-            return self.area
-        if self.poi_id:
-            return self.poi
-        if self.dynamiclocation_id:
-            return self.dynamiclocation
-        return None
+    def get_targets(self):
+        return chain(
+            self.levels.all(),
+            self.spaces.all(),
+            self.areas.all(),
+            self.pois.all(),
+            self.dynamiclocations.all(),
+        )
 
     @property
     def effective_label_settings(self):
@@ -228,16 +223,19 @@ class SpecificLocation(Location, models.Model):
         return None
 
     @property
-    def point(self):
-        return self.get_target().point
+    def points(self) -> list[LocationPoint]:
+        return list(filter(None, (target.point for target in self.get_targets())))
 
     @property
-    def bounds(self):
-        return self.get_target().bounds
+    def bounds(self) -> BoundsSchema:
+        # todo: per level?
+        zipped_bounds = tuple(zip(*(chain(*target.bounds) for target in self.get_targets())))
+        return (min(zipped_bounds[0]), min(zipped_bounds[1])), (max(zipped_bounds[2]), max(zipped_bounds[3]))
 
     @property
     def grid_square(self):
-        return self.get_target().grid_square
+        # todo: per level? remove if multi-level?
+        return grid.get_squares_for_bounds(self.bounds)
 
     @property
     def groups_by_category(self):
@@ -290,7 +288,12 @@ class SpecificLocation(Location, models.Model):
                                        grid_square=self.grid_square)
             else:
                 subtitle = self.grid_square
-        target_subtitle = self.get_target().subtitle
+        targets = tuple(self.get_targets())
+        if len(targets) == 1:
+            target_subtitle = targets[0].subtitle
+        else:
+            # todo: merge these, maybe?
+            target_subtitle = None
         if target_subtitle:
             if subtitle:
                 subtitle = format_lazy(_('{subtitle}, {space_level_etc}'),
@@ -299,7 +302,8 @@ class SpecificLocation(Location, models.Model):
             else:
                 subtitle = target_subtitle
         if subtitle is None:
-            subtitle = _('Location')
+            # todo: this could probably be better?
+            subtitle = _('Location') if len(targets) == 1 else _('Locations')
         return subtitle
 
     @cached_property
@@ -339,8 +343,7 @@ class SpecificLocation(Location, models.Model):
                 for old_target in target_model.objects.filter(pk=target_id):
                     old_target.register_change(force=True)
         if changed or force:
-            target = self.get_target()
-            if target:
+            for target in self.get_targets():
                 target.register_change(force=True)
 
     def pre_save_changed_geometries(self):
