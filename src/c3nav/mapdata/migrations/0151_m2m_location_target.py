@@ -54,7 +54,8 @@ def make_location_target_o2o(apps, model_name):
                               f'creating area to resolve conflict.\n    ...', end='')
                         set_target = Area.objects.create(
                             space=target,
-                            geometry=convex_hull(unwrap_geom(target.geometry)).buffer(0.5)
+                            geometry=convex_hull(unwrap_geom(target.geometry)).buffer(0.5, join_style="round",
+                                                                                      quad_segs=1)
                         )
                     else:
                         print(f'Location "{location.title}" reuses {target_type}, '
