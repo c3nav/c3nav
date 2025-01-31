@@ -68,12 +68,12 @@ class Router:
 
     @classmethod
     def rebuild(cls, update):
-        levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'location__groups',
-                                                      'spaces__holes', 'spaces__columns', 'spaces__location__groups',
+        levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'locations__groups',
+                                                      'spaces__holes', 'spaces__columns', 'spaces__locations__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
                                                       'spaces__graphnodes',
-                                                      'spaces__areas', 'spaces__areas__location__groups',
-                                                      'spaces__pois',  'spaces__pois__location__groups')
+                                                      'spaces__areas', 'spaces__areas__locations__groups',
+                                                      'spaces__pois',  'spaces__pois__locations__groups')
 
         levels: dict[int, RouterLevel] = {}
         spaces: dict[int, RouterSpace] = {}
