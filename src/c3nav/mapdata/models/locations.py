@@ -167,11 +167,11 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
         return None
 
 
-class SpecificLocationManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().select_related(
-            'level', 'space', 'area', 'poi', 'dynamiclocation'
-        )  # .prefetch_related('slug_set')  # todo: put this back in?
+# class SpecificLocationManager(models.Manager):
+#     def get_queryset(self):
+#         return super().get_queryset().select_related(
+#             'level', 'space', 'area', 'poi', 'dynamiclocation'
+#         )  # .prefetch_related('slug_set')  # todo: put this back in?
 
 
 possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation')  # todo: can we generate this?
@@ -193,8 +193,6 @@ class SpecificLocation(Location, models.Model):
     areas = models.ManyToManyField('Area', related_name='locations')
     pois = models.ManyToManyField('POI', related_name='locations')
     dynamiclocations = models.ManyToManyField('DynamicLocation', related_name='locations')
-
-    objects = SpecificLocationManager()
 
     class Meta:
         verbose_name = _('Specific Location')
@@ -362,33 +360,36 @@ class SpecificLocation(Location, models.Model):
 
 
 class SpecificLocationTargetMixin(models.Model):
-    location: SpecificLocation
-
     class Meta:
         abstract = True
 
+    @cached_property
+    def sorted_locations(self) -> list[SpecificLocation]:
+        """
+        highest priority first
+        """
+        # noinspection PyUnresolvedReferences
+        return sorted(self.locations.all(), key=attrgetter("order"), reverse=True)
+
     @property
     def effective_icon(self) -> str | None:
-        try:
-            location = self.location
-        except AttributeError:
+        # todo: do we want this method, at all?
+        # todo: enhance performance using generator
+        icons = [location.effective_icon for location in self.sorted_locations if location.effective_icon]
+        if not icons:
             return None
-        return location.effective_icon
+        return icons[0]
 
     @property
     def title(self) -> str:
-        try:
-            location = self.location
-        except AttributeError:
-            return super().title
-        return location.title
+        return self.sorted_locations[0].title if self.sorted_locations else None
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        try:
-            location = self.location
-        except AttributeError:
+        # todo: enhance performance using generator
+        colors = list(filter(None, [location.get_color(color_manager) for location in self.sorted_locations]))
+        if not colors:
             return None
-        return self.location.get_color(color_manager)
+        return colors[0]
 
     @property
     def point(self) -> typing.Optional[LocationPoint]:
@@ -407,16 +408,16 @@ class SpecificLocationTargetMixin(models.Model):
         return None
 
     def get_color_sorted(self, color_manager) -> tuple[tuple, str] | None:
-        try:
-            return self.location.get_color_sorted(color_manager)
-        except SpecificLocation.DoesNotExist:
+        # todo: enhance performance using generator
+        color_sorted = list(filter(None, [location.get_color_sorted(color_manager)
+                                          for location in self.sorted_locations]))
+        if not color_sorted:
             return None
+        return color_sorted[0]
 
     def get_location(self, can_describe=False) -> typing.Optional[SpecificLocation]:
-        try:
-            return self.location if not can_describe or self.location.can_describe else None
-        except SpecificLocation.DoesNotExist:
-            return None
+        # todo: do we want to get rid of this?
+        return self.sorted_locations[0] if self.sorted_locations else None
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
@@ -557,7 +558,7 @@ class LocationGroup(Location, models.Model):
     @property
     def subtitle(self):
         result = self.category.title
-        if hasattr(self, 'locations'):
+        if hasattr(self, 'locations'):  # todo: improve?
             return format_lazy(_('{category_title}, {num_locations}'),
                                category_title=result,
                                num_locations=(ngettext_lazy('%(num)d location', '%(num)d locations', 'num') %
