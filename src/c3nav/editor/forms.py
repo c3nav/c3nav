@@ -549,7 +549,8 @@ class LinkSpecificLocationForm(Form):
         super().__init__(*args, **kwargs)
 
     specific_location = ModelChoiceField(
-        SpecificLocation.objects.filter(level=None, space=None, area=None, poi=None, dynamiclocation=None),
+        # todo: q_for_request!
+        SpecificLocation.qs_for_request(None),
         required=False,
         widget=TextInput(),
         label=_('Add specific location by ID'),

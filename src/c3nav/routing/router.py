@@ -450,6 +450,7 @@ class Router:
         nearby = tuple(location for location, distance in nearby[:max(20, min_i)])
         return CustomLocationDescription(
             space=space.get_location(can_describe=True) if space else None,
+            space_geometry=space,
             altitude=altitude,
             areas=tuple(filter(None, (area.get_location(can_describe=True) for area in areas))),
             near_area=near_area.get_location(can_describe=True) if near_area else None,
@@ -596,7 +597,9 @@ class Router:
 
 
 class CustomLocationDescription(NamedTuple):
+    # todo: space and space_geometry? this could clearly be much better
     space: Optional[SpecificLocation]
+    space_geometry: Optional["RouterSpace"]
     altitude: Optional[float]
     areas: Sequence[SpecificLocation]
     near_area: Optional[SpecificLocation]

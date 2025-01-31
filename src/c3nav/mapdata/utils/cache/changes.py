@@ -80,8 +80,10 @@ def locationgroup_changed(sender, instance, action, reverse, model, pk_set, usin
         return
 
     if not reverse:
+        # the groups of a specific location were changed
         instance.register_changed_geometries(force=True)
     else:
+        # the specificlocations of a group were changed
         if action not in ('post_clear', ):
             raise NotImplementedError
         from c3nav.mapdata.models.locations import SpecificLocation
@@ -89,6 +91,32 @@ def locationgroup_changed(sender, instance, action, reverse, model, pk_set, usin
             obj.register_changed_geometries(force=True)
 
 
+def specificlocation_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+
+    if not reverse:
+        # the locations of a specific location target were changed
+        instance.register_change(force=True)
+    else:
+        # the targets of a specific location were changed
+        if action not in ('post_clear',):
+            raise NotImplementedError
+        query = model.objects.filter(pk__in=pk_set)
+        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
+        if issubclass(model, SpaceGeometryMixin):
+            query = query.select_related('space')   # todo… ??? needed?
+        for obj in query:
+            obj.register_change(force=True)
+
+
 def register_signals():
     from c3nav.mapdata.models.locations import SpecificLocation
     m2m_changed.connect(locationgroup_changed, sender=SpecificLocation.groups.through)
+    from c3nav.mapdata.models import Level
+    from c3nav.mapdata.models import Space
+    from c3nav.mapdata.models import Area
+    from c3nav.mapdata.models import POI
+    from c3nav.mapdata.models.locations import DynamicLocation
+    for target_type in (Level, Space, Area, POI, DynamicLocation):
+        m2m_changed.connect(specificlocation_changed, sender=target_type.locations.through)
