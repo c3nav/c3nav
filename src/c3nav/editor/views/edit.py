@@ -208,7 +208,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     }
 
     if not new and isinstance(obj, SpecificLocation):
-        # redirect to editing the target
         target_obj = obj.get_target()
         if target_obj is None:
             ctx["secondary"] = {
