@@ -188,11 +188,11 @@ class SpecificLocation(Location, models.Model):
     load_group_display = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                            related_name='+', verbose_name=_('display load group'))
 
-    level = models.OneToOneField('Level', null=True, on_delete=models.PROTECT, related_name='location')
-    space = models.OneToOneField('Space', null=True, on_delete=models.PROTECT, related_name='location')
-    area = models.OneToOneField('Area', null=True, on_delete=models.PROTECT, related_name='location')
-    poi = models.OneToOneField('POI', null=True, on_delete=models.PROTECT, related_name='location')
-    dynamiclocation = models.OneToOneField('DynamicLocation', null=True, on_delete=models.PROTECT, related_name='location')
+    levels = models.ManyToManyField('Level', related_name='locations')
+    spaces = models.ManyToManyField('Space', related_name='locations')
+    areas = models.ManyToManyField('Area', related_name='locations')
+    pois = models.ManyToManyField('POI', related_name='locations')
+    dynamiclocations = models.ManyToManyField('DynamicLocation', related_name='locations')
 
     objects = SpecificLocationManager()
 
@@ -200,13 +200,6 @@ class SpecificLocation(Location, models.Model):
         verbose_name = _('Specific Location')
         verbose_name_plural = _('Specific Locations')
         default_related_name = 'specific_locations'
-
-        constraints = [
-            models.CheckConstraint(condition=reduce(operator.or_, (
-                Q(**{f'{name}__isnull': (name != set_name) for name in possible_specific_locations})
-                for set_name in (*possible_specific_locations, None)
-            )), name="only_one_specific_location_target"),
-        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -224,22 +217,6 @@ class SpecificLocation(Location, models.Model):
         if self.dynamiclocation_id:
             return self.dynamiclocation
         return None
-
-    @classmethod
-    def q_for_request(cls, request, prefix='', allow_none=False):
-        from c3nav.mapdata.models import Level
-        from c3nav.mapdata.models import Space
-        from c3nav.mapdata.models import Area
-        from c3nav.mapdata.models.geometry.space import POI
-        return (
-            super().q_for_request(request, prefix=prefix, allow_none=allow_none)
-            & (Q(level__isnull=True) | Level.q_for_request(request, prefix=prefix + 'level__', allow_none=allow_none))
-            & (Q(space__isnull=True) | Space.q_for_request(request, prefix=prefix + 'space__', allow_none=allow_none))
-            & (Q(area__isnull=True) | Area.q_for_request(request, prefix=prefix + 'area__', allow_none=allow_none))
-            & (Q(poi__isnull=True) | POI.q_for_request(request, prefix=prefix + 'poi__', allow_none=allow_none))
-            & (Q(dynamiclocation__isnull=True) |
-               DynamicLocation.q_for_request(request, prefix=prefix + 'dynamiclocation__', allow_none=allow_none))
-        )
 
     @property
     def effective_label_settings(self):
