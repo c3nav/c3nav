@@ -18,7 +18,7 @@ from django.views.decorators.http import etag
 from shapely import LineString
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm, \
-    LinkSpecificLocationForm, UnlinkSpecificLocationForm
+    LinkSpecificLocationForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
@@ -159,7 +159,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             qs = qs.filter(model.q_for_request(request))
 
         if issubclass(model, SpecificLocationTargetMixin):
-            qs = qs.select_related('location')
+            # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
+            qs = qs.prefetch_related('locations__groups')
 
         utils_cls = DefaultEditUtils
         if level is not None:
@@ -207,23 +208,36 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     }
 
     if not new and isinstance(obj, SpecificLocation):
-        target_obj = obj.get_target()
-        if target_obj is None:
+        targets = list(obj.get_targets())
+        if not targets:
             ctx["secondary"] = {
-                "title": _('Target'),
-                "text": _('This specific location has no target'),
+                "title": _('Targets'),
+                "text": _('This specific location has no targets'),
             }
         else:
-            reverse_kwargs = {'pk': target_obj.pk}
-            if hasattr(target_obj, "space_id"):
-                reverse_kwargs["space"] = target_obj.space_id
-            elif hasattr(target_obj, "level_id"):
-                reverse_kwargs["level"] = target_obj.level_id
+            target_links = []
+            for target_obj in targets:
+                reverse_kwargs = {'pk': target_obj.pk}
+                if hasattr(target_obj, "space_id"):
+                    reverse_kwargs["space"] = target_obj.space_id
+                elif hasattr(target_obj, "level_id"):
+                    reverse_kwargs["level"] = target_obj.level_id
+                target_title = str(target_obj.title)
+                if str(obj.title) != target_title:
+                    target_links.append(_('Go to target %(target_type)s #%(target_id)d (%(target_title)s)') % {
+                        "target_type": target_obj._meta.verbose_name,
+                        "target_id": target_obj.pk,
+                        "target_title": target_title,
+                    })
+                else:
+                    target_links.append(_('Go to target %(target_type)s #%(target_id)d') % {
+                        "target_type": target_obj._meta.verbose_name,
+                        "target_id": target_obj.pk,
+                    })
 
             ctx["secondary"] = {
-                "title": _('Target'),
-                "text": _('Go to target %(target_type)s') % {"target_type": target_obj._meta.verbose_name},
-                "url": reverse('editor.' + target_obj._meta.default_related_name + '.edit', kwargs=reverse_kwargs),
+                "title": _('Targets'),
+                "text": f'<ul><li>{'</li><li>'.join(target_links)}</li></ul>',
             }
 
     with suppress(FieldDoesNotExist):
@@ -339,19 +353,11 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     specific_location_form_cls = None
     if not new and isinstance(obj, SpecificLocationTargetMixin):
-        ctx["secondary"] = {"title": SpecificLocation._meta.verbose_name}
-        try:
-            specific_location = obj.location
-        except SpecificLocation.DoesNotExist:
-            specific_location_form_cls = LinkSpecificLocationForm
-            ctx["secondary"]["text"] = (_('There is no specific location associated with this %(target_type)s.')
+        specific_location_form_cls = LinkSpecificLocationForm
+        ctx["secondary"] = {"title": SpecificLocation._meta.verbose_name_plural}
+        if not obj.locations.all():
+            ctx["secondary"]["text"] = (_('There are no specific location associated with this %(target_type)s.')
                                         % {"target_type": obj._meta.verbose_name})
-        else:
-            specific_location_form_cls = UnlinkSpecificLocationForm
-            ctx["secondary"].update({
-                "text": _('Go to specific location “%(title)s”') % {"title": specific_location.title},
-                "url": reverse('editor.specific_locations.edit', kwargs={"pk": specific_location.pk}),
-            })
 
     error = None
     delete = getattr(request, 'is_delete', None)
@@ -434,7 +440,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if "door" in ctx:
             secondary_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges)
         elif specific_location_form_cls:
-            secondary_form = specific_location_form_cls(target=obj)
+            secondary_form = specific_location_form_cls(request=request, target=obj)
 
         if secondary_form is not None:
             ctx["secondary"]["form"] = secondary_form
@@ -576,7 +582,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         })
 
     if issubclass(model, SpecificLocationTargetMixin):
-        queryset = queryset.select_related('location')
+        # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
+        queryset = queryset.prefetch_related('locations__groups')
 
     edit_url_name = resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
     for obj in queryset:

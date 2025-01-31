@@ -11,6 +11,7 @@ from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.mapdata.models import Level, Space, GraphNode, Door, LocationGroup, Building, GraphEdge, DataOverlayFeature
 from c3nav.mapdata.models.geometry.space import Column, Hole, AltitudeMarker, BeaconMeasurement, RangingBeacon, Area, \
     POI
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
@@ -149,7 +150,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         Prefetch('spaces__columns', Column.objects.filter(
             Q(access_restriction__isnull=True) | ~Column.q_for_request(request)
         ).only('geometry', 'space')),
-        Prefetch('spaces__location__groups', LocationGroup.objects.only(
+        Prefetch('spaces__locations__groups', LocationGroup.objects.only(
             'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
         )),
         Prefetch('buildings', Building.objects.only('geometry', 'level')),
@@ -228,9 +229,9 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
 
         levels_for_level = LevelsForLevel.for_level(request, level.primary_level, special_if_on_top=True)
         other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels_for_level.levels).only(
-            'geometry', 'level', 'location',
+            'geometry', 'level',
         ).prefetch_related(
-            Prefetch('location__groups', LocationGroup.objects.only(
+            Prefetch('locations__groups', LocationGroup.objects.only(
                 'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
             ).filter(color__isnull=False))
         )
@@ -286,7 +287,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
     areas = space.areas.filter(Area.q_for_request(request)).only(
         'geometry', 'space'
     ).prefetch_related(
-        Prefetch('location__groups', LocationGroup.objects.order_by(
+        Prefetch('locations__groups', LocationGroup.objects.order_by(
             '-category__priority', '-hierarchy', '-priority'
         ).only(
             'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_areas'
@@ -313,7 +314,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         space.beacon_measurements.all().only('geometry', 'space'),
         space.ranging_beacons.all().only('geometry', 'space'),
         space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
-            Prefetch('location__groups', LocationGroup.objects.only(
+            Prefetch('locations__groups', LocationGroup.objects.only(
                 'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
             ).filter(color__isnull=False))
         ),
