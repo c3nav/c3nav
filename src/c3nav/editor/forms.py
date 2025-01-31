@@ -15,6 +15,8 @@ from django.db.models.fields.reverse_related import ManyToManyRel
 from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, JSONField, ModelChoiceField,
                           ModelForm, MultipleChoiceField, Select, ValidationError)
 from django.forms.widgets import HiddenInput, TextInput
+from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from shapely.geometry.geo import mapping
@@ -544,33 +546,32 @@ class DoorGraphForm(Form):
 
 class LinkSpecificLocationForm(Form):
     # todo: jo, permissions and stuff!
-    def __init__(self, *args, target, **kwargs):
-        self.target = target
+    def __init__(self, *args, request, target, **kwargs):
         super().__init__(*args, **kwargs)
+        self.target = target
 
-    specific_location = ModelChoiceField(
-        # todo: q_for_request!
-        SpecificLocation.qs_for_request(None),
-        required=False,
-        widget=TextInput(),
-        label=_('Add specific location by ID'),
-        help_text=_('You can only specify a location that is not linked to anything.'),
-    )
+        specific_locations = tuple(target.locations.all())
+        for location in specific_locations:
+            self.fields[f"unlink_{location.pk}"] = BooleanField(
+                required=False,
+                label=_('Unlink %(title)s') % {'title': format_html(
+                '<a href="{url}">{title}</a>',
+                    url=reverse('editor.specific_locations.edit', kwargs={"pk": location.pk}),
+                    title=location.title,
+                )},
+            )
+
+        self.fields["link"] = ModelChoiceField(
+            SpecificLocation.qs_for_request(request),
+            required=False,
+            widget=TextInput(),
+            label=_('Add specific location by ID'),
+        )
 
     def save(self):
-        specific_location = self.cleaned_data["specific_location"]
-        setattr(specific_location, self.target._meta.model_name.replace('_', ''), self.target)
-        specific_location.save()
-
-
-class UnlinkSpecificLocationForm(Form):
-    def __init__(self, *args, target, **kwargs):
-        self.target = target
-        super().__init__(*args, **kwargs)
-
-    unlink_specific_location = BooleanField(label=_('Unlink specific location'), required=False)
-
-    def save(self):
-        specific_location = self.target.location
-        setattr(specific_location, self.target._meta.model_name.replace('_', ''), None)
-        specific_location.save()
+        remove_ids = {location.pk for location in self.target.locations.all()
+                      if self.cleaned_data.get(f"unlink_{location.pk}")}
+        if remove_ids:
+            self.target.locations.remove(*remove_ids)
+        if self.cleaned_data["link"]:
+            self.target.locations.add(self.cleaned_data["link"])
