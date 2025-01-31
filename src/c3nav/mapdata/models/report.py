@@ -128,11 +128,12 @@ class Report(models.Model):
     @cached_property
     def editor_url(self):
         if self.category == 'missing-location':
-            space = self.coordinates.space
+            # todo: isn't this annying that this is how the space is referred? by location??
+            space = self.coordinates.space_geometry
             if space is not None:
                 return reverse('editor.spaces.detail', kwargs={
-                    'pk': space.get_target().pk,
-                    'level': space.get_target().level_id,
+                    'pk': space.pk,
+                    'level': space.level_id,
                 })+'?x=%.2f&y=%.2f' % (self.coordinates.x, self.coordinates.y)
             return None
         elif self.category == 'location-issue':
