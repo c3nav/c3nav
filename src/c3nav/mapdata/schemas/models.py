@@ -323,7 +323,7 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
         title="load group to display",
     )
 
-    point: Optional[LocationPoint]
+    points: list[LocationPoint]
     bounds: Optional[BoundsSchema]
 
 
