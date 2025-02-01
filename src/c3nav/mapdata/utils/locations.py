@@ -19,9 +19,9 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.geometry.level import LevelGeometryMixin, Space
-from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
+from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
+from c3nav.mapdata.models.geometry.space import POI, Area, SpaceGeometryMixin
+from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation, DynamicLocation
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
@@ -48,7 +48,12 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
         **{location.pk: location for location in SpecificLocation.objects.prefetch_related(
             Prefetch('groups', LocationGroup.qs_for_request(request).select_related(
                 'category', 'label_settings'
-            ).prefetch_related("slug_set"))
+            ).prefetch_related("slug_set")),
+            Prefetch('levels', Level.qs_for_request(request)),
+            Prefetch('spaces', Space.qs_for_request(request)),
+            Prefetch('areas', Area.qs_for_request(request)),
+            Prefetch('pois', POI.qs_for_request(request)),
+            Prefetch('dynamiclocations', DynamicLocation.qs_for_request(request)),
         ).select_related('label_settings').prefetch_related("slug_set")},
         **{group.pk: group for group in LocationGroup.objects.select_related(
             'category', 'label_settings'
@@ -75,19 +80,19 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
     for pk, obj in locations.items():
         if not isinstance(obj, SpecificLocation):
             continue
-        target = obj.get_target()
-        if isinstance(target, LevelGeometryMixin):
-            level = levels.get(target.level_id, None)
-            if level is None:
-                remove_pks.add(pk)
-                continue
-            target.level = level
-        elif isinstance(target, SpaceGeometryMixin):
-            space = spaces.get(target.space_id, None)
-            if space is None:
-                remove_pks.add(pk)
-                continue
-            target.space = space
+        targets = tuple(obj.get_targets())
+        for target in targets:
+            if isinstance(target, LevelGeometryMixin):
+                level = levels.get(target.level_id, None)
+                if level is not None:
+                    target.level = level
+            elif isinstance(target, SpaceGeometryMixin):
+                space = spaces.get(target.space_id, None)
+                if space is not None:
+                    target.space = space
+        # todo: we don't want to remove things for groups of course, so once we merge these in… keep that in mind
+        if not targets:
+            remove_pks.add(pk)
 
     # hide locations in hidden spaces or levels
     for pk in remove_pks:
