@@ -443,7 +443,7 @@ class SpecificLocationTargetMixin(models.Model):
 
     def get_location(self, can_describe=False) -> typing.Optional[SpecificLocation]:
         # todo: do we want to get rid of this?
-        return self.sorted_locations[0] if self.sorted_locations else None
+        return next(iter((*(location for location in self.sorted_locations if location.can_describe), None)))
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
