@@ -756,7 +756,7 @@ class CustomLocationLocationSchema(CustomLocationSchema, LocationTypeSchema):
     See CustomLocation schema for details.
     """
     locationtype: Literal["customlocation"] = LocationTypeAPIField()
-    point: LocationPoint
+    points: list[LocationPoint]
     bounds: BoundsByLevelSchema
 
 
