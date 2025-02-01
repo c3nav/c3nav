@@ -80,15 +80,6 @@ class SpaceGeometryMixin(GeometryMixin):
                 unwrap_geom(self.geometry if force or self._state.adding else self.get_changed_geometry()).buffer(0)
             ))
 
-    def details_display(self, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].insert(3, (
-            _('Space'),
-            self.space.for_details_display(),
-        ))
-        result['level'] = self.level_id
-        return result
-
     def register_delete(self):
         space = self.space
         changed_geometries.register(space.level_id, space.geometry.intersection(unwrap_geom(self.geometry)))
@@ -131,12 +122,6 @@ class Area(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMix
         verbose_name = _('Area')
         verbose_name_plural = _('Areas')
         default_related_name = 'areas'
-
-    def details_display(self, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
-        if editor_url:
-            result['editor_url'] = reverse('editor.areas.edit', kwargs={'space': self.space_id, 'pk': self.pk})
-        return result
 
 
 class Stair(SpaceGeometryMixin, models.Model):
@@ -297,12 +282,6 @@ class POI(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixi
         verbose_name = _('Point of Interest')
         verbose_name_plural = _('Points of Interest')
         default_related_name = 'pois'
-
-    def details_display(self, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
-        if editor_url:
-            result['editor_url'] = reverse('editor.pois.edit', kwargs={'space': self.space_id, 'pk': self.pk})
-        return result
 
     @property
     def x(self):
