@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from itertools import chain
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
 from django.db.models import Prefetch, Q
 from shapely import prepared
@@ -11,14 +11,12 @@ from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.mapdata.models import Level, Space, GraphNode, Door, LocationGroup, Building, GraphEdge, DataOverlayFeature
 from c3nav.mapdata.models.geometry.space import Column, Hole, AltitudeMarker, BeaconMeasurement, RangingBeacon, Area, \
     POI
-from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
 def space_sorting_func(space):
-    try:
-        location = space.location
-    except AttributeError:
+    location = space.get_location()
+    if location is None:
         return (0, 0, 0)
     groups = tuple(location.groups.all())
     if not groups:
@@ -107,9 +105,8 @@ class LevelsForLevel:
 
 
 def area_sorting_func(area):
-    try:
-        location = area.location
-    except AttributeError:
+    location = area.get_location()
+    if location is None:
         return (0, 0, 0)
     groups = tuple(location.groups.all())
     if not groups:
