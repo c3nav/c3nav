@@ -41,6 +41,9 @@ BoundsSchema = tuple[
 ]
 
 
+BoundsByLevelSchema = dict[int, BoundsSchema]
+
+
 class DjangoModelSchema(BaseSchema):
     id: PositiveInt = APIField(
         title="ID",
