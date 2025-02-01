@@ -233,7 +233,7 @@ class SpecificLocation(Location, models.Model):
     @property
     def grid_square(self):
         # todo: per level? remove if multi-level?
-        return grid.get_squares_for_bounds(self.bounds)
+        return grid.get_squares_for_bounds(chain(*self.bounds))
 
     @property
     def groups_by_category(self):
