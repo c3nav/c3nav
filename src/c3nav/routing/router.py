@@ -308,9 +308,9 @@ class Router:
                 graph[area_nodes.reshape((-1, 1)), area_nodes] *= float(area.slow_down_factor)
 
         # finalize waytype matrixes
-        for pk, waytype in waytypes:
-            waytype.upwards_indices = np.array(build_waytype_indices[pk][0], dtype=np.uint32).reshape((-1, 2))
-            waytype.nonupwards_indices = np.array(build_waytype_indices[pk][1], dtype=np.uint32).reshape((-1, 2))
+        for i, waytype in enumerate(waytypes):
+            waytype.upwards_indices = np.array(build_waytype_indices[i][0], dtype=np.uint32).reshape((-1, 2))
+            waytype.nonupwards_indices = np.array(build_waytype_indices[i][1], dtype=np.uint32).reshape((-1, 2))
 
         # finalize restriction edge matrixes
         for restriction in restrictions.values():
@@ -488,7 +488,7 @@ class Router:
             altitude=altitude,
             areas=tuple(filter(None, (area.get_location(can_describe=True) for area in areas))),
             near_area=near_area.get_location(can_describe=True) if near_area else None,
-            near_poi=space.get_location(can_describe=True) if near_poi else None,
+            near_poi=near_poi.get_location(can_describe=True) if near_poi else None,
             nearby=tuple(filter(None, (n.get_location(can_describe=True) for n in nearby)))
         )
 

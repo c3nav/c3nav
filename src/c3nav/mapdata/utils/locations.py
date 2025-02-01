@@ -316,7 +316,7 @@ class CustomLocation:
         }
 
     @property
-    def pointa(self) -> list[LocationPoint]:
+    def points(self) -> list[LocationPoint]:
         return [(self.level.pk, self.x, self.y)]
 
     @property
