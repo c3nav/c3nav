@@ -8,6 +8,7 @@ from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
+from c3nav.api.schema import GeometryByLevelSchema, GeometrySchema
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsSchema
@@ -96,19 +97,15 @@ class GeometryMixin(SerializableMixin):
     def grid_square(self):
         return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
-    def details_display(self, detailed_geometry=True, **kwargs):
-        result = super().details_display(**kwargs)
-        from c3nav.mapdata.utils.locations import DistanceLocationFeature
-        DistanceLocationFeature.add_distance_location_display(result, self)
-        result['geometry'] = self.get_geometry(detailed_geometry=detailed_geometry)
-        return result
-
-    def get_geometry(self, detailed_geometry=True):
-        if "geometry" in self.get_deferred_fields():
+    def get_geometry(self, request) -> GeometrySchema | None:
+        if "geometry" in self.get_deferred_fields() or self.level_id is None:
             return None
-        if detailed_geometry:
+        if self.can_access_geometry(request):
             return format_geojson(smart_mapping(self.geometry), rounded=False)
         return format_geojson(smart_mapping(self.geometry.minimum_rotated_rectangle), rounded=False)
+
+    def can_access_geometry(self, request) -> bool:
+        return True
 
     def get_shadow_geojson(self):
         pass

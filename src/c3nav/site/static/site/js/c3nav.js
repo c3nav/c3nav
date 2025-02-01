@@ -2161,7 +2161,6 @@ c3nav = {
         const points = c3nav._location_points_overrides[location.id] || location.points;
         const result = {};
         for (const point of points) {
-            console.log("display point", point);
             const latlng = L.GeoJSON.coordsToLatLng(point.slice(1));
             let buttons_html = '';
             if (!c3nav.embed) {
@@ -2204,16 +2203,19 @@ c3nav = {
     },
 
     _location_geometry_loaded: function (data) {
-        if (c3nav._visible_map_locations.indexOf(data.id) === -1 || data.geometry === null || data.level === null) return;
-
-        if (data.geometry.type === "Point") return;
-        L.geoJSON(data.geometry, {
-            style: {
-                color: 'var(--color-map-overlay)',
-                fillOpacity: 0.2,
-                interactive: false,
+        if (c3nav._visible_map_locations.indexOf(data.id) === -1) return;
+        for (const level_id in data.geometry) {
+            for (const geometry of data.geometry[level_id]) {
+                if (geometry.type === "Point") continue;
+                L.geoJSON(geometry, {
+                    style: {
+                        color: 'var(--color-map-overlay)',
+                        fillOpacity: 0.2,
+                        interactive: false,
+                    }
+                }).addTo(c3nav._locationLayers[parseInt(level_id)]);
             }
-        }).addTo(c3nav._locationLayers[data.level]);
+        }
     },
 
     _fetch_updates_timer: null,

@@ -25,7 +25,8 @@ from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, \
     BeaconMeasurement
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, SpecificLocation
+from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, SpecificLocation, \
+    Location
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter
@@ -38,7 +39,7 @@ from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, 
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, searchable_locations_for_request,
                                            visible_locations_for_request,
-                                           LocationRedirect)
+                                           LocationRedirect, CustomLocation)
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -135,13 +136,13 @@ def _location_display(request, location):
         return redirect('../' + str(location.target.slug) + '/details/')  # todo: use reverse, make pk+slug work
 
     result = location.details_display(
-        detailed_geometry=can_access_geometry(request, location),
-        editor_url=can_access_editor(request)
+        request=request,
+        editor_url=can_access_editor(request),
     )
     return json.loads(json.dumps(result, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings
 
 
-def _location_geometry(request, location):
+def _location_geometry(request, location: LocationRedirect | Location | CustomLocation):
     # todo: cache, visibility, etc…
 
     if location is None:
@@ -152,10 +153,7 @@ def _location_geometry(request, location):
 
     return LocationGeometry(
         id=location.pk,
-        level=getattr(location, 'level_id', None),
-        geometry=location.get_geometry(
-            detailed_geometry=can_access_geometry(request, location)
-        )
+        geometry=location.get_geometry(request)
     )
 
 

@@ -26,18 +26,6 @@ class SerializableMixin(models.Model):
             ('title_plural', str(cls._meta.verbose_name_plural)),
         ))
 
-    def details_display(self, **kwargs):
-        return {
-            'id': self.pk,
-            'display': [
-                (_('Type'), str(self.__class__._meta.verbose_name)),
-                (_('ID'), str(self.pk)),
-            ]
-        }
-
-    def get_geometry(self, detailed_geometry=True):
-        return None
-
     @property
     def title(self):
         return self._meta.verbose_name + ' ' + str(self.id)
@@ -53,6 +41,7 @@ class SerializableMixin(models.Model):
 
 class TitledMixin(SerializableMixin, models.Model):
     title = I18nField(_('Title'), plural_name='titles', blank=True, fallback_any=True, fallback_value='{model} {pk}')
+    titles: dict
 
     class Meta:
         abstract = True
@@ -60,13 +49,6 @@ class TitledMixin(SerializableMixin, models.Model):
     @property
     def other_titles(self):
         return tuple(title for lang, title in self.titles.items() if lang != get_language())
-
-    def details_display(self, **kwargs):
-        result = super().details_display(**kwargs)
-        for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language()):
-            language = _('Title ({lang})').format(lang=get_language_info(lang)['name_translated'])
-            result['display'].append((language, title))
-        return result
 
     def __str__(self):
         return str(self.title)

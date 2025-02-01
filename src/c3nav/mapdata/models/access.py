@@ -415,13 +415,6 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
     class Meta:
         abstract = True
 
-    def details_display(self, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].extend([
-            (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
-        ])
-        return result
-
     @classmethod
     def q_for_request(cls, request, prefix='', allow_none=False):
         if request is None and allow_none:

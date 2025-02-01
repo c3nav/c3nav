@@ -86,19 +86,8 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     def primary_level_pk(self):
         return self.pk if self.on_top_of_id is None else self.on_top_of_id
 
-    def details_display(self, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].insert(3, (_('short label'), self.short_label))
-        result['display'].extend([
-            (_('outside only'), self.base_altitude),
-            (_('default height'), self.default_height),
-        ])
-        if editor_url:
-            result['editor_url'] = reverse('editor.levels.detail', kwargs={'pk': self.pk})
-        return result
-
     def for_details_display(self):
-        location = self.level.get_location()
+        location = self.get_location()
         if location:
             return {
                 'id': location.pk,
