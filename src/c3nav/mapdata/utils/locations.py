@@ -46,11 +46,12 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
     locations = {
         **{redirect_slug.pk: LocationRedirect(slug=redirect_slug.slug, target=redirect_slug.get_target())
            for redirect_slug in LocationSlug.objects.filter(redirect=True).order_by('id')},
-        **{location.pk: location for location in SpecificLocation.objects.prefetch_related(
+        **{location.pk: location for location in SpecificLocation.qs_for_request(request).prefetch_related(
             Prefetch('groups', LocationGroup.qs_for_request(request).select_related(
                 'category', 'label_settings'
             ).prefetch_related("slug_set")),
-            Prefetch('levels', Level.qs_for_request(request)),
+            # todo: starting to think that bounds and subtitles should be cached so we don't need… this
+            Prefetch('levels', Level.qs_for_request(request).prefetch_related('buildings', 'altitudeareas')),
             Prefetch('spaces', Space.qs_for_request(request)),
             Prefetch('areas', Area.qs_for_request(request)),
             Prefetch('pois', POI.qs_for_request(request)),
@@ -74,7 +75,8 @@ def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
                 group.locations.append(obj)
 
     levels = {level.pk: level for level in Level.qs_for_request(request)}
-    spaces = {space.pk: space for space in Space.qs_for_request(request).select_related('level')}
+    spaces = {space.pk: space
+              for space in Space.qs_for_request(request).select_related('level').prefetch_related("locations__groups")}
 
     # add levels to spaces: todo: fix this! hide locations etc bluh bluh
     remove_pks = set()
