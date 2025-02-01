@@ -19,6 +19,7 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation, DynamicLocation
+from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
@@ -307,13 +308,13 @@ class CustomLocation:
         }
 
     @property
-    def point(self):
-        return (self.level.pk, self.x, self.y)
+    def pointa(self) -> list[LocationPoint]:
+        return [(self.level.pk, self.x, self.y)]
 
     @property
-    def bounds(self):
-        return ((int(math.floor(self.x)), int(math.floor(self.y))),
-                (int(math.ceil(self.x)), int(math.ceil(self.y))))
+    def bounds(self) -> BoundsByLevelSchema:
+        return {self.level.pk: ((int(math.floor(self.x)), int(math.floor(self.y))),
+                                (int(math.ceil(self.x)), int(math.ceil(self.y))))}
 
     def details_display(self, **kwargs):
         result = {
