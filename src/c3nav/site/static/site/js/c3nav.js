@@ -2147,7 +2147,8 @@ c3nav = {
         if (!location.points || !location.points.length) return;
         // todo: once we merge groups in, don't forget to adjust this as desired
         const points = c3nav._location_points_overrides[location.id] || location.points;
-        for (const point in points) {
+        const result = {};
+        for (const point of points) {
             console.log("display point", point);
             const latlng = L.GeoJSON.coordsToLatLng(point.slice(1));
             let buttons_html = '';
@@ -2165,10 +2166,12 @@ c3nav = {
                 maxWidth: 500
             }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[point[0]]);
 
-            const result = {};
-            result[point[0]] = L.latLngBounds(
-                location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
-            );
+            const bounds = {
+                [point[0]]: L.latLngBounds(
+                    location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
+                )
+            };
+            c3nav._merge_bounds(result, bounds);
         }
         return result
     },
