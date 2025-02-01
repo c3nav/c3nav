@@ -131,11 +131,3 @@ def api_stats_clean_location_value(value):
         value = 'c:%s:%d:%d' % (value[1], int(float(value[2]) / 3) * 3, int(float(value[3]) / 3) * 3)
         return (value, 'c:anywhere')
     return (value, )
-
-
-def can_access_geometry(request, obj):
-    if isinstance(obj, Space):
-        return obj.base_mapdata_accessible or request.user_permissions.can_access_base_mapdata
-    elif isinstance(obj, (Building, Door)):
-        return request.user_permissions.can_access_base_mapdata
-    return True
