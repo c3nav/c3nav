@@ -12,7 +12,7 @@ from pydantic import PositiveInt
 from c3nav.api.auth import auth_responses, validate_responses, auth_permission_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.api.base import api_etag, optimize_query, can_access_geometry
+from c3nav.mapdata.api.base import api_etag, optimize_query
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
                                   Space, Stair, DataOverlay, DataOverlayFeature, WayType)
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup, AccessPermission
@@ -27,8 +27,8 @@ from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRe
                                           DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
                                           LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
                                           ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
-                                          DataOverlaySchema, DataOverlayFeatureSchema, LocationRedirectSchema,
-                                          WayTypeSchema, DataOverlayFeatureGeometrySchema,
+                                          DataOverlaySchema, DataOverlayFeatureSchema, WayTypeSchema,
+                                          DataOverlayFeatureGeometrySchema,
                                           DataOverlayFeatureUpdateSchema, DataOverlayFeatureBulkUpdateSchema,
                                           )
 
@@ -56,7 +56,7 @@ def mapdata_list_endpoint(request,
     result = list(qs)
 
     for obj in result:
-        if not can_access_geometry(request, obj):
+        if not obj.can_access_geometry(request):
             obj._hide_geometry = True
 
     return result
@@ -67,7 +67,7 @@ def mapdata_retrieve_endpoint(request, model: Type[Model], **lookups):
         obj = optimize_query(
             model.qs_for_request(request) if hasattr(model, 'qs_for_request') else model.objects.all()
         ).get(**lookups)
-        if not can_access_geometry(request, obj):
+        if not obj.can_access_geometry(request):
             obj.geometry = None
         return obj
     except model.DoesNotExist:
