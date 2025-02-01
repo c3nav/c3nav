@@ -88,9 +88,9 @@ class Router:
 
             nodes_before_count = len(nodes)
 
-            if level.location:
-                for group in level.location.groups.all():
-                    groups.setdefault(group.pk, RouterGroup()).specificlocations.add(level.location.pk)
+            for location in level.locations.all():
+                for group in location.groups.all():
+                    groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
 
             if level.access_restriction_id:
                 restrictions.setdefault(level.access_restriction_id, RouterRestriction()).spaces.update(
@@ -113,9 +113,9 @@ class Router:
                 clear_geom = unary_union(tuple(get_rings(accessible_geom.difference(obstacles_geom))))
                 clear_geom_prep = prepared.prep(clear_geom)
 
-                if space.location:
-                    for group in space.location.groups.all():
-                        groups.setdefault(group.pk, RouterGroup()).specificlocations.add(space.location.pk)
+                for location in space.locations.all():
+                    for group in location.groups.all():
+                        groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
 
                 if space.access_restriction_id:
                     restrictions.setdefault(space.access_restriction_id, RouterRestriction()).spaces.add(space.pk)
@@ -131,9 +131,9 @@ class Router:
                 space.nodes = set(node.i for node in space_nodes)
 
                 for area in space_obj.areas.all():
-                    if area.location:
-                        for group in area.location.groups.all():
-                            groups.setdefault(group.pk, RouterGroup()).specificlocations.add(area.location.pk)
+                    for location in area.locations.all():
+                        for group in location.groups.all():
+                            groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
                     area._prefetched_objects_cache = {}
 
                     area = RouterArea(area)
@@ -146,8 +146,8 @@ class Router:
                         area.nodes.add(nearest_node.i)
                     areas[area.pk] = area
                     space.areas.add(area.pk)
-                    if area.location:
-                        specificlocations[area.location.pk] = RouterLocation(area.location, target=area)
+                    for location in area.locations.all():
+                        specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(area)
 
                 for area in level.altitudeareas.all():
                     area.geometry = unwrap_geom(area.geometry).buffer(0)
@@ -214,9 +214,9 @@ class Router:
                             )
 
                 for poi in space_obj.pois.all():
-                    if poi.location:
-                        for group in poi.location.groups.all():
-                            groups.setdefault(group.pk, RouterGroup()).specificlocations.add(poi.location.pk)
+                    for location in poi.locations.all():
+                        for group in location.groups.all():
+                            groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
                     poi._prefetched_objects_cache = {}
 
                     poi = RouterPoint(poi)
@@ -230,8 +230,8 @@ class Router:
                     poi.nodes_addition = poi_nodes
                     pois[poi.pk] = poi
                     space.pois.add(poi.pk)
-                    if poi.location:
-                        specificlocations[poi.location.pk] = RouterLocation(poi.location, target=poi)
+                    for location in poi.locations.all():
+                        specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(poi)
 
                 for column in space_obj.columns.all():
                     if column.access_restriction_id is None:
@@ -247,8 +247,8 @@ class Router:
                 space.src.geometry = accessible_geom
 
                 spaces[space.pk] = space
-                if space.location:
-                    specificlocations[space.location.pk] = RouterLocation(space.location, target=space)
+                for location in space.locations.all():
+                    specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(space)
 
             level_spaces = set(space.pk for space in level.spaces.all())
             level._prefetched_objects_cache = {}
@@ -256,8 +256,8 @@ class Router:
             level = RouterLevel(level, spaces=level_spaces)
             level.nodes = set(range(nodes_before_count, len(nodes)))
             levels[level.pk] = level
-            if level.location:
-                specificlocations[level.location.pk] = RouterLocation(level.location, target=level)
+            for location in level.locations.all():
+                specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(level)
 
         # add graph descriptions
         for description in LeaveDescription.objects.all():
@@ -763,13 +763,13 @@ class RouterPoint(BaseRouterProxy[Point]):
     @cached_property
     def xyz(self):
         return np.array((self.x, self.y, self.altitude))
-    
-    
+
+
 @dataclass
 class RouterLocation:
     src: SpecificLocation | CustomLocation
-    target: Union["RouterLevel", "RouterSpace", "RouterArea", "RouterPoint"]
-    
+    targets: list[Union["RouterLevel", "RouterSpace", "RouterArea", "RouterPoint"]] = field(default_factory=list)
+
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         # todo: implement this differently, obviously
         return self.access_restriction_id not in restrictions and self.target.can_see(restrictions)
@@ -781,11 +781,11 @@ class RouterLocation:
 
     @property
     def nodes(self):
-        return self.target.nodes
+        return reduce(operator.or_, (target.nodes for target in self.targets))
 
     @property
     def nodes_addition(self):
-        return self.target.nodes_addition
+        return reduce(operator.or_, (target.nodes_addition for target in self.targets))
 
 
 @dataclass
