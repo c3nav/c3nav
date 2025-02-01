@@ -1,8 +1,8 @@
 # flake8: noqa
 from collections import OrderedDict, deque
 from dataclasses import dataclass
-
 from typing import TYPE_CHECKING, Sequence, Optional, Mapping, NamedTuple, Union
+
 import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -11,7 +11,7 @@ from c3nav.mapdata.models import Location
 from c3nav.routing.models import RouteOptions
 
 if TYPE_CHECKING:
-    from c3nav.routing.router import Router, RouterPoint, RouterNode, RouterEdge
+    from c3nav.routing.router import Router, RouterNode, RouterEdge, RouterLocation
 
 
 def describe_location(location, locations):
@@ -34,8 +34,8 @@ class RouteNodeWithOptionalEdge(NamedTuple):
 @dataclass
 class Route:
     router: "Router"
-    origin: "RouterPoint"
-    destination: "RouterPoint"
+    origin: "RouterLocation"
+    destination: "RouterLocation"
     path_nodes: Sequence[int]
     options: RouteOptions
     origin_addition: Optional["RouterNodeAndEdge"]
