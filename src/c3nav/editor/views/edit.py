@@ -13,6 +13,8 @@ from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import etag
 from shapely import LineString
@@ -223,21 +225,28 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 elif hasattr(target_obj, "level_id"):
                     reverse_kwargs["level"] = target_obj.level_id
                 target_title = str(target_obj.title)
+                target_url = reverse('editor.'+target_obj._meta.default_related_name+'.edit', kwargs=reverse_kwargs)
                 if str(obj.title) != target_title:
-                    target_links.append(_('Go to target %(target_type)s #%(target_id)d (%(target_title)s)') % {
-                        "target_type": target_obj._meta.verbose_name,
-                        "target_id": target_obj.pk,
-                        "target_title": target_title,
-                    })
+                    target_links.append(format_html('<a href="{url}">{label}</a>',
+                        url=target_url,
+                        label=_('Go to target %(target_type)s #%(target_id)d (%(target_title)s)') % {
+                            "target_type": target_obj._meta.verbose_name,
+                            "target_id": target_obj.pk,
+                            "target_title": target_title,
+                        }
+                    ))
                 else:
-                    target_links.append(_('Go to target %(target_type)s #%(target_id)d') % {
-                        "target_type": target_obj._meta.verbose_name,
-                        "target_id": target_obj.pk,
-                    })
+                    target_links.append(format_html('<a href="{url}">{label}</a>',
+                        url=target_url,
+                        label=_('Go to target %(target_type)s #%(target_id)d') % {
+                            "target_type": target_obj._meta.verbose_name,
+                            "target_id": target_obj.pk,
+                        }
+                    ))
 
             ctx["secondary"] = {
                 "title": _('Targets'),
-                "text": f'<ul><li>{'</li><li>'.join(target_links)}</li></ul>',
+                "text": mark_safe(f'<ul><li>{'</li><li>'.join(target_links)}</li></ul>'),
             }
 
     with suppress(FieldDoesNotExist):
