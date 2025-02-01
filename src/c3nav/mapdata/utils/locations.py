@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Any, List, Mapping, Optional, Union, ClassVar
+from typing import Any, List, Mapping, Optional, ClassVar, Union
 
 from django.conf import settings
 from django.db.models import Prefetch
@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from shapely import Point
 from shapely.ops import unary_union
 
+from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
@@ -215,7 +216,7 @@ def levels_by_level_index_for_request(request) -> Mapping[str, Level]:
     return levels
 
 
-def get_location_by_id_for_request(pk, request):
+def get_location_by_id_for_request(pk, request) -> Optional[Union[Location, Position, "CustomLocation"]]:
     if isinstance(pk, str):
         if pk.isdigit():
             pk = int(pk)
@@ -229,8 +230,8 @@ def get_location_by_id_for_request(pk, request):
             return get_custom_location_for_request(pk, request)
     return locations_for_request(request).get(pk)
 
-
-def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[LocationSlug, Position]]:
+def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[LocationSlug, Position, LocationRedirect,
+                                                                           "CustomLocation"]]:
     cache_key = (
         'mapdata:location:by_slug:%s:%s:%s' % (AccessPermission.cache_key_for_request(request), get_language(), slug)
     )
@@ -272,7 +273,7 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[Locat
     return location
 
 
-def get_custom_location_for_request(slug: str, request):
+def get_custom_location_for_request(slug: str, request) -> Optional["CustomLocation"]:
     match = re.match(r'^c:(?P<level>[a-z0-9-_.]+):(?P<x>-?\d+(\.\d+)?):(?P<y>-?\d+(\.\d+)?)$', slug)
     if match is None:
         return None
@@ -323,7 +324,7 @@ class CustomLocation:
         return {self.level.pk: ((int(math.floor(self.x)), int(math.floor(self.y))),
                                 (int(math.ceil(self.x)), int(math.ceil(self.y))))}
 
-    def details_display(self, **kwargs):
+    def details_display(self, request, **kwargs):
         result = {
             'id': self.pk,
             'display': [
@@ -357,15 +358,14 @@ class CustomLocation:
                 (_('Title'), self.title),
                 (_('Subtitle'), self.subtitle),
             ],
-            'geometry': self.serialized_geometry,
         }
         DistanceLocationFeature.add_distance_location_display(result, self)
         if not grid.enabled:
             result['display'].pop(6)
         return result
 
-    def get_geometry(self, detailed_geometry=True):
-        return None
+    def get_geometry(self, request) -> GeometryByLevelSchema:
+        return {}
 
     @cached_property
     def description(self):

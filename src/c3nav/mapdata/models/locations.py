@@ -17,9 +17,10 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, get_language, get_language_info
 from django.utils.translation import ngettext_lazy
 
+from c3nav.api.schema import GeometryByLevelSchema, GeometrySchema
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
@@ -67,11 +68,6 @@ class LocationSlug(SerializableMixin, models.Model):
     def get_target(self) -> typing.Union['LocationGroup', 'SpecificLocation']:
         return self.group if self.group_id is not None else self.specific
 
-    def details_display(self, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].insert(2, (_('Slug'), self.effective_slug))
-        return result
-
     @cached_property
     def order(self):
         return (-1, 0)
@@ -118,14 +114,23 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
             *self.other_titles,
         ))
 
-    def details_display(self, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].extend([
-            (_('searchable'), _('Yes') if self.can_search else _('No')),
-            (_('can describe'), _('Yes') if self.can_describe else _('No')),
-            (_('icon'), self.effective_icon),
-        ])
-
+    def details_display(self, request, **kwargs):
+        result = {
+            'id': self.pk,
+            'display': [
+                (_('Type'), str(self.__class__._meta.verbose_name)),
+                (_('ID'), str(self.pk)),
+                (_('Slug'), self.slug),
+                *(
+                    (_('Title ({lang})').format(lang=get_language_info(lang)['name_translated']), title)
+                    for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language())
+                ),
+                (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
+                (_('searchable'), _('Yes') if self.can_search else _('No')),
+                (_('can describe'), _('Yes') if self.can_describe else _('No')),
+                (_('icon'), self.effective_icon),
+            ]
+        }
         if self.external_url:
             result['external_url'] = {
                 'title': self.external_url_label or _('Open external URL'),
@@ -234,6 +239,14 @@ class SpecificLocation(Location, models.Model):
         return {level_id: ((min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3])))
                 for level_id, zipped in zipped_bounds.items()}
 
+    def get_geometry(self, request) -> GeometryByLevelSchema:
+        result = {}
+        for target in self.get_targets():
+            geometry = target.get_geometry(request)
+            if geometry:
+                result.setdefault(target.level_id, []).append(geometry)
+        return result
+
     @property
     def grid_square(self):
         # todo: maybe only merge bounds if it's all in one level… but for multi-level rooms its nice! find solution?
@@ -251,8 +264,8 @@ class SpecificLocation(Location, models.Model):
                               for category, items in groups_by_category.items()}
         return groups_by_category
 
-    def details_display(self, **kwargs):
-        result = super().details_display(**kwargs)
+    def details_display(self, request, editor_url=True, **kwargs):
+        result = super().details_display(request, **kwargs)
 
         groupcategories = {}
         for group in self.groups.all():
@@ -274,6 +287,9 @@ class SpecificLocation(Location, models.Model):
                     'can_search': group.can_search,
                 } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
             ))
+
+        if editor_url:
+            result['editor_url'] = reverse('editor.specific_locations.edit', kwargs={'pk': self.pk})
 
         return result
 
@@ -397,6 +413,9 @@ class SpecificLocationTargetMixin(models.Model):
         if not colors:
             return None
         return colors[0]
+
+    def get_geometry(self, request) -> GeometrySchema | None:
+        return None
 
     @property
     def point(self) -> typing.Optional[LocationPoint]:
@@ -532,11 +551,10 @@ class LocationGroup(Location, models.Model):
             if key not in deferred_fields
         }
 
-
     locations = []
 
-    def details_display(self, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
+    def details_display(self, request, *, editor_url=True, **kwargs):
+        result = super().details_display(request, **kwargs)
         result['display'].insert(3, (_('Category'), self.category.title))
         result['display'].extend([
             (_('color'), self.color),
@@ -701,12 +719,6 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocationTargetMixin, Acc
         except Position.DoesNotExist:
             return None
 
-    def details_display(self, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
-        if editor_url:
-            result['editor_url'] = reverse('editor.dynamic_locations.edit', kwargs={'pk': self.pk})
-        return result
-
 
 def get_position_secret():
     return get_random_string(32, string.ascii_letters+string.digits)
@@ -830,7 +842,7 @@ class Position(CustomLocationProxyMixin, models.Model):
             ],
         }
 
-    def get_geometry(self, *args, **kwargs):
+    def get_geometry(self, request):
         return None
 
     level_id = None
