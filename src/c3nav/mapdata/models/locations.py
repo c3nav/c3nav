@@ -24,7 +24,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
-from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint
+from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
 
@@ -224,16 +224,23 @@ class SpecificLocation(Location, models.Model):
     def points(self) -> list[LocationPoint]:
         return list(filter(None, (target.point for target in self.get_targets())))
 
-    @property
-    def bounds(self) -> BoundsSchema:
-        # todo: per level?
-        zipped_bounds = tuple(zip(*(chain(*target.bounds) for target in self.get_targets())))
-        return (min(zipped_bounds[0]), min(zipped_bounds[1])), (max(zipped_bounds[2]), max(zipped_bounds[3]))
+    @cached_property
+    def bounds(self) -> BoundsByLevelSchema:
+        collected_bounds = {}
+        for target in self.get_targets():
+            if target.level_id:
+                collected_bounds.setdefault(target.level_id, []).append(chain(*target.bounds))
+        zipped_bounds = {level_id: tuple(zip(*level_bounds)) for level_id, level_bounds in collected_bounds.items()}
+        return {level_id: ((min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3])))
+                for level_id, zipped in zipped_bounds.items()}
 
     @property
     def grid_square(self):
-        # todo: per level? remove if multi-level?
-        return grid.get_squares_for_bounds(chain(*self.bounds))
+        # todo: maybe only merge bounds if it's all in one level… but for multi-level rooms its nice! find solution?
+        if self.bounds:
+            return None
+        zipped = zip(*(chain(*level_bounds) for level_bounds in self.bounds.values()))
+        return grid.get_squares_for_bounds(min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3]))
 
     @property
     def groups_by_category(self):
