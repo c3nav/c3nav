@@ -17,7 +17,7 @@ from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, Cust
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema, schema_definitions,
                                               schema_description, LocationSlugSchema, WithGeometrySchema, LocationPoint,
-                                              BoundsSchema, EffectiveLabelSettingsSchema)
+                                              BoundsSchema, EffectiveLabelSettingsSchema, BoundsByLevelSchema)
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -324,7 +324,7 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
     )
 
     points: list[LocationPoint]
-    bounds: Optional[BoundsSchema]
+    bounds: BoundsByLevelSchema
 
 
 class LocationGroupSchema(LocationSchema, DjangoModelSchema):
@@ -530,6 +530,7 @@ class WayTypeSchema(TitledSchema, DjangoModelSchema):
     Waytypes for navigation like stairs, escalators etc
     """
     pass
+
 
 class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
@@ -756,7 +757,7 @@ class CustomLocationLocationSchema(CustomLocationSchema, LocationTypeSchema):
     """
     locationtype: Literal["customlocation"] = LocationTypeAPIField()
     point: LocationPoint
-    bounds: BoundsSchema
+    bounds: BoundsByLevelSchema
 
 
 class TrackablePositionLocationSchema(TrackablePositionSchema, LocationTypeSchema):
@@ -974,7 +975,7 @@ class PositionAvailableStatusSchema(PositionStatusSchema, TrackablePositionSchem
     """ position available """
     available: Literal[True]
     point: LocationPoint
-    bounds: BoundsSchema
+    bounds: BoundsByLevelSchema
 
 
 AnyPositionStatusSchema = Annotated[
