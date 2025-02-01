@@ -233,18 +233,24 @@ c3nav = {
                 location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.effective_slug + ' ' + location.add_search.toLowerCase();
                 locations.push(location);
                 locations_by_id[location.id] = location;
-                if (location.point && location.effective_label_settings) {
-                    if (!(location.point[0] in labels)) labels[location.point[0]] = [];
-                    labels[location.point[0]].push([location, c3nav._build_location_label(location)]);
-                }
+                if (location.points && location.points.length) {
+                    // todo: once we merge groups in, don't forget to adjust this as desired
+                    if (location.effective_label_settings) {
+                        for (const point of location.points) {
+                            if (!(point[0] in labels)) labels[point[0]] = [];
+                            labels[point[0]].push([location, c3nav._build_location_label(location, point)]);
+                        }
+                    }
 
-
-                if (location.point && location.load_group_display) {
-                    loadIndicatorLocations.push({
-                        level: location.point[0],
-                        coords: location.point.slice(1),
-                        load_id: location.load_group_display,
-                    });
+                    if (location.load_group_display) {
+                        for (const point of location.points) {
+                            loadIndicatorLocations.push({
+                                level: point[0],
+                                coords: point.slice(1),
+                                load_id: location.load_group_display,
+                            });
+                        }
+                    }
                 }
             }
             for (const level_id in labels) {
@@ -744,17 +750,17 @@ c3nav = {
         $details.append(c3nav._build_location_html(result.destination));
 
         // add origin and destination lines
-        c3nav._location_point_overrides = {};
-        if (!c3nav._add_location_point_override(result.origin, result.items[0])) {
+        c3nav._location_points_overrides = {};
+        if (!c3nav._add_location_points_override(result.origin, result.items[0])) {  // todo: definitely not right
             c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
-                result.origin.point.slice(1),
+                result.origin.point.slice(1),  // todo this still needs to be adjusted
                 result.items[0].coordinates.slice(0, 2),
                 result.items[1].coordinates.slice(0, 2)
             ), true);
         }
-        if (!c3nav._add_location_point_override(result.destination, result.items.slice(-1)[0])) {
+        if (!c3nav._add_location_points_override(result.destination, result.items.slice(-1)[0])) {  // todo: definitely not right
             c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
-                result.destination.point.slice(1),
+                result.destination.point.slice(1),  // todo this still needs to be adjusted
                 result.items[result.items.length - 1].coordinates.slice(0, 2),
                 result.items[result.items.length - 2].coordinates.slice(0, 2)
             ).reverse(), true);
@@ -769,9 +775,9 @@ c3nav = {
 
         if (!nofly) c3nav.fly_to_bounds(true);
     },
-    _add_location_point_override: function (location, item) {
-        if (location.type === 'level' || location.type === 'space' || location.type === 'area') {
-            c3nav._location_point_overrides[location.id] = item.coordinates.slice(0, -1);
+    _add_location_points_override: function (location, item) {
+        if (location.type === 'specificlocation') {
+            c3nav._location_points_overrides[location.id] = item.coordinates.slice(0, -1);
             return true;
         }
         return false;
@@ -1126,7 +1132,7 @@ c3nav = {
         html.attr('data-location', JSON.stringify(location));
         return html[0].outerHTML;
     },
-    _build_location_label: function (location) {
+    _build_location_label: function (location, point) {
         const text = location.label_override || location.title;
         const new_segments = [];
         const new_text = [''];
@@ -1164,7 +1170,7 @@ c3nav = {
 
         const html = $('<div class="location-label-text">').append($('<span>').html('&#8239;' + new_text.join('&#8239;<br>&#8239;') + '&#8239;'));
         html.css('font-size', location.effective_label_settings.font_size + 'px');
-        return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
+        return L.marker(L.GeoJSON.coordsToLatLng(point.slice(1)), {
             icon: L.divIcon({
                 html: html[0].outerHTML,
                 iconSize: null,
@@ -2118,7 +2124,7 @@ c3nav = {
             [bounds[1][0] + 600 / factor, bounds[1][1] + 200 / factor]
         ];
     },
-    _location_point_overrides: {},
+    _location_points_overrides: {},
     _add_location_to_map: function (location, icon, no_geometry, layers) {
         if (!layers) {
             layers = c3nav._locationLayers;
@@ -2150,27 +2156,32 @@ c3nav = {
             c3nav_api.get(`map/locations/${location.id}/geometry/`).then(c3nav._location_geometry_loaded);
         }
 
-        if (!location.point) return;
-        const point = c3nav._location_point_overrides[location.id] || location.point.slice(1);
-        const latlng = L.GeoJSON.coordsToLatLng(point);
-        let buttons_html = '';
-        if (!c3nav.embed) {
-            let buttons = $('#location-popup-buttons').clone();
-            buttons.find('.report').attr('href', '/report/l/' + String(location.id) + '/');
-            buttons_html = buttons.html();
+        if (!location.points || !location.points.length) return;
+        // todo: once we merge groups in, don't forget to adjust this as desired
+        const points = c3nav._location_points_overrides[location.id] || location.points;
+        for (const point in points) {
+            console.log("display point", point);
+            const latlng = L.GeoJSON.coordsToLatLng(point.slice(1));
+            let buttons_html = '';
+            if (!c3nav.embed) {
+                let buttons = $('#location-popup-buttons').clone();
+                // todo: it would be nice to transmit where the click occured
+                buttons.find('.report').attr('href', '/report/l/' + String(location.id) + '/');
+                buttons_html = buttons.html();
+            }
+
+            L.marker(latlng, {
+                icon: icon
+            }).bindPopup(location.elem + buttons_html, c3nav._add_map_padding({
+                className: 'location-popup',
+                maxWidth: 500
+            }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[point[0]]);
+
+            const result = {};
+            result[point[0]] = L.latLngBounds(
+                location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
+            );
         }
-
-        L.marker(latlng, {
-            icon: icon
-        }).bindPopup(location.elem + buttons_html, c3nav._add_map_padding({
-            className: 'location-popup',
-            maxWidth: 500
-        }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[location.point[0]]);
-
-        const result = {};
-        result[location.point[0]] = L.latLngBounds(
-            location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
-        );
         return result
     },
     _merge_bounds: function (bounds, new_bounds) {
