@@ -57,9 +57,9 @@ class Router:
     specificlocations: dict[int, Union["RouterLocation"]]
     groups: dict[int, "RouterGroup"]
     restrictions: dict[int, "RouterRestriction"]
-    nodes: deque["RouterNode"]
+    nodes: tuple["RouterNode", ...]
     edges: dict[EdgeIndex, "RouterEdge"]
-    waytypes: dict[int, "RouterWayType"]
+    waytypes: tuple["RouterWayType", ...]
     graph: np.ndarray
 
     @staticmethod
@@ -268,15 +268,15 @@ class Router:
                                                              description.target_space_id)] = description.description
 
         # waytypes
-        waytypes = deque([RouterWayType(None)])
+        waytypes: deque[RouterWayType] = deque([RouterWayType(None)])
         waytypes_lookup = {None: 0}
         for i, waytype in enumerate(WayType.objects.all(), start=1):
             waytypes.append(RouterWayType(waytype))
             waytypes_lookup[waytype.pk] = i
-        waytypes = tuple(waytypes)
+        waytypes: tuple[RouterWayType, ...] = tuple(waytypes)
 
         # collect nodes
-        nodes = tuple(nodes)
+        nodes: tuple[RouterNode, ...] = tuple(nodes)
         nodes_lookup = {node.pk: node.i for node in nodes}
 
         # collect edges
@@ -292,12 +292,12 @@ class Router:
         edges = {(edge.from_node, edge.to_node): edge for edge in edges}
 
         # build graph matrix
+        build_waytype_indices = {i: (deque(), deque()) for i in range(len(waytypes))}
         graph = np.full(shape=(len(nodes), len(nodes)), fill_value=np.inf, dtype=np.float32)
         for edge in edges.values():
             index = (edge.from_node, edge.to_node)
             graph[index] = edge.distance
-            waytype = waytypes[edge.waytype]
-            (waytype.upwards_indices if edge.rise > 0 else waytype.nonupwards_indices).append(index)
+            build_waytype_indices[edge.waytype][0 if edge.rise > 0 else 1].append(index)
             if edge.access_restriction:
                 restrictions.setdefault(edge.access_restriction, RouterRestriction()).edges.append(index)
 
@@ -308,9 +308,9 @@ class Router:
                 graph[area_nodes.reshape((-1, 1)), area_nodes] *= float(area.slow_down_factor)
 
         # finalize waytype matrixes
-        for waytype in waytypes:
-            waytype.upwards_indices = np.array(waytype.upwards_indices, dtype=np.uint32).reshape((-1, 2))
-            waytype.nonupwards_indices = np.array(waytype.nonupwards_indices, dtype=np.uint32).reshape((-1, 2))
+        for pk, waytype in waytypes:
+            waytype.upwards_indices = np.array(build_waytype_indices[pk][0], dtype=np.uint32).reshape((-1, 2))
+            waytype.nonupwards_indices = np.array(build_waytype_indices[pk][1], dtype=np.uint32).reshape((-1, 2))
 
         # finalize restriction edge matrixes
         for restriction in restrictions.values():
@@ -370,7 +370,7 @@ class Router:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
-    def get_locations(self, location: Location, restrictions) -> "RouterLocationSet":
+    def get_locations(self, location: Location, restrictions: "RouterRestrictionSet") -> "RouterLocationSet":
         locations = ()
         if isinstance(location, LocationGroup):
             if location.pk not in self.groups:
@@ -394,7 +394,7 @@ class Router:
             location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
             routerpoint.nodes = set(i for i in location_nodes.keys())
             routerpoint.nodes_addition = location_nodes
-            locations = tuple((RouterLocation(location, target=routerpoint),))
+            locations = tuple((RouterLocation(location, targets=[routerpoint]),))
         else:
             if location.pk not in self.specificlocations:
                 raise NotYetRoutable
@@ -402,11 +402,12 @@ class Router:
             if specificlocation.can_see(restrictions):  # todo: used to be run on the incoming object, do that again
                 locations = (specificlocation, )
         result = RouterLocationSet(locations)
-        if not result.nodes:
+        if not result.get_nodes(restrictions):
             raise LocationUnreachable
         return result
 
-    def space_for_point(self, level: int, point: PointCompatible, restrictions, max_distance=20) -> Optional['RouterSpace']:
+    def space_for_point(self, level: int, point: PointCompatible, restrictions: "RouterRestrictionSet",
+                        max_distance=20) -> Optional['RouterSpace']:
         # todo: way better caching here, and for the rest of custom location description stuff
         point = Point(point.x, point.y)
         level = self.levels[level]
@@ -437,7 +438,7 @@ class Router:
     def altitude_for_point(self, space: int, point: PointCompatible) -> float:
         return self.spaces[space].altitudearea_for_point(point).get_altitude(point)
 
-    def level_id_for_xyz(self, xyz: tuple[float, float, float], restrictions, max_distance=50):
+    def level_id_for_xyz(self, xyz: tuple[float, float, float], restrictions: "RouterRestrictionSet", max_distance=50):
         xy = Point(xyz[0], xyz[1])
         z = xyz[2]
         possible_levels = {}
@@ -458,7 +459,7 @@ class Router:
         space = self.space_for_point(level=location.level.pk, point=location, restrictions=restrictions)
         if not space:
             return CustomLocationDescription(
-                space=space.get_location(can_describe=True) if space else None,
+                space=space.get_location(can_describe=True) if space else None, space_geometry=space,
                 altitude=None, areas=(), near_area=None, near_poi=None, nearby=()
             )
         try:
@@ -497,7 +498,7 @@ class Router:
         from scipy.sparse.csgraph import shortest_path
         return shortest_path
 
-    def shortest_path(self, restrictions, options):
+    def shortest_path(self, restrictions: "RouterRestrictionSet", options):
         options_key = options.serialize_string()
         cache_key = 'router:shortest_path:%s:%s:%s' % (MapUpdate.current_processed_cache_key(),
                                                        restrictions.cache_key,
@@ -589,8 +590,8 @@ class Router:
         distances, predecessors = self.shortest_path(restrictions, options=options)
 
         # find shortest path for our origins and destinations
-        origin_nodes = np.array(tuple(origins.nodes))
-        destination_nodes = np.array(tuple(destinations.nodes))
+        origin_nodes = np.array(tuple(origins.get_nodes(restrictions)))
+        destination_nodes = np.array(tuple(destinations.get_nodes(restrictions)))
         origin_node, destination_node = np.unravel_index(
             distances[origin_nodes.reshape((-1, 1)), destination_nodes].argmin(),
             (len(origin_nodes), len(destination_nodes))
@@ -602,8 +603,8 @@ class Router:
             raise NoRouteFound
 
         # get best origin and destination
-        origin = origins.get_location_for_node(origin_node)
-        destination = destinations.get_location_for_node(destination_node)
+        origin = origins.get_location_for_node(origin_node, restrictions=restrictions)
+        destination = destinations.get_location_for_node(destination_node, restrictions=restrictions)
 
         if origin is None or destination is None:
             raise ValueError
@@ -707,7 +708,7 @@ class RouterSpace(BaseRouterProxy[Space]):
             return min(altitudeareas, key=lambda area: area.geometry.distance(point))
         return self.altitudeareas[0]
 
-    def areas_for_point(self, areas, point, restrictions):
+    def areas_for_point(self, areas, point, restrictions: "RouterRestrictionSet"):
         # todo: areas is redundant as a parameter, same for pois_for_point further down
         point = Point(point.x, point.y)
         areas = {pk: area for pk, area in areas.items()
@@ -730,7 +731,7 @@ class RouterSpace(BaseRouterProxy[Space]):
             return (), None, nearby
         return (), min(near, key=operator.itemgetter(1))[0], nearby
 
-    def poi_for_point(self, pois, point, restrictions):
+    def poi_for_point(self, pois, point, restrictions: "RouterRestrictionSet"):
         point = Point(point.x, point.y)
         pois = {pk: poi for pk, poi in pois.items()
                 if pk in self.pois and poi.can_see(restrictions)}
@@ -772,20 +773,27 @@ class RouterLocation:
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         # todo: implement this differently, obviously
-        return self.access_restriction_id not in restrictions and self.target.can_see(restrictions)
+        return (self.access_restriction_id not in restrictions
+                and any(target.can_see(restrictions) for target in self .target))
 
     def __getattr__(self, name):
         if name == '__setstate__':
             raise AttributeError
         return getattr(self.src, name)
 
-    @property
-    def nodes(self):
-        return reduce(operator.or_, (target.nodes for target in self.targets))
+    def get_nodes(self, restrictions: "RouterRestrictionSet"):
+        return reduce(
+            operator.or_,
+            (target.nodes for target in self.targets if target.can_see(restrictions)),
+            set()
+        )
 
-    @property
-    def nodes_addition(self):
-        return reduce(operator.or_, (target.nodes_addition for target in self.targets))
+    def get_nodes_addition(self, restrictions: "RouterRestrictionSet"):
+        return reduce(
+            operator.or_,
+            (target.nodes_addition for target in self.targets if target.can_see(restrictions)),
+            set()
+        )
 
 
 @dataclass
@@ -894,9 +902,9 @@ class RouterEdge:
 
 @dataclass
 class RouterWayType:
-    src: WayType
-    upwards_indices: deque[EdgeIndex] = field(default_factory=deque)
-    nonupwards_indices: deque[EdgeIndex] = field(default_factory=deque)
+    src: WayType | None
+    upwards_indices: np.typing.NDArray = field(default_factory=lambda: np.array(()))
+    nonupwards_indices: np.typing.NDArray = field(default_factory=lambda: np.array(()))
 
     def __getattr__(self, name):
         if name in ('__getstate__', '__setstate__'):
@@ -920,13 +928,16 @@ class RouterLocationSet:
     """
     locations: tuple[RouterLocation, ...]
 
-    @cached_property
-    def nodes(self) -> frozenset[int]:
-        return reduce(operator.or_, (location.nodes for location in self.locations), frozenset())
+    def get_nodes(self, restrictions: "RouterRestrictionSet") -> frozenset[int]:
+        return reduce(
+            operator.or_,
+            (location.nodes for location in self.locations if location.can_see(restrictions)),
+            frozenset()
+        )
 
-    def get_location_for_node(self, node) -> RouterPoint | None:
+    def get_location_for_node(self, node, restrictions: "RouterRestrictionSet") -> RouterLocation | None:
         for location in self.locations:
-            if node in location.nodes:
+            if location.can_see(restrictions) and node in location.get_nodes(restrictions):
                 return location
         return None
 
