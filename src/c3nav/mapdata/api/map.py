@@ -19,7 +19,7 @@ from c3nav.api.auth import auth_permission_responses, auth_responses, validate_r
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
+from c3nav.mapdata.api.base import api_etag, api_stats
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
