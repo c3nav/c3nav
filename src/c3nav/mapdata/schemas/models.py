@@ -874,23 +874,6 @@ class LocationDisplay(BaseSchema):
         description="a numeric ID for a map location or a string ID for generated locations",
         example=1,
     )
-
-    level: Union[
-        Annotated[PositiveInt, APIField(title="level ID", description="ID of relevant level")],
-        Annotated[None, APIField(title="null", description="no relevant level")],
-    ] = APIField(
-        None,
-        title="level",
-        example=2,
-    )
-    space: Union[
-        Annotated[PositiveInt, APIField(title="level ID", description="ID of relevant level")],
-        Annotated[None, APIField(title="null", description="no relevant level")],
-    ] = APIField(
-        None,
-        description="space",
-        example=3,
-    )
     external_url: Optional[DisplayURL] = None
     display: list[
         tuple[
@@ -934,12 +917,6 @@ class LocationDisplay(BaseSchema):
                 "url": "https://example.com/",
             })
         ]
-    )
-    geometry: Union[
-        GeometrySchema,
-        Annotated[None, APIField(title="null", description="no geometry available")]
-    ] = APIField(
-        None, description="representative geometry, if available"
     )
     editor_url: Union[
         Annotated[NonEmptyStr, APIField(title="path to editor")],

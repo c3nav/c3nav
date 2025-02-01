@@ -53,14 +53,8 @@ class LevelGeometryMixin(GeometryMixin):
             result['opacity'] = self.opacity
         return result
 
-    def details_display(self, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].insert(3, (
-            _('Level'),
-            self.level.for_details_display(),
-        ))
-        result['level'] = self.level_id
-        return result
+    def can_access_geometry(self, request) -> bool:
+        return False
 
     @property
     def subtitle(self):
@@ -137,16 +131,6 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
         verbose_name_plural = _('Spaces')
         default_related_name = 'spaces'
 
-    def details_display(self, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].extend([
-            (_('height'), self.height),
-            (_('outside only'), _('Yes') if self.outside else _('No')),
-        ])
-        if editor_url:
-            result['editor_url'] = reverse('editor.spaces.detail', kwargs={'level': self.level_id, 'pk': self.pk})
-        return result
-
     def for_details_display(self):
         location = self.get_location()
         if location:
@@ -157,6 +141,9 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
                 'can_search': location.can_search,
             }
         return _('Unnamed space')
+
+    def can_access_geometry(self, request) -> bool:
+        return self.base_mapdata_accessible or request.user_permissions.can_access_base_mapdata
 
 
 class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):

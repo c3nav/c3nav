@@ -1,7 +1,7 @@
 from contextlib import suppress
 from dataclasses import dataclass, is_dataclass
 from types import NoneType
-from typing import Annotated, Any, Literal, Union, ClassVar
+from typing import Annotated, Any, Literal, Union, ClassVar, TypeAlias
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model
@@ -191,6 +191,9 @@ class AnyGeometrySchema(BaseSchema):
     """
     type: NonEmptyStr
     coordinates: Any
+
+
+GeometryByLevelSchema: TypeAlias = dict[int, list[GeometrySchema]]
 
 
 class StatsSchema(BaseSchema):
