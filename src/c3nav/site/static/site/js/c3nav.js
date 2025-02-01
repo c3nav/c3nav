@@ -2166,12 +2166,7 @@ c3nav = {
                 maxWidth: 500
             }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[point[0]]);
 
-            const bounds = {
-                [point[0]]: L.latLngBounds(
-                    location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
-                )
-            };
-            c3nav._merge_bounds(result, bounds);
+            c3nav._merge_bounds(result, location.bounds);
         }
         return result
     },
