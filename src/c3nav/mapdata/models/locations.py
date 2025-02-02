@@ -250,10 +250,10 @@ class SpecificLocation(Location, models.Model):
     @property
     def grid_square(self):
         # todo: maybe only merge bounds if it's all in one level… but for multi-level rooms its nice! find solution?
-        if self.bounds:
+        if not self.bounds:
             return None
-        zipped = zip(*(chain(*level_bounds) for level_bounds in self.bounds.values()))
-        return grid.get_squares_for_bounds(min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3]))
+        zipped = tuple(zip(*(chain(*level_bounds) for level_bounds in self.bounds.values())))
+        return grid.get_squares_for_bounds((min(zipped[0]), min(zipped[1]), max(zipped[2]), max(zipped[3])))
 
     @property
     def groups_by_category(self):
@@ -420,6 +420,10 @@ class SpecificLocationTargetMixin(models.Model):
     @property
     def point(self) -> typing.Optional[LocationPoint]:
         return None
+
+    @property
+    def points(self) -> list[LocationPoint]:
+        return []
 
     @property
     def bounds(self) -> typing.Optional[BoundsSchema]:
@@ -663,6 +667,10 @@ class CustomLocationProxyMixin:
     @property
     def level(self):
         return self.get_custom_location().level
+
+    @property
+    def point(self):
+        return self.get_custom_location().point
 
     def serialize_position(self, request=None):
         raise NotImplementedError
