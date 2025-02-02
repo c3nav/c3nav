@@ -2160,15 +2160,14 @@ c3nav = {
                 className: 'location-popup',
                 maxWidth: 500
             }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[point[0]]);
-
-            c3nav._merge_bounds(result, location.bounds);
         }
+        c3nav._merge_bounds(result, location.bounds);
         return result
     },
     _merge_bounds: function (bounds, new_bounds) {
         for (const level_id in new_bounds) {
             const int_level_id = parseInt(level_id);
-            if (bounds[parseInt(int_level_id)]) bounds[int_level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
+            bounds[int_level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
     },
     _dynamic_location_loaded: function (data) {
