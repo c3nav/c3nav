@@ -312,8 +312,12 @@ class CustomLocation:
         }
 
     @property
+    def point(self) -> LocationPoint:
+        return (self.level.pk, self.x, self.y)
+
+    @property
     def points(self) -> list[LocationPoint]:
-        return [(self.level.pk, self.x, self.y)]
+        return [self.point]
 
     @property
     def bounds(self) -> BoundsByLevelSchema:
