@@ -2064,10 +2064,20 @@ c3nav = {
         } else if (c3nav._locationLayerBounds[level]) {
             bounds = c3nav._locationLayerBounds[level];
         } else {
+            let found = false;
             for (const level_id in c3nav._locationLayers) {
                 if (c3nav._locationLayerBounds[level_id]) {
                     bounds = c3nav._locationLayerBounds[level_id];
                     level = level_id
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                for (const level_id in c3nav._locationLayerBounds) {
+                    bounds = c3nav._locationLayerBounds[level_id];
+                    level = level_id
+                    break;
                 }
             }
         }
@@ -2121,7 +2131,8 @@ c3nav = {
             // if location is not in the searchable list...
             return
         }
-        if (location.dynamic || location.locationtype === "dynamiclocation" || location.locationtype === "position") {
+        if (location.dynamic) {
+            // todo: will this match all dynamic locations?
             if (!('available' in location)) {
                 c3nav_api.get(`map/positions/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
@@ -2144,11 +2155,13 @@ c3nav = {
             c3nav_api.get(`map/locations/${location.id}/geometry/`).then(c3nav._location_geometry_loaded);
         }
 
-        if (!location.points || !location.points.length) return;
-        // todo: once we merge groups in, don't forget to adjust this as desired
+        const result = {};
+        c3nav._merge_bounds(result, location.bounds);
+        if (!location.points || !location.points.length) return result;
+
         const points = location.points;
         const override = c3nav._location_point_overrides[location.id];
-        const result = {};
+
         for (let point of points) {
             if (override && point[0] === override[0][0] && Math.abs(point[1]-override[0][1]) < 0.10 && Math.abs(point[2]-override[0][2]) < 0.10) {
                 point[1] = override[1][0];
@@ -2170,8 +2183,7 @@ c3nav = {
                 maxWidth: 500
             }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[point[0]]);
         }
-        c3nav._merge_bounds(result, location.bounds);
-        return result
+        return result;
     },
     _merge_bounds: function (bounds, new_bounds) {
         for (const level_id in new_bounds) {
