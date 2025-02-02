@@ -172,7 +172,7 @@ class RouteItemSchema(BaseSchema):
 
 class RouteLocationSchema(BaseSchema):
     location: SlimLocationSchema
-    point: LocationPoint
+    point: LocationPoint | None
     dotted: bool
 
 
