@@ -26,7 +26,7 @@ from c3nav.mapdata.utils.index import Index
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.models import RouteOptions
-from c3nav.routing.route import Route
+from c3nav.routing.route import Route, RouteLocation
 
 try:
     from asgiref.local import Local as LocalContext
@@ -603,8 +603,10 @@ class Router:
             raise NoRouteFound
 
         # get best origin and destination
-        origin = origins.get_location_for_node(origin_node, restrictions=restrictions)
-        destination = destinations.get_location_for_node(destination_node, restrictions=restrictions)
+        origin, origin_target = origins.get_location_for_node(origin_node,
+                                                              restrictions=restrictions)
+        destination, destination_target = destinations.get_location_for_node(destination_node,
+                                                                             restrictions=restrictions)
 
         if origin is None or destination is None:
             raise ValueError
@@ -618,12 +620,20 @@ class Router:
 
         return Route(
             router=self,
-            origin=origin,
-            destination=destination,
+            origin=RouteLocation(
+                location=origin,
+                point=origin_target.point,
+                dotted=bool(origin.get_nodes_addition(restrictions).get(origin_node))
+            ),
+            destination=RouteLocation(
+                location=destination,
+                point=destination_target.point,
+                dotted=bool(destination.get_nodes_addition(restrictions).get(destination_node))
+            ),
             path_nodes=tuple(path_nodes),
             options=options,
-            origin_addition=origin.nodes_addition.get(origin_node),
-            destination_addition=destination.nodes_addition.get(destination_node),
+            origin_addition=origin.get_nodes_addition(restrictions).get(origin_node),
+            destination_addition=destination.get_nodes_addition(restrictions).get(destination_node),
             origin_xyz=origin.xyz if isinstance(origin, RouterPoint) else None,
             destination_xyz=destination.xyz if isinstance(destination, RouterPoint) else None,
             visible_locations=visible_locations
@@ -755,7 +765,7 @@ class RouterArea(BaseRouterProxy[Area]):
 
 
 @dataclass
-class RouterPoint(BaseRouterProxy[Point]):
+class RouterPoint(BaseRouterProxy[POI | CustomLocation | CustomLocationProxyMixin]):
     altitude: float | None = None
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
@@ -766,15 +776,18 @@ class RouterPoint(BaseRouterProxy[Point]):
         return np.array((self.x, self.y, self.altitude))
 
 
+RouterLocationTarget: TypeAlias = Union["RouterLevel", "RouterSpace", "RouterArea", "RouterPoint"]
+
+
 @dataclass
 class RouterLocation:
     src: SpecificLocation | CustomLocation
-    targets: list[Union["RouterLevel", "RouterSpace", "RouterArea", "RouterPoint"]] = field(default_factory=list)
+    targets: list[RouterLocationTarget] = field(default_factory=list)
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         # todo: implement this differently, obviously
         return (self.access_restriction_id not in restrictions
-                and any(target.can_see(restrictions) for target in self .target))
+                and any(target.can_see(restrictions) for target in self.targets))
 
     def __getattr__(self, name):
         if name == '__setstate__':
@@ -788,11 +801,18 @@ class RouterLocation:
             set()
         )
 
+    def get_target_for_node(self, node, restrictions: "RouterRestrictionSet") -> RouterLocationTarget | None:
+        for target in self.targets:
+            if target.can_see(restrictions) and node in target.nodes:
+                return target
+        return None
+
     def get_nodes_addition(self, restrictions: "RouterRestrictionSet"):
+        # todo: minimum per node?
         return reduce(
             operator.or_,
             (target.nodes_addition for target in self.targets if target.can_see(restrictions)),
-            set()
+            {}
         )
 
 
@@ -931,15 +951,20 @@ class RouterLocationSet:
     def get_nodes(self, restrictions: "RouterRestrictionSet") -> frozenset[int]:
         return reduce(
             operator.or_,
-            (location.nodes for location in self.locations if location.can_see(restrictions)),
+            (location.get_nodes(restrictions)
+             for location in self.locations if location.can_see(restrictions)),
             frozenset()
         )
 
-    def get_location_for_node(self, node, restrictions: "RouterRestrictionSet") -> RouterLocation | None:
+    def get_location_for_node(self, node,
+                              restrictions: "RouterRestrictionSet") -> (tuple[RouterLocation, RouterLocationTarget]
+                                                                        | tuple[None, None]):
         for location in self.locations:
-            if location.can_see(restrictions) and node in location.get_nodes(restrictions):
-                return location
-        return None
+            if location.can_see(restrictions):
+                target = location.get_target_for_node(node, restrictions=restrictions)
+                if target:
+                    return location, target
+        return None, None
 
 
 @dataclass
