@@ -17,7 +17,7 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
-from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D, DjangoModelSchema
+from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D, DjangoModelSchema, LocationPoint
 from c3nav.mapdata.schemas.models import SlimLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
@@ -170,9 +170,15 @@ class RouteItemSchema(BaseSchema):
     ]]
 
 
+class RouteLocationSchema(BaseSchema):
+    location: SlimLocationSchema
+    point: LocationPoint
+    dotted: bool
+
+
 class RouteSchema(BaseSchema):
-    origin: SlimLocationSchema  # todo: is this fine? works? no issues?
-    destination: SlimLocationSchema  # todo: is this fine? works? no issues?
+    origin: RouteLocationSchema
+    destination: RouteLocationSchema
     distance: float
     duration: int
     distance_str: NonEmptyStr

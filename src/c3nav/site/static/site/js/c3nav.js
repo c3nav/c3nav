@@ -688,7 +688,7 @@ c3nav = {
         $details_wrapper.find('.report')
 
         $details.html('');
-        $details.append(c3nav._build_location_html(result.origin));
+        $details.append(c3nav._build_location_html(result.origin.location));
 
         let first_primary_level = null;
         let last_primary_level = null;
@@ -744,20 +744,20 @@ c3nav = {
             c3nav._add_line_to_route(last_primary_level, level_collect);
         }
 
-        $details.append(c3nav._build_location_html(result.destination));
+        $details.append(c3nav._build_location_html(result.destination.location));
 
         // add origin and destination lines
         c3nav._location_points_overrides = {};
-        if (!c3nav._add_location_points_override(result.origin, result.items[0])) {  // todo: definitely not right
+        if (!c3nav._add_location_points_override(result.origin, result.items[0])) {
             c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
-                result.origin.point.slice(1),  // todo this still needs to be adjusted
+                result.origin.point.slice(1),
                 result.items[0].coordinates.slice(0, 2),
                 result.items[1].coordinates.slice(0, 2)
             ), true);
         }
-        if (!c3nav._add_location_points_override(result.destination, result.items.slice(-1)[0])) {  // todo: definitely not right
+        if (!c3nav._add_location_points_override(result.destination, result.items.slice(-1)[0])) {
             c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
-                result.destination.point.slice(1),  // todo this still needs to be adjusted
+                result.destination.point.slice(1),
                 result.items[result.items.length - 1].coordinates.slice(0, 2),
                 result.items[result.items.length - 2].coordinates.slice(0, 2)
             ).reverse(), true);
@@ -773,8 +773,8 @@ c3nav = {
         if (!nofly) c3nav.fly_to_bounds(true);
     },
     _add_location_points_override: function (location, item) {
-        if (location.type === 'specificlocation') {
-            c3nav._location_points_overrides[location.id] = item.coordinates.slice(0, -1);
+        if (location.point && !location.dotted) {
+            c3nav._location_point_overrides[location.location.id] = [location.point, item.coordinates];
             return true;
         }
         return false;
@@ -2112,7 +2112,7 @@ c3nav = {
             [bounds[1][0] + 600 / factor, bounds[1][1] + 200 / factor]
         ];
     },
-    _location_points_overrides: {},
+    _location_point_overrides: {},
     _add_location_to_map: function (location, icon, no_geometry, layers) {
         if (!layers) {
             layers = c3nav._locationLayers;
@@ -2146,9 +2146,14 @@ c3nav = {
 
         if (!location.points || !location.points.length) return;
         // todo: once we merge groups in, don't forget to adjust this as desired
-        const points = c3nav._location_points_overrides[location.id] || location.points;
+        const points = location.points;
+        const override = c3nav._location_point_overrides[location.id];
         const result = {};
-        for (const point of points) {
+        for (let point of points) {
+            if (override && point[0] === override[0][0] && Math.abs(point[1]-override[0][1]) < 0.10 && Math.abs(point[2]-override[0][2]) < 0.10) {
+                point[1] = override[1][0];
+                point[2] = override[1][1];
+            }
             const latlng = L.GeoJSON.coordsToLatLng(point.slice(1));
             let buttons_html = '';
             if (!c3nav.embed) {
@@ -2171,7 +2176,8 @@ c3nav = {
     },
     _merge_bounds: function (bounds, new_bounds) {
         for (const level_id in new_bounds) {
-            bounds[level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
+            const int_level_id = parseInt(level_id);
+            if (bounds[parseInt(int_level_id)]) bounds[int_level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
     },
     _dynamic_location_loaded: function (data) {
