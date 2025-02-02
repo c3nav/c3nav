@@ -326,6 +326,14 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
     points: list[LocationPoint]
     bounds: BoundsByLevelSchema
 
+    @classmethod
+    def get_overrides(cls, value):
+        return {
+            "locationtype": "specificlocation",
+            "label_settings": value.label_settings_id,
+            "load_group_display": value.load_group_display_id
+        }
+
 
 class LocationGroupSchema(LocationSchema, DjangoModelSchema):
     """
@@ -800,6 +808,7 @@ class SlimLocationGroupLocationSchema(SlimLocationMixin, FullLocationGroupLocati
 
 
 def get_locationtype(v: Any):
+    v = getattr(v, "src", v)
     if isinstance(v, Model):
         return v._meta.model_name
     with suppress(AttributeError):

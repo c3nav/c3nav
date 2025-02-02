@@ -8,6 +8,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.models import Location
+from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.routing.models import RouteOptions
 
 if TYPE_CHECKING:
@@ -32,10 +33,17 @@ class RouteNodeWithOptionalEdge(NamedTuple):
 
 
 @dataclass
+class RouteLocation:
+    location: "RouterLocation"
+    point: Optional[LocationPoint]  # point of the actual target
+    dotted: bool
+
+
+@dataclass
 class Route:
     router: "Router"
-    origin: "RouterLocation"
-    destination: "RouterLocation"
+    origin: RouteLocation
+    destination: RouteLocation
     path_nodes: Sequence[int]
     options: RouteOptions
     origin_addition: Optional["RouterNodeAndEdge"]
