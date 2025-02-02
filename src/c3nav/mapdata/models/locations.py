@@ -339,10 +339,10 @@ class SpecificLocation(Location, models.Model):
         icon = super().effective_icon
         if icon:
             return icon
-        return next(iter((icon for icon in chain(
-            (group.icon for group in self.groups.all()),
-            ("location", )
-        ) if icon)))
+        return next(iter(chain(
+            (group.icon for group in self.groups.all() if group.icon),
+            (None, )
+        )))
 
     @property
     def external_url_label(self):
