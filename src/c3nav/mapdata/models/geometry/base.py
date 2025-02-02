@@ -85,9 +85,9 @@ class GeometryMixin(SerializableMixin):
 
     @cached_property
     def point(self) -> LocationPoint:
-        if self.level_id is None:
+        if self.main_level_id is None:
             return None
-        return (self.level_id, *(round(i, 2) for i in self.good_representative_point.coords[0]))
+        return (self.main_level_id, *(round(i, 2) for i in self.good_representative_point.coords[0]))
 
     @cached_property
     def bounds(self) -> BoundsSchema:
