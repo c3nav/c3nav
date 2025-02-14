@@ -748,14 +748,14 @@ c3nav = {
 
         // add origin and destination lines
         c3nav._location_points_overrides = {};
-        if (!c3nav._add_location_points_override(result.origin, result.items[0])) {
+        if (!c3nav._add_location_points_override(first_primary_level, result.origin, result.items[0])) {
             c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
                 result.origin.point.slice(1),
                 result.items[0].coordinates.slice(0, 2),
                 result.items[1].coordinates.slice(0, 2)
             ), true);
         }
-        if (!c3nav._add_location_points_override(result.destination, result.items.slice(-1)[0])) {
+        if (!c3nav._add_location_points_override(last_primary_level, result.destination, result.items.slice(-1)[0])) {
             c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
                 result.destination.point.slice(1),
                 result.items[result.items.length - 1].coordinates.slice(0, 2),
@@ -772,9 +772,25 @@ c3nav = {
 
         if (!nofly) c3nav.fly_to_bounds(true);
     },
-    _add_location_points_override: function (location, item) {
+    _add_location_points_override: function (primary_level, location, item) {
+        // When displaying a route, we may want to override the points of the start or end locations.
+        //
+        // For example, areas have a representative point, but they may be big, and we don't need toroute to its
+        // representative point but just to its "border".
+        //
+        // The same goes for levels. They do not have representative points, but when routing to it, ther will be
+        // a point that we rouote to. This also needs to be shown.
+        //
+        // This function creates such an override if desired. It also returns true if the route path begins/ends at the
+        // origin/destination point, or false if a dotted line needs to be drawn
         if (location.point && !location.dotted) {
-            c3nav._location_point_overrides[location.location.id] = [location.point, item.coordinates];
+            // there is a point and there shouldn't be a dotted line. So we override the point's coordinates.
+            c3nav._location_point_overrides[location.location.id] = [location.point, [primary_level, ...item.coordinates]];
+            return true;
+        } else if (!location.point) {
+            // There is no point. We still have a route though, so this must be a level.
+            // For this case, we create a point to override this.
+            c3nav._location_point_overrides[location.location.id] = [null, [primary_level, ...item.coordinates]];
             return true;
         }
         return false;
@@ -2122,14 +2138,20 @@ c3nav = {
             [bounds[1][0] + 600 / factor, bounds[1][1] + 200 / factor]
         ];
     },
+
+    // map location ids to new points, see _add_location_points_override for details on what this is used for.
+    // keys of this object will be location ids. The value will be an array with two values.
+    // 0: the point to override (original value) or null to override the absence of a point
+    // 1: the new point (new value)
     _location_point_overrides: {},
+
     _add_location_to_map: function (location, icon, no_geometry, layers) {
         if (!layers) {
             layers = c3nav._locationLayers;
         }
         if (!location) {
             // if location is not in the searchable list...
-            return
+            return;
         }
         if (location.dynamic) {
             // todo: will this match all dynamic locations?
@@ -2157,15 +2179,18 @@ c3nav = {
 
         const result = {};
         c3nav._merge_bounds(result, location.bounds);
-        if (!location.points || !location.points.length) return result;
 
-        const points = location.points;
+        // points can be overridden, (see _add_location_points_override for explanation) so lets check for it.
+        // If this location has no points to show, check if the override provides one!
+        let points = location.points ? location.points : [];
         const override = c3nav._location_point_overrides[location.id];
-
+        if (!points.length && override && override[0] === null) {
+            points = [override[1]];
+        }
         for (let point of points) {
-            if (override && point[0] === override[0][0] && Math.abs(point[1]-override[0][1]) < 0.10 && Math.abs(point[2]-override[0][2]) < 0.10) {
-                point[1] = override[1][0];
-                point[2] = override[1][1];
+            if (override && override[0] && point[0] === override[0][0] && Math.abs(point[1]-override[0][1]) < 0.10 && Math.abs(point[2]-override[0][2]) < 0.10) {
+                // if this point matched approximately by an override, override it!
+                point = override[1];
             }
             const latlng = L.GeoJSON.coordsToLatLng(point.slice(1));
             let buttons_html = '';
