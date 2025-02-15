@@ -71,6 +71,9 @@ class ModelDataForwarder:
                 return make_serializable(getattr(self.obj, field.attname))
         return make_serializable(getattr(self.obj, key))
 
+    def __repr__(self):
+        return f"F<{repr(self.obj)}>"
+
 
 class BaseSchema(Schema):
     orig_keys: ClassVar[frozenset[str]] = frozenset()

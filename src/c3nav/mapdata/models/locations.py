@@ -219,8 +219,8 @@ class SpecificLocation(Location, models.Model):
         )
 
     @cached_property
-    def dynamic(self):
-        return self.dynamiclocations.all()
+    def moving(self) -> int:
+        return len(self.dynamiclocations.all())
 
     @property
     def effective_label_settings(self):
