@@ -183,6 +183,8 @@ possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation
 
 
 class SpecificLocation(Location, models.Model):
+    locationtype = "specificlocation"
+
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
@@ -215,6 +217,10 @@ class SpecificLocation(Location, models.Model):
             self.pois.all(),
             self.dynamiclocations.all(),
         )
+
+    @cached_property
+    def dynamic(self):
+        return self.dynamiclocations.all()
 
     @property
     def effective_label_settings(self):
@@ -499,6 +505,8 @@ class LocationGroupManager(models.Manager):
 
 
 class LocationGroup(Location, models.Model):
+    locationtype = "locationgroup"
+
     class CanReportMissing(models.TextChoices):
         DONT_OFFER = "dont_offer", _("don't offer")
         REJECT = "reject", _("offer in first step, then reject")
@@ -699,8 +707,8 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocationTargetMixin, Acc
                 'title': str(self.title),
                 'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
             }
-        from c3nav.mapdata.schemas.models import CustomLocationSchema
-        result = CustomLocationSchema.model_validate(custom_location).model_dump()
+        from c3nav.mapdata.schemas.locations import BaseLocationItemSchema
+        result = BaseLocationItemSchema.model_validate(custom_location).model_dump()
         result.update({
             'available': True,
             'id': self.pk,
@@ -793,8 +801,8 @@ class Position(CustomLocationProxyMixin, models.Model):
                 'subtitle': _('currently unavailable'),
             }
         # todo: is this good?
-        from c3nav.mapdata.schemas.models import CustomLocationLocationSchema
-        result = CustomLocationLocationSchema.model_validate(custom_location).model_dump()
+        from c3nav.mapdata.schemas.locations import BaseLocationItemSchema
+        result = BaseLocationItemSchema.model_validate(custom_location).model_dump()
         result.update({
             'available': True,
             'id': 'm:%s' % self.secret,
