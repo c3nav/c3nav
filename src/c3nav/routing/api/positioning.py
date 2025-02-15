@@ -9,7 +9,7 @@ from pydantic_extra_types.mac_address import MacAddress
 from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.schemas.models import CustomLocationSchema
+from c3nav.mapdata.schemas.locations import BaseLocationItemSchema
 from c3nav.mapdata.tasks import update_ap_names_bssid_mapping
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.routing.locator import Locator
@@ -29,7 +29,7 @@ class LocateRequestSchema(BaseSchema):
 
 class PositioningResult(BaseSchema):
     location: Union[
-        Annotated[CustomLocationSchema, APIField(title="location")],
+        Annotated[BaseLocationItemSchema, APIField(title="location")],
         Annotated[None, APIField(title="null", description="position could not be determined")]
     ] = APIField(
         title="location",
