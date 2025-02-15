@@ -1,23 +1,18 @@
-from contextlib import suppress
-from typing import Annotated, ClassVar, Literal, Optional, Union, Any
+from typing import Annotated, Literal, Optional, Union
 
-from django.db.models import Model
-from pydantic import Discriminator, Tag, Field as APIField, PositiveInt
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
-from c3nav.api.schema import BaseSchema, GeometrySchema, PointSchema, AnyGeometrySchema, PolygonSchema
+from c3nav.api.schema import BaseSchema, AnyGeometrySchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import LocationGroup
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
-                                              LabelSettingsSchema, LocationSchema, PositionID,
-                                              SimpleGeometryLocationsSchema, TitledSchema,
+from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
-                                              WithPolygonGeometrySchema, WithSpaceSchema, schema_definitions,
-                                              schema_description, LocationSlugSchema, WithGeometrySchema, LocationPoint,
-                                              BoundsSchema, EffectiveLabelSettingsSchema, BoundsByLevelSchema)
+                                              WithPolygonGeometrySchema, WithSpaceSchema, schema_description,
+                                              LocationSlugSchema, WithGeometrySchema, LocationPoint,
+                                              BoundsByLevelSchema, BaseLocationSchema)
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -99,7 +94,7 @@ class AreaSchema(WithPolygonGeometrySchema, WithAccessRestrictionSchema, WithSpa
     slow_down_factor: PositiveFloat = APIField(
         title="slow-down factor",
         description="how much walking in this area is slowed down, overlapping areas are multiplied",
-        example=1.0,
+        examples=[1.0],
     )
 
 
@@ -200,10 +195,10 @@ class LeaveDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
     descriptions: dict[NonEmptyStr, NonEmptyStr] = APIField(
         title="description (all languages)",
         description="property names are the ISO-language code. languages may be missing.",
-        example={
+        examples=[{
             "en": "Stanley walked through the red door.",
             "de": "Stanley ging durch die rote Tür.",
-        }
+        }]
     )
     description: NonEmptyStr = APIField(
         title="description (preferred language)",
@@ -226,10 +221,10 @@ class CrossDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
     descriptions: dict[NonEmptyStr, NonEmptyStr] = APIField(
         title="description (all languages)",
         description="property names are the ISO-language code. languages may be missing.",
-        example={
+        examples=[{
             "en": "Go straight ahead through the big glass doors.",
             "de": "gehe geradeaus durch die Glastüren.",
-        }
+        }]
     )
     description: NonEmptyStr = APIField(
         title="description (preferred language)",
@@ -237,7 +232,7 @@ class CrossDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
     )
 
 
-class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
+class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
     """
     A location refering to a level, space, area, point of interest, or dynamic location. It can belong to groups.
     """
@@ -249,12 +244,12 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
         default=None,
         title="grid square",
         description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
-        example="C3",
+        examples=["C3"],
     )
     groups: list[PositiveInt] = APIField(
         title="location groups",
         description="location group(s) that this specific location belongs to.",
-        example=[5, 1, 3, 7],
+        examples=[[5, 1, 3, 7]],
     )
     groups_by_category: dict[
         Annotated[NonEmptyStr, APIField(title="location group category name")],
@@ -262,12 +257,12 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
             Annotated[list[PositiveInt], APIField(
                 title="array of location IDs",
                 description="for categories that have `single` set to `false`. can be an empty array.",
-                example=[1, 4, 5],
+                examples=[[1, 4, 5]],
             )],
             Annotated[PositiveInt, APIField(
                 title="one location ID",
                 description="for categories that have `single` set to `true`.",
-                example=1,
+                examples=[1],
             )],
             Annotated[None, APIField(
                 title="null",
@@ -279,11 +274,11 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
         description="location group(s) that this specific location belongs to, grouped by categories.\n\n"
                     "keys are location group category names. see location group category endpoint for details.\n\n"
                     "categories may be missing if no groups apply.",
-        example={
+        examples=[{
             "category_with_single_true": 5,
             "other_category_with_single_true": None,
             "category_with_single_false": [1, 3, 7],
-        }
+        }]
     )
     label_settings: Optional[PositiveInt] = APIField(
         default=None,
@@ -291,23 +286,6 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
         description=(
                 schema_description(LabelSettingsSchema) +
                 "\n\nif not set, label settings of location groups should be used"
-        )
-    )
-    effective_label_settings: Union[
-        Annotated[EffectiveLabelSettingsSchema, APIField(
-            title="label settings",
-            description="label settings to use",
-        )],
-        Annotated[None, APIField(
-            title="null",
-            description="don't display a label"
-        )],
-    ] = APIField(
-        default=None,
-        title="label settings",
-        description=(
-            schema_description(LabelSettingsSchema) +
-            "\n\neffective label settings to use for this location"
         )
     )
     label_override: Union[
@@ -335,7 +313,7 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
         }
 
 
-class LocationGroupSchema(LocationSchema, DjangoModelSchema):
+class LocationGroupSchema(BaseLocationSchema, DjangoModelSchema):
     """
     A location group, always belonging to a location group category.
 
@@ -376,7 +354,7 @@ class LocationRedirectSchema(LocationSlugSchema, DjangoModelSchema):
         title="location slug",
         description="a slug is a unique way to refer to a location. while locations have a shared ID space, slugs"
                     "are meants to be human-readable and easy to remember.",
-        example="entrance",
+        examples=["entrance"],
     )
     target: PositiveInt = APIField(
         title="target",
@@ -385,7 +363,7 @@ class LocationRedirectSchema(LocationSlugSchema, DjangoModelSchema):
     target_slug: NonEmptyStr = APIField(
         title="effective target location slug",
         description="effective slug of the target location",
-        example="lobby",
+        examples=["lobby"],
     )
 
 
@@ -406,10 +384,7 @@ class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
     titles_plural: dict[NonEmptyStr, NonEmptyStr] = APIField(
         title="plural title (all languages)",
         description="property names are the ISO-language code. languages may be missing.",
-        example={
-            "en": "Title",
-            "de": "Titel",
-        }
+        examples=[{"en": "Title", "de": "Titel"}]
     )
     title_plural: NonEmptyStr = APIField(
         title="plural title (preferred language)",
@@ -418,10 +393,7 @@ class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
     help_texts: dict[NonEmptyStr, NonEmptyStr] = APIField(
         title="help text (all languages)",
         description="property names are the ISO-language code. languages may be missing.",
-        example={
-            "en": "Title",
-            "de": "Titel",
-        }
+        examples=[{"en": "Title", "de": "Titel"}]
     )
     help_text: str = APIField(
         title="help text (preferred language)",
@@ -490,6 +462,7 @@ class DataOverlayFeatureGeometrySchema(WithGeometrySchema, DjangoModelSchema):
     """
     geometry: AnyGeometrySchema
 
+
 class DataOverlayFeatureUpdateSchema(BaseSchema):
     """
     An update to a data overlay feature.
@@ -506,6 +479,7 @@ class DataOverlayFeatureUpdateSchema(BaseSchema):
     point_icon: Optional[str] = None
     external_url: Optional[str] = None
     extra_data: Optional[dict[str, str | int | float]] = None
+
 
 class DataOverlayFeatureBulkUpdateItemSchema(BaseSchema):
     """
@@ -525,12 +499,12 @@ class DataOverlayFeatureBulkUpdateItemSchema(BaseSchema):
     external_url: Optional[str] = None
     extra_data: Optional[dict[str, str | int | float]] = None
 
+
 class DataOverlayFeatureBulkUpdateSchema(BaseSchema):
     """
     A bulk update to data overlay features
     """
     updates: list[DataOverlayFeatureBulkUpdateItemSchema]
-
 
 
 class WayTypeSchema(TitledSchema, DjangoModelSchema):
@@ -550,12 +524,12 @@ class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     )
     bounds: tuple[
         tuple[
-            Annotated[float, APIField(name="left")],
-            Annotated[float, APIField(name="bottom")],
+            Annotated[float, APIField(title="left")],
+            Annotated[float, APIField(title="bottom")],
         ],
         tuple[
-            Annotated[float, APIField(name="right")],
-            Annotated[float, APIField(name="top")],
+            Annotated[float, APIField(title="right")],
+            Annotated[float, APIField(title="top")],
         ]
     ]
 
@@ -579,400 +553,6 @@ class AccessRestrictionGroupSchema(WithAccessRestrictionSchema, DjangoModelSchem
     pass
 
 
-class CustomLocationSchema(BaseSchema):
-    """
-    A custom location represents coordinates that have been put in or calculated.
-
-    A custom location is a location, so it can be routed to and from.
-    """
-    id: CustomLocationID = APIField(
-        description="ID representing the coordinates"
-    )
-    slug: CustomLocationID = APIField(
-        description="slug, identical to ID"
-    )
-    effective_slug: CustomLocationID = APIField(
-        description="slug, identical to ID"
-    )
-    icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
-        title="set icon name",
-        description="as set in the object specifically (any material design icon name)",
-        example="pin_drop",
-    )
-    effective_icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
-        title="icon name to use",
-        description="effective icon to use (any material design icon name)",
-        example="pin_drop",
-    )
-    title: NonEmptyStr = APIField(
-        title="title (preferred language)",
-        description="preferred language based on the Accept-Language header."
-    )
-    subtitle: NonEmptyStr = APIField(
-        title="subtitle (preferred language)",
-        description="an automatically generated short description for this location. "
-                    "preferred language based on the Accept-Language header."
-    )
-    level: PositiveInt = APIField(
-        description="level ID this custom location is located on",
-        example=1,
-    )
-    space: Union[
-        Annotated[PositiveInt, APIField(title="space ID", example=1)],
-        Annotated[None, APIField(title="null", description="the location is not inside a space")],
-    ] = APIField(
-        default=None,
-        description="space ID this custom location is located in"
-    )
-    areas: list[PositiveInt] = APIField(
-        description="IDs of areas this custom location is located in"
-    )
-    grid_square: Union[
-        Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
-        Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
-        Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
-    ] = APIField(
-        default=None,
-        title="grid square",
-        description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
-        example="C3",
-    )
-    near_area: Union[
-        Annotated[PositiveInt, APIField(title="area ID", example=1)],
-        Annotated[None, APIField(title="null", description="the location is not near any areas")],
-    ] = APIField(
-        near="nearby area",
-        description="the ID of an area near this custom location"
-    )
-    near_poi: Union[
-        Annotated[PositiveInt, APIField(title="POI ID", example=1)],
-        Annotated[None, APIField(title="null", description="the location is not near any POIs")],
-    ] = APIField(
-        title="nearby POI",
-        description="the ID of a POI near this custom location"
-    )
-    nearby: list[PositiveInt] = APIField(
-        description="list of IDs of nearby locations"
-    )
-    altitude: Union[
-        Annotated[float, APIField(title="ground altitude", example=1)],
-        Annotated[None, APIField(title="null", description="could not be determined (outside of space?)")],
-    ] = APIField(
-        title="ground altitude",
-        description="ground altitude (in the map-wide coordinate system)"
-    )
-    geometry: PointSchema = APIField(
-        description="point geometry for this custom location",
-    )
-
-    @classmethod
-    def get_overrides(cls, value):
-        from c3nav.mapdata.grid import grid
-        return {
-            "id": value.pk,
-            "space": value.space.pk if value.space else None,
-            "level": value.level.pk,
-            "areas": [a.pk for a in value.areas],
-            "near_area": value.near_area.pk if value.near_area else None,
-            "near_poi": value.near_poi.pk if value.near_poi else None,
-            "nearby": [l.pk for l in value.nearby],
-            "geometry": value.serialized_geometry,
-            "grid_square": value.grid_square if grid.enabled else None
-        }
-
-
-class TrackablePositionSchema(BaseSchema):
-    """
-    A trackable position. Its position can be set or reset.
-    """
-    id: PositionID = APIField(
-        description="ID representing the position",
-        example="p:adskjfalskdj",
-    )
-    slug: PositionID = APIField(
-        description="slug representing the position",
-        example="p:adskjfalskdj",
-    )
-    effective_slug: PositionID = APIField(
-        description="slug representing the position",
-        example="p:adskjfalskdj",
-    )
-    icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
-        title="set icon name",
-        description="icon as set in the location specifically (any material design icon name)",
-        example="pin_drop",
-    )
-    effective_icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
-        title="icon name to use",
-        description="effective icon to use (any material design icon name)",
-        example="pin_drop",
-    )
-    title: NonEmptyStr = APIField(
-        title="title of the position",
-        example="My position"
-    )
-    subtitle: NonEmptyStr = APIField(
-        title="subtitle (preferred language)",
-        description="an automatically generated short description, which might change when the position changes. "
-                    "preferred language based on the Accept-Language header.",
-        example="Near Bällebad"
-    )
-    short_name: NonEmptyStr = APIField(
-        description="short name for icons",
-    )
-
-    @classmethod
-    def get_overrides(cls, value) -> dict:
-        from c3nav.mapdata.models.locations import Position
-        value: Position
-        return {
-            "id": value.slug,
-        }
-
-
-class LocationTypeSchema(BaseSchema):
-    locationtype: str = APIField(title="location type",
-                                 description="indicates what kind of location is included. "
-                                             "different location types have different fields.")
-
-
-def LocationTypeAPIField():
-    return APIField(title="location type",
-                    description="indicates what kind of location is included. "
-                                "different location types have different fields.")
-
-
-class FullSpecificLocationSchema(SpecificLocationSchema, LocationTypeSchema):
-    """
-    A specific location with some additional information for the location API.
-    See SpecificLocation schema for details.
-    """
-    locationtype: Literal["specificlocation"] = LocationTypeAPIField()
-
-
-class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGroupSchema, LocationTypeSchema):
-    """
-    A location group with some additional information for the location API.
-    See LocationGroup schema for details.
-    """
-    locationtype: Literal["locationgroup"] = LocationTypeAPIField()
-
-
-class CustomLocationLocationSchema(CustomLocationSchema, LocationTypeSchema):
-    """
-    A custom location for the location API.
-    See CustomLocation schema for details.
-    """
-    locationtype: Literal["customlocation"] = LocationTypeAPIField()
-    points: list[LocationPoint]
-    bounds: BoundsByLevelSchema
-
-
-class TrackablePositionLocationSchema(TrackablePositionSchema, LocationTypeSchema):
-    """
-    A trackable position for the location API.
-    See TrackablePosition schema for details.
-    """
-    locationtype: Literal["position"] = LocationTypeAPIField()
-
-
-class SlimLocationMixin(BaseSchema):
-    level: ClassVar[None]
-    space: ClassVar[None]
-    titles: ClassVar[None]
-    access_restriction: ClassVar[None]
-    can_search: ClassVar[None]
-    can_describe: ClassVar[None]
-    groups: ClassVar[None]
-    groups_by_category: ClassVar[None]
-    geometry: ClassVar[None]
-
-
-class SlimSpecificLocationSchema(SlimLocationMixin, FullSpecificLocationSchema):
-    """
-    A specific location for the location API with some rarely needed fields removed.
-    See SpecificLocation schema for details.
-    """
-
-
-class SlimLocationGroupLocationSchema(SlimLocationMixin, FullLocationGroupLocationSchema):
-    """
-    A location group with some rarely needed fields removed and some additional information for the location API.
-    See LocationGroup schema for details.
-    """
-    category: ClassVar[None]
-    priority: ClassVar[None]
-    hierarchy: ClassVar[None]
-    color: ClassVar[None]
-    can_report_missing: ClassVar[None]
-
-
-def get_locationtype(v: Any):
-    v = getattr(v, "src", v)
-    if isinstance(v, Model):
-        return v._meta.model_name
-    with suppress(AttributeError):
-        return v.locationtype
-    return v["locationtype"]
-
-
-FullListableLocationSchema = Annotated[
-    Union[
-        Annotated[FullSpecificLocationSchema, Tag("specificlocation")],
-        Annotated[FullLocationGroupLocationSchema, Tag("locationgroup")],
-    ],
-    Discriminator(get_locationtype),
-]
-
-FullLocationSchema = Annotated[
-    Union[
-        Annotated[FullSpecificLocationSchema, Tag("specificlocation")],
-        Annotated[FullLocationGroupLocationSchema, Tag("locationgroup")],
-        Annotated[CustomLocationLocationSchema, Tag("customlocation")],
-        Annotated[TrackablePositionLocationSchema, Tag("position")],
-    ],
-    Discriminator(get_locationtype),
-]
-
-SlimListableLocationSchema = Annotated[
-    Union[
-        Annotated[SlimSpecificLocationSchema, Tag("specificlocation")],
-        Annotated[SlimLocationGroupLocationSchema, Tag("locationgroup")],
-    ],
-    Discriminator(get_locationtype),
-]
-
-SlimLocationSchema = Annotated[
-    Union[
-        Annotated[SlimSpecificLocationSchema, Tag("specificlocation")],
-        Annotated[SlimLocationGroupLocationSchema, Tag("locationgroup")],
-        Annotated[CustomLocationLocationSchema, Tag("customlocation")],
-        Annotated[TrackablePositionLocationSchema, Tag("position")],
-    ],
-    Discriminator(get_locationtype),
-]
-
-listable_location_definitions = schema_definitions(
-    (SpecificLocationSchema, LocationGroupSchema)
-)
-all_location_definitions = listable_location_definitions + "\n" + schema_definitions(
-    (CustomLocationSchema, TrackablePositionSchema)
-)
-
-
-class DisplayLink(BaseSchema):
-    """
-    A link for the location display
-    """
-    id: PositiveInt
-    slug: NonEmptyStr
-    title: NonEmptyStr
-    can_search: bool
-
-
-class DisplayURL(BaseSchema):
-    """
-    A URL link for the location display
-    """
-    title: NonEmptyStr
-    url: NonEmptyStr
-
-
-class LocationDisplay(BaseSchema):
-    id: AnyLocationID = APIField(
-        description="a numeric ID for a map location or a string ID for generated locations",
-        example=1,
-    )
-    external_url: Optional[DisplayURL] = None
-    display: list[
-        tuple[
-            Annotated[NonEmptyStr, APIField(title="field title")],
-            Annotated[Union[
-                Annotated[str, APIField(title="a simple string value")],
-                Annotated[DisplayLink, APIField(title="a link value")],
-                Annotated[list[DisplayLink], APIField(title="a list of link values")],
-                Annotated[DisplayURL, APIField(title="an URL value")],
-                Annotated[None, APIField(title="no value")]
-            ], APIField(title="field value", union_mode='left_to_right')]
-        ]
-    ] = APIField(
-        title="display fields",
-        description="a list of human-readable display values",
-        example=[
-            ("Title", "Awesome location"),
-            ("Access Restriction", None),
-            ("Level", {
-                "id": 2,
-                "slug": "level0",
-                "title": "Ground Floor",
-                "can_search": True,
-            }),
-            ("Groups", [
-                {
-                    "id": 10,
-                    "slug": "entrances",
-                    "title": "Entrances",
-                    "can_search": True,
-                },
-                {
-                    "id": 11,
-                    "slug": "startswithe",
-                    "title": "Locations that Start with E",
-                    "can_search": False,
-                }
-            ]),
-            ("External URL", {
-                "title": "Open",
-                "url": "https://example.com/",
-            })
-        ]
-    )
-    editor_url: Union[
-        Annotated[NonEmptyStr, APIField(title="path to editor")],
-        Annotated[None, APIField(title="null", description="no editor access or object is not editable")],
-    ] = APIField(
-        None,
-        title="editor URL",
-        description="path to edit this object in the editor",
-        example="/editor/spaces/2/pois/1/"
-    )
-
-
-class PositionStatusSchema(BaseSchema):
-    id: AnyPositionID = APIField(
-        description="the ID of the dynamic position that has been queries",
-    )
-    slug: NonEmptyStr = APIField(
-        description="a description for the dynamic position that has been queried"
-    )
-
-
-class PositionAvailabilitySchema(BaseSchema):
-    available: str
-
-
-class PositionUnavailableStatusSchema(PositionStatusSchema, TrackablePositionSchema, PositionAvailabilitySchema):
-    """ position unavailable """
-    available: Literal[False]
-
-
-class PositionAvailableStatusSchema(PositionStatusSchema, TrackablePositionSchema,
-                                    CustomLocationSchema, PositionAvailabilitySchema):
-    """ position available """
-    available: Literal[True]
-    point: LocationPoint
-    bounds: BoundsByLevelSchema
-
-
-AnyPositionStatusSchema = Annotated[
-    Union[
-        Annotated[PositionUnavailableStatusSchema, APIField(title="position is unavailable")],
-        Annotated[PositionAvailableStatusSchema, APIField(title="position is available")],
-    ],
-    Discriminator("available"),
-]
-
-
 class ProjectionPipelineSchema(BaseSchema):
     pipeline: Union[
         Annotated[NonEmptyStr, APIField(title='proj4 string')],
@@ -980,7 +560,7 @@ class ProjectionPipelineSchema(BaseSchema):
     ] = APIField(
         title='proj4 string',
         description='proj4 string for converting WGS84 coordinates to c3nav coordinates if available',
-        example='+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs'
+        examples=['+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs']
     )
 
 
@@ -988,17 +568,17 @@ class ProjectionSchema(ProjectionPipelineSchema):
     proj4: NonEmptyStr = APIField(
         title='proj4 string',
         description='proj4 string for converting WGS84 coordinates to c3nav coordinates without offset and rotation',
-        example='+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs'
+        examples=['+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs']
     )
     zero_point: tuple[float, float] = APIField(
         title='zero point',
         description='coordinates of the zero point of the c3nav coordinate system',
-        example=(0.0, 0.0),
+        examples=[(0.0, 0.0)],
     )
     rotation: float = APIField(
         title='rotation',
         description='rotational offset of the c3nav coordinate system',
-        example=0.0,
+        examples=[0.0],
     )
     rotation_matrix: Optional[tuple[
         float, float, float, float,
@@ -1008,12 +588,12 @@ class ProjectionSchema(ProjectionPipelineSchema):
     ]] = APIField(
         title='rotation matrix',
         description='rotation matrix for rotational offset of the c3nav coordinate system',
-        example=[
+        examples=[[
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1
-        ]
+        ]]
     )
 
 
