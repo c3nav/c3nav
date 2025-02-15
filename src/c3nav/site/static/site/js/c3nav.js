@@ -334,6 +334,14 @@ c3nav = {
 
         $(document).on('click', '.theme-selection>button', c3nav.select_theme);
 
+        // the state we get might not be complete. so look at what we loaded in the background
+        // todo: ideally the state dict will only provide ids, not dicts and we always load it manually
+        if (state.origin && state.origin.id && c3nav.locations_by_id[state.origin.id]) {
+            state.origin = c3nav.locations_by_id[state.origin.id];
+        }
+        if (state.destination && state.destination.id && c3nav.locations_by_id[state.destination.id]) {
+            state.destination = c3nav.locations_by_id[state.destination.id];
+        }
 
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
