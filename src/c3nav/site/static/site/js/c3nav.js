@@ -115,6 +115,10 @@ localStorageWrapper = {
     },
 };
 
+function effective_slug(location) {
+    return location.slug || String(location.id)
+}
+
 c3nav = {
     init_completed: false,
     user_data: null,
@@ -224,7 +228,7 @@ c3nav = {
                 location.elem = c3nav._build_location_html(location);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
-                location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.effective_slug + ' ' + location.add_search.toLowerCase();
+                location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + effective_slug(location) + ' ' + location.add_search.toLowerCase();
                 locations.push(location);
                 locations_by_id[location.id] = location;
                 if (location.points && location.points.length) {
@@ -588,7 +592,7 @@ c3nav = {
                 for (let j = 0; j < sublocations.length; j++) {
                     const loc = sublocations[j];
                     if (loc.can_search) {
-                        loclist.append($('<a>').attr('href', '/l/' + loc.effective_slug + '/details/').attr('data-id', loc.id).click(function (e) {
+                        loclist.append($('<a>').attr('href', '/l/' + effective_slug(loc) + '/details/').attr('data-id', loc.id).click(function (e) {
                             e.preventDefault();
                             c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
                             c3nav.update_state(false, false, true);
@@ -887,12 +891,12 @@ c3nav = {
         let url = embed ? '/embed' : '';
         if (state.routing) {
             if (state.origin) {
-                url += (state.destination) ? '/r/' + state.origin.effective_slug + '/' + state.destination.effective_slug + '/' : '/o/' + state.origin.effective_slug + '/';
+                url += (state.destination) ? '/r/' + effective_slug(state.origin) + '/' + effective_slug(state.destination) + '/' : '/o/' + effective_slug(state.origin) + '/';
             } else {
-                url += (state.destination) ? '/d/' + state.destination.effective_slug + '/' : '/r/';
+                url += (state.destination) ? '/d/' + effective_slug(state.destination) + '/' : '/r/';
             }
         } else {
-            url += state.destination ? ('/l/' + state.destination.effective_slug + '/') : '/';
+            url += state.destination ? ('/l/' + effective_slug(state.destination) + '/') : '/';
         }
         if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
             url += 'details/'
@@ -1067,7 +1071,7 @@ c3nav = {
         if (navigator.share) {
             let title;
             let subtitle;
-            if (location.effective_slug) {
+            if (location.id) {  // todo? this referred to .effectice_slug, wtf, why? does this still work? what is this?
                 title = location.title;
                 subtitle = location.subtitle;
             } else {
@@ -1088,8 +1092,8 @@ c3nav = {
     },
     _get_share_url: function (with_position, location) {
         const state = $.extend({}, c3nav.state);
-        if (location.effective_slug) {
-            return '/l/' + location.effective_slug + '/';
+        if (location.id) {  // todo: what is this. why? this referred to effective_slug before
+            return '/l/' + effective_slug(location) + '/';
         } else {
             if (!with_position) {
                 state.center = null;
