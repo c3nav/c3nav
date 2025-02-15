@@ -37,7 +37,7 @@ from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
-from c3nav.mapdata.schemas.models import SlimLocationSchema
+from c3nav.mapdata.schemas.locations import SingleLocationItemSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            levels_by_level_index_for_request, LocationRedirect)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
@@ -123,9 +123,9 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     state = {
         'routing': routing,
-        'origin': (TypeAdapter(SlimLocationSchema).validate_python(origin).model_dump()
+        'origin': (TypeAdapter(SingleLocationItemSchema).validate_python(origin).model_dump()
                    if origin else None),
-        'destination': (TypeAdapter(SlimLocationSchema).validate_python(destination).model_dump()
+        'destination': (TypeAdapter(SingleLocationItemSchema).validate_python(destination).model_dump()
                         if destination else None),
         'sidebar': routing or destination is not None,
         'details': True if details else False,

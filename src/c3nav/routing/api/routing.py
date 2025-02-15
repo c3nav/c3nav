@@ -17,8 +17,8 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
+from c3nav.mapdata.schemas.locations import SingleLocationItemSchema
 from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D, DjangoModelSchema, LocationPoint
-from c3nav.mapdata.schemas.models import SlimLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
@@ -171,7 +171,7 @@ class RouteItemSchema(BaseSchema):
 
 
 class RouteLocationSchema(BaseSchema):
-    location: SlimLocationSchema
+    location: SingleLocationItemSchema
     point: LocationPoint | None
     dotted: bool
 
