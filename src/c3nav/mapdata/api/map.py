@@ -18,7 +18,6 @@ from c3nav import settings
 from c3nav.api.auth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
-from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_etag, api_stats
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
@@ -30,11 +29,9 @@ from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGr
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter
-from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
-from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
-                                          LocationDisplay, ProjectionPipelineSchema, ProjectionSchema,
-                                          SlimListableLocationSchema, SlimLocationSchema, all_location_definitions,
-                                          listable_location_definitions, LegendSchema, LegendItemSchema)
+from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
+from c3nav.mapdata.schemas.model_base import AnyLocationID, CustomLocationID, PositionID
+from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, searchable_locations_for_request,
@@ -95,21 +92,11 @@ def _location_list(request, filters: LocationListFilters):
     return locations
 
 
-@map_api_router.get('/locations/', summary="list locations (slim)",
-                    description=("Get locations (with most important attributes set)\n\n"
-                                 "Possible location types:\n"+listable_location_definitions),
-                    response={200: list[SlimListableLocationSchema], **validate_responses, **auth_responses})
+@map_api_router.get('/locations/', summary="list locations",
+                    description="Get locations",
+                    response={200: list[ListedLocationItemSchema], **validate_responses, **auth_responses})
 @api_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
-    return _location_list(request, filters=filters)
-
-
-@map_api_router.get('/locations/full/', summary="list locations (full)",
-                    description=("Get locations (with all attributes set)\n\n"
-                                 "Possible location types:\n"+listable_location_definitions),
-                    response={200: list[FullListableLocationSchema], **validate_responses, **auth_responses})
-@api_etag(base_mapdata=True)
-def location_list_full(request, filters: Query[LocationListFilters]):
     return _location_list(request, filters=filters)
 
 
@@ -160,15 +147,14 @@ def _location_geometry(request, location: LocationRedirect | Location | CustomLo
 class ShowRedirects(BaseSchema):
     show_redirects: bool = APIField(
         False,
-        name="show redirects",
+        title="show redirects",
         description="whether to show redirects instead of sending a redirect response",
     )
 
 
-@map_api_router.get('/locations/{location}/', summary="get location (slim)",
-                    description=("Retrieve location (with some attributes set)\n\n"
-                                 "Possible location types:\n"+all_location_definitions),
-                    response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
+@map_api_router.get('/locations/{location}/', summary="get location",
+                    description="Retrieve location",
+                    response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
 def get_location(request, location: AnyLocationID, redirects: Query[ShowRedirects]):
@@ -179,23 +165,8 @@ def get_location(request, location: AnyLocationID, redirects: Query[ShowRedirect
     )
 
 
-@map_api_router.get('/locations/{location}/full/', summary="get location (full)",
-                    description=("Retrieve location (with all attributes set)\n\n"
-                                 "Possible location types:\n"+all_location_definitions),
-                    response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-@api_stats('location_get')
-@api_etag(base_mapdata=True)
-def get_location_full(request, location: AnyLocationID, redirects: Query[ShowRedirects]):
-    return _location_retrieve(
-        request,
-        get_location_by_id_for_request(location, request),
-        show_redirects=redirects.show_redirects,
-    )
-
-
 @map_api_router.get('/locations/{location}/display/', summary="location display",
-                    description=("Retrieve displayable information about location\n\n"
-                                 "Possible location types:\n"+all_location_definitions),
+                    description="Retrieve displayable information about location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')
 @api_etag(base_mapdata=True)
@@ -218,64 +189,16 @@ def location_geometry(request, location_id: AnyLocationID):
     )
 
 
-@map_api_router.get('/locations/by-slug/{location_slug}/', summary="get location by slug (slim)",
-                    deprecated=True, description="deprecated – alias of get location which also accepts slugs",
-                    response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-def location_by_slug(request, location_slug: NonEmptyStr, redirects: Query[ShowRedirects]):
-    return get_location(request, location_slug, redirects)
-
-
-@map_api_router.get('/locations/by-slug/{location_slug}/full/', summary="get location by slug (full)",
-                    deprecated=True, description="deprecated – alias of get location which also accepts slugs",
-                    response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-def location_by_slug_full(request, location_slug: NonEmptyStr, redirects: Query[ShowRedirects]):
-    return get_location_full(request, location_slug, redirects)
-
-
-@map_api_router.get('/locations/by-slug/{location_slug}/display/', summary="location display by slug",
-                    deprecated=True, description="deprecated – alias of location display which also accepts slugs",
-                    response={200: LocationDisplay, **API404.dict(), **auth_responses})
-def location_by_slug_display(request, location_slug: NonEmptyStr):
-    return location_display(request, location_slug)
-
-
-@map_api_router.get('/locations/by-slug/{location_slug}/geometry/', summary="location geometry by slug",
-                    deprecated=True, description="deprecated – alias of location geometry which also accepts slugs",
-                    response={200: LocationGeometry, **API404.dict(), **auth_responses})
-def location_by_slug_geometry(request, location_slug: NonEmptyStr):
-    return location_geometry(request, location_slug)
-
-
 @map_api_router.get('/positions/my/', summary="all moving position coordinates",
                     description="get current coordinates of all moving positions owned be the current users",
-                    response={200: list[AnyPositionStatusSchema], **API404.dict(), **auth_responses})
+                    response={200: list[SingleLocationItemSchema], **API404.dict(), **auth_responses})
 @api_stats('get_positions')
 def get_my_positions(request):
     # no caching for obvious reasons!
     return [
-        position.serialize_position(request=request)
+        position.serialize_position(request=request)   # todo: stop using this
         for position in Position.objects.filter(owner=request.user)
     ]
-
-
-@map_api_router.get('/positions/{position_id}/', summary="moving position coordinates",
-                    description="get current coordinates of a moving position / dynamic location",
-                    response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses})
-@api_stats('get_position')
-def get_position_by_id(request, position_id: AnyPositionID):
-    # no caching for obvious reasons!
-    location = None
-    if isinstance(position_id, int) or position_id.isdigit():
-        location = get_location_by_id_for_request(position_id, request)
-        if not isinstance(location, DynamicLocation):
-            raise API404()
-    if location is None and position_id.startswith('m:'):
-        try:
-            location = Position.objects.get(secret=position_id[2:])
-        except Position.DoesNotExist:
-            raise API404()
-
-    return location.serialize_position(request=request)
 
 
 class UpdatePositionSchema(BaseSchema):
@@ -298,11 +221,9 @@ class UpdatePositionSchema(BaseSchema):
 @map_api_router.put('/positions/{position_id}/', url_name="position-update",
                     summary="set moving position",
                     description="only the string ID for the position secret must be used",
-                    response={200: AnyPositionStatusSchema, **API404.dict(), **auth_permission_responses})
-def set_position(request, position_id: AnyPositionID, update: UpdatePositionSchema):
+                    response={200: SingleLocationItemSchema, **API404.dict(), **auth_permission_responses})
+def set_position(request, position_id: PositionID, update: UpdatePositionSchema):
     # todo: may an API key do this?
-    if not isinstance(position_id, str) or not position_id.startswith('m:'):
-        raise API404()
     try:
         location = Position.objects.get(secret=position_id[2:])
     except Position.DoesNotExist:
@@ -319,7 +240,7 @@ def set_position(request, position_id: AnyPositionID, update: UpdatePositionSche
     location.last_coordinates_update = timezone.now()
     location.save()
 
-    return location.serialize_position(request=request)
+    return location.serialize_position(request=request)  # todo: stop using this
 
 
 @map_api_router.get('/projection/', summary='get proj4 string',
