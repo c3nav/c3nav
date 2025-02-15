@@ -4,9 +4,9 @@ from pydantic import Field as APIField, PositiveInt, NonNegativeInt
 
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.schemas.model_base import schema_description, LabelSettingsSchema, \
-    LocationPoint, BoundsByLevelSchema, LocationSlugSchema, TitleField, AnyLocationID, \
-    DjangoID, PositionID, CustomLocationID, OptionalLocationSlugField
+from c3nav.mapdata.schemas.model_base import (schema_description, LabelSettingsSchema,
+                                              LocationPoint, BoundsByLevelSchema, TitleField, AnyLocationID,
+                                              DjangoID, PositionID, CustomLocationID, OptionalLocationSlugField)
 
 
 class NearbySchema(BaseSchema):
@@ -16,7 +16,7 @@ class NearbySchema(BaseSchema):
     )]
     space: Annotated[
         Union[
-            Annotated[PositiveInt, APIField(title="space ID", example=1)],
+            Annotated[PositiveInt, APIField(title="space ID", examples=[1])],
             Annotated[None, APIField(title="null", description="the location is not inside a space")],
         ],
         APIField(
@@ -27,19 +27,6 @@ class NearbySchema(BaseSchema):
     areas: Annotated[list[PositiveInt], APIField(
         description="IDs of areas this custom location is located in"
     )]
-    grid_square: Annotated[
-        Union[
-            Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
-            Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
-            Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
-        ],
-        APIField(
-            default=None,
-            title="grid square",
-            description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
-            examples=["C3"],
-        )
-    ]
     near_area: Annotated[
         Union[
             Annotated[PositiveInt, APIField(title="area ID", examples=[1])],
@@ -52,7 +39,7 @@ class NearbySchema(BaseSchema):
     ]
     near_poi: Annotated[
         Union[
-            Annotated[PositiveInt, APIField(title="POI ID", example=1)],
+            Annotated[PositiveInt, APIField(title="POI ID", examples=[1])],
             Annotated[None, APIField(title="null", description="the location is not near any POIs")],
         ],
         APIField(
@@ -64,8 +51,8 @@ class NearbySchema(BaseSchema):
         description="list of IDs of nearby locations"
     )]
     altitude: Annotated[
-        Union[    # todo: merge this into points?
-            Annotated[float, APIField(title="ground altitude", example=1)],
+        Union[  # todo: merge this into points?
+            Annotated[float, APIField(title="ground altitude", examples=[1])],
             Annotated[None, APIField(title="null", description="could not be determined (outside of space?)")],
         ],
         APIField(
@@ -99,9 +86,18 @@ class BaseLocationItemSchema(BaseSchema):
     )]
     grid_square: Annotated[
         Union[
-            Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
-            Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
-            Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
+            Annotated[NonEmptyStr, APIField(
+                title="grid square",
+                description="grid square(s) that this location is in"
+            )],
+            Annotated[Literal[""], APIField(
+                title="grid square",
+                description="outside of grid"
+            )],
+            Annotated[None, APIField(
+                title="null",
+                description="no grid defined or outside of grid"
+            )],
         ],
         APIField(
             default=None,

@@ -1,6 +1,6 @@
 import math
 import re
-from typing import Annotated, Optional, Union, ClassVar, TYPE_CHECKING, TypeAlias
+from typing import Annotated, Optional, Union, TYPE_CHECKING
 
 from pydantic import Field as APIField
 from pydantic import PositiveInt
@@ -9,7 +9,6 @@ from c3nav.api.schema import BaseSchema, LineStringSchema, PointSchema, PolygonS
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
-
 
 if TYPE_CHECKING:
     from c3nav.mapdata.models.geometry.base import GeometryMixin
