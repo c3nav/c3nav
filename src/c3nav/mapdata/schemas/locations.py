@@ -124,7 +124,7 @@ class BaseLocationItemSchema(BaseSchema):
             title="moving positions",
             description="how many moving positions are included in this location"
         )
-    ]= 0
+    ] = 0
     points: list[LocationPoint] = []
     bounds: BoundsByLevelSchema = {}
 
@@ -139,8 +139,8 @@ class EffectiveLabelSettingsSchema(LabelSettingsSchema):
 
 
 class SingleLocationItemSchema(BaseLocationItemSchema):
-    nearby: Optional[NearbySchema]
-    moving_points: list[LocationPoint]
+    nearby: Optional[NearbySchema] = None
+    moving_points: list[LocationPoint] = []
 
 
 class ListedLocationItemSchema(BaseLocationItemSchema):
