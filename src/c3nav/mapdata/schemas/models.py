@@ -30,8 +30,15 @@ class LevelSchema(WithAccessRestrictionSchema, DjangoModelSchema):
         description="unique among levels",
     )
     on_top_of: Union[
-        Annotated[PositiveInt, APIField(title="level ID", description="level this level is on top of", example=1)],
-        Annotated[None, APIField(title="null", description="this is a main level, not on top of any other")]
+        Annotated[PositiveInt, APIField(
+            title="level ID",
+            description="level this level is on top of",
+            examples=[1]
+        )],
+        Annotated[None, APIField(
+            title="null",
+            description="this is a main level, not on top of any other"
+        )]
     ] = APIField(
         title="on top of level ID",
         description="if set, this is not a main level, but it's on top of this other level"
@@ -43,12 +50,12 @@ class LevelSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     default_height: PositiveFloat = APIField(
         title="default ceiling height",
         description="default ceiling height for all spaces that don't set their own",
-        example=2.5
+        examples=[2.5],
     )
     door_height: PositiveFloat = APIField(
         title="door height",
         description="height for all doors on this level",
-        example="2.0",
+        examples=["2.0"],
     )
 
 
