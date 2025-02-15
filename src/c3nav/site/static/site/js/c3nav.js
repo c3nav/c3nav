@@ -2171,6 +2171,7 @@ c3nav = {
         }
         if (location.moving) {
             if (!('available' in location)) {
+                // todo: fix this…
                 c3nav_api.get(`map/positions/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
                 return;
@@ -2178,13 +2179,14 @@ c3nav = {
                 return;
             }
         }
+
+        const bounds = {};
+
         // add a location to the map as a marker
-        if (location.locations) {
-            const bounds = {};
+        if (location.locations && location.locations.length) {
             for (let i = 0; i < location.locations.length; i++) {
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon, true));
             }
-            return bounds;
         }
 
         if (!no_geometry && c3nav._visible_map_locations.indexOf(location.id) === -1) {
@@ -2192,8 +2194,11 @@ c3nav = {
             c3nav_api.get(`map/locations/${location.id}/geometry/`).then(c3nav._location_geometry_loaded);
         }
 
-        const result = {};
-        c3nav._merge_bounds(result, location.bounds);
+        c3nav._merge_bounds(bounds,
+            Object.fromEntries(Object.entries(location.bounds).map(
+                ([level, bounds]) => [level, L.latLngBounds(L.GeoJSON.coordsToLatLngs(bounds))]
+            ))
+        );
 
         // points can be overridden, (see _add_location_points_override for explanation) so lets check for it.
         // If this location has no points to show, check if the override provides one!
@@ -2223,7 +2228,7 @@ c3nav = {
                 maxWidth: 500
             }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(layers[point[0]]);
         }
-        return result;
+        return bounds;
     },
     _merge_bounds: function (bounds, new_bounds) {
         for (const level_id in new_bounds) {
@@ -2693,6 +2698,7 @@ c3nav = {
             $('.locationinput .locate, .leaflet-control-user-location a').removeClass('has-fix').show();
             $('.locationinput .locate, .leaflet-control-user-location a').addClass('has-fix');
             const latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates);
+
             for (const level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
                 const layer = c3nav._userLocationLayers[level];
