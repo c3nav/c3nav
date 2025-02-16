@@ -62,6 +62,36 @@ class NearbySchema(BaseSchema):
     ]
 
 
+SubtitleField = Annotated[NonEmptyStr, APIField(
+    title="subtitle (preferred language)",
+    description="an automatically generated short description for this location in the " \
+                "preferred language based on the Accept-Language header.",
+    examples=["near Area 51"],
+)]
+GridSquare = Annotated[
+    Union[
+        Annotated[NonEmptyStr, APIField(
+            title="grid square",
+            description="grid square(s) that this location is in"
+        )],
+        Annotated[Literal[""], APIField(
+            title="grid square",
+            description="outside of grid"
+        )],
+        Annotated[None, APIField(
+            title="null",
+            description="no grid defined or outside of grid"
+        )],
+    ],
+    APIField(
+        default=None,
+        title="grid square",
+        description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
+        examples=["C3"],
+    )
+]
+
+
 class BaseLocationItemSchema(BaseSchema):
     locationtype: Union[
         Literal["specificlocation"],
@@ -73,39 +103,13 @@ class BaseLocationItemSchema(BaseSchema):
     slug: OptionalLocationSlugField
 
     title: TitleField
-    subtitle: Annotated[NonEmptyStr, APIField(
-        title="subtitle (preferred language)",
-        description="an automatically generated short description for this location in the "
-                    "preferred language based on the Accept-Language header.",
-        examples=["near Area 51"],
-    )]
+    subtitle: SubtitleField
     effective_icon: Annotated[Optional[NonEmptyStr], APIField(  # todo: not optional?
         title="icon name to use",
         description="effective icon to use (any material design icon name)",
         examples=["pin_drop"],
     )]
-    grid_square: Annotated[
-        Union[
-            Annotated[NonEmptyStr, APIField(
-                title="grid square",
-                description="grid square(s) that this location is in"
-            )],
-            Annotated[Literal[""], APIField(
-                title="grid square",
-                description="outside of grid"
-            )],
-            Annotated[None, APIField(
-                title="null",
-                description="no grid defined or outside of grid"
-            )],
-        ],
-        APIField(
-            default=None,
-            title="grid square",
-            description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
-            examples=["C3"],
-        )
-    ]
+    grid_square: GridSquare
     can_search: Annotated[bool, APIField(
         title="can be searched",
         description="if `true`, this object can show up in search results",
@@ -114,15 +118,40 @@ class BaseLocationItemSchema(BaseSchema):
         title="can describe locations",
         description="if `true`, this object can be used to describe other locations (e.g. in their subtitle)",
     )]
-    moving: Annotated[
+    dynamic: Annotated[
         NonNegativeInt,
         APIField(
-            title="moving positions",
-            description="how many moving positions are included in this location"
+            title="dynamic targets",
+            description="how many dynamic targets (for example positions that can move in real time) "
+                        "are included in this location"
         )
     ] = 0
     points: list[LocationPoint] = []
     bounds: BoundsByLevelSchema = {}
+
+
+class DynamicLocationState(BaseSchema):
+    subtitle: SubtitleField
+    grid_square: GridSquare
+    dynamic_points: Annotated[list[LocationPoint], APIField(
+        title="dynamic points",
+        description="representative points of dynamic targets, to be merged with the static points"
+    )] = []
+    bounds: BoundsByLevelSchema = {}
+    nearby: Optional[NearbySchema] = None
+
+
+class SingleLocationItemSchema(BaseLocationItemSchema):
+    nearby: Annotated[Optional[NearbySchema], APIField(
+        title="nearby locations",
+        description="for custom locations, information that is used to describe its position"
+    )] = None
+    dynamic_state: Annotated[Optional[DynamicLocationState], APIField(
+        title="dynamic state",
+        description="if this location features dynamic targets, this object contains dynamic replacement values "
+                    "to override location properties with, unless specified otherwise"
+    )] = []
+    # todo: get dynamic states of children
 
 
 class EffectiveLabelSettingsSchema(LabelSettingsSchema):
@@ -132,11 +161,6 @@ class EffectiveLabelSettingsSchema(LabelSettingsSchema):
     id: ClassVar[None]
     title: ClassVar[None]
     titles: ClassVar[None]
-
-
-class SingleLocationItemSchema(BaseLocationItemSchema):
-    nearby: Optional[NearbySchema] = None
-    moving_points: list[LocationPoint] = []
 
 
 class ListedLocationItemSchema(BaseLocationItemSchema):
