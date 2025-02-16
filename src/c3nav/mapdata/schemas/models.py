@@ -243,16 +243,6 @@ class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
     """
     A location refering to a level, space, area, point of interest, or dynamic location. It can belong to groups.
     """
-    grid_square: Union[
-        Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
-        Annotated[Literal[""], APIField(title="grid square", description="outside of grid")],
-        Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
-    ] = APIField(
-        default=None,
-        title="grid square",
-        description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
-        examples=["C3"],
-    )
     groups: list[PositiveInt] = APIField(
         title="location groups",
         description="location group(s) that this specific location belongs to.",
