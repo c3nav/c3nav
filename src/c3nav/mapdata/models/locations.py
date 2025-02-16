@@ -1,11 +1,11 @@
 import operator
 import string
-import typing
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce
 from itertools import chain
 from operator import attrgetter
+from typing import TYPE_CHECKING, Optional, Iterator, TypeAlias, Union, Iterable
 
 from django.conf import settings
 from django.core.cache import cache
@@ -25,12 +25,15 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.schemas.locations import GridSquare
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
 
-if typing.TYPE_CHECKING:
+
+if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager
+    from c3nav.mapdata.models import Level, Space, Area, POI
 
 
 class LocationSlugManager(models.Manager):
@@ -65,7 +68,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
     objects = LocationSlugManager()
 
-    def get_target(self) -> typing.Union['LocationGroup', 'SpecificLocation']:
+    def get_target(self) -> Union['LocationGroup', 'SpecificLocation']:
         return self.group if self.group_id is not None else self.specific
 
     @cached_property
@@ -182,6 +185,11 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
 possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation')  # todo: can we generate this?
 
 
+StaticLocationTarget: TypeAlias = Union["Level", "Space", "Area", "POI"]
+DynamicLocationTarget: TypeAlias = Union["DynamicLocation"]
+LocationTarget = StaticLocationTarget | DynamicLocationTarget
+
+
 class SpecificLocation(Location, models.Model):
     locationtype = "specificlocation"
 
@@ -209,17 +217,39 @@ class SpecificLocation(Location, models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def get_targets(self):
+    def get_static_targets(self) -> Iterable[StaticLocationTarget]:
+        """
+        Get an iterator over all static location targets
+        """
+        # noinspection PyTypeChecker
         return chain(
             self.levels.all(),
             self.spaces.all(),
             self.areas.all(),
             self.pois.all(),
+        )
+
+    def get_dynamic_targets(self) -> Iterable[DynamicLocationTarget]:
+        """
+        Get an iterator over all dynamic location targets
+        """
+        # noinspection PyTypeChecker
+        return chain(
             self.dynamiclocations.all(),
         )
 
+    def get_targets(self) -> Iterable[LocationTarget]:
+        """
+        Get an iterator over all location targets
+        """
+        # noinspection PyTypeChecker
+        return chain(
+            self.get_static_targets(),
+            self.get_dynamic_targets(),
+        )
+
     @cached_property
-    def moving(self) -> int:
+    def dynamic(self) -> int:
         return len(self.dynamiclocations.all())
 
     @property
@@ -233,33 +263,52 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def points(self) -> list[LocationPoint]:
-        return list(filter(None, (target.point for target in self.get_targets())))
+        # get all points that are not None
+        return list(filter(None, (target.point for target in self.get_static_targets())))
 
-    @cached_property
-    def bounds(self) -> BoundsByLevelSchema:
+    @staticmethod
+    def get_bounds(*, targets: Iterable[LocationTarget]):
         collected_bounds = {}
-        for target in self.get_targets():
+        for target in targets:
             if target.level_id:
                 collected_bounds.setdefault(target.level_id, []).append(chain(*target.bounds))
         zipped_bounds = {level_id: tuple(zip(*level_bounds)) for level_id, level_bounds in collected_bounds.items()}
         return {level_id: ((min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3])))
                 for level_id, zipped in zipped_bounds.items()}
 
+    @cached_property
+    def bounds(self) -> BoundsByLevelSchema:
+        return self.get_bounds(targets=self.get_static_targets())
+
+    @cached_property
+    def dynamic_bounds(self) -> BoundsByLevelSchema:
+        return self.get_bounds(targets=self.get_targets())
+
     def get_geometry(self, request) -> GeometryByLevelSchema:
+        # todo: eventually include dynamic targets in here?
         result = {}
-        for target in self.get_targets():
+        for target in self.get_static_targets():
             geometry = target.get_geometry(request)
             if geometry:
                 result.setdefault(target.level_id, []).append(geometry)
         return result
 
-    @property
-    def grid_square(self):
+    @staticmethod
+    def get_grid_square(*, bounds) -> GridSquare:
+        # todo: move this outside of class?
         # todo: maybe only merge bounds if it's all in one level… but for multi-level rooms its nice! find solution?
-        if not self.bounds:
-            return None
-        zipped = tuple(zip(*(chain(*level_bounds) for level_bounds in self.bounds.values())))
+        if not bounds:
+            return ""
+        zipped = tuple(zip(*(chain(*level_bounds) for level_bounds in bounds.values())))
         return grid.get_squares_for_bounds((min(zipped[0]), min(zipped[1]), max(zipped[2]), max(zipped[3])))
+
+    @property
+    def grid_square(self) -> GridSquare:
+        return self.get_grid_square(bounds=self.bounds)
+
+    @property
+    def dynamic_grid_square(self) -> GridSquare:
+        return self.get_grid_square(bounds=self.dynamic_bounds)
 
     @property
     def groups_by_category(self):
@@ -307,31 +356,37 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def subtitle(self):
+        # todo: this should work nicely with dynamic locations, please
+
+        # get subtitle from highest ranked describing group
         subtitle = self.describing_groups[0].title if self.describing_groups else None
+
+        # add grid square if available
         if self.grid_square:
-            if subtitle:
-                subtitle = format_lazy(_('{describing_group}, {grid_square}'),
-                                       describing_group=subtitle,
-                                       grid_square=self.grid_square)
-            else:
-                subtitle = self.grid_square
-        targets = tuple(self.get_targets())
-        if len(targets) == 1:
-            target_subtitle = targets[0].subtitle
+            subtitle = (
+                format_lazy(_('{describing_group}, {grid_square}'),
+                            describing_group=subtitle,
+                            grid_square=self.grid_square)
+                if subtitle else self.grid_square
+            )
+
+        # add subtitle from target(s)
+        static_targets = tuple(self.get_static_targets())
+        dynamic_targets = tuple(self.get_dynamic_targets())
+        if len(static_targets)+len(dynamic_targets) == 1:
+            target_subtitle = static_targets[0].subtitle if static_targets else _('moving location')
         else:
-            # todo: merge these, maybe?
             target_subtitle = None
         if target_subtitle:
-            if subtitle:
-                subtitle = format_lazy(_('{subtitle}, {space_level_etc}'),
-                                       subtitle=subtitle,
-                                       space_level_etc=target_subtitle)
-            else:
-                subtitle = target_subtitle
-        if subtitle is None:
-            # todo: this could probably be better?
-            subtitle = _('Location') if len(targets) == 1 else _('Locations')
-        return subtitle
+            subtitle = (
+                format_lazy(_('{subtitle}, {space_level_etc}'), subtitle=subtitle, space_level_etc=target_subtitle)
+                if subtitle else target_subtitle
+            )
+
+        # fallback if there is no subtitle  # todo: this could probably be better?
+        if subtitle is not None:
+            return subtitle
+        return _('Location') if len(targets) == 1 else _('Locations')
 
     @cached_property
     def order(self):
@@ -424,7 +479,7 @@ class SpecificLocationTargetMixin(models.Model):
         return None
 
     @property
-    def point(self) -> typing.Optional[LocationPoint]:
+    def point(self) -> Optional[LocationPoint]:
         return None
 
     @property
@@ -432,7 +487,7 @@ class SpecificLocationTargetMixin(models.Model):
         return []
 
     @property
-    def bounds(self) -> typing.Optional[BoundsSchema]:
+    def bounds(self) -> Optional[BoundsSchema]:
         return None
 
     @property
@@ -451,7 +506,7 @@ class SpecificLocationTargetMixin(models.Model):
             return None
         return color_sorted[0]
 
-    def get_location(self, can_describe=False) -> typing.Optional[SpecificLocation]:
+    def get_location(self, can_describe=False) -> Optional[SpecificLocation]:
         # todo: do we want to get rid of this?
         return next(iter((*(location for location in self.sorted_locations if location.can_describe), None)))
 
