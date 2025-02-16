@@ -2251,6 +2251,7 @@ c3nav = {
         }
     },
     _maybe_update_dynamic_location: function (elem, location) {
+        // todo: we would like this to work correctly with groups containing dynamic locations
         if (elem.is('.empty')) return false;
         const orig_location = elem.data('location');
         if (orig_location.id !== location.id) return false;
