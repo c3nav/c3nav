@@ -39,7 +39,13 @@ BoundsSchema = tuple[
 ]
 
 
-BoundsByLevelSchema = dict[int, BoundsSchema]
+BoundsByLevelSchema = Annotated[
+    dict[int, BoundsSchema],
+    APIField(
+        title="bounds by level",
+        description="object containing bounds for every level, identified by its ID"
+    )
+]
 DjangoID = Annotated[
     PositiveInt,
     APIField(
