@@ -125,7 +125,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
 
 
 @map_api_router.get('/locations/{identifier}/display/', summary="location display",
-                    description="Retrieve displayable information about location",
+                    description="Retrieve displayable information about a location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
 @api_etag(base_mapdata=True)
