@@ -1,6 +1,6 @@
 import json
 import math
-from typing import Annotated, Union, Optional
+from typing import Annotated, Union, Optional, Sequence
 
 from celery import chain
 from django.core.cache import cache
@@ -22,19 +22,18 @@ from c3nav.mapdata.api.base import api_etag, api_stats
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, SpecificLocation, \
-    Location
+from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, SpecificLocation
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
-from c3nav.mapdata.schemas.model_base import AnyLocationID, CustomLocationID, PositionID
+from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationIdentifier, PositionIdentifier
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, searchable_locations_for_request,
+from c3nav.mapdata.utils.locations import (searchable_locations_for_request,
                                            visible_locations_for_request,
-                                           LocationRedirect, CustomLocation)
+                                           LocationRedirect, get_location_for_request)
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -81,65 +80,14 @@ class LocationListFilters(BySearchableFilter):
     pass
 
 
-def _location_list(request, filters: LocationListFilters):
-    if filters.searchable:
-        locations = searchable_locations_for_request(request)
-    else:
-        locations = visible_locations_for_request(request).values()
-
-    return locations
-
-
 @map_api_router.get('/locations/', summary="list locations",
                     description="Get locations",
                     response={200: list[ListedLocationItemSchema], **validate_responses, **auth_responses})
 @api_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
-    return _location_list(request, filters=filters)
-
-
-def _location_retrieve(request, location, show_redirects: bool):
-    if location is None:
-        raise API404()
-
-    if isinstance(location, LocationRedirect):
-        if not show_redirects:
-            return redirect('../' + str(location.get_target().effective_slug))  # todo: use reverse, make pk and slug both work
-
-    if isinstance(location, (DynamicLocation, Position)):
-        request._target_etag = None
-        request._target_cache_key = None
-
-    return location
-
-
-def _location_display(request, location):
-    if location is None:
-        raise API404()
-
-    if isinstance(location, LocationRedirect):
-        return redirect('../' + str(location.target.slug) + '/details/')  # todo: use reverse, make pk+slug work
-
-    result = location.details_display(
-        request=request,
-        editor_url=can_access_editor(request),
-    )
-    return json.loads(json.dumps(result, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings
-
-
-def _location_geometry(request, location: LocationRedirect | Location | CustomLocation):
-    # todo: cache, visibility, etc…
-
-    if location is None:
-        raise API404()
-
-    if isinstance(location, LocationRedirect):
-        return redirect('../' + str(location.target.slug) + '/geometry/')  # todo: use reverse, make pk+slug work
-
-    return LocationGeometry(
-        id=location.pk,
-        geometry=location.get_geometry(request)
-    )
+    if filters.searchable:
+        return searchable_locations_for_request(request).values()
+    return visible_locations_for_request(request).values()
 
 
 class ShowRedirects(BaseSchema):
@@ -155,24 +103,42 @@ class ShowRedirects(BaseSchema):
                     response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
-def get_location(request, location: AnyLocationID, redirects: Query[ShowRedirects]):
-    return _location_retrieve(
-        request,
-        get_location_by_id_for_request(location, request),
-        show_redirects=redirects.show_redirects,
-    )
+def get_location(request, location: LocationIdentifier, redirects: Query[ShowRedirects]):
+    result = get_location_for_request(location, request)
+
+    if result is None:
+        raise API404()
+
+    if isinstance(result, LocationRedirect):
+        if not redirects.show_redirects:
+            return redirect('../' + str(location.get_target().effective_slug))  # todo: use reverse, make pk and slug both work
+
+    if isinstance(result, (DynamicLocation, Position)):
+        # todo: what does this do?
+        request._target_etag = None
+        request._target_cache_key = None
+
+    return location
 
 
 @map_api_router.get('/locations/{location}/display/', summary="location display",
                     description="Retrieve displayable information about location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
-@api_stats('location_display')
+@api_stats('location_display')  # todo: api stats should go by ID maybe?
 @api_etag(base_mapdata=True)
-def location_display(request, location: AnyLocationID):
-    return _location_display(
-        request,
-        get_location_by_id_for_request(location, request),
+def location_display(request, location: LocationIdentifier):
+    location = get_location_for_request(location, request)
+    if location is None:
+        raise API404()
+
+    if isinstance(location, LocationRedirect):
+        return redirect('../' + str(location.target.slug) + '/details/')  # todo: use reverse, make pk+slug work
+
+    location = location.details_display(
+        request=request,
+        editor_url=can_access_editor(request),
     )
+    return json.loads(json.dumps(location, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings
 
 
 @map_api_router.get('/locations/{location_id}/geometry/', summary="location geometry",
@@ -180,10 +146,18 @@ def location_display(request, location: AnyLocationID):
                     response={200: LocationGeometry, **API404.dict(), **auth_responses})
 @api_stats('location_geometry')
 @api_etag(base_mapdata=True)
-def location_geometry(request, location_id: AnyLocationID):
-    return _location_geometry(
-        request,
-        get_location_by_id_for_request(location_id, request),
+def location_geometry(request, location_id: LocationIdentifier):
+    location = get_location_for_request(location_id, request)
+
+    if location is None:
+        raise API404()
+
+    if isinstance(location, LocationRedirect):
+        return redirect('../' + str(location.target.slug) + '/geometry/')  # todo: use reverse, make pk+slug work
+
+    return LocationGeometry(
+        id=location.pk,
+        geometry=location.get_geometry(request)
     )
 
 
@@ -191,17 +165,14 @@ def location_geometry(request, location_id: AnyLocationID):
                     description="get current coordinates of all moving positions owned be the current users",
                     response={200: list[SingleLocationItemSchema], **API404.dict(), **auth_responses})
 @api_stats('get_positions')
-def get_my_positions(request):
+def get_my_positions(request) -> Sequence[Position]:
     # no caching for obvious reasons!
-    return [
-        position.serialize_position(request=request)   # todo: stop using this
-        for position in Position.objects.filter(owner=request.user)
-    ]
+    return Position.objects.filter(owner=request.user)
 
 
 class UpdatePositionSchema(BaseSchema):
     coordinates_id: Union[
-        Annotated[CustomLocationID, APIField(title="set coordinates")],
+        Annotated[CustomLocationIdentifier, APIField(title="set coordinates")],
         Annotated[None, APIField(title="unset coordinates")],
     ] = APIField(
         description="coordinates to set the location to or null to unset it"
@@ -220,7 +191,7 @@ class UpdatePositionSchema(BaseSchema):
                     summary="set moving position",
                     description="only the string ID for the position secret must be used",
                     response={200: SingleLocationItemSchema, **API404.dict(), **auth_permission_responses})
-def set_position(request, position_id: PositionID, update: UpdatePositionSchema):
+def set_position(request, position_id: PositionIdentifier, update: UpdatePositionSchema):
     # todo: may an API key do this?
     try:
         location = Position.objects.get(secret=position_id[2:])
@@ -229,7 +200,7 @@ def set_position(request, position_id: PositionID, update: UpdatePositionSchema)
     if location.owner != request.user:
         raise APIPermissionDenied()
 
-    coordinates = get_location_by_id_for_request(update.coordinates_id, request)
+    coordinates = get_location_for_request(update.coordinates_id, request)
     if coordinates is None:
         raise APIRequestValidationFailed('Cant resolve coordinates.')
 
@@ -238,7 +209,7 @@ def set_position(request, position_id: PositionID, update: UpdatePositionSchema)
     location.last_coordinates_update = timezone.now()
     location.save()
 
-    return location.serialize_position(request=request)  # todo: stop using this
+    return location
 
 
 @map_api_router.get('/projection/', summary='get proj4 string',
