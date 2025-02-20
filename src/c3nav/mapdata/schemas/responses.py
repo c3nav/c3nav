@@ -5,7 +5,7 @@ from pydantic import PositiveInt
 
 from c3nav.api.schema import BaseSchema, GeometrySchema, GeometryByLevelSchema
 from c3nav.mapdata.grid import GridSchema
-from c3nav.mapdata.schemas.model_base import AnyLocationID, BoundsSchema
+from c3nav.mapdata.schemas.model_base import LocationIdentifier, BoundsSchema
 
 
 class MapSettingsSchema(BaseSchema):
@@ -42,7 +42,7 @@ class WithBoundsSchema(BaseSchema):
 
 
 class LocationGeometry(BaseSchema):
-    id: AnyLocationID = APIField(
+    id: LocationIdentifier = APIField(
         description="ID of the location that the geometry is being queried for",
     )
     geometry: GeometryByLevelSchema = APIField(
