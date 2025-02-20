@@ -97,12 +97,13 @@ class GeometryMixin(SerializableMixin):
     def grid_square(self):
         return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
-    def get_geometry(self, request) -> GeometrySchema | None:
+    def get_geometry(self, request) -> GeometryByLevelSchema:
         if "geometry" in self.get_deferred_fields() or self.level_id is None:
-            return None
+            return {}
         if self.can_access_geometry(request):
-            return format_geojson(smart_mapping(self.geometry), rounded=False)
-        return format_geojson(smart_mapping(self.geometry.minimum_rotated_rectangle), rounded=False)
+            # todo: get rid of format_geojson tbh, smart_mapping maybe too
+            return {self.level_id: [format_geojson(smart_mapping(self.geometry), rounded=False)]}
+        return {self.level_id: [format_geojson(smart_mapping(self.geometry.minimum_rotated_rectangle), rounded=False)]}
 
     def can_access_geometry(self, request) -> bool:
         return True
