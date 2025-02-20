@@ -18,7 +18,7 @@ from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema
-from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D, DjangoModelSchema, LocationPoint
+from c3nav.mapdata.schemas.model_base import LocationIdentifier, Coordinates3D, DjangoModelSchema, LocationPoint
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
@@ -113,8 +113,8 @@ class RouteOptionsSchema(BaseSchema):
 
 
 class RouteParametersSchema(BaseSchema):
-    origin: AnyLocationID
-    destination: AnyLocationID
+    origin: LocationIdentifier
+    destination: LocationIdentifier
     options_override: Optional[UpdateRouteOptionsSchema] = APIField(
         None,
         title="override routing options",

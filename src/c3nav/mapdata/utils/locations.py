@@ -4,15 +4,17 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Any, List, Mapping, Optional, ClassVar, Union
+from typing import Any, List, Mapping, Optional, ClassVar, NamedTuple, Sequence
 
 from django.conf import settings
 from django.db.models import Prefetch
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from pydantic import PositiveInt
 from shapely.ops import unary_union
 
 from c3nav.api.schema import GeometryByLevelSchema
+from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
@@ -20,7 +22,9 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation, DynamicLocation
-from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
+from c3nav.mapdata.schemas.locations import LocationProtocol
+from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
+    CustomLocationIdentifier
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
@@ -29,36 +33,40 @@ proxied_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_LOCATIONS)
 
 @dataclass
 class LocationRedirect:
-    slug: str
+    identifier: LocationIdentifier
     target: Location
 
 
-def locations_for_request(request) -> Mapping[int, LocationSlug | Location]:
+def locations_for_request(request) -> dict[int, Location]:
+    """
+    Return all locations for this request, by ID.
+    This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
+    This returns a dictionary, which is already sorted by order.
+    """
     # todo this takes a long time because it's a lot of data, we might want to change that
     cache_key = 'mapdata:locations:%s' % AccessPermission.cache_key_for_request(request)
+    locations: dict[int, Location]
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
 
     # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
-    locations = {
-        **{redirect_slug.pk: LocationRedirect(slug=redirect_slug.slug, target=redirect_slug.get_target())
-           for redirect_slug in LocationSlug.objects.filter(redirect=True).order_by('id')},
-        **{location.pk: location for location in SpecificLocation.qs_for_request(request).prefetch_related(
-            Prefetch('groups', LocationGroup.qs_for_request(request).select_related(
-                'category', 'label_settings'
-            ).prefetch_related("slug_set")),
-            # todo: starting to think that bounds and subtitles should be cached so we don't need… this
-            Prefetch('levels', Level.qs_for_request(request).prefetch_related('buildings', 'altitudeareas')),
-            Prefetch('spaces', Space.qs_for_request(request)),
-            Prefetch('areas', Area.qs_for_request(request)),
-            Prefetch('pois', POI.qs_for_request(request)),
-            Prefetch('dynamiclocations', DynamicLocation.qs_for_request(request)),
-        ).select_related('label_settings').prefetch_related("slug_set")},
-        **{group.pk: group for group in LocationGroup.objects.select_related(
+    locations = {location.pk: location for location in sorted((
+        *SpecificLocation.qs_for_request(request).prefetch_related(
+           Prefetch('groups', LocationGroup.qs_for_request(request).select_related(
+               'category', 'label_settings'
+           ).prefetch_related("slug_set")),
+           # todo: starting to think that bounds and subtitles should be cached so we don't need… this
+           Prefetch('levels', Level.qs_for_request(request).prefetch_related('buildings', 'altitudeareas')),
+           Prefetch('spaces', Space.qs_for_request(request)),
+           Prefetch('areas', Area.qs_for_request(request)),
+           Prefetch('pois', POI.qs_for_request(request)),
+           Prefetch('dynamiclocations', DynamicLocation.qs_for_request(request)),
+        ).select_related('label_settings').prefetch_related("slug_set"),
+        *LocationGroup.objects.select_related(
             'category', 'label_settings'
-        ).prefetch_related("slug_set")},
-    }
+        ).prefetch_related("slug_set"),
+    ), key=operator.attrgetter('order'), reverse=True)}
 
     # add locations to groups
     locationgroups = {pk: obj for pk, obj in locations.items() if isinstance(obj, LocationGroup)}
@@ -154,50 +162,60 @@ def get_better_space_geometries():
     return result
 
 
-def visible_locations_for_request(request) -> Mapping[int, Location]:
-    cache_key = 'mapdata:locations:real:%s' % AccessPermission.cache_key_for_request(request)
+def visible_locations_for_request(request) -> dict[int, Location]:
+    """
+    Return all visible locations for this request (can_search or can_describe), by ID.
+    This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
+    This returns a dictionary, which is already sorted by order.
+    """
+    return {
+        pk: location
+        for pk, location in locations_for_request(request).items()
+        if location.can_search or location.can_describe
+    }
+
+
+def searchable_locations_for_request(request) -> dict[int, Location]:
+    """
+    Return all searchable locations for this request, by ID.
+    This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
+    This returns a dictionary, which is already sorted by order.
+    """
+    return {
+        pk: location
+        for pk, location in locations_for_request(request).items()
+        if location.can_search
+    }
+
+
+class SlugTarget(NamedTuple):
+    target_id: PositiveInt
+    redirect: True
+
+
+def _locations_by_slug() -> Mapping[NonEmptyStr, SlugTarget]:
+    """
+    Get a mapping of slugs to slug targets.
+    You need to check afterwards if the user is allowed to see it.
+    """
+    cache_key = 'mapdata:locations:by_slug'
+    locations: Mapping[NonEmptyStr, PositiveInt]
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
 
-    locations = {pk: location for pk, location in locations_for_request(request).items()
-                 if not isinstance(location, LocationRedirect) and (location.can_search or location.can_describe)}
-
+    locations = {
+        location_slug.slug: SlugTarget(target_id=location_slug.target_id, redirect=location_slug.redirect)
+         for location_slug in LocationSlug.objects.all()
+    }
     proxied_cache.set(cache_key, locations, 1800)
-
-    return locations
-
-
-def searchable_locations_for_request(request) -> List[Location]:
-    cache_key = 'mapdata:locations:searchable:%s' % AccessPermission.cache_key_for_request(request)
-    locations = proxied_cache.get(cache_key, None)
-    if locations is not None:
-        return locations
-
-    locations = (location for location in locations_for_request(request).values() if isinstance(location, Location))
-    locations = tuple(location for location in locations if location.can_search)
-
-    locations = sorted(locations, key=operator.attrgetter('order'), reverse=True)
-
-    proxied_cache.set(cache_key, locations, 1800)
-
-    return locations
-
-
-def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug | Location]:
-    cache_key = 'mapdata:locations:by_slug:%s' % AccessPermission.cache_key_for_request(request)
-    locations = proxied_cache.get(cache_key, None)
-    if locations is not None:
-        return locations
-
-    locations = {location.slug: location for location in locations_for_request(request).values() if location.slug}
-
-    proxied_cache.set(cache_key, locations, 1800)
-
     return locations
 
 
 def levels_by_level_index_for_request(request) -> Mapping[str, Level]:
+    """
+    Get mapping of level index to level for requestz
+    """
     cache_key = 'mapdata:levels:by_level_index:%s' % AccessPermission.cache_key_for_request(request)
     levels = proxied_cache.get(cache_key, None)
     if levels is not None:
@@ -213,64 +231,11 @@ def levels_by_level_index_for_request(request) -> Mapping[str, Level]:
     return levels
 
 
-def get_location_by_id_for_request(pk, request) -> Optional[Union[Location, Position, "CustomLocation"]]:
-    if isinstance(pk, str):
-        if pk.isdigit():
-            pk = int(pk)
-        elif pk.startswith('m:'):
-            try:
-                # return immediately, don't cache for obvious reasons
-                return Position.objects.get(secret=pk[2:])
-            except Position.DoesNotExist:
-                return None
-        else:
-            return get_custom_location_for_request(pk, request)
-    return locations_for_request(request).get(pk)
-
-
-def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[LocationSlug, Position, LocationRedirect,
-                                                                           "CustomLocation"]]:
-    cache_key = 'mapdata:location:by_slug:%s:%s' % (AccessPermission.cache_key_for_request(request), slug)
-    location = proxied_cache.get(cache_key, None)
-    if location is not None:
-        return location
-
-    if slug.startswith('c:'):
-        location = get_custom_location_for_request(slug, request)
-        if location is None:
-            return None
-    elif slug.startswith('m:'):
-        try:
-            # return immediately, don't cache for obvious reasons
-            return Position.objects.get(secret=slug[2:])
-        except Position.DoesNotExist:
-            return None
-    elif ':' in slug or slug.isdigit():
-        if ':' in slug:
-            code, pk = slug.split(':', 1)
-            model_name = LocationSlug.LOCATION_TYPE_BY_CODE.get(code, 'SpecificLocation')  # legacy fallback todo remove
-            if model_name is None or not pk.isdigit():
-                return None
-        else:
-            model_name = None
-            pk = slug
-
-        location = locations_for_request(request).get(int(pk), None)
-        if location is None or (model_name is not None and location._meta.model_name != model_name.lower()):
-            return None
-
-        if location.slug is not None:
-            location = LocationRedirect(slug=slug, target=location)
-    else:
-        location = locations_by_slug_for_request(request).get(slug, None)
-
-    proxied_cache.set(cache_key, location, 1800)
-
-    return location
-
-
-def get_custom_location_for_request(slug: str, request) -> Optional["CustomLocation"]:
-    match = re.match(r'^c:(?P<level>[a-z0-9-_.]+):(?P<x>-?\d+(\.\d+)?):(?P<y>-?\d+(\.\d+)?)$', slug)
+def get_custom_location_for_request(identifier: CustomLocationIdentifier, request) -> Optional["CustomLocation"]:
+    """
+    Get a custom location based on the given identifier
+    """
+    match = re.match(r'^c:(?P<level>[a-z0-9-_.]+):(?P<x>-?\d+(\.\d+)?):(?P<y>-?\d+(\.\d+)?)$', identifier)
     if match is None:
         return None
     level = levels_by_level_index_for_request(request).get(match.group('level'))
@@ -278,6 +243,44 @@ def get_custom_location_for_request(slug: str, request) -> Optional["CustomLocat
         return None
     return CustomLocation(level, float(match.group('x')), float(match.group('y')),
                           AccessPermission.get_for_request(request))
+
+
+def get_location_for_request(identifier: int | str, request) -> Optional[LocationProtocol | LocationRedirect]:
+    """
+    Get a location based on the given identifier for the given request
+    """
+    if isinstance(identifier, int) or identifier.isdigit():
+        location = locations_for_request(request).get(int(identifier))
+
+        if isinstance(location, Location) and location.slug:
+            return LocationRedirect(
+                identifier=identifier,
+                target=location,
+            )
+        return location
+
+    if identifier.startswith('c:'):
+        location = get_custom_location_for_request(identifier, request)
+        if location is None:
+            return None
+    elif identifier.startswith('m:'):
+        try:
+            # return immediately, don't cache for obvious reasons
+            return Position.objects.get(secret=identifier[2:])
+        except Position.DoesNotExist:
+            return None
+
+    target = _locations_by_slug().get(identifier, None)
+    if target is None:
+        return None
+
+    location = locations_for_request(request).get(target.target_id, None)
+    if location is not None and target.redirect:
+        return LocationRedirect(
+            identifier=identifier,
+            target=location,
+        )
+    return location
 
 
 @dataclass
