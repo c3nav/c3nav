@@ -291,6 +291,7 @@ def get_location_for_request(identifier: int | str, request) -> Optional[Locatio
 @dataclass
 class CustomLocation:
     locationtype: ClassVar = "customlocation"
+    slug_as_id = False
 
     can_search = True
     can_describe = True
