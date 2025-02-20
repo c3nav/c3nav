@@ -202,6 +202,7 @@ class LocationProtocol(Protocol):
     The only exception is the location list API, for which it needs to implement ListableLocationProtocol.
     """
     locationtype: str
+    slug_as_id: bool
 
     id: PositiveInt | NonEmptyStr
     slug: NonEmptyStr | None
@@ -275,6 +276,12 @@ class BaseLocationItemSchema(BaseSchema):
     ] = 0
     points: list[LocationPoint] = []
     bounds: BoundsByLevelSchema = {}
+
+    @classmethod
+    def get_overrides(cls, value: LocationProtocol) -> dict:
+        return {
+            "id": value.slug if value.slug_as_id else value.id
+        }
 
 
 class SingleLocationItemSchema(BaseLocationItemSchema):
