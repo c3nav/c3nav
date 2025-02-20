@@ -38,8 +38,8 @@ from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema
-from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
-                                           levels_by_level_index_for_request, LocationRedirect)
+from c3nav.mapdata.utils.locations import (levels_by_level_index_for_request, LocationRedirect,
+                                           get_location_for_request)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
@@ -55,7 +55,7 @@ def check_location(location_slug: Optional[str], request) -> Optional[Location]:
     if location_slug is None:
         return None
 
-    location = get_location_by_slug_for_request(location_slug, request)
+    location = get_location_for_request(location_slug, request)
     if location is None:
         return None
 
@@ -521,7 +521,7 @@ def about_view(request):
 
 
 def get_report_location_for_request(pk, request):
-    location = get_location_by_id_for_request(pk, request)
+    location = get_location_for_request(pk, request)
     if location is None:
         raise Http404
     return location
@@ -546,14 +546,14 @@ def report_start_coordinates(request, coordinates):
 
 @never_cache
 def report_missing_check(request, coordinates):
-    nearby = get_location_by_id_for_request(coordinates, request).nearby
+    nearby = get_location_for_request(coordinates, request).nearby
     if not nearby:
         return redirect(reverse('site.report_missing_choose', kwargs={"coordinates": coordinates}))
     return render(request, 'site/report_question.html', {
         'question': _('Are you sure it\'s not one of these?'),
         'locations': [
             {
-                'location': get_location_by_id_for_request(location.id, request),  # todo: correct subtitle w/o this
+                'location': get_location_for_request(location.id, request),  # todo: correct subtitle w/o this
             }
             for location in nearby
         ],
@@ -568,7 +568,7 @@ def report_missing_check(request, coordinates):
 
 @never_cache
 def report_select_location(request, coordinates):
-    location = get_location_by_id_for_request(coordinates, request)
+    location = get_location_for_request(coordinates, request)
     nearby = list(location.nearby)
     if location.space:
         nearby.append(location.space)
@@ -580,7 +580,7 @@ def report_select_location(request, coordinates):
         'locations': [
             {
                 'url': reverse('site.report_create', kwargs={"location": location.id}),
-                'location': get_location_by_id_for_request(location.id, request),  # todo: correct subtitle w/o this
+                'location': get_location_for_request(location.id, request),  # todo: correct subtitle w/o this
             }
             for location in nearby
         ],
@@ -643,7 +643,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.coordinates_id = coordinates
         form_kwargs["request"] = request
         if group:
-            group = get_location_by_slug_for_request(group, request)
+            group = get_location_for_request(group, request)
             if not isinstance(group, LocationGroup):
                 raise Http404
             if group.can_report_missing == LocationGroup.CanReportMissing.REJECT:
@@ -837,7 +837,7 @@ def position_detail(request, pk):
 
 @login_required(login_url='site.login')
 def position_set(request, coordinates):
-    coordinates = get_location_by_id_for_request(coordinates, request)
+    coordinates = get_location_for_request(coordinates, request)
     if coordinates is None:
         raise Http404
 

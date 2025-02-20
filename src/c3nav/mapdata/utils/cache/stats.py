@@ -9,7 +9,7 @@ from c3nav.control.models import UserPermissions
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, LocationGroup, LocationSlug, Space
 from c3nav.mapdata.models.geometry.space import POI, Area, BeaconMeasurement
-from c3nav.mapdata.utils.locations import CustomLocation, get_location_by_id_for_request
+from c3nav.mapdata.utils.locations import CustomLocation, get_location_for_request
 
 
 def increment_cache_key(cache_key):
@@ -162,7 +162,7 @@ def convert_location(data):
     for name, value in data:
         if name[0] != 'pk' or name[0] == 'c:anywhere':
             continue
-        location = get_location_by_id_for_request(name[1], fake_request)
+        location = get_location_for_request(name[1], fake_request)
         result['total'] += value
         if location is None:
             result['invalid'] += value

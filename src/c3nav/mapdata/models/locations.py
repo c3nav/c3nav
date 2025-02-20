@@ -25,7 +25,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
-from c3nav.mapdata.schemas.locations import GridSquare
+from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
@@ -51,14 +51,6 @@ possible_slug_targets = ('group', 'specific')  # todo: can we generate this?
 
 
 class LocationSlug(SerializableMixin, models.Model):
-    LOCATION_TYPE_CODES = {
-        'SpecificLocation': 'l',
-        'LocationGroup': 'g'
-    }
-    LOCATION_TYPE_BY_CODE = {
-        **{code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
-    }
-
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
 
@@ -69,6 +61,10 @@ class LocationSlug(SerializableMixin, models.Model):
 
     def get_target(self) -> Union['LocationGroup', 'SpecificLocation']:
         return self.group if self.group_id is not None else self.specific
+
+    @property
+    def target_id(self):
+        return self.group_id or self.specific_id
 
     @cached_property
     def order(self):
@@ -216,6 +212,8 @@ class SpecificLocation(Location, models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    """ Targets """
+
     def get_static_targets(self) -> Iterable[StaticLocationTarget]:
         """
         Get an iterator over all static location targets
@@ -247,9 +245,21 @@ class SpecificLocation(Location, models.Model):
             self.get_dynamic_targets(),
         )
 
+    """ Main Properties """
+
     @cached_property
     def dynamic(self) -> int:
         return len(self.dynamiclocations.all())
+
+    @property
+    def effective_icon(self):
+        icon = super().effective_icon
+        if icon:
+            return icon
+        return next(iter(chain(
+            (group.icon for group in self.groups.all() if group.icon),
+            (None, )
+        )))
 
     @property
     def effective_label_settings(self):
@@ -260,10 +270,44 @@ class SpecificLocation(Location, models.Model):
                 return group.label_settings
         return None
 
+    @cached_property
+    def order(self):
+        groups = tuple(self.groups.all())
+        if not groups:
+            return (0, 0, 0)
+        return (0, groups[0].category.priority, groups[0].priority)
+
+    @cached_property
+    def describing_groups(self):
+        groups = tuple(self.groups.all() if 'groups' in getattr(self, '_prefetched_objects_cache', ()) else ())
+        groups = tuple(group for group in groups if group.can_describe)
+        return groups
+
+    @property
+    def external_url_label(self):
+        for group in self.groups.all():
+            if group.external_url_label:
+                return group.external_url_label
+        return None
+
+    @property
+    def groups_by_category(self):
+        groups_by_category = {}
+        for group in self.groups.all():
+            groups_by_category.setdefault(group.category, []).append(group.pk)
+        groups_by_category = {category.name: (items[0] if items else None) if category.single else items
+                              for category, items in groups_by_category.items()}
+        return groups_by_category
+
+    """ Points / Bounds / Grid """
+
     @property
     def points(self) -> list[LocationPoint]:
-        # get all points that are not None
         return list(filter(None, (target.point for target in self.get_static_targets())))
+
+    @property
+    def dynamic_points(self) -> list[LocationPoint]:
+        return list(filter(None, (target.point for target in self.get_dynamic_targets())))
 
     @staticmethod
     def get_bounds(*, targets: Iterable[LocationTarget]):
@@ -283,15 +327,6 @@ class SpecificLocation(Location, models.Model):
     def dynamic_bounds(self) -> BoundsByLevelSchema:
         return self.get_bounds(targets=self.get_targets())
 
-    def get_geometry(self, request) -> GeometryByLevelSchema:
-        # todo: eventually include dynamic targets in here?
-        result = {}
-        for target in self.get_static_targets():
-            geometry = target.get_geometry(request)
-            if geometry:
-                result.setdefault(target.level_id, []).append(geometry)
-        return result
-
     @staticmethod
     def get_grid_square(*, bounds) -> GridSquare:
         # todo: move this outside of class?
@@ -309,14 +344,78 @@ class SpecificLocation(Location, models.Model):
     def dynamic_grid_square(self) -> GridSquare:
         return self.get_grid_square(bounds=self.dynamic_bounds)
 
+    """ Subtitle """
+
+    def get_target_subtitle(self, *, dynamic: bool) -> Optional[str]:
+        static_targets = tuple(self.get_static_targets())
+        dynamic_targets = tuple(self.get_dynamic_targets())
+        if len(static_targets) + len(dynamic_targets) == 1:
+            if static_targets:
+                return static_targets[0].subtitle
+            elif dynamic:
+                return dynamic_targets[0].subtitle  # todo: make this work right
+        # todo: make this work right for multiple targets
+        return None
+
+    def get_subtitle(self, *, target_subtitle: Optional[str], grid_square: GridSquare) -> str:
+        # get subtitle from highest ranked describing group
+        subtitle = self.describing_groups[0].title if self.describing_groups else None
+
+        # add grid square if available
+        if grid_square:
+            subtitle = (
+                format_lazy(_('{describing_group}, {grid_square}'),
+                            describing_group=subtitle,
+                            grid_square=self.grid_square)
+                if subtitle else self.grid_square
+            )
+
+        # add subtitle from target(s)
+        if target_subtitle:
+            subtitle = (
+                format_lazy(_('{subtitle}, {space_level_etc}'), subtitle=subtitle, space_level_etc=target_subtitle)
+                if subtitle else target_subtitle
+            )
+
+        # fallback if there is no subtitle  # todo: this could probably be better?
+        if subtitle is not None:
+            return subtitle
+        return _('Location') if len(tuple(self.get_targets())) == 1 else _('Locations')
+
     @property
-    def groups_by_category(self):
-        groups_by_category = {}
-        for group in self.groups.all():
-            groups_by_category.setdefault(group.category, []).append(group.pk)
-        groups_by_category = {category.name: (items[0] if items else None) if category.single else items
-                              for category, items in groups_by_category.items()}
-        return groups_by_category
+    def subtitle(self):
+        return self.get_subtitle(
+            target_subtitle=self.get_target_subtitle(dynamic=False),
+            grid_square=self.grid_square,
+        )
+
+    @property
+    def dynamic_subtitle(self):
+        return self.get_subtitle(
+            target_subtitle=self.get_target_subtitle(dynamic=False),
+            grid_square=self.dynamic_grid_square,
+        )
+
+    """ Other Stuff """
+
+    @property
+    def dynamic_state(self) -> DynamicLocationState:
+        return DynamicLocationState(
+            subtitle=self.dynamic_subtitle,
+            grid_square=self.dynamic_grid_square,
+            dynamic_points=self.dynamic_points,
+            bounds=self.dynamic_bounds,
+            nearby=None,  # todo: add nearby information
+        )
+
+    def get_geometry(self, request) -> GeometryByLevelSchema:
+        # todo: eventually include dynamic targets in here?
+        result = {}
+        for target in self.get_static_targets():
+            geometry = target.get_geometry(request)
+            if geometry:
+                result.setdefault(target.level_id, []).append(geometry)
+        return result
 
     def details_display(self, request, editor_url=True, **kwargs):
         result = super().details_display(request, **kwargs)
@@ -347,69 +446,7 @@ class SpecificLocation(Location, models.Model):
 
         return result
 
-    @cached_property
-    def describing_groups(self):
-        groups = tuple(self.groups.all() if 'groups' in getattr(self, '_prefetched_objects_cache', ()) else ())
-        groups = tuple(group for group in groups if group.can_describe)
-        return groups
-
-    @property
-    def subtitle(self):
-        # todo: this should work nicely with dynamic locations, please
-
-        # get subtitle from highest ranked describing group
-        subtitle = self.describing_groups[0].title if self.describing_groups else None
-
-        # add grid square if available
-        if self.grid_square:
-            subtitle = (
-                format_lazy(_('{describing_group}, {grid_square}'),
-                            describing_group=subtitle,
-                            grid_square=self.grid_square)
-                if subtitle else self.grid_square
-            )
-
-        # add subtitle from target(s)
-        static_targets = tuple(self.get_static_targets())
-        dynamic_targets = tuple(self.get_dynamic_targets())
-        if len(static_targets)+len(dynamic_targets) == 1:
-            target_subtitle = static_targets[0].subtitle if static_targets else _('moving location')
-        else:
-            target_subtitle = None
-        if target_subtitle:
-            subtitle = (
-                format_lazy(_('{subtitle}, {space_level_etc}'), subtitle=subtitle, space_level_etc=target_subtitle)
-                if subtitle else target_subtitle
-            )
-
-        # fallback if there is no subtitle  # todo: this could probably be better?
-        if subtitle is not None:
-            return subtitle
-        return _('Location') if len(targets) == 1 else _('Locations')
-
-    @cached_property
-    def order(self):
-        groups = tuple(self.groups.all())
-        if not groups:
-            return (0, 0, 0)
-        return (0, groups[0].category.priority, groups[0].priority)
-
-    @property
-    def effective_icon(self):
-        icon = super().effective_icon
-        if icon:
-            return icon
-        return next(iter(chain(
-            (group.icon for group in self.groups.all() if group.icon),
-            (None, )
-        )))
-
-    @property
-    def external_url_label(self):
-        for group in self.groups.all():
-            if group.external_url_label:
-                return group.external_url_label
-        return None
+    """ Changed Geometries """
 
     def register_changed_geometries(self, force=False):
         changed = (
@@ -715,31 +752,8 @@ class CustomLocationProxyMixin:
     def get_custom_location(self, request=None):
         raise NotImplementedError
 
-    @property
-    def available(self):
-        return self.get_custom_location() is not None
 
-    @property
-    def x(self):
-        return self.get_custom_location().x
-
-    @property
-    def y(self):
-        return self.get_custom_location().y
-
-    @property
-    def level(self):
-        return self.get_custom_location().level
-
-    @property
-    def point(self):
-        return self.get_custom_location().point
-
-    def serialize_position(self, request=None):
-        raise NotImplementedError
-
-
-class DynamicLocation(CustomLocationProxyMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
+class DynamicLocation(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
 
     class Meta:
@@ -749,35 +763,6 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocationTargetMixin, Acc
 
     def register_change(self, force=False):
         pass
-
-    def serialize_position(self, request=None):
-        # todo: make this pretty
-        custom_location = self.get_custom_location(request=request)
-        if custom_location is None:
-            return {
-                'available': False,
-                'id': self.pk,
-                'slug': self.slug,
-                'icon': self.effective_icon,
-                'title': str(self.title),
-                'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
-            }
-        from c3nav.mapdata.schemas.locations import BaseLocationItemSchema
-        result = BaseLocationItemSchema.model_validate(custom_location).model_dump()
-        result.update({
-            'available': True,
-            'id': self.pk,
-            'slug': self.slug,
-            'icon': self.effective_icon,
-            'title': str(self.title),
-            'subtitle': '%s %s%s, %s' % (
-                _('(moving)'),
-                ('%s, ' % self.subtitle) if self.describing_groups else '',
-                result['title'],
-                result['subtitle']
-            ),
-        })
-        return result
 
     def get_custom_location(self, request=None):
         if not self.position_secret:
@@ -794,8 +779,10 @@ def get_position_secret():
     return get_random_string(32, string.ascii_letters+string.digits)
 
 
-class Position(CustomLocationProxyMixin, models.Model):
+class Position(models.Model):
+    objects = None
     locationtype = "position"
+    slug_as_id = True  # todo: implement this!!
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)
@@ -806,10 +793,15 @@ class Position(CustomLocationProxyMixin, models.Model):
                                                help_text=_('0 for no timeout'))
     coordinates_id = models.CharField(_('coordinates'), null=True, blank=True, max_length=48)
 
+    coordinates = LocationById()
+
+    dynamic = 1
+    subtitle = _('Position')
+    effective_icon = "my_location"
+    grid_square = None
+
     can_search = True
     can_describe = False
-
-    coordinates = LocationById()
 
     class Meta:
         verbose_name = _('Dynamic position')
@@ -825,9 +817,71 @@ class Position(CustomLocationProxyMixin, models.Model):
                 self.last_coordinates_update = end_time
 
     def get_custom_location(self, request=None):
+        # todo: GET RID OF THIS
         if request is not None:
             self.request = request  # todo: this is ugly, yes
         return self.coordinates
+
+    @property
+    def slug(self):
+        return 'm:%s' % self.secret
+
+    @property
+    def title(self):
+        return self.name
+
+    @property
+    def dynamic_subtitle(self):
+        # todo: implement request permissions/visibility for description
+        custom_location = self.coordinates
+        if not custom_location:
+            return _('currently unavailable')
+        return '%s, %s, %s' % (
+            _('Position'),
+            custom_location.title,
+            custom_location.subtitle,
+        )
+
+    @property
+    def dynamic_grid_square(self):
+        custom_location = self.coordinates
+        if not custom_location:
+            return None
+        return custom_location.grid_square
+
+    @property
+    def dynamic_bounds(self):
+        custom_location = self.coordinates
+        if not custom_location:
+            return None
+        return custom_location.grid_square
+
+    @property
+    def dynamic_state(self) -> DynamicLocationState:
+        custom_location = self.coordinates
+        if not custom_location:
+            return DynamicLocationState(
+                subtitle=_('currently unavailable'),
+                grid_square=None,
+                dynamic_points=[],
+                bounds={},
+                nearby=None,
+            )
+        return DynamicLocationState(
+            subtitle='%s, %s, %s' % (
+                _('Position'),
+                custom_location.title,
+                custom_location.subtitle,
+            ),
+            grid_square=custom_location.grid_square,
+            dynamic_points=custom_location.points,
+            bounds=custom_location.bounds,
+            nearby=None,  # todo: add nearby information
+        )
+
+    @property
+    def points(self):
+        return []
 
     @classmethod
     def user_has_positions(cls, user):
@@ -840,63 +894,7 @@ class Position(CustomLocationProxyMixin, models.Model):
             per_request_cache.set(cache_key, result, 600)
         return result
 
-    def serialize_position(self, request=None):
-        # todo: make this pretty
-        custom_location = self.get_custom_location(request=request)
-        if custom_location is None:
-            return {
-                'id': 'm:%s' % self.secret,
-                'slug': 'm:%s' % self.secret,
-                'effective_slug': 'm:%s' % self.secret,
-                'available': False,
-                'icon': 'my_location',
-                'effective_icon': 'my_location',
-                'title': self.name,
-                'short_name': self.short_name,
-                'subtitle': _('currently unavailable'),
-            }
-        # todo: is this good?
-        from c3nav.mapdata.schemas.locations import BaseLocationItemSchema
-        result = BaseLocationItemSchema.model_validate(custom_location).model_dump()
-        result.update({
-            'available': True,
-            'id': 'm:%s' % self.secret,
-            'slug': 'm:%s' % self.secret,
-            'effective_slug': 'm:%s' % self.secret,
-            'icon': 'my_location',
-            'title': self.name,
-            'short_name': self.short_name,
-            'subtitle': '%s, %s, %s' % (
-                _('Position'),
-                result['title'],
-                result['subtitle']
-            ),
-        })
-        return result
-
-    @property
-    def title(self):
-        return self.name
-
-    @property
-    def slug(self):
-        return 'm:%s' % self.secret
-
-    @property
-    def subtitle(self):
-        return _('Position')
-
-    @property
-    def icon(self):
-        return 'my_location'
-
-    @property
-    def effective_icon(self):
-        return self.icon
-
-    @property
-    def effective_slug(self):
-        return self.slug
+    # todo: expose short_name again somehow
 
     def details_display(self, **kwargs):
         return {
@@ -914,8 +912,6 @@ class Position(CustomLocationProxyMixin, models.Model):
 
     def get_geometry(self, request):
         return None
-
-    level_id = None
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
