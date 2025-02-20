@@ -8,6 +8,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 from ninja import Query
 from ninja import Router as APIRouter
@@ -98,22 +99,24 @@ class ShowRedirects(BaseSchema):
     )
 
 
-@map_api_router.get('/locations/{location}/', summary="get location",
+@map_api_router.get('/locations/{identifier}/', summary="get location",
                     description="Retrieve location",
                     response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
-def get_location(request, location: LocationIdentifier, redirects: Query[ShowRedirects]):
-    result = get_location_for_request(location, request)
+def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
+    location = get_location_for_request(identifier, request)
 
-    if result is None:
+    if location is None:
         raise API404()
 
-    if isinstance(result, LocationRedirect):
+    if isinstance(location, LocationRedirect):
         if not redirects.show_redirects:
-            return redirect('../' + str(location.get_target().effective_slug))  # todo: use reverse, make pk and slug both work
+            return redirect(reverse("api-v2:get-location", kwargs={
+                "identifier": location.target.effective_slug,
+            }))
 
-    if isinstance(result, (DynamicLocation, Position)):
+    if isinstance(location, (DynamicLocation, Position)):
         # todo: what does this do?
         request._target_etag = None
         request._target_cache_key = None
@@ -121,18 +124,20 @@ def get_location(request, location: LocationIdentifier, redirects: Query[ShowRed
     return location
 
 
-@map_api_router.get('/locations/{location}/display/', summary="location display",
+@map_api_router.get('/locations/{identifier}/display/', summary="location display",
                     description="Retrieve displayable information about location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
 @api_etag(base_mapdata=True)
-def location_display(request, location: LocationIdentifier):
-    location = get_location_for_request(location, request)
+def location_display(request, identifier: LocationIdentifier):
+    location = get_location_for_request(identifier, request)
     if location is None:
         raise API404()
 
     if isinstance(location, LocationRedirect):
-        return redirect('../' + str(location.target.slug) + '/details/')  # todo: use reverse, make pk+slug work
+        return redirect(reverse("api-v2:location-display", kwargs={
+            "identifier": location.target.effective_slug,
+        }))
 
     location = location.details_display(
         request=request,
@@ -141,22 +146,24 @@ def location_display(request, location: LocationIdentifier):
     return json.loads(json.dumps(location, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings
 
 
-@map_api_router.get('/locations/{location_id}/geometry/', summary="location geometry",
+@map_api_router.get('/locations/{identifier}/geometry/', summary="location geometry",
                     description="Get location geometry (if available)",
                     response={200: LocationGeometry, **API404.dict(), **auth_responses})
 @api_stats('location_geometry')
 @api_etag(base_mapdata=True)
-def location_geometry(request, location_id: LocationIdentifier):
-    location = get_location_for_request(location_id, request)
+def location_geometry(request, identifier: LocationIdentifier):
+    location = get_location_for_request(identifier, request)
 
     if location is None:
         raise API404()
 
     if isinstance(location, LocationRedirect):
-        return redirect('../' + str(location.target.slug) + '/geometry/')  # todo: use reverse, make pk+slug work
+        return redirect(reverse("api-v2:location-geometry", kwargs={
+            "identifier": location.target.effective_slug,
+        }))
 
     return LocationGeometry(
-        id=location.pk,
+        identifier=identifier,
         geometry=location.get_geometry(request)
     )
 
