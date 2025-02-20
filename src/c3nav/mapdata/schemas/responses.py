@@ -42,7 +42,7 @@ class WithBoundsSchema(BaseSchema):
 
 
 class LocationGeometry(BaseSchema):
-    id: LocationIdentifier = APIField(
+    identifier: LocationIdentifier = APIField(
         description="ID of the location that the geometry is being queried for",
     )
     geometry: GeometryByLevelSchema = APIField(
