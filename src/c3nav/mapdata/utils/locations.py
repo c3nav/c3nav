@@ -25,7 +25,7 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation, DynamicLocation
-from c3nav.mapdata.schemas.locations import LocationProtocol
+from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
@@ -252,38 +252,40 @@ def get_location_for_request(identifier: int | str, request) -> Optional[Locatio
     """
     Get a location based on the given identifier for the given request
     """
+
+    # Is this an integer? Then get the location by it's ID.
     if isinstance(identifier, int) or identifier.isdigit():
         location = locations_for_request(request).get(int(identifier))
 
-        if isinstance(location, Location) and location.slug:
-            return LocationRedirect(
-                identifier=identifier,
-                target=location,
-            )
-        return location
-
-    if identifier.startswith('c:'):
-        location = get_custom_location_for_request(identifier, request)
-        if location is None:
-            return None
-    elif identifier.startswith('m:'):
-        try:
-            # return immediately, don't cache for obvious reasons
-            return Position.objects.get(secret=identifier[2:])
-        except Position.DoesNotExist:
-            return None
-
-    target = _locations_by_slug().get(identifier, None)
-    if target is None:
-        return None
-
-    location = locations_for_request(request).get(target.target_id, None)
-    if location is not None and target.redirect:
+        # Return redirect if the location has a slug.
         return LocationRedirect(
             identifier=identifier,
             target=location,
-        )
-    return location
+        ) if location.slug else location
+
+    # If this looks like a custom location identifier, get the custom location
+    if identifier.startswith('c:'):
+        return get_custom_location_for_request(identifier, request)
+
+    # If this looks lik a position identifier, get the position
+    if identifier.startswith('m:'):
+        # return immediately, don't cache for obvious reasons
+        return Position.objects.filter(secret=identifier[2:]).first()
+
+    # Otherwise, this must be a slug, get the location target associated with this slug
+    target = _locations_by_slug().get(identifier, None)
+    if target is None:
+        # No ID? Then this slug can't be found.
+        return None
+
+    # Get the location from the available locations for this request.
+    location = locations_for_request(request).get(target.target_id, None)
+
+    # If this should be a redirect, return a redirect if we found the location, otherwise return the location (or None)
+    return LocationRedirect(
+        identifier=identifier,
+        target=location,
+    ) if (target.redirect and location is not None) else location
 
 
 @dataclass
@@ -294,7 +296,7 @@ class CustomLocation:
     can_describe = True
     access_restriction_id = None
 
-    pk: str = field(init=False)
+    id: str = field(init=False)
     level: Level
     x: float | int
     y: float | int
@@ -304,7 +306,7 @@ class CustomLocation:
     def __post_init__(self):
         x = round(self.x, 2)
         y = round(self.y, 2)
-        self.pk = 'c:%s:%s:%s' % (self.level.level_index, x, y)
+        self.id = 'c:%s:%s:%s' % (self.level.level_index, x, y)
 
     @property
     def rounded_pk(self):
@@ -335,8 +337,8 @@ class CustomLocation:
             'id': self.pk,
             'display': [
                 (_('Type'), _('Coordinates')),
-                (_('ID'), self.pk),
-                (_('Slug'), self.pk),
+                (_('ID'), self.id),
+                (_('Slug'), self.id),
                 (_('Level'), self.level.for_details_display()),
                 (_('Space'), self.space.for_details_display() if self.space else None),
                 (_('Areas'), tuple({
@@ -374,33 +376,21 @@ class CustomLocation:
         return {}
 
     @cached_property
-    def description(self):
+    def _description(self):
         from c3nav.routing.router import Router
         return Router.load().describe_custom_location(self)
 
     @cached_property
-    def space(self):
-        return self.description.space
-
-    @cached_property
-    def altitude(self):
-        return self.description.altitude
-
-    @cached_property
-    def areas(self):
-        return self.description.areas
-
-    @cached_property
-    def near_area(self):
-        return self.description.near_area
-
-    @cached_property
-    def near_poi(self):
-        return self.description.near_poi
-
-    @cached_property
-    def nearby(self):
-        return self.description.nearby
+    def nearby(self) -> NearbySchema:
+        return NearbySchema(
+            level=self.level.pk,
+            space=self._description.space.pk,
+            areas=[pk for pk in self._description.areas],
+            near_area=self._description.near_area.pk if self._description.near_area else None,
+            near_poi=self._description.near_poi.pk if self._description.near_poi else None,
+            near_locations=[pk for pk in self._description.nearby],
+            altitude=self._description.altitude,
+        )
 
     @cached_property
     def grid_square(self):
@@ -412,26 +402,26 @@ class CustomLocation:
         level_subtitle = self.level.title if not grid_square else ', '.join((grid_square, str(self.level.title)))
 
         title = _('In %(level)s') % {'level': self.level.title}
-        if not self.space:
+        if not self._description.space:
             return title, level_subtitle
 
         subtitle = ()
-        if self.near_poi:
-            title = _('Near %(poi)s') % {'poi': self.near_poi.title}
-            if self.areas:
-                subtitle = (area.title for area in self.areas[:2])
-            elif self.near_area:
-                subtitle = (_('near %(area)s') % {'area': self.near_area.title}, )
-        elif self.areas:
-            title = _('In %(area)s') % {'area': self.areas[0].title}
-            if self.areas:
-                subtitle = (area.title for area in self.areas[1:2])
-        elif self.near_area:
-            title = _('Near %(area)s') % {'area': self.near_area.title}
+        if self._description.near_poi:
+            title = _('Near %(poi)s') % {'poi': self._description.near_poi.title}
+            if self._description.areas:
+                subtitle = (area.title for area in self._description.areas[:2])
+            elif self._description.near_area:
+                subtitle = (_('near %(area)s') % {'area': self._description.near_area.title}, )
+        elif self._description.areas:
+            title = _('In %(area)s') % {'area': self._description.areas[0].title}
+            if self._description.areas:
+                subtitle = (area.title for area in self._description.areas[1:2])
+        elif self._description.near_area:
+            title = _('Near %(area)s') % {'area': self._description.near_area.title}
         else:
-            return _('In %(space)s') % {'space': self.space.title}, level_subtitle
+            return _('In %(space)s') % {'space': self._description.space.title}, level_subtitle
 
-        subtitle_segments = chain((grid_square, ), subtitle, (self.space.title, self.level.title))
+        subtitle_segments = chain((grid_square, ), subtitle, (self._description.space.title, self.level.title))
         subtitle = ', '.join(str(title) for title in subtitle_segments if title)
         return title, subtitle
 
@@ -449,11 +439,11 @@ class CustomLocation:
 
     @property
     def effective_slug(self):
-        return self.pk
+        return self.id
 
     @cached_property
     def slug(self):
-        return self.pk
+        return self.id
 
 
 # todo: written fast, make better
