@@ -213,7 +213,7 @@ class LocationProtocol(Protocol):
 
     can_search: bool
     can_describe: bool
-    dynamic: bool
+    dynamic: NonNegativeInt
     points: list[LocationPoint]
     bounds: BoundsByLevelSchema
 
