@@ -2156,14 +2156,14 @@ c3nav = {
             // if location is not in the searchable list...
             return;
         }
-        if (location.moving) {
-            if (!('available' in location)) {
-                // todo: fix this…
-                c3nav_api.get(`map/positions/${location.id}/`)
+        if (location.dynamic) {
+            if (!('dynamic_state' in location)) {
+                c3nav_api.get(`map/locations/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
-                return;
-            } else if (!location.available) {
-                return;
+                return; // todo… maybe don't return, and just add the rest later?
+            } else if (location.dynamic_state !== null) {
+                location = $.extend({}, location, location.dynamic_state);
+                location.points = [...location.points, ...location.dynamic_state.dynamic_points];
             }
         }
 
@@ -2178,6 +2178,7 @@ c3nav = {
 
         if (!no_geometry && c3nav._visible_map_locations.indexOf(location.id) === -1) {
             c3nav._visible_map_locations.push(location.id);
+            // todo: sometimes, at least for links to moving positions, this gets called twice… fix that
             c3nav_api.get(`map/locations/${location.id}/geometry/`).then(c3nav._location_geometry_loaded);
         }
 
@@ -2195,6 +2196,7 @@ c3nav = {
             points = [override[1]];
         }
         for (let point of points) {
+            console.log("point", point)
             if (override && override[0] && point[0] === override[0][0] && Math.abs(point[1]-override[0][1]) < 0.10 && Math.abs(point[2]-override[0][2]) < 0.10) {
                 // if this point matched approximately by an override, override it!
                 point = override[1];
@@ -2234,6 +2236,7 @@ c3nav = {
         if (elem.is('.empty')) return false;
         const orig_location = elem.data('location');
         if (orig_location.id !== location.id) return false;
+        if (location.dynamic_state === null) return false;
 
         const new_location = $.extend({}, orig_location, location);
         c3nav._locationinput_set(elem, new_location);
@@ -3173,7 +3176,6 @@ PositionsControl = ToggleControl.extend({
     },
 
     reloadPositions: async function () {
-        console.log("abc");
         for (const level_id in c3nav._positionsLayers) {
             c3nav._positionsLayers[level_id].clearLayers();
         }
