@@ -188,6 +188,7 @@ LocationTarget = StaticLocationTarget | DynamicLocationTarget
 
 class SpecificLocation(Location, models.Model):
     locationtype = "specificlocation"
+    slug_as_id = False
 
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
@@ -413,9 +414,8 @@ class SpecificLocation(Location, models.Model):
         # todo: eventually include dynamic targets in here?
         result = {}
         for target in self.get_static_targets():
-            geometry = target.get_geometry(request)
-            if geometry:
-                result.setdefault(target.level_id, []).append(geometry)
+            for level_id, geometries in target.get_geometry(request).items():
+                result.setdefault(target.level_id, []).extend(geometries)
         return result
 
     def details_display(self, request, editor_url=True, **kwargs):
@@ -512,8 +512,8 @@ class SpecificLocationTargetMixin(models.Model):
             return None
         return colors[0]
 
-    def get_geometry(self, request) -> GeometrySchema | None:
-        return None
+    def get_geometry(self, request) -> GeometryByLevelSchema:
+        return {}
 
     @property
     def point(self) -> Optional[LocationPoint]:
@@ -598,6 +598,7 @@ class LocationGroupManager(models.Manager):
 
 class LocationGroup(Location, models.Model):
     locationtype = "locationgroup"
+    slug_as_id = False
 
     class CanReportMissing(models.TextChoices):
         DONT_OFFER = "dont_offer", _("don't offer")
@@ -827,6 +828,10 @@ class Position(models.Model):
         return 'm:%s' % self.secret
 
     @property
+    def effective_slug(self):
+        return self.slug
+
+    @property
     def title(self):
         return self.name
 
@@ -910,8 +915,8 @@ class Position(models.Model):
             ],
         }
 
-    def get_geometry(self, request):
-        return None
+    def get_geometry(self, request) -> GeometryByLevelSchema:
+        return {}
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
