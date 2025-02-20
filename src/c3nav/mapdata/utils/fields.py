@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 
 
-class LocationById():
+class LocationById:
     def __init__(self):
         super().__init__()
         self.name = None
@@ -21,8 +21,8 @@ class LocationById():
         if value_id == self.cached_id:
             return self.cached_value
 
-        from c3nav.mapdata.utils.locations import get_location_by_id_for_request
-        value = get_location_by_id_for_request(value_id, getattr(instance, 'request', None))
+        from c3nav.mapdata.utils.locations import get_location_for_request
+        value = get_location_for_request(value_id, getattr(instance, 'request', None))
         if value is None:
             raise ObjectDoesNotExist
         self.cached_id = value_id
