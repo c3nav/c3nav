@@ -200,6 +200,14 @@ class LocationProtocol(Protocol):
     """
     Any object that implements this protocol can be used as a location anywhere.
     The only exception is the location list API, for which it needs to implement ListableLocationProtocol.
+
+    Current implementations in the c3nav source base are:
+    - :py:class:`c3nav.mapdata.models.locations.SpecificLocation`
+    - :py:class:`c3nav.mapdata.models.locations.LocationGroup`
+    - :py:class:`c3nav.mapdata.models.locations.Position`
+    - :py:class:`c3nav.mapdata.utils.locations.CustomLocation`
+
+    See :py:class:`BaseLocationItemSchema` and :py:class:`SingleLocationItemSchema` below.
     """
     locationtype: str
     slug_as_id: bool
@@ -222,19 +230,27 @@ class LocationProtocol(Protocol):
     locations: []  # todo: rename to sublocations?
 
     def details_display(self, request, editor_url: bool) -> LocationDisplay:
+        """
+        Get human-readable inforation to display about this location.
+        """
         pass
 
     def get_geometry(self, request) -> GeometryByLevelSchema:
+        """
+        Get geometry associated with this location. This will not include point geometries.
+        """
         pass
 
     def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
+        """
+        Get geometry associated with this location. This will include points geometries as a fallback.
+        """
         pass
 
 
-class ListableLocationProtocol(LocationProtocol):
+class ListedLocationProtocol(LocationProtocol):
     """
-    Any object that implements this protocol can be used as a location anywhere.
-    See LocationProtocol for the other one.
+    See :py:class:`ListedLocationItemSchema` below for documentation on most attributes.
     """
     id: PositiveInt
     effective_label_settings: EffectiveLabelSettingsSchema | None
@@ -244,6 +260,10 @@ class ListableLocationProtocol(LocationProtocol):
 
 
 class BaseLocationItemSchema(BaseSchema):
+    """
+    A location is what c3nav can search for and route to and from.
+    A location can be a SpecificLocation, a Locationgroup, a CustomLocation or a Position.
+    """
     locationtype: Union[
         Literal["specificlocation"],
         Literal["locationgroup"],
