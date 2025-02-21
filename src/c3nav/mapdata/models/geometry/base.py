@@ -8,7 +8,7 @@ from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
-from c3nav.api.schema import GeometryByLevelSchema, GeometrySchema
+from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsSchema
@@ -102,8 +102,8 @@ class GeometryMixin(SerializableMixin):
             return {}
         if self.can_access_geometry(request):
             # todo: get rid of format_geojson tbh, smart_mapping maybe too
-            return {self.level_id: [format_geojson(smart_mapping(self.geometry), rounded=False)]}
-        return {self.level_id: [format_geojson(smart_mapping(self.geometry.minimum_rotated_rectangle), rounded=False)]}
+            return {self.level_id: [self.geometry]}
+        return {self.level_id: [self.geometry.minimum_rotated_rectangle]}
 
     def can_access_geometry(self, request) -> bool:
         return True

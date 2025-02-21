@@ -31,7 +31,7 @@ from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemS
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationIdentifier, PositionIdentifier
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry import unwrap_geom, smart_mapping
 from c3nav.mapdata.utils.locations import (searchable_locations_for_request,
                                            visible_locations_for_request,
                                            LocationRedirect, get_location_for_request)
