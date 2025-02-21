@@ -154,19 +154,6 @@ class ByOverlayFilter(FilterSchema):
         return super().filter_qs(request, qs)
 
 
-class BySearchableFilter(FilterSchema):
-    searchable: bool = APIField(
-        False,
-        title='searchable locations only',
-        description='only show locations that should show up in search'
-    )
-
-    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
-        if self.searchable is not None:
-            qs = qs.filter(can_search=True)
-        return super().filter_qs(request, qs)
-
-
 class RemoveGeometryFilter(FilterSchema):
     geometry: bool = APIField(
         False,
