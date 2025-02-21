@@ -26,12 +26,11 @@ from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, Ranging
 from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, SpecificLocation
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
-from c3nav.mapdata.schemas.filters import BySearchableFilter
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationIdentifier, PositionIdentifier
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
-from c3nav.mapdata.utils.geometry import unwrap_geom, smart_mapping
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import (searchable_locations_for_request,
                                            visible_locations_for_request,
                                            LocationRedirect, get_location_for_request)
@@ -77,7 +76,7 @@ class LocationEndpointParameters(BaseSchema):
     )
 
 
-class LocationListFilters(BySearchableFilter):
+class LocationListFilters(BaseSchema):
     searchable: bool = APIField(
         False,
         title='searchable locations only',
