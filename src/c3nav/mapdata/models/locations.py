@@ -188,6 +188,9 @@ LocationTarget = StaticLocationTarget | DynamicLocationTarget
 
 
 class SpecificLocation(Location, models.Model):
+    """
+    Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
+    """
     locationtype = "specificlocation"
     slug_as_id = False
 
@@ -605,6 +608,9 @@ class LocationGroupManager(models.Manager):
 
 
 class LocationGroup(Location, models.Model):
+    """
+    Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
+    """
     locationtype = "locationgroup"
     slug_as_id = False
 
@@ -790,6 +796,9 @@ def get_position_secret():
 
 
 class Position(models.Model):
+    """
+    Implements :py:class:`c3nav.mapdata.schemas.locations.LocationProtocol`.
+    """
     objects = None
     locationtype = "position"
     slug_as_id = True  # todo: implement this!!
