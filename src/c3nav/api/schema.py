@@ -1,7 +1,7 @@
 from contextlib import suppress
 from dataclasses import dataclass, is_dataclass
 from types import NoneType
-from typing import Annotated, Any, Literal, Union, ClassVar, TypeAlias
+from typing import Annotated, Any, Literal, Union, ClassVar, TypeAlias, Iterable
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model
@@ -12,8 +12,10 @@ from pydantic import Field as APIField
 from pydantic import model_validator
 from pydantic.functional_validators import ModelWrapValidatorHandler
 from pydantic_core.core_schema import ValidationInfo
+from shapely.geometry.base import BaseGeometry
 
 from c3nav.api.utils import NonEmptyStr
+from c3nav.mapdata.utils.geometry import smart_mapping
 
 
 def make_serializable(values: Any):
@@ -112,7 +114,18 @@ class APIErrorSchema(BaseSchema):
     )
 
 
-class PolygonSchema(BaseSchema):
+class BaseGeometrySchema(BaseSchema):
+    @model_validator(mode="wrap")  # noqa
+    @classmethod
+    def _run_root_validator(cls, values: Any, handler: ModelWrapValidatorHandler[Schema], info: ValidationInfo) -> Any:
+        if isinstance(values, dict):
+            return values
+        if isinstance(values, Iterable):
+            return handler([value if isinstance(value, dict) else smart_mapping(value) for value in values])
+        return smart_mapping(values)
+
+
+class PolygonSchema(BaseGeometrySchema):
     """
     A GeoJSON Polygon
     """
@@ -125,7 +138,7 @@ class PolygonSchema(BaseSchema):
         title = "GeoJSON Polygon"
 
 
-class MultiPolygonSchema(BaseSchema):
+class MultiPolygonSchema(BaseGeometrySchema):
     """
     A GeoJSON MultiPolygon
     """
@@ -138,7 +151,7 @@ class MultiPolygonSchema(BaseSchema):
         title = "GeoJSON Polygon"
 
 
-class LineStringSchema(BaseSchema):
+class LineStringSchema(BaseGeometrySchema):
     """
     A GeoJSON LineString
     """
@@ -151,7 +164,7 @@ class LineStringSchema(BaseSchema):
         title = "GeoJSON LineString"
 
 
-class LineSchema(BaseSchema):
+class LineSchema(BaseGeometrySchema):
     """
     A GeoJSON LineString with only two points
     """
@@ -164,7 +177,7 @@ class LineSchema(BaseSchema):
         title = "GeoJSON LineString (only two points)"
 
 
-class PointSchema(BaseSchema):
+class PointSchema(BaseGeometrySchema):
     """
     A GeoJSON Point
     """

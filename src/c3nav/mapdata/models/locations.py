@@ -5,7 +5,7 @@ from decimal import Decimal
 from functools import reduce
 from itertools import chain
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, Iterator, TypeAlias, Union, Iterable
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable
 
 from django.conf import settings
 from django.core.cache import cache
@@ -20,7 +20,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _, get_language, get_language_info
 from django.utils.translation import ngettext_lazy
 
-from c3nav.api.schema import GeometryByLevelSchema, GeometrySchema
+from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
