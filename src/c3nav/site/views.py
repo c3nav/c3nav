@@ -37,7 +37,7 @@ from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
-from c3nav.mapdata.schemas.locations import SingleLocationItemSchema
+from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
 from c3nav.mapdata.utils.locations import (levels_by_level_index_for_request, LocationRedirect,
                                            get_location_for_request)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
@@ -51,7 +51,7 @@ if settings.METRICS:
     from prometheus_client import Counter
 
 
-def check_location(location_slug: Optional[str], request) -> Optional[Location]:
+def check_location(location_slug: Optional[str], request) -> LocationProtocol | None:
     if location_slug is None:
         return None
 

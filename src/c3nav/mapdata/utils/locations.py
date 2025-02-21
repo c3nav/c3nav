@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Any, List, Mapping, Optional, ClassVar, NamedTuple, Sequence
+from typing import Any, Mapping, Optional, ClassVar, NamedTuple, overload
 
 from django.conf import settings
 from django.db.models import Prefetch
@@ -256,6 +256,11 @@ def get_custom_location_for_request(identifier: CustomLocationIdentifier, reques
         return None
     return CustomLocation(level, float(match.group('x')), float(match.group('y')),
                           AccessPermission.get_for_request(request))
+
+
+@overload
+def get_location_for_request(identifier: int, request) -> Optional[LocationProtocol]:
+    pass
 
 
 def get_location_for_request(identifier: int | str, request) -> Optional[LocationProtocol | LocationRedirect]:
