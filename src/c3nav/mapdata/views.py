@@ -2,6 +2,7 @@ import base64
 import json
 import os
 from collections import Counter, defaultdict
+from itertools import chain
 from shutil import rmtree
 from typing import Optional, Union, Literal
 from wsgiref.util import FileWrapper
@@ -21,11 +22,13 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.render.engines import ImageRenderEngine
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
+from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
 from c3nav.mapdata.utils.cors import allow_cors
-from c3nav.mapdata.utils.locations import visible_locations_for_request
+from c3nav.mapdata.utils.locations import visible_locations_for_request, get_location_for_request, merge_bounds
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
+from c3nav.routing.route import RouteLocation
 
 PREVIEW_HIGHLIGHT_FILL_OPACITY = 0.1
 PREVIEW_HIGHLIGHT_STROKE_WIDTH = 0.5
@@ -152,12 +155,9 @@ def cache_preview(request, ext, key, last_update, render_fn):
 @no_language()
 def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]]):
     from c3nav.site.views import check_location
-    from c3nav.mapdata.utils.locations import CustomLocation
-    from c3nav.mapdata.models.geometry.base import GeometryMixin
-    from c3nav.mapdata.models import LocationGroup
-    from c3nav.mapdata.models.locations import Position
 
     location = check_location(slug, None)
+    # todo: handle redirect?
     highlight = True
     if location is None:
         raise Http404
@@ -167,39 +167,40 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
 
     slug = location.effective_slug
 
-    if isinstance(location, CustomLocation):
-        geometries = [Point(location.x, location.y)]
-        level = location.level.pk
-    elif isinstance(location, GeometryMixin):
-        geometries = [location.geometry]
-        level = location.level_id
-    elif isinstance(location, Level):
-        [minx, miny, maxx, maxy] = location.bounds
-        geometries = [box(minx, miny, maxx, maxy)]
-        level = location.pk
-        highlight = False
-    elif isinstance(location, LocationGroup):
-        area_by_level = defaultdict(lambda: 0)
-        for loc in location.locations:
-            if (loc.level_id, theme) not in cache_package.levels:
-                continue
-            if isinstance(loc, GeometryMixin):
-                area_by_level[loc.level_id] += max(loc.geometry.area, 3)
+    # collect all the sublocations
+    # todo: handle dynamic locations
+    locations = {
+        location.effective_slug: location
+    }
+    locations_to_check = [location]
+    while locations_to_check:
+        for location_id in locations_to_check.pop().locations:
+            sublocation = get_location_for_request(location_id, request)
+            if sublocation.effective_slug not in locations:
+                locations[sublocation.effective_slug] = sublocation
+                locations_to_check.append(sublocation)
 
-        if not area_by_level:
-            raise Http404
-
-        level, max_area = max(area_by_level.items())
-        geometries = [loc.geometry for loc in location.locations if loc.level_id == level]
+    # are there any points?
+    points: list[LocationPoint] = list(chain(
+        *(loc.points for loc in locations),
+    ))
+    if points:
+        # there are points, then this is what we will show and highlight
+        counts = Counter([point[0] for point in points])
+        level_id = counts.most_common(1)[0][0]
         highlight = True
-    elif isinstance(location, Position):
-        loc = location.get_custom_location(request=request)
-        if not loc:
-            raise Http404
-        geometries = [Point(loc.x, loc.y)]
-        level = loc.level.pk
+        geometries = [
+            *(Point(p[:2]) for p in points),
+            *chain(*(loc.get_geometry().get(level_id, ()) for loc in locations))
+        ]
     else:
-        raise NotImplementedError(f'location type {type(location)} is not supported yet')
+        # there are no points, so we will show a bounding box of the biggest level
+        boxes = {level_id: box(*chain(*bounds))
+                 for level_id, bounds in merge_bounds(*(loc.bounds for loc in locations))}
+        if not boxes:
+            raise Http404
+        level_id, bbox = max(boxes.items(), key=lambda item: item[1].area)
+        geometries = [bbox]
 
     from c3nav.mapdata.utils.geometry import unwrap_geom
     geometries = [geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry) for geometry in
@@ -207,12 +208,15 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
 
     minx, miny, maxx, maxy, img_scale = bounds_for_preview(unary_union(geometries), cache_package)
 
-    level_data = cache_package.levels.get((level, theme))
+    theme = None if settings.DEFAULT_THEME == 0 else settings.DEFAULT_THEME  # previews use the default theme
+
+    level_data = cache_package.levels.get((level_id, theme))
+
     if level_data is None:
         raise Http404
 
     def render_preview():
-        renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
+        renderer = MapRenderer(level_id, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
         image = renderer.render(ImageRenderEngine, theme)
         if highlight:
             from c3nav.mapdata.render.theme import ColorManager
@@ -229,6 +233,7 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
 
 @no_language()
 def preview_route(request, slug, slug2, ext: Union[Literal["png"], Literal["webp"]]):
+    # todo: make this work with new location stuff
     from c3nav.routing.router import Router
     from c3nav.routing.models import RouteOptions
     from c3nav.routing.exceptions import NotYetRoutable
