@@ -219,6 +219,7 @@ class LocationProtocol(Protocol):
 
     nearby: NearbySchema | None
     dynamic_state: DynamicLocationState | None
+    locations: []  # todo: rename to sublocations?
 
     def details_display(self, request, editor_url: bool) -> LocationDisplay:
         pass
@@ -236,7 +237,6 @@ class ListableLocationProtocol(LocationProtocol):
     effective_label_settings: EffectiveLabelSettingsSchema | None
     label_override: NonEmptyStr | None
     load_group_display: PositiveInt | None
-    # todo: locations: [] ?
     add_search: str
 
 
