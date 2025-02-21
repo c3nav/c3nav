@@ -80,7 +80,11 @@ class LocationEndpointParameters(BaseSchema):
 
 
 class LocationListFilters(BySearchableFilter):
-    pass
+    searchable: bool = APIField(
+        False,
+        title='searchable locations only',
+        description='only show locations that should show up in search'
+    )
 
 
 @map_api_router.get('/locations/', summary="list locations",
