@@ -6,8 +6,8 @@ from c3nav.api.schema import BaseSchema, GeometryByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.schemas.model_base import (schema_description, LabelSettingsSchema,
                                               LocationPoint, BoundsByLevelSchema, TitleField, LocationIdentifier,
-                                              DjangoID, PositionIdentifier, CustomLocationIdentifier, OptionalLocationSlugField)
-
+                                              DjangoID, PositionIdentifier, CustomLocationIdentifier,
+                                              OptionalLocationSlugField)
 
 SubtitleField = Annotated[NonEmptyStr, APIField(
     title="subtitle (preferred language)",
