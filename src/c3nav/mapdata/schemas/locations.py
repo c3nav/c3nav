@@ -227,6 +227,9 @@ class LocationProtocol(Protocol):
     def get_geometry(self, request) -> GeometryByLevelSchema:
         pass
 
+    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
+        pass
+
 
 class ListableLocationProtocol(LocationProtocol):
     """

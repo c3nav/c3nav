@@ -391,6 +391,9 @@ class CustomLocation:
     def get_geometry(self, request) -> GeometryByLevelSchema:
         return {}
 
+    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
+        return {self.level.pk: [Point(self.x, self.y)]}
+
     @cached_property
     def _description(self):
         from c3nav.routing.router import Router

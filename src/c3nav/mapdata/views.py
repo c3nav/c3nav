@@ -189,10 +189,9 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
         counts = Counter([point[0] for point in points])
         level_id = counts.most_common(1)[0][0]
         highlight = True
-        geometries = [
-            *(Point(p[:2]) for p in points),
-            *chain(*(loc.get_geometry().get(level_id, ()) for loc in locations))
-        ]
+        geometries = list(chain(*(
+            loc.get_geometry_or_points().get(level_id, ()) for loc in locations
+        )))
     else:
         # there are no points, so we will show a bounding box of the biggest level
         boxes = {level_id: box(*chain(*bounds))
@@ -260,44 +259,10 @@ def preview_route(request, slug, slug2, ext: Union[Literal["png"], Literal["webp
     except NoRouteFound:
         raise Http404()
 
-    origin = route.origin.src
-    destination = route.destination.src
-
     route_items = [route.router.nodes[x] for x in route.path_nodes]
     route_points = [(item.point.x, item.point.y, route.router.spaces[item.space].level_id) for item in route_items]
 
-    from c3nav.mapdata.models.geometry.base import GeometryMixin
-    if isinstance(origin, CustomLocation):
-        origin_level = origin.level.pk
-        origin_geometry = Point(origin.x, origin.y)
-    elif isinstance(origin, GeometryMixin):
-        origin_level = origin.level_id
-        origin_geometry = origin.geometry
-    elif isinstance(origin, Level):
-        raise Http404  # preview for routes from a level don't really make sense
-    else:
-        raise NotImplementedError(f'location type {type(origin)} is not implemented')
-
-    if isinstance(origin_geometry, Point):
-        origin_geometry = origin_geometry.buffer(1)
-
-    if isinstance(destination, CustomLocation):
-        destination_level = destination.level.pk
-        destination_geometry = Point(destination.x, destination.y)
-    elif isinstance(destination, GeometryMixin):
-        destination_level = destination.level_id
-        destination_geometry = destination.geometry
-    elif isinstance(destination, Level):
-        destination_level = destination.pk
-        destination_geometry = None
-    else:
-        destination_level = origin_level  # just so that it's set to something
-        destination_geometry = None
-    if destination_level != origin_level:
-        destination_geometry = None
-
-    if isinstance(destination_geometry, Point):
-        destination_geometry = destination_geometry.buffer(1)
+    origin_level = route_points[0][1]
 
     lines = []
     line = None
@@ -315,7 +280,20 @@ def preview_route(request, slug, slug2, ext: Union[Literal["png"], Literal["webp
 
     route_geometries = [LineString(line) for line in lines]
 
-    all_geoms = [*route_geometries, unwrap_geom(origin_geometry), unwrap_geom(destination_geometry)]
+    origin_geometry = [
+        geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry)
+        for geometry in route.origin.location.get_geometry_or_points().get(origin_level, [])
+    ]
+    destination_geometry = [
+        geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry)
+        for geometry in route.detination.location.get_geometry_or_points().get(origin_level, [])
+    ]
+
+    all_geoms = [
+        *route_geometries,
+        *origin_geometry,
+        *destination_geometry,
+    ]
     combined_geometry = unary_union([x for x in all_geoms if x is not None])
 
     cache_package = CachePackage.open_cached()
@@ -333,13 +311,13 @@ def preview_route(request, slug, slug2, ext: Union[Literal["png"], Literal["webp
         image = renderer.render(ImageRenderEngine, theme)
         from c3nav.mapdata.render.theme import ColorManager
         color_manager = ColorManager.for_theme(theme)
-        if origin_geometry is not None:
-            image.add_geometry(origin_geometry,
+        for geometry in origin_geometry:
+            image.add_geometry(geometry,
                                fill=FillAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_FILL_OPACITY),
                                stroke=StrokeAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
                                category='highlight')
-        if destination_geometry is not None:
-            image.add_geometry(destination_geometry,
+        for geometry in destination_geometry:
+            image.add_geometry(geometry,
                                fill=FillAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_FILL_OPACITY),
                                stroke=StrokeAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
                                category='highlight')
