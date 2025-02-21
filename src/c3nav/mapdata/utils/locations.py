@@ -302,6 +302,10 @@ def get_location_for_request(identifier: int | str, request) -> Optional[Locatio
 
 @dataclass
 class CustomLocation:
+    """
+    A custom location defined by coordinates.
+    Implements :py:class:`c3nav.mapdata.schemas.locations.SingleLocationProtocol`.
+    """
     locationtype: ClassVar = "customlocation"
     slug_as_id = False
 
