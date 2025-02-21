@@ -37,6 +37,16 @@ class LocationRedirect:
     target: Location
 
 
+def merge_bounds(*bounds: BoundsByLevelSchema) -> BoundsByLevelSchema:
+    collected_bounds = {}
+    for one_bounds in bounds:
+        for level_id, level_bounds in one_bounds.items():
+            collected_bounds.setdefault(level_id, []).append(chain(*level_bounds))
+    zipped_bounds = {level_id: tuple(zip(*level_bounds)) for level_id, level_bounds in collected_bounds.items()}
+    return {level_id: ((min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3])))
+            for level_id, zipped in zipped_bounds.items()}
+
+
 def locations_for_request(request) -> dict[int, Location]:
     """
     Return all locations for this request, by ID.
