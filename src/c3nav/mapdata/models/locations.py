@@ -19,6 +19,7 @@ from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _, get_language, get_language_info
 from django.utils.translation import ngettext_lazy
+from shapely import Point
 
 from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.mapdata.fields import I18nField
@@ -409,7 +410,20 @@ class SpecificLocation(Location, models.Model):
         result = {}
         for target in self.get_static_targets():
             for level_id, geometries in target.get_geometry(request).items():
-                result.setdefault(target.level_id, []).extend(geometries)
+                result.setdefault(level_id, []).extend(geometries)
+        return result
+
+    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
+        # todo: eventually include dynamic targets in here?
+        result = {}
+        for target in self.get_static_targets():
+            target_geometry = target.get_geometry(request)
+            if target_geometry:
+                for level_id, geometries in target_geometry.items():
+                    result.setdefault(level_id, []).extend(geometries)
+            else:
+                for level_id, x, y in target.points:
+                    result.setdefault(level_id, []).append(Point(x, y))
         return result
 
     def details_display(self, request, editor_url=True, **kwargs):
@@ -910,6 +924,9 @@ class Position(models.Model):
         }
 
     def get_geometry(self, request) -> GeometryByLevelSchema:
+        return {}
+
+    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
         return {}
 
     def save(self, *args, **kwargs):
