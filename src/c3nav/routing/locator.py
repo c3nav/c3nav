@@ -15,6 +15,7 @@ from pydantic_extra_types.mac_address import MacAddress
 from shapely import Point
 
 from c3nav.mapdata.models import MapUpdate, Space
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
@@ -110,7 +111,8 @@ class Locator:
                 self.peers[peer_id].xyz = (
                     int(beacon.geometry.x * 100),
                     int(beacon.geometry.y * 100),
-                    int((router.altitude_for_point(beacon.space_id, beacon.geometry) + float(beacon.altitude)) * 100),
+                    int((router.altitude_for_point(beacon.space_id, unwrap_geom(beacon.geometry)) +
+                         float(beacon.altitude)) * 100),
                 )
                 self.peers[peer_id].space_id = beacon.space_id
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
