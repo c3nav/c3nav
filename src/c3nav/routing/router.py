@@ -21,6 +21,8 @@ from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationG
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
 from c3nav.mapdata.models.locations import CustomLocationProxyMixin, Location, SpecificLocation
+from c3nav.mapdata.schemas.locations import LocationProtocol
+from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
 from c3nav.mapdata.utils.index import Index
 from c3nav.mapdata.utils.locations import CustomLocation
@@ -42,7 +44,6 @@ class RouterNodeAndEdge(NamedTuple):
 
 
 NodeConnectionsByNode: TypeAlias = dict[int, RouterNodeAndEdge]
-PointCompatible: TypeAlias = Point | CustomLocation | CustomLocationProxyMixin
 EdgeIndex: TypeAlias = tuple[int, int]
 
 
@@ -166,9 +167,9 @@ class Router:
                             points=area.points
                         )
                         area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
-                        area.nodes = set(node.i for node in area_nodes)
+                        area.nodes = frozenset(node.i for node in area_nodes)
                         for node in area_nodes:
-                            altitude = area.get_altitude(node)
+                            altitude = area.get_altitude(Point(node.xyz[:2]))
                             if node.altitude is None or node.altitude < altitude:
                                 node.altitude = altitude
 
@@ -181,7 +182,7 @@ class Router:
                     node_altitudearea = min(space.altitudeareas,
                                             key=lambda a: a.geometry.distance(node.point), default=None)
                     if node_altitudearea:
-                        node.altitude = node_altitudearea.get_altitude(node)
+                        node.altitude = node_altitudearea.get_altitude(Point(node.xyz[:2]))
                     else:
                         node.altitude = float(level.base_altitude)
                         logger.info('Space %d has no altitude areas' % space.pk)
@@ -370,9 +371,25 @@ class Router:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
-    def get_locations(self, location: Location, restrictions: "RouterRestrictionSet") -> "RouterLocationSet":
-        locations = ()
+    def locationpoint_to_routerpoint(self, location: LocationProtocol, locationpoint: LocationPoint,
+                                     restrictions: "RouterRestrictionSet") -> Optional["RouterPoint"]:
+        point = Point(locationpoint[1:])
+        routerpoint = RouterPoint(location)
+        space = self.space_for_point(locationpoint[0], point, restrictions)
+        if space is None:
+            return None
+        altitudearea = space.altitudearea_for_point(point)
+        routerpoint.altitude = altitudearea.get_altitude(point)
+        location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
+        routerpoint.nodes = set(i for i in location_nodes.keys())
+        routerpoint.nodes_addition = location_nodes
+        return routerpoint
+
+    def get_locations(self, location: LocationProtocol, restrictions: "RouterRestrictionSet") -> "RouterLocationSet":
+        locations: tuple[RouterLocation, ...] = ()
+
         if isinstance(location, LocationGroup):
+            # locationgroups get expanded into their respective locations
             if location.pk not in self.groups:
                 raise NotYetRoutable
             group = self.groups[location.pk]
@@ -381,32 +398,43 @@ class Router:
                 for specificlocation in (self.specificlocations[pk] for pk in group.specificlocations)
                 if specificlocation.can_see(restrictions)
             )
-        elif isinstance(location, (CustomLocation, CustomLocationProxyMixin)):
-            if isinstance(location, CustomLocationProxyMixin) and not location.available:
-                raise LocationUnreachable
-            point = Point(location.x, location.y)
-            routerpoint = RouterPoint(location)
-            space = self.space_for_point(routerpoint.level.pk, point, restrictions)
-            if space is None:
-                raise LocationUnreachable
-            altitudearea = space.altitudearea_for_point(point)
-            routerpoint.altitude = altitudearea.get_altitude(point)
-            location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
-            routerpoint.nodes = set(i for i in location_nodes.keys())
-            routerpoint.nodes_addition = location_nodes
-            locations = tuple((RouterLocation(location, targets=[routerpoint]),))
-        else:
+
+        elif isinstance(location, SpecificLocation):
+            # specificlocations… we just check if we know them
             if location.pk not in self.specificlocations:
                 raise NotYetRoutable
             specificlocation = self.specificlocations[location.pk]
             if specificlocation.can_see(restrictions):  # todo: used to be run on the incoming object, do that again
                 locations = (specificlocation, )
+
+        else:
+            # anything else… we just use what LocationProtocol provides
+            locations = tuple(
+                RouterLocation(location, targets=[routerpoint])
+                for routerpoint in (self.locationpoint_to_routerpoint(location, locationpoint, restrictions)
+                                    for locationpoint in location.points)
+                if routerpoint
+            )
+
+        # check dynamic state, any interesting things to route to?
+        for sublocation in locations:
+            dynamic_state = sublocation.dynamic_state
+            if dynamic_state:
+                sublocation.targets.extend(filter(None, (
+                    self.locationpoint_to_routerpoint(location, locationpoint, restrictions)
+                    for locationpoint in dynamic_state.dynamic_points
+                )))
+
+        # if there's no targets, the location is unreachable
+        if not any(sublocation.targets for sublocation in locations):
+            raise LocationUnreachable
+
         result = RouterLocationSet(locations)
         if not result.get_nodes(restrictions):
             raise LocationUnreachable
         return result
 
-    def space_for_point(self, level: int, point: PointCompatible, restrictions: "RouterRestrictionSet",
+    def space_for_point(self, level: int, point: Point, restrictions: "RouterRestrictionSet",
                         max_distance=20) -> Optional['RouterSpace']:
         # todo: way better caching here, and for the rest of custom location description stuff
         point = Point(point.x, point.y)
@@ -435,7 +463,7 @@ class Router:
             return None
         return min(spaces, key=operator.itemgetter(1))[0]
 
-    def altitude_for_point(self, space: int, point: PointCompatible) -> float:
+    def altitude_for_point(self, space: int, point: Point) -> float:
         return self.spaces[space].altitudearea_for_point(point).get_altitude(point)
 
     def level_id_for_xyz(self, xyz: tuple[float, float, float], restrictions: "RouterRestrictionSet", max_distance=50):
@@ -454,16 +482,17 @@ class Router:
 
         return min(self.levels.items(), key=lambda a: abs(float(a[1].base_altitude)-z))[0]
 
-    def describe_custom_location(self, location):
+    def describe_custom_location(self, location: CustomLocation):
         restrictions = self.get_restrictions(location.permissions)
-        space = self.space_for_point(level=location.level.pk, point=location, restrictions=restrictions)
+        point = Point(location.point[1:])
+        space = self.space_for_point(level=location.level.pk, point=point, restrictions=restrictions)
         if not space:
             return CustomLocationDescription(
                 space=space.get_location(can_describe=True) if space else None, space_geometry=space,
                 altitude=None, areas=(), near_area=None, near_poi=None, nearby=()
             )
         try:
-            altitude = space.altitudearea_for_point(location).get_altitude(location)
+            altitude = space.altitudearea_for_point(point).get_altitude(point)
         except LocationUnreachable:
             altitude = None
         areas, near_area, nearby_areas = space.areas_for_point(
@@ -578,7 +607,7 @@ class Router:
             pk: restriction for pk, restriction in self.restrictions.items() if pk not in permissions
         })
 
-    def get_route(self, origin: Location, destination: Location, permissions: set[int],
+    def get_route(self, origin: LocationProtocol, destination: LocationProtocol, permissions: set[int],
                   options: RouteOptions, visible_locations: Mapping[int, Location]):
         restrictions = self.get_restrictions(permissions)
 
@@ -703,8 +732,7 @@ class RouterSpace(BaseRouterProxy[Space]):
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         return self.pk not in restrictions.spaces
 
-    def altitudearea_for_point(self, point: PointCompatible):
-        point = Point(point.x, point.y)
+    def altitudearea_for_point(self, point: Point):
         if not self.altitudeareas:
             raise LocationUnreachable
         altitudeareas = tuple(self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point))
@@ -781,7 +809,7 @@ RouterLocationTarget: TypeAlias = Union["RouterLevel", "RouterSpace", "RouterAre
 
 @dataclass
 class RouterLocation:
-    src: SpecificLocation | CustomLocation
+    src: LocationProtocol
     targets: list[RouterLocationTarget] = field(default_factory=list)
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
@@ -838,11 +866,11 @@ class RouterAltitudeArea:
     def clear_geometry_prep(self):
         return prepared.prep(self.clear_geometry)
 
-    def get_altitude(self, point: PointCompatible):
+    def get_altitude(self, point: Point):
         # noinspection PyTypeChecker,PyCallByClass
         return AltitudeArea.get_altitudes(self, (point.x, point.y))[0]
 
-    def nodes_for_point(self, point: PointCompatible, all_nodes) -> NodeConnectionsByNode:
+    def nodes_for_point(self, point: Point, all_nodes) -> NodeConnectionsByNode:
         point = Point(point.x, point.y)
 
         nodes = {}
