@@ -1,10 +1,9 @@
 import logging
 import operator
 import pickle
-from collections import deque, namedtuple
+from collections import deque
 from dataclasses import dataclass, field
 from functools import reduce
-from itertools import chain
 from operator import itemgetter
 from typing import Optional, TypeVar, Generic, Mapping, Sequence, TypeAlias, ClassVar, NamedTuple, Union
 
