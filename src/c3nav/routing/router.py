@@ -221,7 +221,7 @@ class Router:
 
                     poi = RouterPoint(poi)
                     try:
-                        altitudearea = space.altitudearea_for_point(poi.geometry)
+                        altitudearea = space.altitudearea_for_point(unwrap_geom(poi.geometry))
                         poi.altitude = altitudearea.get_altitude(poi.geometry)
                         poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
                     except LocationUnreachable:
