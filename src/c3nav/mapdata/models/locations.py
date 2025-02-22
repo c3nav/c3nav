@@ -30,7 +30,6 @@ from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
-from c3nav.mapdata.utils.locations import merge_bounds
 
 if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager  # noqa
@@ -317,7 +316,8 @@ class SpecificLocation(Location, models.Model):
 
     @staticmethod
     def get_bounds(*, targets: Iterable[LocationTarget]):
-        return merge_bounds(*target.bounds for target in targets)
+        from c3nav.mapdata.utils.locations import merge_bounds
+        return merge_bounds(*(target.bounds for target in targets))
 
     @cached_property
     def bounds(self) -> BoundsByLevelSchema:
