@@ -317,7 +317,7 @@ class SpecificLocation(Location, models.Model):
     @staticmethod
     def get_bounds(*, targets: Iterable[LocationTarget]):
         from c3nav.mapdata.utils.locations import merge_bounds
-        return merge_bounds(*(target.bounds for target in targets))
+        return merge_bounds(*filter(None, (target.bounds for target in targets)))
 
     @cached_property
     def bounds(self) -> BoundsByLevelSchema:
@@ -399,7 +399,9 @@ class SpecificLocation(Location, models.Model):
     """ Other Stuff """
 
     @property
-    def dynamic_state(self) -> DynamicLocationState:
+    def dynamic_state(self) -> Optional[DynamicLocationState]:
+        if not self.dynamic:
+            return None
         return DynamicLocationState(
             subtitle=self.dynamic_subtitle,
             grid_square=self.dynamic_grid_square,
