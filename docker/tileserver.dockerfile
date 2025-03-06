@@ -1,7 +1,7 @@
-# syntax=docker/dockerfile:1.12@sha256:93bfd3b68c109427185cd78b4779fc82b484b0b7618e36d0f104d4d801e66d25
-FROM ubuntu:noble-20241118.1@sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab as base
-ARG BASE_IMAGE_NAME=ubuntu:noble-20241118.1
-ARG BASE_IMAGE_DIGEST=sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab
+# syntax=docker/dockerfile:1.14@sha256:4c68376a702446fc3c79af22de146a148bc3367e73c25a5803d453b6b3f722fb
+FROM ubuntu:noble-20250127@sha256:72297848456d5d37d1262630108ab308d3e9ec7ed1c3286a32fe09856619a782 as base
+ARG BASE_IMAGE_NAME=ubuntu:noble-20250127
+ARG BASE_IMAGE_DIGEST=sha256:72297848456d5d37d1262630108ab308d3e9ec7ed1c3286a32fe09856619a782
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
@@ -15,11 +15,11 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.12=3.12.3-1ubuntu0.4 \
+    python3.12=3.12.3-1ubuntu0.5 \
     # renovate: srcname=python3.12
-    libpython3.12=3.12.3-1ubuntu0.4 \
+    libpython3.12=3.12.3-1ubuntu0.5 \
     # renovate: srcname=python3.12
-    python3.12-venv=3.12.3-1ubuntu0.4 \
+    python3.12-venv=3.12.3-1ubuntu0.5 \
     # renovate: srcname=python-pip
     python3-pip=24.0+dfsg-1ubuntu1.1 \
     curl=8.5.0-2ubuntu10.6 \
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libpcre3=2:8.39-15build1 \
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build3 \
-    tzdata=2024a-3ubuntu1.1 \
+    tzdata=2024b-0ubuntu0.24.04.1 \
     ca-certificates=20240203 \
     # renovate: srcname=libzstd
     zstd=1.5.5+dfsg2-2build1.1
@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.10ubuntu1 \
     # renovate: srcname=python3.12
-    python3.12-dev=3.12.3-1ubuntu0.4 \
+    python3.12-dev=3.12.3-1ubuntu0.5 \
     libpcre3-dev=2:8.39-15build1 \
     # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build3
