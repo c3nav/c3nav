@@ -115,7 +115,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
 
     if isinstance(location, LocationRedirect):
         if not redirects.show_redirects:
-            return redirect(reverse("api-v2:get-location", kwargs={
+            return redirect(reverse("api-v2:get_location", kwargs={
                 "identifier": location.target.effective_slug,
             }))
 
@@ -138,7 +138,7 @@ def location_display(request, identifier: LocationIdentifier):
         raise API404()
 
     if isinstance(location, LocationRedirect):
-        return redirect(reverse("api-v2:location-display", kwargs={
+        return redirect(reverse("api-v2:location_display", kwargs={
             "identifier": location.target.effective_slug,
         }))
 
@@ -161,7 +161,7 @@ def location_geometry(request, identifier: LocationIdentifier):
         raise API404()
 
     if isinstance(location, LocationRedirect):
-        return redirect(reverse("api-v2:location-geometry", kwargs={
+        return redirect(reverse("api-v2:location_geometry", kwargs={
             "identifier": location.target.effective_slug,
         }))
 
