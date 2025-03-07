@@ -10,6 +10,9 @@ from c3nav.mapdata.schemas.models import DataOverlaySchema
 
 
 def get_user_data(request):
+    """
+    Don't use this unless needed. Use request.user_data to get this cached.
+    """
     permissions = AccessPermission.get_for_request(request) - AccessRestriction.get_all_public()
     result = {
         'logged_in': bool(request.user.is_authenticated),
@@ -46,11 +49,23 @@ def get_user_data(request):
              if request.user.is_superuser or key in request.user_permissions.quests}
         ),
     })
-
+    request.user_data = result
     return result
 
 
-get_user_data_lazy = lazy(get_user_data, dict)
+class CachedGetUserData:
+    def __init__(self, request):
+        self.request = request
+        self.cached = None
+
+    def __call__(self) -> dict:
+        if self.cached is None:
+            self.cached = get_user_data(self.request)
+        return self.cached
+
+
+def get_user_data_lazy(request):
+    return lazy(CachedGetUserData(request), dict)()
 
 
 def can_access_editor(request):

@@ -125,7 +125,7 @@ def fetch_updates(request, response: HttpResponse):
     }
     if cross_origin is None:
         result.update({
-            'user_data': get_user_data(request),
+            'user_data': request.user_data,
         })
 
     if cross_origin is not None:

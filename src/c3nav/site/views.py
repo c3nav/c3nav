@@ -276,7 +276,7 @@ def close_response(request):
     # todo: use a better way to recognize this
     ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET
     if ajax:
-        return HttpResponse(json.dumps(get_user_data(request), cls=DjangoJSONEncoder).encode(),
+        return HttpResponse(json.dumps(request.user_data, cls=DjangoJSONEncoder).encode(),
                             content_type='text/plain')
     redirect_path = request.GET['next'] if request.GET.get('next', '').startswith('/') else reverse('site.index')
     return redirect(redirect_path)
@@ -774,7 +774,6 @@ def report_detail(request, pk, secret=None):
 def position_list(request):
     return render(request, 'site/position_list.html', {
         'positions': Position.objects.filter(owner=request.user),
-        'user_data_json': json.dumps(get_user_data(request), cls=DjangoJSONEncoder),
     })
 
 
@@ -866,7 +865,6 @@ def api_secret_list(request):
         return redirect(reverse('site.api_secret_list'))
     return render(request, 'site/api_secret_list.html', {
         'api_secrets': Secret.objects.filter(user=request.user).order_by('-created'),
-        'user_data_json': json.dumps(get_user_data(request), cls=DjangoJSONEncoder),
     })
 
 

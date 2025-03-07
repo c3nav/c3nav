@@ -130,9 +130,6 @@ class UserPermissions(models.Model):
         return settings.ENABLE_MESH and self.mesh_control
 
 
-get_permissions_for_user_lazy = lazy(UserPermissions.get_for_user, UserPermissions)
-
-
 class UserSpaceAccess(models.Model):
     """
     User Authorities
