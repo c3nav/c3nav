@@ -158,7 +158,7 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
         # don't filter in the query here so prefetch_related works
         for group in self.groups.all():
             color = color_manager.locationgroup_fill_color(group)
-            if color:  # todo: put allow_x check in here again?
+            if color:
                 return (0, group.category.priority, group.hierarchy, group.priority), color
         return None
 
@@ -344,8 +344,8 @@ class SpecificLocation(Location, models.Model):
             if static_targets:
                 return static_targets[0].subtitle
             elif dynamic:
-                return dynamic_targets[0].subtitle  # todo: make this work right
-        # todo: make this work right for multiple targets
+                return dynamic_targets[0].get_custom_location().subtitle  # todo: this should use the request
+        # todo: make this work better for multiple targets
         return None
 
     def get_subtitle(self, *, target_subtitle: Optional[str], grid_square: GridSquare) -> str:
@@ -892,7 +892,7 @@ class Position(models.Model):
             grid_square=custom_location.grid_square,
             dynamic_points=custom_location.points,
             bounds=custom_location.bounds,
-            nearby=None,  # todo: add nearby information
+            nearby=custom_location.nearby,
         )
 
     @property
