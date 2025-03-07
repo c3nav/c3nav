@@ -2071,21 +2071,21 @@ c3nav = {
         if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? c3nav.icons.default : c3nav.icons.origin));
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? c3nav.icons.default : c3nav.icons.destination));
         const done = new Set();
-        if (c3nav.state.nearby && destination && 'areas' in destination) {
-            if (destination.space) {
-                done.add(destination.space);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true, c3nav._nearbyLayers));
+        if (c3nav.state.nearby && destination && destination.nearby) {
+            if (destination.nearby.space) {
+                done.add(destination.nearby.space);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.nearby.space], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
-            if (destination.near_area) {
-                done.add(destination.near_area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true, c3nav._nearbyLayers));
+            if (destination.nearby.near_area) {
+                done.add(destination.nearby.near_area);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.nearby.near_area], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
-            for (const area of destination.areas) {
+            for (const area of destination.nearby.areas) {
                 if (done.has(area)) continue;
                 done.add(area);
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true, c3nav._nearbyLayers));
             }
-            for (const location of destination.nearby) {
+            for (const location of destination.nearby.near_locations) {
                 if (done.has(location)) continue;
                 done.add(destination.nearby);
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true, c3nav._nearbyLayers));
