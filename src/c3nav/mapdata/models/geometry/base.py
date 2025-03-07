@@ -96,7 +96,6 @@ class GeometryMixin(SerializableMixin):
         if "geometry" in self.get_deferred_fields() or self.level_id is None:
             return {}
         if self.can_access_geometry(request):
-            # todo: get rid of format_geojson tbh, smart_mapping maybe too
             return {self.level_id: [self.geometry]}
         return {self.level_id: [self.geometry.minimum_rotated_rectangle]}
 
