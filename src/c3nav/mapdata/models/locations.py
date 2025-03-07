@@ -295,15 +295,6 @@ class SpecificLocation(Location, models.Model):
                 return group.external_url_label
         return None
 
-    @property
-    def groups_by_category(self):
-        groups_by_category = {}
-        for group in self.groups.all():
-            groups_by_category.setdefault(group.category, []).append(group.pk)
-        groups_by_category = {category.name: (items[0] if items else None) if category.single else items
-                              for category, items in groups_by_category.items()}
-        return groups_by_category
-
     """ Points / Bounds / Grid """
 
     @property
