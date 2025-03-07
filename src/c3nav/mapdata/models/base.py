@@ -17,15 +17,6 @@ class SerializableMixin(models.Model):
     class Meta:
         abstract = True
 
-    @classmethod
-    def serialize_type(cls, **kwargs):
-        return OrderedDict((
-            ('name', cls.__name__.lower()),
-            ('name_plural', cls._meta.default_related_name),
-            ('title', str(cls._meta.verbose_name)),
-            ('title_plural', str(cls._meta.verbose_name_plural)),
-        ))
-
     @property
     def title(self):
         return self._meta.verbose_name + ' ' + str(self.id)

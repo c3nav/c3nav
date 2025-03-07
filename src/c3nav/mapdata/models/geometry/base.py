@@ -72,13 +72,6 @@ class GeometryMixin(SerializableMixin):
             result['original_geometry'] = format_geojson(smart_mapping(original_geometry), rounded=False)
         return result
 
-    @classmethod
-    def serialize_type(cls, geomtype=True, **kwargs):
-        result = super().serialize_type()
-        if geomtype:
-            result['geomtype'] = cls._meta.get_field('geometry').geomtype
-        return result
-
     @cached_property
     def good_representative_point(self):
         return good_representative_point(self.geometry)
