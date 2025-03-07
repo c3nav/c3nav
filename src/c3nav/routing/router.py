@@ -134,7 +134,7 @@ class Router:
                     for location in area.locations.all():
                         for group in location.groups.all():
                             groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
-                    area._prefetched_objects_cache = {}
+                    # area._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
 
                     area = RouterArea(area)
                     area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
@@ -217,7 +217,7 @@ class Router:
                     for location in poi.locations.all():
                         for group in location.groups.all():
                             groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
-                    poi._prefetched_objects_cache = {}
+                    # poi._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
 
                     poi = RouterPoint(poi)
                     try:
@@ -242,7 +242,7 @@ class Router:
                     restrictions.setdefault(column.access_restriction_id,
                                             RouterRestriction()).additional_nodes.update(column_nodes)
 
-                space_obj._prefetched_objects_cache = {}
+                # space_obj._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
 
                 space.src.geometry = accessible_geom
 
@@ -251,7 +251,7 @@ class Router:
                     specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(space)
 
             level_spaces = set(space.pk for space in level.spaces.all())
-            level._prefetched_objects_cache = {}
+            # level._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
 
             level = RouterLevel(level, spaces=level_spaces)
             level.nodes = set(range(nodes_before_count, len(nodes)))
