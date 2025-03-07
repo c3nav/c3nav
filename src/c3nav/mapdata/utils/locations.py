@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Any, Mapping, Optional, ClassVar, NamedTuple, overload
+from typing import Any, Mapping, Optional, ClassVar, NamedTuple, overload, Literal
 
 from django.conf import settings
 from django.db.models import Prefetch
@@ -260,10 +260,30 @@ def get_location_for_request(identifier: int, request) -> Optional[LocationProto
     pass
 
 
-def get_location_for_request(identifier: int | str, request) -> Optional[LocationProtocol | LocationRedirect]:
+@overload
+def get_location_for_request(identifier: int, request,
+                             * redirect: Literal[True]) -> Optional[LocationProtocol | LocationRedirect]:
+    pass
+
+
+@overload
+def get_location_for_request(identifier: str, request,
+                             * redirect: Literal[False]) -> Optional[LocationProtocol]:
+    pass
+
+
+def get_location_for_request(identifier: int | str, request,
+                             *, redirect: bool = None) -> Optional[LocationProtocol | LocationRedirect]:
     """
-    Get a location based on the given identifier for the given request
+    Get a location based on the given identifier for the given request.
+
+    if redirect is True (default if you pass a string as the identifier), you will get back a LocationRedirect if
+    there is a preferable identifier (e.g. the location has a slug and you used its id or a redirect slug).
+
+    Note that IDs can be passed either as strings or integers, but the latter changes the default redirect behavior.
     """
+    if redirect is None:
+        redirect = not isinstance(identifier, int)
 
     # Is this an integer? Then get the location by it's ID.
     if isinstance(identifier, int) or identifier.isdigit():
@@ -273,7 +293,7 @@ def get_location_for_request(identifier: int | str, request) -> Optional[Locatio
         return LocationRedirect(
             identifier=identifier,
             target=location,
-        ) if location.slug else location
+        ) if (location.slug and redirect) else location
 
     # If this looks like a custom location identifier, get the custom location
     if identifier.startswith('c:'):
@@ -285,19 +305,19 @@ def get_location_for_request(identifier: int | str, request) -> Optional[Locatio
         return Position.objects.filter(secret=identifier[2:]).first()
 
     # Otherwise, this must be a slug, get the location target associated with this slug
-    target = _locations_by_slug().get(identifier, None)
-    if target is None:
+    slug_target = _locations_by_slug().get(identifier, None)
+    if slug_target is None:
         # No ID? Then this slug can't be found.
         return None
 
     # Get the location from the available locations for this request.
-    location = locations_for_request(request).get(target.target_id, None)
+    location = locations_for_request(request).get(slug_target.target_id, None)
 
     # If this should be a redirect, return a redirect if we found the location, otherwise return the location (or None)
     return LocationRedirect(
         identifier=identifier,
         target=location,
-    ) if (target.redirect and location is not None) else location
+    ) if (slug_target.redirect and location is not None and redirect) else location
 
 
 @dataclass
