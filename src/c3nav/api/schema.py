@@ -12,7 +12,6 @@ from pydantic import Field as APIField
 from pydantic import model_validator
 from pydantic.functional_validators import ModelWrapValidatorHandler
 from pydantic_core.core_schema import ValidationInfo
-from shapely.geometry.base import BaseGeometry
 
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.utils.geometry import smart_mapping
