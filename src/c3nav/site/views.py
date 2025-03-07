@@ -39,7 +39,7 @@ from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLoca
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
 from c3nav.mapdata.utils.locations import (levels_by_level_index_for_request, LocationRedirect,
-                                           get_location_for_request)
+                                           get_location_for_request, CustomLocation)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
@@ -544,16 +544,16 @@ def report_start_coordinates(request, coordinates):
 
 @never_cache
 def report_missing_check(request, coordinates):
-    nearby = get_location_for_request(coordinates, request).nearby
-    if not nearby:
+    location = get_location_for_request(coordinates, request)
+    if not location.nearby.near_locations:
         return redirect(reverse('site.report_missing_choose', kwargs={"coordinates": coordinates}))
     return render(request, 'site/report_question.html', {
         'question': _('Are you sure it\'s not one of these?'),
         'locations': [
             {
-                'location': get_location_for_request(location.id, request),  # todo: correct subtitle w/o this
+                'location': get_location_for_request(location_id, request),
             }
-            for location in nearby
+            for location_id in location.nearby.near_locations
         ],
         'answers': [
             {
@@ -567,9 +567,9 @@ def report_missing_check(request, coordinates):
 @never_cache
 def report_select_location(request, coordinates):
     location = get_location_for_request(coordinates, request)
-    nearby = list(location.nearby)
-    if location.space:
-        nearby.append(location.space)
+    nearby = list(location.nearby.near_locations)
+    if location.nearby.space:
+        nearby.append(location.nearby.space)
     if not nearby:
         messages.error(request, _('There are no locations nearby.'))
         return render(request, 'site/report_question.html', {})
@@ -577,10 +577,10 @@ def report_select_location(request, coordinates):
         'question': _('Which one is it?'),
         'locations': [
             {
-                'url': reverse('site.report_create', kwargs={"location": location.id}),
-                'location': get_location_for_request(location.id, request),  # todo: correct subtitle w/o this
+                'url': reverse('site.report_create', kwargs={"location": location_id}),
+                'location': get_location_for_request(location_id, request),
             }
-            for location in nearby
+            for location_id in nearby
         ],
     })
 
