@@ -2,10 +2,10 @@ from functools import wraps
 
 from c3nav.editor.models import ChangeSet
 from c3nav.mapdata.api.base import api_etag
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.permissions import active_map_permissions
 
 
-def api_etag_with_update_cache_key(permissions=True, etag_func=AccessPermission.etag_func, base_mapdata=False):
+def api_etag_with_update_cache_key(permissions=True, etag_func=active_map_permissions.etag_func, base_mapdata=False):
 
     def inner_wrapper(func):
         func = api_etag(permissions=permissions, etag_func=etag_func, base_mapdata=base_mapdata)(func)

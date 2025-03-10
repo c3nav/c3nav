@@ -30,8 +30,7 @@ from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRe
                                           ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
                                           DataOverlaySchema, DataOverlayFeatureSchema, WayTypeSchema,
                                           DataOverlayFeatureGeometrySchema,
-                                          DataOverlayFeatureUpdateSchema, DataOverlayFeatureBulkUpdateSchema,
-                                          )
+                                          DataOverlayFeatureUpdateSchema, DataOverlayFeatureBulkUpdateSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 

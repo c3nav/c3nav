@@ -9,14 +9,14 @@ from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, Door, Building, \
     DataOverlay
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.permissions import active_map_permissions
 
 
 def get_keys_for_model(request, model: Type[Model], key: str) -> set:
     # todo: can we do this more nicely?
     # get all accessible keys for this model for this request
     if hasattr(model, 'q_for_permissions'):
-        cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key,
-                                                   AccessPermission.cache_key_for_request(request))
+        cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key, active_map_permissions.cache_key)
     else:
         cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key,
                                                    MapUpdate.current_cache_key())

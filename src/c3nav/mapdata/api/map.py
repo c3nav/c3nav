@@ -33,9 +33,9 @@ from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationI
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.mapdata.utils.locations import (searchable_locations_for_request,
-                                           visible_locations_for_request,
-                                           LocationRedirect, get_location_for_request)
+from c3nav.mapdata.utils.locations import (get_searchable_locations,
+                                           get_visible_locations,
+                                           LocationRedirect, get_location)
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -92,8 +92,8 @@ class LocationListFilters(BaseSchema):
 @api_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
-        return searchable_locations_for_request(request).values()
-    return visible_locations_for_request(request).values()
+        return get_searchable_locations().values()
+    return get_visible_locations().values()
 
 
 class ShowRedirects(BaseSchema):
@@ -110,7 +110,7 @@ class ShowRedirects(BaseSchema):
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
-    location = get_location_for_request(identifier, request)
+    location = get_location(identifier)
 
     if location is None:
         raise API404()
@@ -135,7 +135,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
 @api_etag(base_mapdata=True)
 def location_display(request, identifier: LocationIdentifier):
-    location = get_location_for_request(identifier, request)
+    location = get_location(identifier)
     if location is None:
         raise API404()
 
@@ -156,7 +156,7 @@ def location_display(request, identifier: LocationIdentifier):
 @api_stats('location_geometry')
 @api_etag(base_mapdata=True)
 def location_geometry(request, identifier: LocationIdentifier):
-    location = get_location_for_request(identifier, request)
+    location = get_location(identifier)
 
     if location is None:
         raise API404()
@@ -211,7 +211,7 @@ def set_position(request, position_id: PositionIdentifier, update: UpdatePositio
     if location.owner != request.user:
         raise APIPermissionDenied()
 
-    coordinates = get_location_for_request(update.coordinates_id, request)
+    coordinates = get_location(update.coordinates_id)
     if coordinates is None:
         raise APIRequestValidationFailed('Cant resolve coordinates.')
 

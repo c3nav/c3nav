@@ -9,9 +9,7 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement
-from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.schemas.locations import BaseLocationItemSchema
 from c3nav.mapdata.tasks import update_ap_names_bssid_mapping
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -58,9 +56,7 @@ class PositioningResult(BaseSchema):
                              response={200: PositioningResult, **auth_responses})
 def get_position(request, parameters: LocateRequestSchema):
     try:
-        located = Locator.load().locate(parameters.wifi_peers,
-                                        permissions=MapPermissionsFromRequest(request).access_restrictions,
-                                        stats=True)
+        located = Locator.load().locate(parameters.wifi_peers, stats=True)
         location = located.location
         if location is not None:
             increment_cache_key('apistats__locate_%s' % location.rounded_pk)
