@@ -40,10 +40,7 @@ def get_user_data(request):
     # todo: cache this
     from c3nav.mapdata.quests.base import quest_types
     result.update({
-        'overlays': [
-            DataOverlaySchema.model_validate(overlay).model_dump()
-            for overlay in DataOverlay.qs_for_request(request)
-        ],
+        'overlays': [DataOverlaySchema.model_validate(overlay).model_dump() for overlay in DataOverlay.objects.all()],
         'quests': (
             {key: {"label": quest.quest_type_label, "icon": quest.quest_type_icon}
              for key, quest in quest_types.items()

@@ -9,7 +9,7 @@ from django.utils.functional import cached_property, lazy
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field.fields import SchemaField
 
-from c3nav.mapdata.models import Space
+from c3nav.mapdata.models.geometry.level import Space
 from c3nav.mapdata.models.access import AccessPermission
 
 
@@ -110,6 +110,7 @@ class UserPermissions(models.Model):
             result = cls.objects.filter(pk=user.pk).first()
             if not result:
                 result = cls(user=user, initial=True)
+            cache.set(cache_key, result, 900)
             # noinspection PyStatementEffect
             result.review_group_ids
             cache.set(cache_key, result, 900)
