@@ -194,7 +194,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'model_title': model._meta.verbose_name,
         'can_edit': can_edit_changeset,
         'new': new,
-        'title': obj.title if obj else None,
+        'title': hasattr(obj, 'title', str(obj)) if obj else None,
         'geometry_url': geometry_url,
     }
 
@@ -388,7 +388,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     redirect_to = ctx['back_url']
                 messages.success(request, _('Object was successfully deleted.'))
                 return redirect(redirect_to)
-            ctx['obj_title'] = obj.title
+            ctx['obj_title'] = getattr(obj, 'title', str(obj))
             return render(request, 'editor/delete.html', ctx)
 
         json_body = getattr(request, 'json_body', None)
@@ -718,7 +718,7 @@ def graph_edit(request, level=None, space=None):
             return render(request, 'editor/delete.html', {
                 'model_title': GraphNode._meta.verbose_name,
                 'pk': node.pk,
-                'obj_title': node.title
+                'obj_title': str(node)
             })
 
         permissions = MapPermissionsFromRequest(request).access_restrictions | {None}

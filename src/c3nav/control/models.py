@@ -1,16 +1,16 @@
 from contextlib import contextmanager
-from typing import Dict, Self
+from typing import Self
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db import models, transaction
-from django.utils.functional import cached_property, lazy
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field.fields import SchemaField
 
-from c3nav.mapdata.models.geometry.level import Space
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.geometry.level import Space
 
 
 class UserPermissions(models.Model):
@@ -150,7 +150,7 @@ class UserSpaceAccess(models.Model):
         return 'control:spaceaccesses:%d' % pk
 
     @classmethod
-    def get_for_user(cls, user, force=False) -> Dict[int, bool]:
+    def get_for_user(cls, user, force=False) -> dict[int, bool]:
         if not user.is_authenticated:
             return {}
         cache_key = cls.get_cache_key(user.pk)

@@ -25,7 +25,7 @@ from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
-from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
@@ -51,7 +51,7 @@ validate_slug = RegexValidator(
 possible_slug_targets = ('group', 'specific')  # todo: can we generate this?
 
 
-class LocationSlug(SerializableMixin, models.Model):
+class LocationSlug(models.Model):
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
 
@@ -507,7 +507,7 @@ class SpecificLocationTargetMixin(models.Model):
 
     @property
     def title(self) -> str:
-        return self.sorted_locations[0].title if self.sorted_locations else None
+        return self.sorted_locations[0].title if self.sorted_locations else str(self)
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
         # todo: enhance performance using generator
@@ -552,7 +552,7 @@ class SpecificLocationTargetMixin(models.Model):
         return next(iter((*(location for location in self.sorted_locations if location.can_describe), None)))
 
 
-class LocationGroupCategory(SerializableMixin, models.Model):
+class LocationGroupCategory(models.Model):
     name = models.SlugField(_('Name'), unique=True, max_length=50)
     single = models.BooleanField(_('single selection'), default=False)
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
@@ -722,7 +722,7 @@ class LocationGroup(Location, models.Model):
         super().delete(*args, **kwargs)
 
 
-class LabelSettings(SerializableMixin, models.Model):
+class LabelSettings(models.Model):
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
     min_zoom = models.DecimalField(_('min zoom'), max_digits=3, decimal_places=1, default=-10,
                                    validators=[MinValueValidator(Decimal('-10')),
@@ -741,7 +741,7 @@ class LabelSettings(SerializableMixin, models.Model):
         ordering = ('min_zoom', '-font_size')
 
 
-class LoadGroup(SerializableMixin, models.Model):
+class LoadGroup(models.Model):
     name = models.CharField(_('Name'), unique=True, max_length=50)  # a slugfield would forbid periods
 
     @property
