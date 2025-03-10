@@ -30,6 +30,7 @@ from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
 from c3nav.mapdata.models.locations import SpecificLocation, Location
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
+from c3nav.mapdata.permissions import active_map_permissions
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
@@ -231,12 +232,11 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if space_id and 'target_space' in self.fields:
             cache_key = 'editor:neighbor_spaces:%s:%s%d' % (
                 self.request.changeset.raw_cache_key_by_changes,
-                AccessPermission.cache_key_for_request(request, with_update=False),
+                active_map_permissions.cache_key_without_update,
                 space_id
             )
             other_spaces = cache.get(cache_key, None)
             if other_spaces is None:
-                AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0)
                 space_nodes = set(GraphNode.objects.filter(space_id=space_id).values_list('pk', flat=True))
                 space_edges = GraphEdge.objects.filter(
                     Q(from_node_id__in=space_nodes) | Q(to_node_id__in=space_nodes)

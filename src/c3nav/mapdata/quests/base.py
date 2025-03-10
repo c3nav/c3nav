@@ -11,6 +11,7 @@ from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import within_changeset
 
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.permissions import active_map_permissions
 
 
 @dataclass
@@ -65,7 +66,7 @@ class Quest:
 
     @classmethod
     def cached_get_all_for_request(cls, request) -> list["QuestSchema"]:
-        cache_key = f'quests:{cls.quest_type}:{AccessPermission.cache_key_for_request(request)}'
+        cache_key = f'quests:{cls.quest_type}:{active_map_permissions.cache_key}'
         result = cache.get(cache_key, None)
         if result is not None:
             return result

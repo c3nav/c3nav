@@ -39,7 +39,7 @@ from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLoca
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
 from c3nav.mapdata.utils.locations import (levels_by_level_index_for_request, LocationRedirect,
-                                           get_location_for_request, CustomLocation)
+                                           get_location, CustomLocation)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
@@ -55,7 +55,7 @@ def check_location(location_slug: Optional[str], request) -> LocationProtocol | 
     if location_slug is None:
         return None
 
-    location = get_location_for_request(location_slug, request)
+    location = get_location(location_slug)
     if location is None:
         return None
 
@@ -518,8 +518,9 @@ def about_view(request):
     })
 
 
-def get_report_location_for_request(pk, request):
-    location = get_location_for_request(pk, request)
+def get_report_location_for_request(pk):
+    # todo: do we have similar code? is this function even needed?
+    location = get_location(pk)
     if location is None:
         raise Http404
     return location
@@ -544,14 +545,14 @@ def report_start_coordinates(request, coordinates):
 
 @never_cache
 def report_missing_check(request, coordinates):
-    location = get_location_for_request(coordinates, request)
+    location = get_location(coordinates)
     if not location.nearby.near_locations:
         return redirect(reverse('site.report_missing_choose', kwargs={"coordinates": coordinates}))
     return render(request, 'site/report_question.html', {
         'question': _('Are you sure it\'s not one of these?'),
         'locations': [
             {
-                'location': get_location_for_request(location_id, request),
+                'location': get_location(location_id),
             }
             for location_id in location.nearby.near_locations
         ],
@@ -566,7 +567,7 @@ def report_missing_check(request, coordinates):
 
 @never_cache
 def report_select_location(request, coordinates):
-    location = get_location_for_request(coordinates, request)
+    location = get_location(coordinates)
     nearby = list(location.nearby.near_locations)
     if location.nearby.space:
         nearby.append(location.nearby.space)
@@ -578,7 +579,7 @@ def report_select_location(request, coordinates):
         'locations': [
             {
                 'url': reverse('site.report_create', kwargs={"location": location_id}),
-                'location': get_location_for_request(location_id, request),
+                'location': get_location(location_id),
             }
             for location_id in nearby
         ],
@@ -640,7 +641,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.coordinates_id = coordinates
         form_kwargs["request"] = request
         if group:
-            group = get_location_for_request(group, request)
+            group = get_location(group)
             if not isinstance(group, LocationGroup):
                 raise Http404
             if group.can_report_missing == LocationGroup.CanReportMissing.REJECT:
@@ -660,7 +661,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
             raise Http404
     elif location:
         report.category = 'location-issue'
-        report.location = get_report_location_for_request(location, request)
+        report.location = get_report_location_for_request(location)
         for group in report.location.groups.all():
             if group.can_report_mistake == LocationGroup.CanReportMistake.REJECT:
                 messages.error(request, format_html(
@@ -833,7 +834,7 @@ def position_detail(request, pk):
 
 @login_required(login_url='site.login')
 def position_set(request, coordinates):
-    coordinates = get_location_for_request(coordinates, request)
+    coordinates = get_location(coordinates)
     if coordinates is None:
         raise Http404
 
