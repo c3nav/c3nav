@@ -15,6 +15,7 @@ from pydantic_extra_types.mac_address import MacAddress
 from shapely import Point
 
 from c3nav.mapdata.models import MapUpdate, Space
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
@@ -220,7 +221,9 @@ class Locator:
             if isinstance(peer.identifier, MacAddress)
         }
 
-    def locate(self, raw_scan_data: list[LocateWifiPeerSchema], permissions=None):
+    def locate(self, raw_scan_data: list[LocateWifiPeerSchema]):
+        permissions = active_map_permissions.access_restrictions
+
         # todo: support for ibeacons
         scan_data = self.convert_raw_scan_data(raw_scan_data)
         if not scan_data:
@@ -246,7 +249,6 @@ class Locator:
             return None
 
         router = Router.load()
-        restrictions = router.get_restrictions(permissions)
 
         # get visible spaces
         best_ap_id = max(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
@@ -294,7 +296,6 @@ class Locator:
             level=level,
             x=point.x,
             y=point.y,
-            permissions=permissions,
             icon='my_location'
         )
 
@@ -314,8 +315,12 @@ class Locator:
             if point is None:
                 continue
             if score < best_score:
-                location = CustomLocation(router.spaces[space.pk].level, point.x, point.y,
-                                          permissions=permissions, icon='my_location')
+                location = CustomLocation(
+                    level=router.spaces[space.pk].level,
+                    x=point.x,
+                    y=point.y,
+                    icon='my_location'
+                )
                 best_location = location
                 best_score = score
 
@@ -415,7 +420,6 @@ class Locator:
             level=level,
             x=result_pos[0]/100,
             y=result_pos[1]/100,
-            permissions=permissions,
             icon='my_location'
         )
         location.z = result_pos[2]/100
