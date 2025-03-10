@@ -81,9 +81,7 @@ class LevelsForLevel:
             if not sublevel.intermediate:
                 break
         primary_levels = chain((level,), lower_levels)
-        secondary_levels = Level.qs_for_request(request).filter(
-            on_top_of__in=primary_levels
-        ).values_list('pk', 'on_top_of')
+        secondary_levels = Level.objects.filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
         lower_level_pks = set(l.pk for l in lower_levels)
         if lower_levels:
             levels_under = tuple(pk for pk, on_top_of in secondary_levels if on_top_of in lower_level_pks)
@@ -127,7 +125,7 @@ def conditional_geojson(obj, update_cache_key_match):
 # noinspection PyPep8Naming
 def get_level_geometries_result(request, level_id: int, update_cache_key: str, update_cache_key_match: True):
     try:
-        level = Level.objects.filter(Level.q_for_request(request)).get(pk=level_id)
+        level = Level.qs_for_permissions().get(pk=level_id)
     except Level.DoesNotExist:
         raise API404('Level not found')
 
@@ -137,16 +135,12 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
 
     levels_for_level = LevelsForLevel.for_level(request, level)
     # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
-    levels = Level.objects.filter(pk__in=levels_for_level.levels).filter(Level.q_for_request(request))
+    levels = Level.objects.filter(pk__in=levels_for_level.levels)
     graphnodes_qs = GraphNode.objects.all()
     levels = levels.prefetch_related(
-        Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
-            'geometry', 'level', 'outside'
-        )),
-        Prefetch('doors', Door.objects.filter(Door.q_for_request(request)).only('geometry', 'level')),
-        Prefetch('spaces__columns', Column.objects.filter(
-            Q(access_restriction__isnull=True) | ~Column.q_for_request(request)
-        ).only('geometry', 'space')),
+        Prefetch('spaces', Space.objects.only('geometry', 'level', 'outside')),
+        Prefetch('doors', Door.objects.only('geometry', 'level')),
+        Prefetch('spaces__columns', Column.objects.only('geometry', 'space')),
         Prefetch('spaces__locations__groups', LocationGroup.objects.only(
             'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
         )),
@@ -202,11 +196,8 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
 
 
 def get_space_geometries_result(request, space_id: int, update_cache_key: str, update_cache_key_match: bool):
-    space_q_for_request = Space.q_for_request(request)
-    qs = Space.objects.filter(space_q_for_request)
-
     try:
-        space = qs.select_related('level', 'level__on_top_of').get(pk=space_id)
+        space = Space.qs_for_permissions().select_related('level', 'level__on_top_of').get(pk=space_id)
     except Space.DoesNotExist:
         raise API404('space not found')
 
@@ -217,7 +208,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         raise APIPermissionDenied
 
     if request.user_permissions.can_access_base_mapdata:
-        doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
+        doors = [door for door in level.doors.filter(Door.q_for_permissions()).all()
                  if unwrap_geom(door.geometry).intersects(unwrap_geom(space.geometry))]
         doors_space_geom = unary_union(
             [unwrap_geom(door.geometry) for door in doors] +
@@ -225,7 +216,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         )
 
         levels_for_level = LevelsForLevel.for_level(request, level.primary_level, special_if_on_top=True)
-        other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels_for_level.levels).only(
+        other_spaces = Space.qs_for_permissions().filter(level__pk__in=levels_for_level.levels).only(
             'geometry', 'level',
         ).prefetch_related(
             Prefetch('locations__groups', LocationGroup.objects.only(
@@ -281,9 +272,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         graph_nodes = []
         graph_edges = []
 
-    areas = space.areas.filter(Area.q_for_request(request)).only(
-        'geometry', 'space'
-    ).prefetch_related(
+    areas = space.areas.only('geometry', 'space').prefetch_related(
         Prefetch('locations__groups', LocationGroup.objects.order_by(
             '-category__priority', '-hierarchy', '-priority'
         ).only(
@@ -310,7 +299,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         space.altitudemarkers.all().only('geometry', 'space'),
         space.beacon_measurements.all().only('geometry', 'space'),
         space.ranging_beacons.all().only('geometry', 'space'),
-        space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
+        space.pois.only('geometry', 'space').prefetch_related(
             Prefetch('locations__groups', LocationGroup.objects.only(
                 'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
             ).filter(color__isnull=False))

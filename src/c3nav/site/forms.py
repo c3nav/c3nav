@@ -44,11 +44,11 @@ class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
                 self.fields.pop('image')
         else:
             self.fields.pop('image')
-            exists = LocationGroup.qs_for_request(request).filter(
+            exists = LocationGroup.objects.filter(
                 can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
             ).exists()
             if exists:
-                self.fields['created_groups'].queryset = LocationGroup.qs_for_request(request).filter(
+                self.fields['created_groups'].queryset = LocationGroup.objects.filter(
                     can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
                 )
             else:

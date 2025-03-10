@@ -135,7 +135,7 @@ class MapPermissionContext:
         if hasattr(self._active, "value"):
             del self._active.value
 
-    def get_value(self) -> MapPermissions :
+    def get_value(self) -> MapPermissions:
         if not hasattr(self._active, "value"):
             warnings.warn('No map permission context set, defaulting to public context.', RuntimeWarning)
             return ManualMapPermissions.get_public_access()
@@ -151,15 +151,19 @@ class MapPermissionContext:
         else:
             self.set_value(prev_value)
 
+    @property
     def access_restrictions(self) -> set[int]:
         return self.get_value().access_restrictions
 
+    @property
     def spaces(self) -> dict[int, bool]:
         return self.get_value().spaces
 
+    @property
     def all_base_mapdata(self) -> bool:
         return self.get_value().all_base_mapdata
 
+    @property
     def view_sources(self) -> bool:
         return self.get_value().view_sources
 
