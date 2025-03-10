@@ -3,16 +3,14 @@ from collections import deque, namedtuple
 from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
-from typing import Sequence
+from typing import Sequence, TYPE_CHECKING
 
 import numpy as np
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q
-from django.urls import reverse
 from django.utils.functional import cached_property
-from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
 from pydantic import Field as APIField
@@ -25,14 +23,16 @@ from shapely.ops import unary_union
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
-from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup, SpecificLocationTargetMixin
+from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
+
+if TYPE_CHECKING:
+    from c3nav.mapdata.permissions import MapPermissions
 
 
 class LevelGeometryMixin(GeometryMixin):
@@ -72,10 +72,10 @@ class LevelGeometryMixin(GeometryMixin):
         changed_geometries.register(self.level_id, self.geometry)
 
     @classmethod
-    def q_for_request(cls, request, prefix='', allow_none=False):
+    def q_for_permissions(cls, permissions: "MapPermissions", prefix=''):
         return (
-            super().q_for_request(request, prefix=prefix, allow_none=allow_none) &
-            Level.q_for_request(request, prefix=prefix+'level__', allow_none=allow_none)
+            super().q_for_permissions(permissions, prefix=prefix) &
+            Level.q_for_permissions(permissions, prefix=prefix+'level__')
         )
 
     def pre_save_changed_geometries(self):

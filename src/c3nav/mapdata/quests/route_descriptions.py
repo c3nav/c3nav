@@ -65,13 +65,13 @@ class SpaceIdentifyableQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return Space.qs_for_request(request).select_related('level').filter(identifyable=None).annotate(
+        return Space.objects.select_related('level').filter(identifyable=None).annotate(
             num_graph_nodes=Count('graphnodes')
         ).exclude(num_graph_nodes=0)
 
 
 def get_door_edges_for_request(request, space_ids: Optional[list[int]] = None):
-    qs = Space.qs_for_request(request)
+    qs = Space.objects.all()
     if space_ids:
         qs = qs.filter(pk__in=space_ids)
     spaces = {space.pk: space for space in qs.select_related("level")}

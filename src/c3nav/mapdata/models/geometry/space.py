@@ -13,10 +13,11 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Space
-from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
+from c3nav.mapdata.permissions import MapPermissions
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -66,10 +67,10 @@ class SpaceGeometryMixin(GeometryMixin):
         return None
 
     @classmethod
-    def q_for_request(cls, request, prefix='', allow_none=False):
+    def q_for_permissions(cls, permissions: MapPermissions, prefix=''):
         return (
-            super().q_for_request(request, prefix=prefix, allow_none=allow_none) &
-            Space.q_for_request(request, prefix=prefix + 'space__', allow_none=allow_none)
+            super().q_for_permissions(permissions, prefix=prefix) &
+            Space.q_for_permissions(permissions, prefix=prefix + 'space__')
         )
 
     def register_change(self, force=False):
@@ -96,6 +97,17 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
     An column in a space, also used to be able to create rooms within rooms.
     """
     geometry = GeometryField('polygon')
+
+    @classmethod
+    def q_for_permissions(cls, permissions: MapPermissions, prefix=''):
+        """
+        Permissions for columns are inverted. A column disappears when you have the permission.
+        Is this weird? Heck yes. Maybe we should change it.
+        This code doesn't filter by permissions though. This needs to be done during rendering.
+        """
+        return (
+            Space.q_for_permissions(permissions, prefix=prefix + 'space__')
+        )
 
     class Meta:
         verbose_name = _('Column')
@@ -334,6 +346,8 @@ class LeaveDescription(SerializableMixin):
                                      related_name='enter_descriptions')
     description = I18nField(_('description'), plural_name='descriptions')
 
+    objects = UseQForPermissionsManager()
+
     class Meta:
         verbose_name = _('Leave description')
         verbose_name_plural = _('Leave descriptions')
@@ -347,10 +361,10 @@ class LeaveDescription(SerializableMixin):
         return self.target_space.title
 
     @classmethod
-    def q_for_request(cls, request, prefix='', allow_none=False):
+    def q_for_permissions(cls, permissions: MapPermissions, prefix=''):
         return (
-            Space.q_for_request(request, prefix='space__', allow_none=allow_none) &
-            Space.q_for_request(request, prefix='target_space__', allow_none=allow_none)
+            Space.q_for_permissions(permissions, prefix=prefix + 'space__')
+            & Space.q_for_permissions(permissions, prefix=prefix + 'target_space__')
         )
 
 
@@ -365,6 +379,8 @@ class CrossDescription(SerializableMixin):
                                      related_name='cross_enter_descriptions')
     description = I18nField(_('description'), plural_name='descriptions')
 
+    objects = UseQForPermissionsManager()
+
     class Meta:
         verbose_name = _('Cross description')
         verbose_name_plural = _('Cross descriptions')
@@ -378,11 +394,11 @@ class CrossDescription(SerializableMixin):
         return '%s → %s' % (self.origin_space.title, self.target_space.title)
 
     @classmethod
-    def q_for_request(cls, request, prefix='', allow_none=False):
+    def q_for_permissions(cls, permissions: MapPermissions, prefix=''):
         return (
-            Space.q_for_request(request, prefix='space__', allow_none=allow_none) &
-            Space.q_for_request(request, prefix='origin_space__', allow_none=allow_none) &
-            Space.q_for_request(request, prefix='target_space__', allow_none=allow_none)
+            Space.q_for_permissions(permissions, prefix=prefix + 'space__')
+            & Space.q_for_permissions(permissions, prefix=prefix + 'origin_space__')
+            & Space.q_for_permissions(permissions, prefix=prefix + 'target_space__')
         )
 
 
