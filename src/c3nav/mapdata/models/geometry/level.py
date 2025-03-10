@@ -32,7 +32,7 @@ from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipo
                                           cut_polygon_with_line, unwrap_geom)
 
 if TYPE_CHECKING:
-    from c3nav.mapdata.permissions import MapPermissions
+    from c3nav.mapdata.permissions import MapPermissions, active_map_permissions
 
 
 class LevelGeometryMixin(GeometryMixin, models.Model):
@@ -53,7 +53,8 @@ class LevelGeometryMixin(GeometryMixin, models.Model):
             result['opacity'] = self.opacity
         return result
 
-    def can_access_geometry(self, request) -> bool:
+    @property
+    def can_access_geometry(self) -> bool:
         return False
 
     @property
@@ -141,8 +142,11 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
             }
         return _('Unnamed space')
 
-    def can_access_geometry(self, request) -> bool:
-        return self.base_mapdata_accessible or request.user_permissions.can_access_base_mapdata
+    @property
+    def can_access_geometry(self) -> bool:
+        return (self.base_mapdata_accessible
+                or active_map_permissions.all_base_mapdata
+                or self.id in active_map_permissions.spaces)
 
 
 class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):

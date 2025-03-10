@@ -18,7 +18,7 @@ from c3nav.mapdata.models import DataOverlay, Level, DataOverlayFeature
 @sidebar_view
 def overlays_list(request, level):
     level = get_object_or_404(Level, pk=level)
-    edit_utils = LevelChildEditUtils(level, request)
+    edit_utils = LevelChildEditUtils(level)
 
     ctx = {
         'levels': Level.objects.filter(on_top_of__isnull=True),
@@ -44,7 +44,7 @@ def overlay_features(request, level, pk):
 
     level = get_object_or_404(Level, pk=level)
     overlay = get_object_or_404(DataOverlay, pk=pk)
-    edit_utils = LevelChildEditUtils(level, request)
+    edit_utils = LevelChildEditUtils(level)
     ctx.update({
         'title': overlay.title,
         'back_url': reverse('editor.levels.overlays', kwargs={'level': level.pk}),
@@ -92,11 +92,11 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
         obj = get_object_or_404(DataOverlayFeature.objects.select_related('level', 'overlay'), **kwargs)
         level = obj.level
         overlay = obj.overlay
-        edit_utils = utils_cls.from_obj(obj, request)
+        edit_utils = utils_cls.from_obj(obj)
     else:
         level = get_object_or_404(Level, pk=level)
         overlay = get_object_or_404(DataOverlay, pk=overlay)
-        edit_utils = LevelChildEditUtils(level, request)
+        edit_utils = LevelChildEditUtils(level)
     
     new = obj is None
 
