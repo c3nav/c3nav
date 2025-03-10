@@ -10,6 +10,7 @@ class NoLanguageMiddleware:
     """
     Middleware that allows unsetting the Language HTTP header usind the @no_language decorator.
     """
+    # todo: move this outside of mapdata tbh?
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -63,6 +64,8 @@ class RequestCacheMiddleware:
     """
     Resets the request_cache at the start of every request.
     """
+    # todo: move this outside of mapdata tbh?
+    # todo: y'know we should really use this more
     def __init__(self, get_response):
         self.get_response = get_response
         LocalCacheProxy.enable_globally()
