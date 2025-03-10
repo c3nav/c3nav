@@ -176,7 +176,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
         if self._meta.model.__name__ == 'AccessRestrictionGroup':
             self.fields['members'].label_from_instance = lambda obj: obj.title
-            self.fields['members'].queryset = AccessRestriction.qs_for_request(self.request)
 
         elif 'groups' in self.fields:
             categories = LocationGroupCategory.objects.prefetch_related('groups')
@@ -221,7 +220,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
         if 'access_restriction' in self.fields:
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
-            self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request).order_by(
+            self.fields['access_restriction'].queryset = AccessRestriction.objects.order_by(
                 "titles__"+get_language(), "titles__en"
             )
 
@@ -252,7 +251,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 if other_space_id:
                     other_spaces.add(other_space_id)
 
-            space_qs = Space.qs_for_request(self.request).filter(pk__in=other_spaces)
+            space_qs = Space.objects.filter(pk__in=other_spaces)
 
             for space_field in ('origin_space', 'target_space'):
                 if space_field in self.fields:
@@ -482,11 +481,10 @@ class GraphEdgeSettingsForm(ModelForm):
         super().__init__(*args, **kwargs)
 
         self.fields['waytype'].label_from_instance = lambda obj: obj.title
-        self.fields['waytype'].queryset = WayType.objects.all()
+        self.fields['waytype'].queryset = WayType.objects.all()  # todo: is this needed? why?
         self.fields['waytype'].to_field_name = None
 
         self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
-        self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
 
 
 class GraphEditorActionForm(Form):
@@ -512,7 +510,7 @@ class DoorGraphForm(Form):
     def __init__(self, *args, request, spaces, nodes, edges, **kwargs):
         self.request = request
         self.edges = edges
-        self.restrictions = {a.pk: a for a in AccessRestriction.qs_for_request(request)}
+        self.restrictions = {a.pk: a for a in AccessRestriction.objects.all()}
         super().__init__(*args, **kwargs)
 
         choices = (
@@ -562,7 +560,7 @@ class LinkSpecificLocationForm(Form):
             )
 
         self.fields["link"] = ModelChoiceField(
-            SpecificLocation.qs_for_request(request),
+            SpecificLocation.objects.all(),
             required=False,
             widget=TextInput(),
             label=_('Add specific location by ID'),

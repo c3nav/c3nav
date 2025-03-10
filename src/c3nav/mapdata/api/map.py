@@ -255,12 +255,10 @@ def legend_for_theme(request, theme_id: int):
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    locationgroups = LocationGroup.qs_for_request(request).filter(in_legend=True).prefetch_related(
-        Prefetch('specific_locations', SpecificLocation.qs_for_request(request))
-    )
+    locationgroups = LocationGroup.objects.filter(in_legend=True).prefetch_related('specific_locations')
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
-        pk__in=set(Obstacle.qs_for_request(request).filter(group__isnull=False).values_list('group', flat=True)),
+        pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),
     )
     return LegendSchema(
         base=[],

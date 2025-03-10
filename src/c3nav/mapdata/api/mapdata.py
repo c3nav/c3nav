@@ -45,9 +45,7 @@ def mapdata_list_endpoint(request,
         filters.validate(request)
 
     # get the queryset and filter it
-    qs = optimize_query(
-        model.qs_for_request(request) if hasattr(model, 'qs_for_request') else model.objects.all()
-    )
+    qs = optimize_query(model.objects.all())
     if filters:
         qs = filters.filter_qs(request, qs)
 
@@ -68,9 +66,7 @@ def mapdata_list_endpoint(request,
 
 def mapdata_retrieve_endpoint(request, model: Type[Model], **lookups):
     try:
-        obj = optimize_query(
-            model.qs_for_request(request) if hasattr(model, 'qs_for_request') else model.objects.all()
-        ).get(**lookups)
+        obj = optimize_query(model.objects.all()).get(**lookups)
         if not obj.can_access_geometry(request):
             obj.geometry = None
         return obj

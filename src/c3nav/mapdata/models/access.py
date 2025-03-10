@@ -2,7 +2,7 @@ import pickle
 import uuid
 from collections import namedtuple
 from datetime import timedelta
-from typing import Sequence
+from typing import Sequence, TYPE_CHECKING, Optional
 
 from django.conf import settings
 from django.core.cache import cache
@@ -17,6 +17,17 @@ from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.utils.cache.local import per_request_cache
 
 
+if TYPE_CHECKING:
+    from c3nav.mapdata.permissions import MapPermissions
+
+
+class UseQForPermissionsManager(models.Manager):
+    def get_queryset(self):
+        from c3nav.mapdata.permissions import active_map_permissions
+        permissions = active_map_permissions.get_value()
+        return super().get_queryset().filter(self.model.q_for_permissions(permissions))
+
+
 class AccessRestriction(TitledMixin, models.Model):
     """
     An access restriction
@@ -28,20 +39,21 @@ class AccessRestriction(TitledMixin, models.Model):
         verbose_name_plural = _('Access Restrictions')
         default_related_name = 'accessrestrictions'
 
-    @classmethod
-    def qs_for_request(cls, request):
-        return cls.objects.filter(cls.q_for_request(request))
+    objects = UseQForPermissionsManager()
 
     @classmethod
-    def q_for_request(cls, request):
-        return Q(pk__in=MapPermissionsFromRequest(request).access_restrictions)
+    def q_for_permissions(cls, permissions: Optional["MapPermissions"] = None):
+        if permissions is None:
+            from c3nav.mapdata.permissions import active_map_permissions
+            permissions = active_map_permissions.get_value()
+        return Q(pk__in=permissions.access_restrictions)
 
     @staticmethod
     def get_all() -> set[int]:
         cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
         access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
-            access_restriction_ids = set(AccessRestriction.objects.values_list('pk', flat=True))
+            access_restriction_ids = set(AccessRestriction._base_manager.values_list('pk', flat=True))
             per_request_cache.set(cache_key, access_restriction_ids, 300)
         return access_restriction_ids
 
@@ -50,7 +62,7 @@ class AccessRestriction(TitledMixin, models.Model):
         cache_key = 'public_access_restrictions:%s' % MapUpdate.current_cache_key()
         access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
-            access_restriction_ids = set(AccessRestriction.objects.filter(public=True)
+            access_restriction_ids = set(AccessRestriction._base_manager.filter(public=True)
                                          .values_list('pk', flat=True))
             per_request_cache.set(cache_key, access_restriction_ids, 300)
         return access_restriction_ids
@@ -63,21 +75,17 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
     members = models.ManyToManyField('mapdata.AccessRestriction', verbose_name=_('Access Restrictions'), blank=True,
                                      related_name="groups")
 
+    objects = UseQForPermissionsManager()
+
     class Meta:
         verbose_name = _('Access Restriction Group')
         verbose_name_plural = _('Access Restriction Groups')
         default_related_name = 'accessrestrictiongroups'
 
     @classmethod
-    def qs_for_request(cls, request, can_grant=None):
-        return cls.objects.filter(cls.q_for_request(request, can_grant=can_grant))
-
-    @classmethod
-    def q_for_request(cls, request, can_grant=None):
-        if request.user.is_authenticated and request.user.is_superuser:
-            return Q()
+    def q_for_permissions(cls, permissions: "MapPermissions", can_grant=None):
         all_permissions = AccessRestriction.get_all()
-        permissions = AccessPermission.get_for_request(request, can_grant=can_grant)
+        permissions = permissions.access_restrictions
         # now we filter out groups where the user doesn't have a permission for all members
         filter_perms = all_permissions - permissions
         return ~Q(members__pk__in=filter_perms)
@@ -414,13 +422,12 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
     access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
                                            verbose_name=_('Access Restriction'), on_delete=models.PROTECT)
 
+    objects = UseQForPermissionsManager()
+
     class Meta:
         abstract = True
 
     @classmethod
-    def q_for_request(cls, request, prefix='', allow_none=False):
-        if request is None and allow_none:
-            return Q()
-        from c3nav.mapdata.permissions import MapPermissionsFromRequest
+    def q_for_permissions(cls, permissions: "MapPermissions", prefix=''):
         return (Q(**{prefix+'access_restriction__isnull': True}) |
-                Q(**{prefix+'access_restriction__pk__in': MapPermissionsFromRequest(request).access_restrictions}))
+                Q(**{prefix+'access_restriction__pk__in': permissions.access_restrictions}))

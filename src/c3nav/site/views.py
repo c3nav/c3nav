@@ -589,7 +589,7 @@ def report_select_location(request, coordinates):
 
 @never_cache
 def report_missing_choose(request, coordinates):
-    groups = LocationGroup.qs_for_request(request).filter(can_report_missing__in=(
+    groups = LocationGroup.objects.filter(can_report_missing__in=(
         LocationGroup.CanReportMissing.SINGLE,
         LocationGroup.CanReportMissing.SINGLE_IMAGE,
         LocationGroup.CanReportMissing.REJECT,

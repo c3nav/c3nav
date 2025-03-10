@@ -66,16 +66,16 @@ def locations_for_request(request) -> dict[int, Location]:
 
     # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
     locations = {location.pk: location for location in sorted((
-        *SpecificLocation.qs_for_request(request).prefetch_related(
-           Prefetch('groups', LocationGroup.qs_for_request(request).select_related(
+        *SpecificLocation.objects.prefetch_related(
+           Prefetch('groups', LocationGroup.objects.select_related(
                'category', 'label_settings'
            ).prefetch_related("slug_set")),
            # todo: starting to think that bounds and subtitles should be cached so we don't need… this
-           Prefetch('levels', Level.qs_for_request(request).prefetch_related('buildings', 'altitudeareas')),
-           Prefetch('spaces', Space.qs_for_request(request)),
-           Prefetch('areas', Area.qs_for_request(request)),
-           Prefetch('pois', POI.qs_for_request(request)),
-           Prefetch('dynamiclocations', DynamicLocation.qs_for_request(request)),
+           Prefetch('levels', Level.objects.prefetch_related('buildings', 'altitudeareas')),
+           Prefetch('spaces'),
+           Prefetch('areas'),
+           Prefetch('pois'),
+           Prefetch('dynamiclocations'),
         ).select_related('label_settings').prefetch_related("slug_set"),
         *LocationGroup.objects.select_related(
             'category', 'label_settings'
@@ -94,9 +94,8 @@ def locations_for_request(request) -> dict[int, Location]:
             if group is not None:
                 group.locations.append(obj)
 
-    levels = {level.pk: level for level in Level.qs_for_request(request)}
-    spaces = {space.pk: space
-              for space in Space.qs_for_request(request).select_related('level').prefetch_related("locations__groups")}
+    levels = {level.pk: level for level in Level.objects.all()}
+    spaces = {space.pk: space for space in Space.objects.select_related('level').prefetch_related("locations__groups")}
 
     # add levels to spaces: todo: fix this! hide locations etc bluh bluh
     remove_pks = set()
@@ -237,7 +236,7 @@ def levels_by_level_index_for_request(request) -> Mapping[str, Level]:
 
     levels = OrderedDict(
         (level.level_index, level)
-        for level in Level.qs_for_request(request).filter(on_top_of_id__isnull=True).order_by('base_altitude')
+        for level in Level.objects.filter(on_top_of_id__isnull=True).order_by('base_altitude')
     )
 
     proxied_cache.set(cache_key, levels, 1800)
