@@ -112,6 +112,19 @@ class ManualMapPermissions:
 
 
 class MapPermissionContext:
+    """
+    This is great, but it is also a controversial design choice.
+    Having global context like this is a bit intransparent.
+    However, despite all the critique, django does it, too, for translations.
+
+    So, here's when and how to use this:
+
+    - If you have code that needs access to the map Permisisons, consider
+      allowing passing an argument, especially when it feels likely that
+      this code might be used outside of requests.
+    - When you use it, the method name should and the documentation/docstring MUST acknowledge it.
+    - The only exception is code that is mainly used to serialize objects. We use a lot of properties there.
+    """
     def __init__(self):
         self._active = LocalContext()
 
