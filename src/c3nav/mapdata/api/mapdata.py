@@ -59,7 +59,7 @@ def mapdata_list_endpoint(request,
 
     if hasattr(model, 'can_access_geometry'):
         for obj in result:
-            if not obj.can_access_geometry(request):
+            if not obj.can_access_geometry:
                 obj._hide_geometry = True
 
     return result
@@ -68,7 +68,7 @@ def mapdata_list_endpoint(request,
 def mapdata_retrieve_endpoint(request, model: Type[Model], **lookups):
     try:
         obj = optimize_query(model.objects.all()).get(**lookups)
-        if not obj.can_access_geometry(request):
+        if not obj.can_access_geometry:
             obj.geometry = None
         return obj
     except model.DoesNotExist:

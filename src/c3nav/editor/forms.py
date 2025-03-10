@@ -476,8 +476,7 @@ class GraphEdgeSettingsForm(ModelForm):
         model = GraphEdge
         fields = ('waytype', 'access_restriction', )
 
-    def __init__(self, *args, request=None, **kwargs):
-        self.request = request
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields['waytype'].label_from_instance = lambda obj: obj.title
@@ -488,8 +487,7 @@ class GraphEdgeSettingsForm(ModelForm):
 
 
 class GraphEditorActionForm(Form):
-    def __init__(self, *args, request=None, allow_clicked_position=False, **kwargs):
-        self.request = request
+    def __init__(self, *args, allow_clicked_position=False, **kwargs):
         super().__init__(*args, **kwargs)
 
         graph_node_qs = GraphNode.objects.all()
@@ -499,16 +497,14 @@ class GraphEditorActionForm(Form):
         if allow_clicked_position:
             self.fields['clicked_position'] = JSONField(widget=HiddenInput(), required=False)
 
-        space_qs = Space.objects.all()
-        self.fields['goto_space'] = ModelChoiceField(space_qs, widget=HiddenInput(), required=False)
+        self.fields['goto_space'] = ModelChoiceField(Space.objects.all(), widget=HiddenInput(), required=False)
 
     def clean_clicked_position(self):
         return GeometryField(geomtype='point').to_python(self.cleaned_data['clicked_position'])
 
 
 class DoorGraphForm(Form):
-    def __init__(self, *args, request, spaces, nodes, edges, **kwargs):
-        self.request = request
+    def __init__(self, *args, spaces, nodes, edges, **kwargs):
         self.edges = edges
         self.restrictions = {a.pk: a for a in AccessRestriction.objects.all()}
         super().__init__(*args, **kwargs)
@@ -544,7 +540,7 @@ class DoorGraphForm(Form):
 
 class LinkSpecificLocationForm(Form):
     # todo: jo, permissions and stuff!
-    def __init__(self, *args, request, target, **kwargs):
+    def __init__(self, *args, target, **kwargs):
         super().__init__(*args, **kwargs)
         self.target = target
 

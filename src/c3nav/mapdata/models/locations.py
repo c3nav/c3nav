@@ -113,7 +113,7 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
             *self.other_titles,
         ))
 
-    def details_display(self, request, **kwargs):
+    def details_display(self, **kwargs):
         result = {
             'id': self.pk,
             'display': [
@@ -422,8 +422,8 @@ class SpecificLocation(Location, models.Model):
                     result.setdefault(level_id, []).append(Point(x, y))
         return result
 
-    def details_display(self, request, editor_url=True, **kwargs):
-        result = super().details_display(request, **kwargs)
+    def details_display(self, *, editor_url=True, **kwargs):
+        result = super().details_display(**kwargs)
 
         groupcategories = {}
         for group in self.groups.all():
@@ -665,8 +665,8 @@ class LocationGroup(Location, models.Model):
 
     locations = []
 
-    def details_display(self, request, *, editor_url=True, **kwargs):
-        result = super().details_display(request, **kwargs)
+    def details_display(self, *, editor_url=True, **kwargs):
+        result = super().details_display(**kwargs)
         result['display'].insert(3, (_('Category'), self.category.title))
         result['display'].extend([
             (_('color'), self.color),

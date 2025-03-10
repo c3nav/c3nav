@@ -106,15 +106,15 @@ class MapUpdate(models.Model):
         return self.build_cache_key(self.pk, int(make_naive(self.datetime).timestamp()))
 
     @classmethod
-    def current_cache_key(cls, request=None):
+    def current_cache_key(cls):
         return cls.build_cache_key(*cls.last_update())
 
     @classmethod
-    def current_processed_cache_key(cls, request=None):
+    def current_processed_cache_key(cls):
         return cls.build_cache_key(*cls.last_processed_update())
 
     @classmethod
-    def current_processed_geometry_cache_key(cls, request=None):
+    def current_processed_geometry_cache_key(cls):
         return cls.build_cache_key(*cls.last_processed_geometry_update())
 
     @staticmethod

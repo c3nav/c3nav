@@ -163,7 +163,7 @@ def user_detail(request, user):  # todo: make class based view
         form = None
         if request.user_permissions.grant_space_access:
             if request.method == 'POST' and request.POST.get('submit_space_access'):
-                form = UserSpaceAccessForm(request=request, data=request.POST)
+                form = UserSpaceAccessForm(data=request.POST)
                 if form.is_valid():
                     instance = form.instance
                     instance.user = user
@@ -175,7 +175,7 @@ def user_detail(request, user):  # todo: make class based view
                         messages.success(request, _('User space access successfully granted.'))
                     return redirect(request.path_info)
             else:
-                form = UserSpaceAccessForm(request=request)
+                form = UserSpaceAccessForm()
 
         delete_space_access = request.POST.get('delete_space_access')
         if delete_space_access:
