@@ -15,13 +15,10 @@ from c3nav.api.exceptions import APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
-from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
-from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, Coordinates3D, DjangoModelSchema, LocationPoint
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
-from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.models import RouteOptions
@@ -225,7 +222,7 @@ def get_route(request, parameters: RouteParametersSchema):
     form = RouteForm({
         "origin": parameters.origin,
         "destination": parameters.destination,
-    }, request=request)
+    })
 
     if not form.is_valid():
         return APIRequestValidationFailed("\n".join(form.errors))
@@ -234,14 +231,10 @@ def get_route(request, parameters: RouteParametersSchema):
     if parameters.options_override is not None:
         _new_update_route_options(options, parameters.options_override)
 
-    visible_locations = visible_locations_for_request(request)
-
     try:
         route = Router.load().get_route(origin=form.cleaned_data['origin'],
                                         destination=form.cleaned_data['destination'],
-                                        permissions=MapPermissionsFromRequest(request).access_restrictions,
-                                        options=options,
-                                        visible_locations=visible_locations)
+                                        options=options)
     except NotYetRoutable:
         return NoRouteResponse(
             request=parameters,

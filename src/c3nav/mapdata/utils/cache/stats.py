@@ -9,7 +9,7 @@ from c3nav.control.models import UserPermissions
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, LocationGroup, LocationSlug, Space
 from c3nav.mapdata.models.geometry.space import POI, Area, BeaconMeasurement
-from c3nav.mapdata.utils.locations import CustomLocation, get_location_for_request
+from c3nav.mapdata.utils.locations import CustomLocation, get_location
 
 
 def increment_cache_key(cache_key):
@@ -53,9 +53,6 @@ class FakeRequest():
         return UserPermissions.get_for_user(self.user)
 
 
-fake_request = FakeRequest()
-
-
 def convert_stats(stats):
     stats = [(name.split('__')[1:], value) for name, value in stats['data'].items()]
     result = {
@@ -86,8 +83,11 @@ def convert_locate(data):
     }
     measurement_lookup = {}
     for measurement in BeaconMeasurement.objects.all().select_related('space', 'space__level'):
-        pos = CustomLocation(measurement.space.level, measurement.geometry.x, measurement.geometry.y,
-                             permissions=set())
+        pos = CustomLocation(
+            level=measurement.space.level,
+            x=measurement.geometry.x,
+            y=measurement.geometry.y
+        )
         space_slug = measurement.space.effective_slug
         level_label = measurement.space.level.level_index
         grid_square = pos.grid_square if grid.enabled else None
@@ -162,7 +162,7 @@ def convert_location(data):
     for name, value in data:
         if name[0] != 'pk' or name[0] == 'c:anywhere':
             continue
-        location = get_location_for_request(name[1], fake_request)
+        location = get_location(name[1])
         result['total'] += value
         if location is None:
             result['invalid'] += value

@@ -23,7 +23,7 @@ from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
-from c3nav.mapdata.utils.locations import visible_locations_for_request, get_location_for_request, merge_bounds
+from c3nav.mapdata.utils.locations import get_visible_locations, get_location, merge_bounds
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
 
@@ -160,7 +160,7 @@ def preview_location(request, slug):
     locations_to_check = [location]
     while locations_to_check:
         for location_id in locations_to_check.pop().locations:
-            sublocation = get_location_for_request(location_id, request)
+            sublocation = get_location(location_id)
             if sublocation.effective_slug not in locations:
                 locations[sublocation.effective_slug] = sublocation
                 locations_to_check.append(sublocation)
@@ -218,7 +218,7 @@ def preview_location(request, slug):
 
 @no_language()
 def preview_route(request, slug, slug2):
-    # todo: make this work with new location stuff
+    # todo: allow a cache response without getting the route again
     from c3nav.routing.router import Router
     from c3nav.routing.models import RouteOptions
     from c3nav.routing.exceptions import NotYetRoutable
@@ -230,13 +230,10 @@ def preview_route(request, slug, slug2):
     destination = check_location(slug2, None)
     if origin is None or destination is None:
         raise Http404()
-    visible_locations = visible_locations_for_request(request)
     try:
         route = Router.load().get_route(origin=origin,
                                         destination=destination,
-                                        permissions=set(),
-                                        options=RouteOptions(),
-                                        visible_locations=visible_locations)
+                                        options=RouteOptions())
     except NotYetRoutable:
         raise Http404()
     except LocationUnreachable:
