@@ -130,7 +130,7 @@ def sidebar_view(func=None, select_related=None):
 
     return wrapped
 
-
+gi
 def editor_etag_func(request, *args, **kwargs):
     try:
         changeset = request.changeset
