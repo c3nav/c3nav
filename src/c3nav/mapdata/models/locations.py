@@ -24,7 +24,7 @@ from shapely import Point
 from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
@@ -595,7 +595,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
         super().delete(*args, **kwargs)
 
 
-class LocationGroupManager(models.Manager):
+class LocationGroupManager(UseQForPermissionsManager):
     def get_queryset(self):
         return super().get_queryset().select_related('category')  # .prefetch_related('slug_set')  # todo: put this back in?
 

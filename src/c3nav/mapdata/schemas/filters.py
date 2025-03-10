@@ -12,21 +12,20 @@ from c3nav.mapdata.models.access import AccessPermission
 
 
 def get_keys_for_model(request, model: Type[Model], key: str) -> set:
+    # todo: can we do this more nicely?
     # get all accessible keys for this model for this request
-    if hasattr(model, 'qs_for_request'):
+    if hasattr(model, 'q_for_permissions'):
         cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key,
                                                    AccessPermission.cache_key_for_request(request))
-        qs = model.qs_for_request(request)
     else:
         cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key,
                                                    MapUpdate.current_cache_key())
-        qs = model.objects.all()
 
     result = cache.get(cache_key, None)
     if result is not None:
         return result
 
-    result = set(qs.values_list(key, flat=True))
+    result = set(model.objects.values_list(key, flat=True))
     cache.set(cache_key, result, 300)
 
     return result
