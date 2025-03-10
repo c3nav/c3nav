@@ -1,25 +1,17 @@
-from abc import ABC, abstractmethod
-from collections import OrderedDict
 from contextlib import contextmanager
 from functools import wraps
-from typing import Optional
 
-from django.contrib import messages
-from django.contrib.auth.views import redirect_to_login
-from django.contrib.messages import DEFAULT_TAGS as DEFAULT_MESSAGE_TAGS
 from django.contrib.messages import get_messages
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse, HttpResponseNotModified, HttpResponseRedirect
-from django.shortcuts import redirect, render
+from django.http import HttpResponseNotModified, HttpResponseRedirect
+from django.shortcuts import render
 from django.utils.cache import patch_vary_headers
 from django.utils.translation import get_language
-from django.utils.translation import gettext_lazy as _
 
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.overlay import DatabaseOverlayManager
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.user import can_access_editor
 
