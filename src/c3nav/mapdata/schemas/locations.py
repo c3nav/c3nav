@@ -229,7 +229,7 @@ class LocationProtocol(Protocol):
     dynamic_state: DynamicLocationState | None
     locations: []  # todo: rename to sublocations?
 
-    def details_display(self, request, editor_url: bool) -> LocationDisplay:
+    def details_display(self, editor_url: bool) -> LocationDisplay:
         """
         Get human-readable inforation to display about this location.
         """

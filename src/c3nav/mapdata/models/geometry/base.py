@@ -94,11 +94,12 @@ class GeometryMixin(models.Model):
     def get_geometry(self, request) -> GeometryByLevelSchema:
         if "geometry" in self.get_deferred_fields() or self.level_id is None:
             return {}
-        if self.can_access_geometry(request):
+        if self.can_access_geometry:
             return {self.level_id: [self.geometry]}
         return {self.level_id: [self.geometry.minimum_rotated_rectangle]}
 
-    def can_access_geometry(self, request) -> bool:
+    @property
+    def can_access_geometry(self) -> bool:
         return True
 
     def get_shadow_geojson(self):
