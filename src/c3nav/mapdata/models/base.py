@@ -1,9 +1,6 @@
-from collections import OrderedDict
-
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
-from django.utils.translation import get_language, get_language_info
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
@@ -20,14 +17,6 @@ class SerializableMixin(models.Model):
     @property
     def title(self):
         return self._meta.verbose_name + ' ' + str(self.id)
-
-    @classmethod
-    def qs_for_request(cls, request, allow_none=False):
-        return cls.objects.filter(cls.q_for_request(request, allow_none=allow_none))
-
-    @classmethod
-    def q_for_request(cls, *args, **kwargs):
-        return Q()
 
 
 class TitledMixin(SerializableMixin, models.Model):

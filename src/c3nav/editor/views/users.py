@@ -34,7 +34,7 @@ def user_detail(request, pk):
     ctx = {
         'user': user,
         'can_direct_edit': ChangeSet.can_direct_edit(request),
-        'recent_changesets': ChangeSet.qs_for_request(request).filter(author=user).order_by('-last_update')[:15],
+        'recent_changesets': ChangeSet.objects.filter(author=user).order_by('-last_update')[:15],
     }
 
     if request.user_permissions.review_changesets:
