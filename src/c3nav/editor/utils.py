@@ -1,14 +1,17 @@
-class DefaultEditUtils:
-    def __init__(self, request):
-        self.request = request
+from dataclasses import dataclass
 
+from c3nav.mapdata.models import Level, Space
+from c3nav.mapdata.permissions import active_map_permissions
+
+
+class DefaultEditUtils:
     @classmethod
-    def from_obj(cls, obj, request):
-        return cls(request)
+    def from_obj(cls, obj):
+        return cls()
 
     @property
     def can_access_child_base_mapdata(self):
-        return self.request.user_permissions.can_access_base_mapdata
+        return active_map_permissions.all_base_mapdata
 
     @property
     def can_create(self):
@@ -23,34 +26,32 @@ class DefaultEditUtils:
         return self._geometry_url if self.can_access_child_base_mapdata else None
 
 
+@dataclass
 class LevelChildEditUtils(DefaultEditUtils):
-    def __init__(self, level, request):
-        super().__init__(request)
-        self.level = level
+    level: Level
 
     @classmethod
-    def from_obj(cls, obj, request):
-        return cls(obj.level, request)
+    def from_obj(cls, obj):
+        return cls(obj.level)
 
     @property
     def _geometry_url(self):
         return '/api/v2/editor/geometries/level/' + str(self.level.primary_level_pk)  # todo: resolve correctly
 
 
+@dataclass
 class SpaceChildEditUtils(DefaultEditUtils):
-    def __init__(self, space, request):
-        super().__init__(request)
-        self.space = space
+    space: Space
 
     @classmethod
-    def from_obj(cls, obj, request):
-        return cls(obj.space, request)
+    def from_obj(cls, obj):
+        return cls(obj.space)
 
     @property
     def can_access_child_base_mapdata(self):
-        return (self.request.user_permissions.can_access_base_mapdata or
+        return (active_map_permissions.all_base_mapdata or
                 self.space.base_mapdata_accessible or
-                self.space.pk in self.request.user_space_accesses)
+                self.space.pk in active_map_permissions.spaces)
 
     @property
     def _geometry_url(self):
