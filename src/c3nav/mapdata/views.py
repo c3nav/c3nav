@@ -28,7 +28,6 @@ from c3nav.mapdata.utils.cors import allow_cors
 from c3nav.mapdata.utils.locations import visible_locations_for_request, get_location_for_request, merge_bounds
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
-from c3nav.routing.route import RouteLocation
 
 PREVIEW_HIGHLIGHT_FILL_OPACITY = 0.1
 PREVIEW_HIGHLIGHT_STROKE_WIDTH = 0.5
@@ -239,7 +238,6 @@ def preview_route(request, slug, slug2, ext: Union[Literal["png"], Literal["webp
     from c3nav.routing.exceptions import LocationUnreachable
     from c3nav.routing.exceptions import NoRouteFound
     from c3nav.site.views import check_location
-    from c3nav.mapdata.utils.locations import CustomLocation
     from c3nav.mapdata.utils.geometry import unwrap_geom
     origin = check_location(slug, None)
     destination = check_location(slug2, None)
