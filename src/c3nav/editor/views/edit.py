@@ -26,6 +26,7 @@ from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_map
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
+from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -737,7 +738,7 @@ def graph_edit(request, level=None, space=None):
                 'obj_title': node.title
             })
 
-        permissions = AccessPermission.get_for_request(request) | {None}
+        permissions = MapPermissionsFromRequest(request).access_restrictions | {None}
         edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes,
                                                   data=request.POST)

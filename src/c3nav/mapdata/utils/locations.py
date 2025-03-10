@@ -22,6 +22,7 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation, DynamicLocation
+from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
@@ -252,7 +253,7 @@ def get_custom_location_for_request(identifier: CustomLocationIdentifier, reques
     if not isinstance(level, Level):
         return None
     return CustomLocation(level, float(match.group('x')), float(match.group('y')),
-                          AccessPermission.get_for_request(request))
+                          MapPermissionsFromRequest(request).access_restrictions)
 
 
 @overload
