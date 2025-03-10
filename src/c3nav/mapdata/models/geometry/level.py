@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from c3nav.mapdata.permissions import MapPermissions
 
 
-class LevelGeometryMixin(GeometryMixin):
+class LevelGeometryMixin(GeometryMixin, models.Model):
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
 
     class Meta:

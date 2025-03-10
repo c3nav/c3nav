@@ -10,15 +10,14 @@ from shapely.ops import unary_union
 
 from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models.base import SerializableMixin
-from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsSchema, BoundsByLevelSchema
+from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
 
 geometry_affecting_fields = ('height', 'width', 'access_restriction')
 
 
-class GeometryMixin(SerializableMixin):
+class GeometryMixin(models.Model):
     no_orig = False
 
     """
