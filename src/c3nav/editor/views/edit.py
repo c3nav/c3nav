@@ -35,17 +35,10 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
     if isinstance(model, str):
         model = apps.get_model(app_label="mapdata", model_name=model)
     related_name = model._meta.default_related_name
-    if parent is not None:
-        qs = getattr(parent, related_name)
-        if hasattr(model, 'q_for_request'):
-            qs = qs.filter(model.q_for_request(request))
-        count = qs.count()
-    else:
-        count = None
     return {
         'title': model._meta.verbose_name_plural,
         'url': reverse('editor.'+related_name+'.list', kwargs=kwargs),
-        'count': count,
+        'count': getattr(parent, related_name).count() if parent is not None else None,
     }
 
 
@@ -54,7 +47,7 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
 @sidebar_view
 def main_index(request):
     return render(request, 'editor/index.html', {
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': Level.objects.filter(on_top_of__isnull=True),
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
         'child_models': [
@@ -80,8 +73,7 @@ def main_index(request):
 @accesses_mapdata
 @sidebar_view
 def level_detail(request, pk):
-    qs = Level.objects.filter(Level.q_for_request(request))
-    level = get_object_or_404(qs.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
+    level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
 
     if request.user_permissions.can_access_base_mapdata:
         submodels = ('Building', 'Space', 'Door')
@@ -89,7 +81,7 @@ def level_detail(request, pk):
         submodels = ('Space', )
 
     return render(request, 'editor/level.html', {
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': Level.objects.filter(on_top_of__isnull=True),
         'level': level,
         'level_url': 'editor.levels.detail',
         'level_as_pk': True,
@@ -99,7 +91,7 @@ def level_detail(request, pk):
 
         'child_models': [child_model(request, model_name, kwargs={'level': pk}, parent=level)
                          for model_name in submodels],
-        'levels_on_top': level.levels_on_top.filter(Level.q_for_request(request)).all(),
+        'levels_on_top': level.levels_on_top.all(),
         'geometry_url': ('/api/v2/editor/geometries/level/'+str(level.primary_level_pk)
                          if request.user_permissions.can_access_base_mapdata else None),
     })
@@ -110,8 +102,7 @@ def level_detail(request, pk):
 @sidebar_view
 def space_detail(request, level, pk):
     # todo: HOW TO GET DATA
-    qs = Space.objects.filter(Space.q_for_request(request))
-    space = get_object_or_404(qs.select_related('level'), level__pk=level, pk=pk)
+    space = get_object_or_404(Space.select_related('level'), level__pk=level, pk=pk)
 
     edit_utils = SpaceChildEditUtils(space, request)
 
@@ -123,7 +114,7 @@ def space_detail(request, level, pk):
         submodels = ('POI', 'Area', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')
 
     return render(request, 'editor/space.html', {
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': Level.objects.filter(on_top_of__isnull=True),
         'level': space.level,
         'level_url': 'editor.spaces.list',
         'space': space,
@@ -158,8 +149,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         # Edit existing map item
         kwargs = {'pk': pk}
         qs = model.objects.all()
-        if hasattr(model, 'q_for_request'):
-            qs = qs.filter(model.q_for_request(request))
 
         if issubclass(model, SpecificLocationTargetMixin):
             # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
@@ -180,14 +169,13 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         obj = get_object_or_404(qs, **kwargs)
         edit_utils = utils_cls.from_obj(obj, request)
     elif level is not None:
-        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        level = get_object_or_404(Level, pk=level)
         edit_utils = LevelChildEditUtils(level, request)
     elif space is not None:
-        space = get_object_or_404(Space.objects.filter(Space.q_for_request(request)), pk=space)
+        space = get_object_or_404(Space, pk=space)
         edit_utils = SpaceChildEditUtils(space, request)
     elif on_top_of is not None:
-        on_top_of = get_object_or_404(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
-                                      pk=on_top_of)
+        on_top_of = get_object_or_404(Level.objects.filter(on_top_of__isnull=True), pk=on_top_of)
 
     new = obj is None
 
@@ -340,12 +328,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         door_geom = unwrap_geom(obj.geometry)
         spaces = {
             subspace.pk: subspace
-            for subspace in Space.qs_for_request(request).filter(level=level).select_related('access_restriction')
+            for subspace in Space.objects.filter(level=level).select_related('access_restriction')
             if subspace.geometry.intersects(door_geom)
         }
         edges = [
             edge
-            for edge in GraphEdge.qs_for_request(request).filter(
+            for edge in GraphEdge.objects.filter(
                 from_node__space__in=spaces, to_node__space__in=spaces
             ).select_related('from_node', 'to_node')
             if LineString((edge.from_node.coords, edge.to_node.coords)).intersects(door_geom)
@@ -460,9 +448,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     })
 
     if model is AccessRestrictionGroup and request.user_permissions.can_access_base_mapdata:
-        levels = list(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True))
         ctx.update({
-            "levels": levels,
+            "levels": list(Level.objects.filter(on_top_of__isnull=True)),
             "level_geometry_urls": True,
             "access_restriction_select": True,
         })
@@ -477,7 +464,7 @@ def get_visible_spaces(request):
     )
     visible_spaces = cache.get(cache_key, None)
     if visible_spaces is None:
-        visible_spaces = tuple(Space.qs_for_request(request).values_list('pk', flat=True))
+        visible_spaces = tuple(Space.objects.values_list('pk', flat=True))
         cache.set(cache_key, visible_spaces, 900)
     return visible_spaces
 
@@ -514,27 +501,25 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     }
 
     queryset = model.objects.all().order_by('id')
-    if hasattr(model, 'q_for_request'):
-        queryset = queryset.filter(model.q_for_request(request))
     reverse_kwargs = {}
 
     add_cols = []
 
     if level is not None:
         reverse_kwargs['level'] = level
-        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        level = get_object_or_404(Level, pk=level)
         queryset = queryset.filter(level=level).defer('geometry')
         edit_utils = LevelChildEditUtils(level, request)
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
-            'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+            'levels': Level.objects.filter(on_top_of__isnull=True),
             'level': level,
             'level_url': resolver_match.url_name,
         })
     elif space is not None:
         reverse_kwargs['space'] = space
-        sub_qs = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
+        sub_qs = Space.objects.select_related('level').defer('geometry')
         space = get_object_or_404(sub_qs, pk=space)
         queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
         edit_utils = SpaceChildEditUtils(space, request)
@@ -557,7 +542,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             queryset = queryset.order_by('altitude')
 
         ctx.update({
-            'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+            'levels': Level.objects.filter(on_top_of__isnull=True),
             'level': space.level,
             'level_url': 'editor.spaces.list',
             'space': space,
@@ -626,9 +611,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     })
 
     if model is AccessRestriction and request.user_permissions.can_access_base_mapdata:
-        levels = list(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True))
         ctx.update({
-            "levels": levels,
+            "levels": list(Level.objects.filter(on_top_of__isnull=True)),
             "level_geometry_urls": True,
         })
 
@@ -682,14 +666,14 @@ def graph_edit(request, level=None, space=None):
     ctx = {
         'path': request.path,
         'can_edit': can_edit,
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': Level.objects.filter(on_top_of__isnull=True),
         'level_url': 'editor.levels.graph',
     }
 
     create_nodes = False
 
     if level is not None:
-        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        level = get_object_or_404(Level, pk=level)
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
@@ -697,8 +681,7 @@ def graph_edit(request, level=None, space=None):
             'geometry_url': '/api/v2/editor/geometries/level/'+str(level.primary_level_pk),
         })
     elif space is not None:
-        queryset = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
-        space = get_object_or_404(queryset, pk=space)
+        space = get_object_or_404(Space.objects.select_related('level').defer('geometry'), pk=space)
         level = space.level
         ctx.update({
             'space': space,

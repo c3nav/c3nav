@@ -17,19 +17,15 @@ from c3nav.mapdata.models import DataOverlay, Level, DataOverlayFeature
 @accesses_mapdata
 @sidebar_view
 def overlays_list(request, level):
-    queryset = DataOverlay.objects.all().order_by('id')
-    if hasattr(DataOverlay, 'q_for_request'):
-        queryset = queryset.filter(DataOverlay.q_for_request(request))
-
-    level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+    level = get_object_or_404(Level, pk=level)
     edit_utils = LevelChildEditUtils(level, request)
 
     ctx = {
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': Level.objects.filter(on_top_of__isnull=True),
         'level': level,
         'level_url': 'editor.levels.overlays',
         'geometry_url': edit_utils.geometry_url,
-        'overlays': queryset,
+        'overlays': DataOverlay.objects.all().order_by('id'),
     }
 
     return render(request, 'editor/overlays.html', ctx)
@@ -46,14 +42,14 @@ def overlay_features(request, level, pk):
     queryset = DataOverlayFeature.objects.filter(level_id=level, overlay_id=pk).order_by('id')
     add_cols = []
 
-    level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
-    overlay = get_object_or_404(DataOverlay.objects.filter(DataOverlay.q_for_request(request)), pk=pk)
+    level = get_object_or_404(Level, pk=level)
+    overlay = get_object_or_404(DataOverlay, pk=pk)
     edit_utils = LevelChildEditUtils(level, request)
     ctx.update({
         'title': overlay.title,
         'back_url': reverse('editor.levels.overlays', kwargs={'level': level.pk}),
         'back_title': _('back to overlays'),
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': Level.objects.filter(on_top_of__isnull=True),
         'level': level,
 
         # TODO: this makes the level switcher always link to the overview of all overlays, rather than the current overlay
@@ -91,21 +87,15 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     if pk is not None:
         # Edit existing map item
         kwargs = {'pk': pk}
-        qs = DataOverlayFeature.objects.all()
-        if hasattr(DataOverlayFeature, 'q_for_request'):
-            qs = qs.filter(DataOverlayFeature.q_for_request(request))
-
-        qs = qs.select_related('level')
-        qs = qs.select_related('overlay')
         utils_cls = LevelChildEditUtils
         
-        obj = get_object_or_404(qs, **kwargs)
+        obj = get_object_or_404(DataOverlayFeature.objects.select_related('level', 'overlay'), **kwargs)
         level = obj.level
         overlay = obj.overlay
         edit_utils = utils_cls.from_obj(obj, request)
     else:
-        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
-        overlay = get_object_or_404(DataOverlay.objects.filter(DataOverlay.q_for_request(request)), pk=overlay)
+        level = get_object_or_404(Level, pk=level)
+        overlay = get_object_or_404(DataOverlay, pk=overlay)
         edit_utils = LevelChildEditUtils(level, request)
     
     new = obj is None
