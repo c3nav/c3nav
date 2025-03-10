@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Any, Mapping, Optional, ClassVar, NamedTuple, overload, Literal
+from typing import Mapping, Optional, ClassVar, NamedTuple, overload, Literal
 
 from django.conf import settings
 from django.db.models import Prefetch
@@ -20,12 +20,11 @@ from c3nav.api.schema import GeometryByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
-from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
-from c3nav.mapdata.models.geometry.space import POI, Area, SpaceGeometryMixin
-from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation, DynamicLocation
-from c3nav.mapdata.permissions import MapPermissionsFromRequest
+from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
+from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
@@ -51,14 +50,14 @@ def merge_bounds(*bounds: BoundsByLevelSchema) -> BoundsByLevelSchema:
             for level_id, zipped in zipped_bounds.items()}
 
 
-def locations_for_request(request) -> dict[int, Location]:
+def get_locations() -> dict[int, Location]:
     """
-    Return all locations for this request, by ID.
+    Return all locations for this map permission context, by ID.
     This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
     This returns a dictionary, which is already sorted by order.
     """
     # todo this takes a long time because it's a lot of data, we might want to change that
-    cache_key = 'mapdata:locations:%s' % AccessPermission.cache_key_for_request(request)
+    cache_key = f'mapdata:locations:{active_map_permissions.cache_key}'
     locations: dict[int, Location]
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
@@ -157,7 +156,7 @@ def locations_for_request(request) -> dict[int, Location]:
 
 def get_better_space_geometries():
     # change space geometries for better representative points
-    cache_key = 'mapdata:better_space_geometries:%s' % MapUpdate.current_cache_key()
+    cache_key = f'mapdata:better_space_geometries:{MapUpdate.current_cache_key()}'
     result = proxied_cache.get(cache_key, None)
     if result is not None:
         return result
@@ -175,28 +174,28 @@ def get_better_space_geometries():
     return result
 
 
-def visible_locations_for_request(request) -> dict[int, Location]:
+def get_visible_locations() -> dict[int, Location]:
     """
-    Return all visible locations for this request (can_search or can_describe), by ID.
-    This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
+    Return all visible locations for this map permission context (can_search or can_describe), by ID.
+    This list has to be per context, because it includes the correct prefetch_related visibility filters etc,
     This returns a dictionary, which is already sorted by order.
     """
     return {
         pk: location
-        for pk, location in locations_for_request(request).items()
+        for pk, location in get_locations().items()
         if location.can_search or location.can_describe
     }
 
 
-def searchable_locations_for_request(request) -> dict[int, Location]:
+def get_searchable_locations() -> dict[int, Location]:
     """
-    Return all searchable locations for this request, by ID.
-    This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
+    Return all searchable locations for this map permission context, by ID.
+    This list has to be per context, because it includes the correct prefetch_related visibility filters etc,
     This returns a dictionary, which is already sorted by order.
     """
     return {
         pk: location
-        for pk, location in locations_for_request(request).items()
+        for pk, location in get_locations().items()
         if location.can_search
     }
 
@@ -229,7 +228,7 @@ def levels_by_level_index_for_request(request) -> Mapping[str, Level]:
     """
     Get mapping of level index to level for requestz
     """
-    cache_key = 'mapdata:levels:by_level_index:%s' % AccessPermission.cache_key_for_request(request)
+    cache_key = 'mapdata:levels:by_level_index:%s' % active_map_permissions.cache_key
     levels = proxied_cache.get(cache_key, None)
     if levels is not None:
         return levels
@@ -254,31 +253,36 @@ def get_custom_location_for_request(identifier: CustomLocationIdentifier, reques
     level = levels_by_level_index_for_request(request).get(match.group('level'))
     if not isinstance(level, Level):
         return None
-    return CustomLocation(level, float(match.group('x')), float(match.group('y')),
-                          MapPermissionsFromRequest(request).access_restrictions)
+    return CustomLocation(
+        level=level,
+        x=float(match.group('x')),
+        y=float(match.group('y')),
+    )
 
 
 @overload
-def get_location_for_request(identifier: int, request) -> Optional[LocationProtocol]:
+def get_location(identifier: int) -> Optional[LocationProtocol]:
     pass
 
 
 @overload
-def get_location_for_request(identifier: int, request,
-                             * redirect: Literal[True]) -> Optional[LocationProtocol | LocationRedirect]:
+def get_location(identifier: int, *, redirect: Literal[True]) -> Optional[LocationProtocol | LocationRedirect]:
     pass
 
 
 @overload
-def get_location_for_request(identifier: str, request,
-                             * redirect: Literal[False]) -> Optional[LocationProtocol]:
+def get_location(identifier: str, *, redirect: Literal[False]) -> Optional[LocationProtocol]:
     pass
 
 
-def get_location_for_request(identifier: int | str, request,
-                             *, redirect: bool = None) -> Optional[LocationProtocol | LocationRedirect]:
+@overload
+def get_location(identifier: str, *, redirect: Literal[True] = True) -> Optional[LocationProtocol | LocationRedirect]:
+    pass
+
+
+def get_location(identifier: int | str, *, redirect: bool = None) -> Optional[LocationProtocol | LocationRedirect]:
     """
-    Get a location based on the given identifier for the given request.
+    Get a location based on the given identifier for the given map permission context.
 
     if redirect is True (default if you pass a string as the identifier), you will get back a LocationRedirect if
     there is a preferable identifier (e.g. the location has a slug and you used its id or a redirect slug).
@@ -288,9 +292,9 @@ def get_location_for_request(identifier: int | str, request,
     if redirect is None:
         redirect = not isinstance(identifier, int)
 
-    # Is this an integer? Then get the location by it's ID.
+    # Is this an integer? Then get the location by its ID.
     if isinstance(identifier, int) or identifier.isdigit():
-        location = locations_for_request(request).get(int(identifier))
+        location = get_locations().get(int(identifier))
 
         # Return redirect if the location has a slug.
         return LocationRedirect(
@@ -300,7 +304,7 @@ def get_location_for_request(identifier: int | str, request,
 
     # If this looks like a custom location identifier, get the custom location
     if identifier.startswith('c:'):
-        return get_custom_location_for_request(identifier, request)
+        return get_custom_location_for_request(identifier)
 
     # If this looks lik a position identifier, get the position
     if identifier.startswith('m:'):
@@ -314,7 +318,7 @@ def get_location_for_request(identifier: int | str, request,
         return None
 
     # Get the location from the available locations for this request.
-    location = locations_for_request(request).get(slug_target.target_id, None)
+    location = get_locations().get(slug_target.target_id, None)
 
     # If this should be a redirect, return a redirect if we found the location, otherwise return the location (or None)
     return LocationRedirect(
@@ -340,7 +344,6 @@ class CustomLocation:
     level: Level
     x: float | int
     y: float | int
-    permissions: Any = ()  # todo: correct this
     icon: str = "pin_drop"
 
     def __post_init__(self):

@@ -7,6 +7,7 @@ from typing import Protocol
 from django.contrib.auth.models import User
 
 from c3nav.control.models import UserSpaceAccess
+from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 
 try:
@@ -166,6 +167,22 @@ class MapPermissionContext:
     @property
     def view_sources(self) -> bool:
         return self.get_value().view_sources
+
+    @property
+    def cache_key_without_update(self):
+        # todo: we definitely want to find a way to shorten this
+        return (
+            '-'.join(str(i) for i in sorted(self.access_restrictions) or '0') + ":"
+            + ('a' if self.all_base_mapdata else ('-'.join(str(i) for i in sorted(self.access_restrictions) or '0')))
+            + f":{self.view_sources:d}"
+        )
+
+    @property
+    def cache_key(self):
+        return f"{MapUpdate.current_cache_key()}:{self.cache_key_without_update}"
+
+    def etag_func(self, request):
+        return self.cache_key
 
 
 active_map_permissions = MapPermissionContext()

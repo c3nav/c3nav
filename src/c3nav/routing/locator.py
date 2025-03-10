@@ -22,6 +22,7 @@ from shapely.ops import nearest_points
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
@@ -322,8 +323,9 @@ class Locator:
             if isinstance(peer.identifier, MacAddress)
         }
 
-    def locate(self, raw_scan_data: list[LocateWifiPeerSchema], permissions=None,
+    def locate(self, raw_scan_data: list[LocateWifiPeerSchema],
                correct_xyz: Optional[tuple[int, int, int]] = None, stats=False) -> LocatorResult:
+        permissions = active_map_permissions.access_restrictions
         # todo: support for ibeacons
         scan_data = self.convert_raw_scan_data(raw_scan_data)
 
@@ -360,7 +362,6 @@ class Locator:
             return None
 
         router = Router.load()
-        restrictions = router.get_restrictions(permissions)
 
         # get visible spaces
         best_ap_id = max(scan_data_we_can_use, key=lambda item: item[1].rssi)[0]
@@ -419,7 +420,6 @@ class Locator:
             level=level,
             x=point.x,
             y=point.y,
-            permissions=permissions,
             icon='my_location'
         )
 
@@ -439,8 +439,12 @@ class Locator:
             if point is None:
                 continue
             if score < best_score:
-                location = CustomLocation(router.spaces[space.pk].level, point.x, point.y,
-                                          permissions=permissions, icon='my_location')
+                location = CustomLocation(
+                    level=router.spaces[space.pk].level,
+                    x=point.x,
+                    y=point.y,
+                    icon='my_location'
+                )
                 best_location = location
                 best_score = score
 
@@ -651,7 +655,6 @@ class Locator:
             level=level,
             x=point.x,
             y=point.y,
-            permissions=permissions,
             icon='my_location'
         )
         location.z = result_pos[2]

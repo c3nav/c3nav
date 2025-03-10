@@ -12,17 +12,17 @@ from django.utils.http import quote_etag
 from django.utils.translation import get_language
 from ninja.decorators import decorate_view
 
-from c3nav.mapdata.models import AccessRestriction, Building, Door, LocationGroup, MapUpdate, Space
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models import AccessRestriction, LocationGroup, MapUpdate
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 
 request_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_API)
 
 
-def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_func, base_mapdata=False,
+def api_etag(permissions=True, quests=False, etag_func=active_map_permissions.etag_func, base_mapdata=False,
              etag_add_key: Optional[tuple[str, str]] = None):
 
     def outer_wrapper(func):
