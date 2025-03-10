@@ -19,6 +19,7 @@ from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGrou
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
 from c3nav.mapdata.models.locations import DynamicLocation, LabelSettings
+from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter, ByOverlayFilter)
 from c3nav.mapdata.schemas.model_base import schema_description, LabelSettingsSchema
@@ -339,8 +340,8 @@ MapdataAPIBuilder(router=mapdata_api_router).build_all_endpoints(mapdata_endpoin
 def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeatureUpdateSchema):
     feature = get_object_or_404(DataOverlayFeature, id=id)
 
-    if feature.overlay.edit_access_restriction_id is None or feature.overlay.edit_access_restriction_id not in AccessPermission.get_for_request(
-            request):
+    if (feature.overlay.edit_access_restriction_id is None or
+            feature.overlay.edit_access_restriction_id not in MapPermissionsFromRequest(request).access_restrictions):
         raise APIPermissionDenied('You are not allowed to edit this object.')
 
     updates = parameters.dict(exclude_unset=True)
@@ -358,7 +359,7 @@ def update_data_overlay_feature(request, id: int, parameters: DataOverlayFeature
 @mapdata_api_router.post('/dataoverlayfeatures-bulk', summary="bulk-update data overlays (no geometries)",
                          response={204: None, **API404.dict(), **auth_permission_responses})
 def update_data_overlay_features_bulk(request, parameters: DataOverlayFeatureBulkUpdateSchema):
-    permissions = AccessPermission.get_for_request(request)
+    permissions = MapPermissionsFromRequest(request).access_restrictions
 
     updates = {
         u.id: u

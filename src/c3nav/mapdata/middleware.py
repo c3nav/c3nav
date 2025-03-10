@@ -1,6 +1,7 @@
 import re
 from functools import wraps
 
+from c3nav.mapdata.permissions import active_map_permissions, MapPermissionsFromRequest
 from c3nav.mapdata.utils.cache.local import per_request_cache, LocalCacheProxy
 from c3nav.mapdata.utils.user import get_user_data_lazy
 
@@ -69,3 +70,15 @@ class RequestCacheMiddleware:
     def __call__(self, request):
         per_request_cache.clear()
         return self.get_response(request)
+
+
+class MapPermissionsMiddleware:
+    """
+    Set the MapPermissions context based on the request
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        with active_map_permissions.override(MapPermissionsFromRequest(request)):
+            return self.get_response(request)
