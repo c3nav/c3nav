@@ -77,7 +77,7 @@ class ModelDataForwarder:
 
 
 class BaseSchema(Schema):
-    orig_keys: ClassVar[frozenset[str]] = frozenset()
+    orig_keys: ClassVar[frozenset[str]] = frozenset()  # todo… what is this used for? remove?
 
     @model_validator(mode="wrap")  # noqa
     @classmethod
