@@ -57,9 +57,10 @@ def mapdata_list_endpoint(request,
 
     result = list(qs)
 
-    for obj in result:
-        if not obj.can_access_geometry(request):
-            obj._hide_geometry = True
+    if hasattr(model, 'can_access_geometry'):
+        for obj in result:
+            if not obj.can_access_geometry(request):
+                obj._hide_geometry = True
 
     return result
 
