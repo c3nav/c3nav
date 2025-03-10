@@ -13,9 +13,8 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.utils.cache.local import per_request_cache
-
 
 if TYPE_CHECKING:
     from c3nav.mapdata.permissions import MapPermissions
@@ -415,7 +414,7 @@ class AccessPermission(models.Model):
             transaction.on_commit(lambda: cache.delete(self.access_permission_key()))
 
 
-class AccessRestrictionMixin(SerializableMixin, models.Model):
+class AccessRestrictionMixin(models.Model):
     access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
                                            verbose_name=_('Access Restriction'), on_delete=models.PROTECT)
 

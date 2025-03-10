@@ -6,7 +6,6 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models.access import AccessRestrictionMixin
-from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.utils.geometry import smart_mapping
 
@@ -31,7 +30,7 @@ class GraphNode(SpaceGeometryMixin, models.Model):
         return smart_mapping(self.geometry)['coordinates']
 
 
-class WayType(SerializableMixin, models.Model):
+class WayType(models.Model):
     """
     A special way type
     """

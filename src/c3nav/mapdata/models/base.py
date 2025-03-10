@@ -7,19 +7,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import MapUpdate
 
 
-# todo: get rid of this?
-class SerializableMixin(models.Model):
-    _affected_by_changeset = None
-
-    class Meta:
-        abstract = True
-
-    @property
-    def title(self):
-        return self._meta.verbose_name + ' ' + str(self.id)
-
-
-class TitledMixin(SerializableMixin, models.Model):
+class TitledMixin(models.Model):
     title = I18nField(_('Title'), plural_name='titles', blank=True, fallback_any=True, fallback_value='{model} {pk}')
     titles: dict
 
@@ -34,7 +22,7 @@ class TitledMixin(SerializableMixin, models.Model):
         return str(self.title)
 
 
-class BoundsMixin(SerializableMixin, models.Model):
+class BoundsMixin(models.Model):
     bottom = models.DecimalField(_('bottom coordinate'), max_digits=6, decimal_places=2)
     left = models.DecimalField(_('left coordinate'), max_digits=6, decimal_places=2)
     top = models.DecimalField(_('top coordinate'), max_digits=6, decimal_places=2)
