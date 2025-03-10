@@ -403,6 +403,7 @@ MIDDLEWARE = [
     'c3nav.mapdata.middleware.UserDataMiddleware',
     'c3nav.site.middleware.MobileclientMiddleware',
     'c3nav.control.middleware.UserPermissionsMiddleware',
+    'c3nav.mapdata.middleware.MapPermissionsMiddleware',
     # 'c3nav.api.middleware.JsonRequestBodyMiddleware',  # might still be needed in editor
 ]
 

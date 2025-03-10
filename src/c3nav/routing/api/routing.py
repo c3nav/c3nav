@@ -17,6 +17,7 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
+from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, Coordinates3D, DjangoModelSchema, LocationPoint
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -236,7 +237,7 @@ def get_route(request, parameters: RouteParametersSchema):
     try:
         route = Router.load().get_route(origin=form.cleaned_data['origin'],
                                         destination=form.cleaned_data['destination'],
-                                        permissions=AccessPermission.get_for_request(request),
+                                        permissions=MapPermissionsFromRequest(request).access_restrictions,
                                         options=options,
                                         visible_locations=visible_locations)
     except NotYetRoutable:

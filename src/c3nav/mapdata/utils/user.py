@@ -6,6 +6,7 @@ from django.utils.translation import ngettext_lazy
 from c3nav.mapdata.models import DataOverlay
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.locations import Position
+from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.schemas.models import DataOverlaySchema
 
 
@@ -13,7 +14,7 @@ def get_user_data(request):
     """
     Don't use this unless needed. Use request.user_data to get this cached.
     """
-    permissions = AccessPermission.get_for_request(request) - AccessRestriction.get_all_public()
+    permissions = MapPermissionsFromRequest(request).access_restrictions - AccessRestriction.get_all_public()
     result = {
         'logged_in': bool(request.user.is_authenticated),
         'allow_editor': can_access_editor(request),
