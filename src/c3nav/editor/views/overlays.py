@@ -1,23 +1,21 @@
-from c3nav.editor.forms import get_editor_form
-from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse,
-                                     APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
-                                     editor_etag_func, sidebar_view, accesses_mapdata)
-from django.shortcuts import get_object_or_404
-from django.views.decorators.http import etag
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from django.contrib import messages
-from django.db import IntegrityError
+from django.views.decorators.http import etag
 
-from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils
+from c3nav.editor.forms import get_editor_form
+from c3nav.editor.utils import LevelChildEditUtils
+from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.editor.views.edit import get_changeset_exceeded
 from c3nav.mapdata.models import DataOverlay, Level, DataOverlayFeature
 
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def overlays_list(request, level):
     queryset = DataOverlay.objects.all().order_by('id')
     if hasattr(DataOverlay, 'q_for_request'):
@@ -34,11 +32,11 @@ def overlays_list(request, level):
         'overlays': queryset,
     }
 
-    return APIHybridTemplateContextResponse('editor/overlays.html', ctx, fields=('overlays',))
+    return render(request, 'editor/overlays.html', ctx)
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def overlay_features(request, level, pk):
     ctx = {
         'path': request.path,
@@ -79,12 +77,11 @@ def overlay_features(request, level, pk):
         },
     })
 
-    return APIHybridTemplateContextResponse('editor/overlay_features.html', ctx,
-                                            fields=('can_create', 'create_url', 'objects'))
+    return render(request, 'editor/overlay_features.html', ctx)
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     changeset_exceeded = get_changeset_exceeded(request)
 
@@ -142,10 +139,8 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     nosave = False
     if changeset_exceeded:
         if new:
-            return APIHybridMessageRedirectResponse(
-                level='error', message=_('You can not create new objects because your changeset is full.'),
-                redirect_to=ctx['back_url'], status_code=409,
-            )
+            messages.error(request, _('You can not create new objects because your changeset is full.'))
+            return redirect(ctx['back_url'])
         elif obj.pk not in request.changeset.changes.objects.get(obj._meta.model_name, {}):
             messages.warning(request, _('You can not edit this object because your changeset is full.'))
             nosave = True
@@ -164,16 +159,12 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     
     if request.method == 'POST' or (not new and delete):
         if nosave:
-            return APIHybridMessageRedirectResponse(
-                level='error', message=_('You can not edit this object because your changeset is full.'),
-                redirect_to=request.path, status_code=409,
-            )
+            messages.error(request, _('You can not edit this object because your changeset is full.'))
+            return redirect(request.path)
 
         if not can_edit_changeset:
-            return APIHybridMessageRedirectResponse(
-                level='error', message=_('You can not edit changes on this changeset.'),
-                redirect_to=request.path, status_code=403,
-            )
+            messages.error(request, _('You can not edit changes on this changeset.'))
+            return redirect(request.path)
 
         if not new and ((request.POST.get('delete') == '1' and delete is not False) or delete):
             # Delete this mapitem!
@@ -182,20 +173,14 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
                     if changeset.can_edit(request):
                         obj.delete()
                     else:
-                        return APIHybridMessageRedirectResponse(
-                            level='error',
-                            message=_('You can not edit changes on this changeset.'),
-                            redirect_to=request.path, status_code=403,
-                        )
+                        messages.error(request, _('You can not edit changes on this changeset.'))
+                        return redirect(request.path)
 
                 redirect_to = ctx['back_url']
-                return APIHybridMessageRedirectResponse(
-                    level='success',
-                    message=_('Object was successfully deleted.'),
-                    redirect_to=redirect_to
-                )
+                messages.success(request, _('Object was successfully deleted.'))
+                return redirect(redirect_to)
             ctx['obj_title'] = obj.title
-            return APIHybridTemplateContextResponse('editor/delete.html', ctx, fields=())
+            return render(request, 'editor/delete.html', ctx)
 
         json_body = getattr(request, 'json_body', None)
         data = json_body if json_body is not None else request.POST
@@ -214,7 +199,7 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
                     try:
                         obj.save()
                     except IntegrityError as e:
-                        error = APIHybridError(status_code=400, message=_('Duplicate entry.'))
+                        messages.error(request, _('Duplicate entry.'))
                     else:
                         if form.redirect_slugs is not None:
                             for slug in form.add_redirect_slugs:
@@ -224,13 +209,10 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
                                 obj.redirects.filter(slug=slug).delete()
 
                         form.save_m2m()
-                        return APIHybridMessageRedirectResponse(
-                            level='success',
-                            message=_('Object was successfully saved.'),
-                            redirect_to=ctx['back_url']
-                        )
+                        messages.success(request, _('Object was successfully saved.'))
+                        return redirect(ctx['back_url'])
                 else:
-                    error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
+                    messages.error(request, _('You can not edit changes on this changeset.'))
 
     else:
         form = get_editor_form(DataOverlayFeature)(instance=obj, request=request, space_id=space_id,
@@ -243,5 +225,5 @@ def overlay_feature_edit(request, level=None, overlay=None, pk=None):
         }
     })
 
-    return APIHybridFormTemplateResponse('editor/edit.html', ctx, form=form, error=error)
+    return render(request, 'editor/edit.html', ctx)
 

@@ -5,6 +5,7 @@ from contextlib import suppress
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.db import IntegrityError, models
@@ -18,9 +19,7 @@ from shapely import LineString
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
-from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
-                                     APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
-                                     editor_etag_func, sidebar_view, accesses_mapdata)
+from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.utils.geometry import unwrap_geom
@@ -47,9 +46,9 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def main_index(request):
-    return APIHybridTemplateContextResponse('editor/index.html', {
+    return render(request, 'editor/index.html', {
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
@@ -68,12 +67,12 @@ def main_index(request):
             child_model(request, 'Theme'),
             child_model(request, 'DataOverlay'),
         ],
-    }, fields=('can_create_level', 'child_models'))
+    })
 
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def level_detail(request, pk):
     qs = Level.objects.filter(Level.q_for_request(request))
     level = get_object_or_404(qs.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
@@ -83,7 +82,7 @@ def level_detail(request, pk):
     else:
         submodels = ('Space', )
 
-    return APIHybridTemplateContextResponse('editor/level.html', {
+    return render(request, 'editor/level.html', {
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level': level,
         'level_url': 'editor.levels.detail',
@@ -97,12 +96,12 @@ def level_detail(request, pk):
         'levels_on_top': level.levels_on_top.filter(Level.q_for_request(request)).all(),
         'geometry_url': ('/api/v2/editor/geometries/level/'+str(level.primary_level_pk)
                          if request.user_permissions.can_access_base_mapdata else None),
-    }, fields=('level', 'can_edit_graph', 'can_create_level', 'child_models', 'levels_on_top'))
+    })
 
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def space_detail(request, level, pk):
     # todo: HOW TO GET DATA
     qs = Space.objects.filter(Space.q_for_request(request))
@@ -117,7 +116,7 @@ def space_detail(request, level, pk):
     else:
         submodels = ('POI', 'Area', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')
 
-    return APIHybridTemplateContextResponse('editor/space.html', {
+    return render(request, 'editor/space.html', {
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level': space.level,
         'level_url': 'editor.spaces.list',
@@ -127,7 +126,7 @@ def space_detail(request, level, pk):
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in submodels],
         'geometry_url': edit_utils.geometry_url,
-    }, fields=('level', 'space', 'can_edit_graph', 'child_models'))
+    })
 
 
 def get_changeset_exceeded(request):
@@ -136,7 +135,7 @@ def get_changeset_exceeded(request):
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     if isinstance(model, str):
         model = apps.get_model(app_label="mapdata", model_name=model)
@@ -266,10 +265,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     nosave = False
     if changeset_exceeded:
         if new:
-            return APIHybridMessageRedirectResponse(
-                level='error', message=_('You can not create new objects because your changeset is full.'),
-                redirect_to=ctx['back_url'], status_code=409,
-            )
+            messages.error(request, _('You can not create new objects because your changeset is full.'))
+            return redirect(ctx['back_url'])
         elif obj.pk not in request.changeset.changes.objects.get(obj._meta.model_name, {}):
             messages.warning(request, _('You can not edit this object because your changeset is full.'))
             nosave = True
@@ -284,8 +281,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         })
 
     if new and model.__name__ == 'BeaconMeasurement' and not request.user.is_authenticated:
-        return APIHybridLoginRequiredResponse(next=request.path_info, login_url='editor.login', level='info',
-                                              message=_('You need to log in to create Beacon Measurements.'))
+        messages.info(request, _('You need to log in to create Beacon Measurements.'))
+        return redirect_to_login(request.path_info, 'editor.login')
 
     graph_form = None
     if model == Door and not new:
@@ -316,16 +313,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     delete = getattr(request, 'is_delete', None)
     if request.method == 'POST' or (not new and delete):
         if nosave:
-            return APIHybridMessageRedirectResponse(
-                level='error', message=_('You can not edit this object because your changeset is full.'),
-                redirect_to=request.path, status_code=409,
-            )
+            messages.error(request, _('You can not edit this object because your changeset is full.'))
+            return redirect(request.path)
 
         if not can_edit_changeset:
-            return APIHybridMessageRedirectResponse(
-                level='error', message=_('You can not edit changes on this changeset.'),
-                redirect_to=request.path, status_code=403,
-            )
+            messages.error(request, _('You can not edit changes on this changeset.'))
+            return redirect(request.path)
 
         if not new and ((request.POST.get('delete') == '1' and delete is not False) or delete):
             # Delete this mapitem!
@@ -333,11 +326,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 if request.changeset.can_edit(request):  # todo: move this somewhere else
                     obj.delete()
                 else:
-                    return APIHybridMessageRedirectResponse(
-                        level='error',
-                        message=_('You can not edit changes on this changeset.'),
-                        redirect_to=request.path, status_code=403,
-                    )
+                    messages.error(request, _('You can not edit changes on this changeset.'))
+                    return redirect(request.path)
 
                 if model == Level:
                     if obj.on_top_of_id is not None:
@@ -348,13 +338,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     redirect_to = reverse('editor.spaces.list', kwargs={'level': obj.level.pk})
                 else:
                     redirect_to = ctx['back_url']
-                return APIHybridMessageRedirectResponse(
-                    level='success',
-                    message=_('Object was successfully deleted.'),
-                    redirect_to=redirect_to
-                )
+                messages.success(request, _('Object was successfully deleted.'))
+                return redirect(redirect_to)
             ctx['obj_title'] = obj.title
-            return APIHybridTemplateContextResponse('editor/delete.html', ctx, fields=())
+            return render(request, 'editor/delete.html', ctx)
 
         json_body = getattr(request, 'json_body', None)
         data = json_body if json_body is not None else request.POST
@@ -383,7 +370,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 try:
                     obj.save()
                 except IntegrityError:
-                    error = APIHybridError(status_code=400, message=_('Duplicate entry.'))
+                    messages.error(request, _('Duplicate entry.'))
                 else:
                     if form.redirect_slugs is not None:
                         for slug in form.add_redirect_slugs:
@@ -394,13 +381,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     if graph_form is not None:
                         graph_form.save()
                     form.save_m2m()
-                    return APIHybridMessageRedirectResponse(
-                        level='success',
-                        message=_('Object was successfully saved.'),
-                        redirect_to=ctx['back_url']
-                    )
+                    messages.success(request, _('Object was successfully saved.'))
+                    return redirect(ctx['back_url'])
             else:
-                error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
+                messages.error(request, _('You can not edit changes on this changeset.'))
 
     else:
         form = get_editor_form(model)(instance=obj, request=request, space_id=space_id,
@@ -421,7 +405,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             "access_restriction_select": True,
         })
 
-    return APIHybridFormTemplateResponse('editor/edit.html', ctx, form=form, error=error)
+    return render(request, 'editor/edit.html', ctx)
 
 
 def get_visible_spaces(request):
@@ -448,7 +432,7 @@ def get_visible_spaces_kwargs(model, request):
 
 @etag(editor_etag_func)
 @accesses_mapdata
-@sidebar_view(api_hybrid=True)
+@sidebar_view
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
     if isinstance(model, str):
         model = apps.get_model(app_label="mapdata", model_name=model)
@@ -582,8 +566,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             "level_geometry_urls": True,
         })
 
-    return APIHybridTemplateContextResponse('editor/list.html', ctx,
-                                            fields=('can_create', 'create_url', 'objects'))
+    return render(request, 'editor/list.html', ctx)
 
 
 def connect_nodes(request, active_node, clicked_node, edge_settings_form):

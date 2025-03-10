@@ -97,62 +97,6 @@ def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheK
     )
 
 
-# todo: need a way to pass the changeset if it's not a session API key
-
-def resolve_editor_path_api(request, path):
-    resolved = None
-    if path:
-        try:
-            resolved = resolve('/editor/'+path+'/')
-        except Resolver404:
-            pass
-
-    if not resolved:
-        try:
-            resolved = resolve('/editor/'+path)
-        except Resolver404:
-            pass
-
-    request.sub_resolver_match = resolved
-
-    return resolved
-
-
-@editor_api_router.get('/as_api/{path:path}', summary="raw editor access",
-                       response={200: dict, **API404.dict(), **auth_permission_responses},
-                       openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
-@api_etag()  # todo: correct?
-def get_view_as_api(request, path: str):
-    """
-    get editor views rendered as JSON instead of HTML.
-    `path` is the path after /editor/.
-    this is a mess. good luck. if you actually want to use this, poke us so we might add better documentation.
-    """
-    resolved = resolve_editor_path_api(request, path)
-
-    if not resolved:
-        raise API404(_('No matching editor view endpoint found.'))
-
-    if not getattr(resolved.func, 'api_hybrid', False):
-        raise API404(_('Matching editor view point does not provide an API.'))
-
-    response = resolved.func(request, api=True, *resolved.args, **resolved.kwargs)
-    return response
-
-
-@editor_api_router.post('/as_api/{path:path}', summary="raw editor access",
-                        response={200: dict, **API404.dict(), **auth_permission_responses},
-                        openapi_extra={"security": [{"APIKeyAuth": ["editor_access", "write"]}]})
-@api_etag()  # todo: correct?
-def post_view_as_api(request, path: str):
-    """
-    get editor views rendered as JSON instead of HTML.
-    `path` is the path after /editor/.
-    this is a mess. good luck. if you actually want to use this, poke us so we might add better documentation.
-    """
-    raise NotImplementedError
-
-
 @editor_api_router.get('/beacons-lookup/', summary="get beacon coordinates",
                        description="get xyz coordinates for all known positioning beacons",
                        response={200: EditorBeaconsLookup, **auth_permission_responses},
