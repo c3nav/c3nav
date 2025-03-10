@@ -14,7 +14,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestriction, UseQForPermissionsManager
-from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
 from c3nav.mapdata.permissions import MapPermissions
@@ -338,7 +338,7 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
         return f'#{self.pk}: {self.groundaltitude.title}'
 
 
-class LeaveDescription(SerializableMixin):
+class LeaveDescription(models.Model):
     """
     A description for leaving a space to another space
     """
@@ -369,7 +369,7 @@ class LeaveDescription(SerializableMixin):
         )
 
 
-class CrossDescription(SerializableMixin):
+class CrossDescription(models.Model):
     """
     A description for crossing a space from one space to another space
     """

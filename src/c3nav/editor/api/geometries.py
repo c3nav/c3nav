@@ -113,11 +113,12 @@ def area_sorting_func(area):
 
 
 def conditional_geojson(obj, update_cache_key_match):
-    if update_cache_key_match and not obj._affected_by_changeset:
+    if update_cache_key_match:
+        # todo: do not hit this if the object was changed in the changeset
         return obj.get_geojson_key()
 
     result = obj.to_geojson()
-    result['properties']['changed'] = obj._affected_by_changeset
+    #result['properties']['changed'] = obj._affected_by_changeset
     result['properties']['access_restriction'] = getattr(obj, "access_restriction_id", None)
     return result
 
