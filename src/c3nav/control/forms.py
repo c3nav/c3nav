@@ -308,10 +308,10 @@ class UserSpaceAccessForm(ModelForm):
         model = UserSpaceAccess
         fields = ('space', 'can_edit')
 
-    def __init__(self, *args, request=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['space'].label_from_instance = lambda obj: obj.title
-        self.fields['space'].queryset = Space.qs_for_request(request).order_by('slug')
+        self.fields['space'].queryset = Space.objects.order_by('slug')
         choices = [('0', _('no'))] * 6 + [('1', _('yes'))] + [('0', _('no'))] * 3
         self.fields['can_edit'].widget = Select(choices=choices)
 

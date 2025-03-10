@@ -145,7 +145,6 @@ def location_display(request, identifier: LocationIdentifier):
         }))
 
     location = location.details_display(
-        request=request,
         editor_url=can_access_editor(request),
     )
     return json.loads(json.dumps(location, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings

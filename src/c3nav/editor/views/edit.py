@@ -104,7 +104,7 @@ def space_detail(request, level, pk):
     # todo: HOW TO GET DATA
     space = get_object_or_404(Space.select_related('level'), level__pk=level, pk=pk)
 
-    edit_utils = SpaceChildEditUtils(space, request)
+    edit_utils = SpaceChildEditUtils(space)
 
     if edit_utils.can_access_child_base_mapdata:
         submodels = ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
@@ -144,7 +144,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     can_edit_changeset = request.changeset.can_edit(request)
 
     obj = None
-    edit_utils = DefaultEditUtils(request)
+    edit_utils = DefaultEditUtils()
     if pk is not None:
         # Edit existing map item
         kwargs = {'pk': pk}
@@ -167,13 +167,13 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             utils_cls = SpaceChildEditUtils
 
         obj = get_object_or_404(qs, **kwargs)
-        edit_utils = utils_cls.from_obj(obj, request)
+        edit_utils = utils_cls.from_obj(obj)
     elif level is not None:
         level = get_object_or_404(Level, pk=level)
-        edit_utils = LevelChildEditUtils(level, request)
+        edit_utils = LevelChildEditUtils(level)
     elif space is not None:
         space = get_object_or_404(Space, pk=space)
-        edit_utils = SpaceChildEditUtils(space, request)
+        edit_utils = SpaceChildEditUtils(space)
     elif on_top_of is not None:
         on_top_of = get_object_or_404(Level.objects.filter(on_top_of__isnull=True), pk=on_top_of)
 
@@ -184,7 +184,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     geometry_url = edit_utils.geometry_url
     if model.__name__ == 'Space' and not new:
-        geometry_url = SpaceChildEditUtils(obj, request).geometry_url
+        geometry_url = SpaceChildEditUtils(obj).geometry_url
 
     # noinspection PyProtectedMember
     ctx = {
@@ -398,7 +398,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
 
         if "door" in ctx:
-            secondary_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges, data=data)
+            secondary_form = DoorGraphForm(spaces=spaces, nodes=nodes, edges=edges, data=data)
         elif specific_location_form_cls:
             secondary_form = specific_location_form_cls(target=obj, data=data)
 
@@ -436,9 +436,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         form = get_editor_form(model)(instance=obj, request=request, space_id=space_id,
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
         if "door" in ctx:
-            secondary_form = DoorGraphForm(request=request, spaces=spaces, nodes=nodes, edges=edges)
+            secondary_form = DoorGraphForm(spaces=spaces, nodes=nodes, edges=edges)
         elif specific_location_form_cls:
-            secondary_form = specific_location_form_cls(request=request, target=obj)
+            secondary_form = specific_location_form_cls(target=obj)
 
         if secondary_form is not None:
             ctx["secondary"]["form"] = secondary_form
@@ -509,7 +509,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         reverse_kwargs['level'] = level
         level = get_object_or_404(Level, pk=level)
         queryset = queryset.filter(level=level).defer('geometry')
-        edit_utils = LevelChildEditUtils(level, request)
+        edit_utils = LevelChildEditUtils(level)
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
@@ -522,7 +522,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         sub_qs = Space.objects.select_related('level').defer('geometry')
         space = get_object_or_404(sub_qs, pk=space)
         queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
-        edit_utils = SpaceChildEditUtils(space, request)
+        edit_utils = SpaceChildEditUtils(space)
 
         with suppress(FieldDoesNotExist):
             model._meta.get_field('geometry')
@@ -550,7 +550,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'back_title': _('back to space'),
         })
     else:
-        edit_utils = DefaultEditUtils(request)
+        edit_utils = DefaultEditUtils()
 
         with suppress(FieldDoesNotExist):
             model._meta.get_field('category')
@@ -722,9 +722,8 @@ def graph_edit(request, level=None, space=None):
             })
 
         permissions = MapPermissionsFromRequest(request).access_restrictions | {None}
-        edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
-        graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes,
-                                                  data=request.POST)
+        edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), data=request.POST)
+        graph_action_form = GraphEditorActionForm(allow_clicked_position=create_nodes, data=request.POST)
         if edge_settings_form.is_valid() and graph_action_form.is_valid():
             goto_space = graph_action_form.cleaned_data['goto_space']
             if goto_space is not None:
@@ -792,9 +791,9 @@ def graph_edit(request, level=None, space=None):
                     'active_node_connections': connections,
                 })
     else:
-        edge_settings_form = GraphEdgeSettingsForm(request=request)
+        edge_settings_form = GraphEdgeSettingsForm()
 
-    graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes)
+    graph_action_form = GraphEditorActionForm(allow_clicked_position=create_nodes)
 
     ctx.update({
         'edge_settings_form': edge_settings_form,

@@ -372,7 +372,7 @@ class CustomLocation:
         return {self.level.pk: ((int(math.floor(self.x)), int(math.floor(self.y))),
                                 (int(math.ceil(self.x)), int(math.ceil(self.y))))}
 
-    def details_display(self, request, **kwargs):
+    def details_display(self, **kwargs):
         result = {
             'id': self.pk,
             'display': [
