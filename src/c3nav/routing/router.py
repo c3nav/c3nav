@@ -5,7 +5,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from functools import reduce
 from operator import itemgetter
-from typing import Optional, TypeVar, Generic, Mapping, Sequence, TypeAlias, ClassVar, NamedTuple, Union
+from typing import Optional, TypeVar, Generic, Sequence, TypeAlias, ClassVar, NamedTuple, Union
 
 import numpy as np
 from django.conf import settings
@@ -19,11 +19,12 @@ from twisted.protocols.amp import Decimal
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
-from c3nav.mapdata.models.locations import CustomLocationProxyMixin, Location, SpecificLocation
+from c3nav.mapdata.models.locations import CustomLocationProxyMixin, SpecificLocation
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
-from c3nav.mapdata.utils.locations import CustomLocation
+from c3nav.mapdata.utils.locations import CustomLocation, get_visible_locations
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.models import RouteOptions
 from c3nav.routing.route import Route, RouteLocation
@@ -449,7 +450,7 @@ class Router:
         return min(self.levels.items(), key=lambda a: abs(float(a[1].base_altitude)-z))[0]
 
     def describe_custom_location(self, location: CustomLocation):
-        restrictions = self.get_restrictions(location.permissions)
+        restrictions = self.get_restrictions(active_map_permissions.access_restrictions)
         point = Point(location.point[1:])
         space = self.space_for_point(level=location.level.pk, point=point, restrictions=restrictions)
         if not space:
@@ -573,9 +574,9 @@ class Router:
             pk: restriction for pk, restriction in self.restrictions.items() if pk not in permissions
         })
 
-    def get_route(self, origin: LocationProtocol, destination: LocationProtocol, permissions: set[int],
-                  options: RouteOptions, visible_locations: Mapping[int, Location]):
-        restrictions = self.get_restrictions(permissions)
+    def get_route(self, origin: LocationProtocol, destination: LocationProtocol, options: RouteOptions):
+        restrictions = self.get_restrictions(active_map_permissions.access_restrictions)
+        visible_locations = get_visible_locations()
 
         # get possible origins and destinations
         origins = self.get_locations(origin, restrictions)

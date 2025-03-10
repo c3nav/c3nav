@@ -24,7 +24,7 @@ from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
-from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
+from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
 from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.utils.geometry import unwrap_geom
@@ -460,7 +460,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 def get_visible_spaces(request):
     cache_key = 'editor:visible_spaces:%s:%s' % (
         request.changeset.raw_cache_key_by_changes,
-        AccessPermission.cache_key_for_request(request, with_update=False)
+        active_map_permissions.cache_key_without_update,
     )
     visible_spaces = cache.get(cache_key, None)
     if visible_spaces is None:

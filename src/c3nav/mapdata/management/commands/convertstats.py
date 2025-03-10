@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
 from c3nav.mapdata.utils.cache.stats import convert_stats
 
 
@@ -28,7 +29,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         data = json.load(options['statsfile'])
         end_time = int(dateutil.parser.parse(data['end_date']).timestamp())
-        result = convert_stats(data)
+        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+            result = convert_stats(data)
         if options['graphite']:
             lines = []
             self._output_graphite(lines, 'c3nav.%s.' % settings.INSTANCE_NAME, result, end_time)
