@@ -71,7 +71,7 @@ class LevelsForLevel:
     levels_under: Sequence[int]  # IDs of the level below this level plus levels on top of it (on_top_of field)
 
     @classmethod
-    def for_level(cls, request, level: Level, special_if_on_top=False):  # add typing
+    def for_level(cls, level: Level, special_if_on_top=False):  # add typing
         # noinspection PyPep8Naming
         levels_under = ()
         levels_on_top = ()
@@ -130,11 +130,11 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     except Level.DoesNotExist:
         raise API404('Level not found')
 
-    edit_utils = LevelChildEditUtils(level, request)  # todo: what's happening here?
+    edit_utils = LevelChildEditUtils(level)  # todo: what's happening here?
     if not edit_utils.can_access_child_base_mapdata:
         raise APIPermissionDenied()
 
-    levels_for_level = LevelsForLevel.for_level(request, level)
+    levels_for_level = LevelsForLevel.for_level(level)
     # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
     levels = Level.objects.filter(pk__in=levels_for_level.levels)
     graphnodes_qs = GraphNode.objects.all()
@@ -204,7 +204,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
 
     level = space.level
 
-    edit_utils = SpaceChildEditUtils(space, request)
+    edit_utils = SpaceChildEditUtils(space)
     if not edit_utils.can_access_child_base_mapdata:
         raise APIPermissionDenied
 
@@ -216,7 +216,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
             [unwrap_geom(space.geometry)]
         )
 
-        levels_for_level = LevelsForLevel.for_level(request, level.primary_level, special_if_on_top=True)
+        levels_for_level = LevelsForLevel.for_level(level.primary_level, special_if_on_top=True)
         other_spaces = Space.qs_for_permissions().filter(level__pk__in=levels_for_level.levels).only(
             'geometry', 'level',
         ).prefetch_related(
