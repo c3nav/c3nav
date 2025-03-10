@@ -11,7 +11,7 @@ from django.utils.translation import get_language
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.overlay import DatabaseOverlayManager
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -142,7 +142,7 @@ def editor_etag_func(request, *args, **kwargs):
         return None
 
     return (get_language() + ':' + changeset.raw_cache_key_by_changes + ':' +
-            AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0)
+            active_map_permissions.cache_key_without_update + ':' + str(request.user.pk or 0)
             + ':' + str(int(request.user_permissions.can_access_base_mapdata))
             + ':' + ','.join(str(i) for i in request.user_space_accesses)
             + ':' + str(int(request.user.is_superuser))
