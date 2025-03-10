@@ -34,7 +34,7 @@ class AccessRestriction(TitledMixin, models.Model):
 
     @classmethod
     def q_for_request(cls, request):
-        return Q(pk__in=AccessPermission.get_for_request(request))
+        return Q(pk__in=MapPermissionsFromRequest(request).access_restrictions)
 
     @staticmethod
     def get_all() -> set[int]:
@@ -314,6 +314,7 @@ class AccessPermission(models.Model):
 
     @classmethod
     def get_for_request(cls, request, can_grant: bool = None) -> set[int]:
+        # todo: don't call this directly any more… at least not with can_grant=True
         # todo: look, for some reason can_grant=False is coded to do the same as can_grant=True. why?
         if not request:
             return AccessRestriction.get_all_public()
@@ -385,6 +386,7 @@ class AccessPermission(models.Model):
 
     @classmethod
     def cache_key_for_request(cls, request, with_update=True):
+        # todo: we want to probably move this somewhere else and use MapPermissionsFromRequest
         return (
             ((MapUpdate.current_cache_key()+':') if with_update else '') +
             '-'.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
@@ -416,5 +418,6 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
     def q_for_request(cls, request, prefix='', allow_none=False):
         if request is None and allow_none:
             return Q()
+        from c3nav.mapdata.permissions import MapPermissionsFromRequest
         return (Q(**{prefix+'access_restriction__isnull': True}) |
-                Q(**{prefix+'access_restriction__pk__in': AccessPermission.get_for_request(request)}))
+                Q(**{prefix+'access_restriction__pk__in': MapPermissionsFromRequest(request).access_restrictions}))
