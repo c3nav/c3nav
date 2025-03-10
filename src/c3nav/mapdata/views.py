@@ -17,7 +17,7 @@ from shapely import LineString, Point, box, unary_union
 
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.render.engines import ImageRenderEngine
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
@@ -36,7 +36,7 @@ PREVIEW_MIN_Y = 100
 
 
 def set_tile_access_cookie(request, response):
-    access_permissions = AccessPermission.get_for_request(request)
+    access_permissions = MapPermissionsFromRequest(request).access_restrictions
     if access_permissions:
         cookie = build_tile_access_cookie(access_permissions, settings.SECRET_TILE_KEY)
         response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, cookie, max_age=60,
