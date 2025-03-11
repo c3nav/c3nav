@@ -21,7 +21,7 @@ from django.utils.translation import gettext_lazy as _, get_language, get_langua
 from django.utils.translation import ngettext_lazy
 from shapely import Point
 
-from c3nav.api.schema import GeometryByLevelSchema
+from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
@@ -401,19 +401,21 @@ class SpecificLocation(Location, models.Model):
             nearby=None,  # todo: add nearby information
         )
 
-    def get_geometry(self, request) -> GeometryByLevelSchema:
+    @property
+    def geometries_by_level(self) -> GeometriesByLevelSchema:
         # todo: eventually include dynamic targets in here?
         result = {}
         for target in self.get_static_targets():
-            for level_id, geometries in target.get_geometry(request).items():
+            for level_id, geometries in target.geometries_by_level.items():
                 result.setdefault(level_id, []).extend(geometries)
         return result
 
-    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
+    @property
+    def geometries_or_points_by_level(self) -> GeometriesByLevelSchema:
         # todo: eventually include dynamic targets in here?
         result = {}
         for target in self.get_static_targets():
-            target_geometry = target.get_geometry(request)
+            target_geometry = target.geometries_by_level
             if target_geometry:
                 for level_id, geometries in target_geometry.items():
                     result.setdefault(level_id, []).extend(geometries)
@@ -516,7 +518,8 @@ class SpecificLocationTargetMixin(models.Model):
             return None
         return colors[0]
 
-    def get_geometry(self, request) -> GeometryByLevelSchema:
+    @property
+    def geometries_by_level(self) -> GeometriesByLevelSchema:
         return {}
 
     @property
@@ -814,6 +817,9 @@ class Position(models.Model):
     can_search = True
     can_describe = False
 
+    geometries_by_level = {}
+    geometries_or_points_by_level = {}
+
     class Meta:
         verbose_name = _('Dynamic position')
         verbose_name_plural = _('Dynamic position')
@@ -925,11 +931,6 @@ class Position(models.Model):
             ],
         }
 
-    def get_geometry(self, request) -> GeometryByLevelSchema:
-        return {}
-
-    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
-        return {}
 
     def save(self, *args, **kwargs):
         with transaction.atomic():

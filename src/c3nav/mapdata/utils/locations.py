@@ -12,8 +12,9 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from pydantic import PositiveInt
 from shapely.ops import unary_union
+from shapely import Point
 
-from c3nav.api.schema import GeometryByLevelSchema
+from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
@@ -411,10 +412,12 @@ class CustomLocation:
             result['display'].pop(6)
         return result
 
-    def get_geometry(self, request) -> GeometryByLevelSchema:
+    @property
+    def geometries_by_level(self) -> GeometriesByLevelSchema:
         return {}
 
-    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
+    @property
+    def geometries_or_points_by_level(self) -> GeometriesByLevelSchema:
         return {self.level.pk: [Point(self.x, self.y)]}
 
     @cached_property
