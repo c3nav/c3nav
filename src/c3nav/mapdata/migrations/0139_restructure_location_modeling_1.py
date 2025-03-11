@@ -221,7 +221,6 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Dynamic locations',
                 'default_related_name': 'dynamiclocations',
             },
-            bases=(c3nav.mapdata.models.locations.CustomLocationProxyMixin, models.Model),
         ),
         migrations.CreateModel(
             name='LocationGroup',
