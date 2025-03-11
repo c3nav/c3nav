@@ -26,7 +26,7 @@ from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_map
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
-from c3nav.mapdata.permissions import MapPermissionsFromRequest
+from c3nav.mapdata.permissions import MapPermissionsFromRequest, active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -102,7 +102,7 @@ def level_detail(request, pk):
 @sidebar_view
 def space_detail(request, level, pk):
     # todo: HOW TO GET DATA
-    space = get_object_or_404(Space.select_related('level'), level__pk=level, pk=pk)
+    space = get_object_or_404(Space.objects.select_related('level'), level__pk=level, pk=pk)
 
     edit_utils = SpaceChildEditUtils(space)
 
@@ -194,7 +194,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'model_title': model._meta.verbose_name,
         'can_edit': can_edit_changeset,
         'new': new,
-        'title': hasattr(obj, 'title', str(obj)) if obj else None,
+        'title': getattr(obj, 'title', str(obj)) if obj else None,
         'geometry_url': geometry_url,
     }
 
