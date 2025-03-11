@@ -759,13 +759,6 @@ class LoadGroup(models.Model):
         default_related_name = 'labelgroup'
 
 
-class CustomLocationProxyMixin:
-    request = None
-
-    def get_custom_location(self, request=None):
-        raise NotImplementedError
-
-
 class DynamicLocation(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
 
