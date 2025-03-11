@@ -4,8 +4,9 @@ import pickle
 from collections import deque
 from dataclasses import dataclass, field
 from functools import reduce
+from itertools import chain
 from operator import itemgetter
-from typing import Optional, TypeVar, Generic, Sequence, TypeAlias, ClassVar, NamedTuple, Union
+from typing import Optional, Sequence, TypeAlias, ClassVar, NamedTuple, Union
 
 import numpy as np
 from django.conf import settings
@@ -16,11 +17,11 @@ from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 from shapely.ops import unary_union
 from twisted.protocols.amp import Decimal
 
-from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
+from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
-from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
+from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.permissions import active_map_permissions
+from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
@@ -53,7 +54,7 @@ class Router:
     levels: dict[int, "RouterLevel"]
     spaces: dict[int, "RouterSpace"]
     areas: dict[int, "RouterArea"]
-    pois: dict[int, "RouterPoint"]
+    pois: dict[int, "RouterPOI"]
     specificlocations: dict[int, Union["RouterLocation"]]
     groups: dict[int, "RouterGroup"]
     restrictions: dict[int, "RouterRestriction"]
@@ -68,6 +69,11 @@ class Router:
 
     @classmethod
     def rebuild(cls, update):
+        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+            return cls._rebuild(update)
+
+    @classmethod
+    def _rebuild(cls, update):
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'locations__groups',
                                                       'spaces__holes', 'spaces__columns', 'spaces__locations__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
@@ -78,7 +84,7 @@ class Router:
         levels: dict[int, RouterLevel] = {}
         spaces: dict[int, RouterSpace] = {}
         areas: dict[int, RouterArea] = {}
-        pois: dict[int, RouterPoint] = {}
+        pois: dict[int, RouterPOI] = {}
         specificlocations: dict[int, RouterLocation] = {}
         groups: dict[int, RouterGroup] = {}
         restrictions: dict[int, RouterRestriction] = {}
@@ -127,52 +133,51 @@ class Router:
                 nodes.extend(space_nodes)
 
                 space_obj = space
-                space = RouterSpace(space)
-                space.nodes = set(node.i for node in space_nodes)
+                routerspace = RouterSpace(space)
+                routerspace.nodes = set(node.i for node in space_nodes)
 
                 for area in space_obj.areas.all():
                     for location in area.locations.all():
                         for group in location.groups.all():
                             groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
-                    # area._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
 
-                    area = RouterArea(area)
-                    area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
-                    area.nodes = set(node.i for node in area_nodes)
+                    routerarea = RouterArea(area)
+                    area_nodes = tuple(node for node in space_nodes if routerarea.geometry_prep.intersects(node.point))
+                    routerarea.nodes = set(node.i for node in area_nodes)
                     for node in area_nodes:
                         node.areas.add(area.pk)
-                    if not area.nodes and space_nodes:
+                    if not routerarea.nodes and space_nodes:
                         nearest_node = min(space_nodes, key=lambda node: area.geometry.distance(node.point))
-                        area.nodes.add(nearest_node.i)
-                    areas[area.pk] = area
-                    space.areas.add(area.pk)
+                        routerarea.nodes.add(nearest_node.i)
+                    areas[area.pk] = routerarea
+                    routerspace.areas.add(area.pk)
                     for location in area.locations.all():
-                        specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(area)
+                        specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(routerarea)
 
-                for area in level.altitudeareas.all():
-                    area.geometry = unwrap_geom(area.geometry).buffer(0)
-                    if not space.geometry_prep.intersects(unwrap_geom(area.geometry)):
+                for altitudearea in level.altitudeareas.all():
+                    altitudearea.geometry = unwrap_geom(altitudearea.geometry).buffer(0)
+                    if not routerspace.geometry_prep.intersects(unwrap_geom(altitudearea.geometry)):
                         continue
-                    for subgeom in assert_multipolygon(accessible_geom.intersection(unwrap_geom(area.geometry))):
+                    for subgeom in assert_multipolygon(accessible_geom.intersection(unwrap_geom(altitudearea.geometry))):
                         if subgeom.is_empty:
                             continue
                         area_clear_geom = unary_union(tuple(get_rings(subgeom.difference(obstacles_geom))))
                         if area_clear_geom.is_empty:
                             continue
-                        area = RouterAltitudeArea(
+                        routeraltitudearea = RouterAltitudeArea(
                             geometry=subgeom,
                             clear_geometry=area_clear_geom,
-                            altitude=area.altitude,
-                            points=area.points
+                            altitude=altitudearea.altitude,
+                            points=altitudearea.points
                         )
-                        area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
-                        area.nodes = frozenset(node.i for node in area_nodes)
+                        area_nodes = tuple(node for node in space_nodes if routeraltitudearea.geometry_prep.intersects(node.point))
+                        routeraltitudearea.nodes = frozenset(node.i for node in area_nodes)
                         for node in area_nodes:
-                            altitude = area.get_altitude(Point(node.xyz[:2]))
+                            altitude = routeraltitudearea.get_altitude(Point(node.xyz[:2]))
                             if node.altitude is None or node.altitude < altitude:
                                 node.altitude = altitude
 
-                        space.altitudeareas.append(area)
+                        routerspace.altitudeareas.append(routeraltitudearea)
 
                 for node in space_nodes:
                     if node.altitude is not None:
@@ -186,7 +191,7 @@ class Router:
                         node.altitude = float(level.base_altitude)
                         logger.info('Space %d has no altitude areas' % space.pk)
 
-                for area in space.altitudeareas:
+                for area in routerspace.altitudeareas:
                     # create fallback nodes
                     if not area.nodes and space_nodes:
                         fallback_point = good_representative_point(area.clear_geometry)
@@ -217,21 +222,20 @@ class Router:
                     for location in poi.locations.all():
                         for group in location.groups.all():
                             groups.setdefault(group.pk, RouterGroup()).specificlocations.add(location.pk)
-                    # poi._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
 
-                    poi = RouterPoint(poi)
+                    routerpoi = RouterPOI(poi)
                     try:
-                        altitudearea = space.altitudearea_for_point(unwrap_geom(poi.geometry))
-                        poi.altitude = altitudearea.get_altitude(poi.geometry)
-                        poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
+                        routeraltitudearea = routerspace.altitudearea_for_point(unwrap_geom(poi.geometry))
+                        routerpoi.altitude = routeraltitudearea.get_altitude(poi.geometry)
+                        poi_nodes = routeraltitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
                     except LocationUnreachable:
                         poi_nodes = {}
-                    poi.nodes = set(i for i in poi_nodes.keys())
-                    poi.nodes_addition = poi_nodes
-                    pois[poi.pk] = poi
-                    space.pois.add(poi.pk)
+                    routerpoi.nodes = set(i for i in poi_nodes.keys())
+                    routerpoi.nodes_addition = poi_nodes
+                    pois[poi.pk] = routerpoi
+                    routerspace.pois.add(poi.pk)
                     for location in poi.locations.all():
-                        specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(poi)
+                        specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(routerpoi)
 
                 for column in space_obj.columns.all():
                     if column.access_restriction_id is None:
@@ -242,20 +246,18 @@ class Router:
                     restrictions.setdefault(column.access_restriction_id,
                                             RouterRestriction()).additional_nodes.update(column_nodes)
 
-                # space_obj._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
+                routerspace.geometry = accessible_geom
 
-                space.src.geometry = accessible_geom
-
-                spaces[space.pk] = space
+                spaces[space.pk] = routerspace
                 for location in space.locations.all():
-                    specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(space)
+                    specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(routerspace)
 
             level_spaces = set(space.pk for space in level.spaces.all())
-            # level._prefetched_objects_cache = {}  # bring back once subtitle, order, etc are precalculated
 
-            level = RouterLevel(level, spaces=level_spaces)
-            level.nodes = set(range(nodes_before_count, len(nodes)))
-            levels[level.pk] = level
+            routerlevel = RouterLevel(level)
+            routerlevel.spaces = level_spaces
+            routerlevel.nodes = set(range(nodes_before_count, len(nodes)))
+            levels[level.pk] = routerlevel
             for location in level.locations.all():
                 specificlocations.setdefault(location.pk, RouterLocation(location)).targets.append(level)
 
@@ -302,10 +304,10 @@ class Router:
                 restrictions.setdefault(edge.access_restriction, RouterRestriction()).edges.append(index)
 
         # respect slow_down_factor
-        for area in areas.values():
-            if area.slow_down_factor != 1:
-                area_nodes = np.array(tuple(area.nodes), dtype=np.uint32)
-                graph[area_nodes.reshape((-1, 1)), area_nodes] *= float(area.slow_down_factor)
+        for routerarea in areas.values():
+            if routerarea.slow_down_factor != 1:
+                area_nodes = np.array(tuple(routerarea.nodes), dtype=np.uint32)
+                graph[area_nodes.reshape((-1, 1)), area_nodes] *= float(routerarea.slow_down_factor)
 
         # finalize waytype matrixes
         for i, waytype in enumerate(waytypes):
@@ -354,10 +356,10 @@ class Router:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
-    def locationpoint_to_routerpoint(self, locationpoint: LocationPoint,
-                                     restrictions: "RouterRestrictionSet") -> Optional["RouterPoint"]:
+    def locationpoint_to_routercoordinates(self, locationpoint: LocationPoint,
+                                           restrictions: "RouterRestrictionSet") -> Optional["RouterCoordinates"]:
         point = Point(locationpoint[1:])
-        routerpoint = RouterPoint(CustomLocation(*locationpoint))
+        routerpoint = RouterCoordinates(CustomLocation(*locationpoint))
         space = self.space_for_point(locationpoint[0], point, restrictions)
         if space is None:
             return None
@@ -394,7 +396,7 @@ class Router:
             # anything else… we just use what LocationProtocol provides
             locations = tuple(
                 RouterLocation(location, targets=[routerpoint])
-                for routerpoint in (self.locationpoint_to_routerpoint(locationpoint, restrictions)
+                for routerpoint in (self.locationpoint_to_routercoordinates(locationpoint, restrictions)
                                     for locationpoint in location.points)
                 if routerpoint
             )
@@ -404,7 +406,7 @@ class Router:
             dynamic_state = sublocation.dynamic_state
             if dynamic_state:
                 sublocation.targets.extend(filter(None, (
-                    self.locationpoint_to_routerpoint(locationpoint, restrictions)
+                    self.locationpoint_to_routercoordinates(locationpoint, restrictions)
                     for locationpoint in dynamic_state.dynamic_points
                 )))
 
@@ -451,11 +453,12 @@ class Router:
 
     def describe_custom_location(self, location: CustomLocation):
         restrictions = self.get_restrictions(active_map_permissions.access_restrictions)
+
         point = Point(location.point[1:])
         space = self.space_for_point(level=location.level.pk, point=point, restrictions=restrictions)
         if not space:
             return CustomLocationDescription(
-                space=space.get_location(can_describe=True) if space else None, space_geometry=space,
+                space=space.get_location() if space else None, space_geometry=space,
                 altitude=None, areas=(), near_area=None, near_poi=None, nearby=()
             )
         try:
@@ -479,13 +482,13 @@ class Router:
                 min_i = i
         nearby = tuple(location for location, distance in nearby[:max(20, min_i)])
         return CustomLocationDescription(
-            space=space.get_location(can_describe=True) if space else None,
+            space=space.get_location() if space else None,
             space_geometry=space,
             altitude=altitude,
-            areas=tuple(filter(None, (area.get_location(can_describe=True) for area in areas))),
-            near_area=near_area.get_location(can_describe=True) if near_area else None,
-            near_poi=near_poi.get_location(can_describe=True) if near_poi else None,
-            nearby=tuple(filter(None, (n.get_location(can_describe=True) for n in nearby)))
+            areas=tuple(filter(None, (area.get_location() for area in areas))),
+            near_area=near_area.get_location() if near_area else None,
+            near_poi=near_poi.get_location() if near_poi else None,
+            nearby=tuple(filter(None, (n.get_location() for n in nearby)))
         )
 
     @cached_property
@@ -576,7 +579,6 @@ class Router:
 
     def get_route(self, origin: LocationProtocol, destination: LocationProtocol, options: RouteOptions):
         restrictions = self.get_restrictions(active_map_permissions.access_restrictions)
-        visible_locations = get_visible_locations()
 
         # get possible origins and destinations
         origins = self.get_locations(origin, restrictions)
@@ -615,22 +617,21 @@ class Router:
         return Route(
             router=self,
             origin=RouteLocation(
-                location=final_origin.location,
+                location=final_origin.location.get_actual_location(),
                 point=final_origin.point,
                 dotted=bool(final_origin.get_nodes_addition(restrictions).get(origin_node))
             ),
             destination=RouteLocation(
-                location=final_destination.location,
+                location=final_destination.location.get_actual_location(),
                 point=final_destination.point,
                 dotted=bool(final_destination.get_nodes_addition(restrictions).get(destination_node))
             ),
             path_nodes=tuple(path_nodes),
             options=options,
-            origin_addition=final_origin.target.get_nodes_addition(restrictions).get(origin_node),
-            destination_addition=final_destination.target.get_nodes_addition(restrictions).get(destination_node),
+            origin_addition=final_origin.get_nodes_addition(restrictions).get(origin_node),
+            destination_addition=final_destination.get_nodes_addition(restrictions).get(destination_node),
             origin_xyz=final_origin.xyz,
             destination_xyz=final_destination.xyz,
-            visible_locations=visible_locations
         )
 
 
@@ -645,49 +646,69 @@ class CustomLocationDescription(NamedTuple):
     nearby: Sequence[SpecificLocation]
 
 
-# todo: switch to new syntax… bound?
-RouterProxiedType = TypeVar('RouterProxiedType')
-
-
 @dataclass
-class BaseRouterProxy(Generic[RouterProxiedType]):
-    src: RouterProxiedType
-    nodes: set[int] = field(default_factory=set)
-    nodes_addition: NodeConnectionsByNode = field(default_factory=dict)
+class BaseRouterTarget:
+    def __init__(self, src):
+        self.point = src.point
+        self.nodes: set[int] = set()
+        self.nodes_addition: NodeConnectionsByNode = {}
+        self.access_restriction_id: int | None = src.access_restriction_id
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         raise NotImplementedError
 
+
+@dataclass
+class BaseRouterDatabaseTarget(BaseRouterTarget):
+    def __init__(self, src):
+        super().__init__(src)
+        self.pk = src.id
+        self.sorted_locations: list[int] = [location.pk for location in src.sorted_locations]
+
+    def get_location(self) -> SpecificLocation | None:
+        # todo: do this nicer eventually
+        visible_locations = get_visible_locations()
+        return next(iter(chain(
+            filter(None, (visible_locations.get(pk, None) for pk in self.sorted_locations)),
+            (None, )
+        )))
+
+
+@dataclass
+class BaseRouterGeometryTarget(BaseRouterDatabaseTarget):
+    def __init__(self, src):
+        super().__init__(src)
+        self.geometry = src.geometry
+
     @cached_property
     def geometry_prep(self):
-        return prepared.prep(unwrap_geom(self.src.geometry))
+        return prepared.prep(unwrap_geom(self.geometry))
 
     def __getstate__(self):
         result = self.__dict__.copy()
         result.pop('geometry_prep', None)
         return result
 
-    def __getattr__(self, name):
-        if name == '__setstate__':
-            raise AttributeError
-        return getattr(self.src, name)
-
 
 @dataclass
-class RouterLevel(BaseRouterProxy[Level]):
-    spaces: set[int] = field(default_factory=set)
+class RouterLevel(BaseRouterDatabaseTarget):
+    def __init__(self, src: Level):
+        super().__init__(src)
+        self.spaces: set[int] = set()
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         return self.access_restriction_id not in restrictions
 
 
 @dataclass
-class RouterSpace(BaseRouterProxy[Space]):
-    areas: set[int] = field(default_factory=set)
-    pois: set[int] = field(default_factory=set)
-    altitudeareas: list["RouterAltitudeArea"] = field(default_factory=list)
-    leave_descriptions: dict[int, Promise] = field(default_factory=dict)
-    cross_descriptions: dict[tuple[int, int], Promise] = field(default_factory=dict)
+class RouterSpace(BaseRouterGeometryTarget):
+    def __init__(self, src: Space):
+        super().__init__(src)
+        self.areas: set[int] = set()
+        self.pois: set[int] = set()
+        self.altitudeareas: list[RouterAltitudeArea] = []
+        self.leave_descriptions: dict[int, Promise] = {}
+        self.cross_descriptions: dict[tuple[int, int], Promise] = {}
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         return self.pk not in restrictions.spaces
@@ -732,14 +753,24 @@ class RouterSpace(BaseRouterProxy[Space]):
 
 
 @dataclass
-class RouterArea(BaseRouterProxy[Area]):
+class RouterArea(BaseRouterGeometryTarget):
+    def __init__(self, src: Area):
+        super().__init__(src)
+        self.space_id: int = src.space_id
+        self.slow_down_factor: Decimal = src.slow_down_factor
+
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         return self.space_id not in restrictions.spaces and self.access_restriction_id not in restrictions
 
 
 @dataclass
-class RouterPoint(BaseRouterProxy[POI | CustomLocation]):
-    altitude: float | None = None
+class RouterPOI(BaseRouterGeometryTarget):
+    def __init__(self, src: POI):
+        super().__init__(src)
+        self.space_id: int = src.space_id
+        self.x = src.x
+        self.y = src.y
+        self.altitude: float | None = None
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         return self.space_id not in restrictions.spaces and self.access_restriction_id not in restrictions
@@ -749,13 +780,29 @@ class RouterPoint(BaseRouterProxy[POI | CustomLocation]):
         return np.array((self.x, self.y, self.altitude))
 
 
-RouterLocationTarget: TypeAlias = Union["RouterLevel", "RouterSpace", "RouterArea", "RouterPoint"]
+@dataclass
+class RouterCoordinates(BaseRouterTarget):
+    def __init__(self, src: CustomLocation):
+        super().__init__(src)
+        self.x = src.x
+        self.y = src.y
+        self.altitude: float | None = None
+
+    def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
+        return True
+
+    @cached_property
+    def xyz(self):
+        return np.array((self.x, self.y, self.altitude))
+
+
+RouterTarget: TypeAlias = Union["RouterLevel", "RouterSpace", "RouterArea", "RouterPOI", "RouterCoordinates"]
 
 
 @dataclass
 class RouterLocation:
     src: LocationProtocol
-    targets: list[RouterLocationTarget] = field(default_factory=list)
+    targets: list[RouterTarget] = field(default_factory=list)
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         # todo: implement this differently, obviously
@@ -774,7 +821,7 @@ class RouterLocation:
             set()
         )
 
-    def get_target_for_node(self, node, restrictions: "RouterRestrictionSet") -> RouterLocationTarget | None:
+    def get_target_for_node(self, node, restrictions: "RouterRestrictionSet") -> RouterTarget | None:
         for target in self.targets:
             if target.can_see(restrictions) and node in target.nodes:
                 return target
@@ -787,6 +834,10 @@ class RouterLocation:
             (target.nodes_addition for target in self.targets if target.can_see(restrictions)),
             {}
         )
+
+    def get_actual_location(self):
+        # todo: we want to get rid of src at some point
+        return self.src
 
 
 @dataclass
@@ -916,7 +967,7 @@ class RouterWayType:
 @dataclass
 class RouterLocationWithTarget:
     location: RouterLocation
-    target: RouterLocationTarget
+    target: RouterTarget
 
     @property
     def point(self) -> LocationPoint:
@@ -927,7 +978,7 @@ class RouterLocationWithTarget:
         return getattr(self.target, 'xyz', None)
 
     def get_nodes_addition(self, restrictions: "RouterRestrictionSet"):
-        return self.target.get_nodes_addition(restrictions)
+        return self.location.get_nodes_addition(restrictions)
 
 
 @dataclass

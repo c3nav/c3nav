@@ -133,7 +133,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'nearby': True if nearby else False,
     }
 
-    levels = levels_by_level_index_for_request(request)
+    levels = levels_by_level_index_for_request()
 
     level = levels.get(pos.level, None) if pos else None
     if level is not None:
