@@ -52,18 +52,16 @@ def get_user_data(request):
 
 
 class CachedGetUserData:
-    def __init__(self, request):
-        self.request = request
+    def __init__(self):
         self.cached = None
 
-    def __call__(self) -> dict:
+    def __call__(self, request) -> dict:
         if self.cached is None:
-            self.cached = get_user_data(self.request)
+            self.cached = get_user_data(request)
         return self.cached
 
 
-def get_user_data_lazy(request):
-    return lazy(CachedGetUserData(request), dict)()
+get_user_data_lazy = lazy(CachedGetUserData(), dict)
 
 
 def can_access_editor(request):

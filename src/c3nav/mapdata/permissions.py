@@ -53,9 +53,9 @@ class MapPermissionsFromRequest(metaclass=CachedMapPermissionsFromX):
         return self.request.user_permissions.base_mapdata_access
 
     @cached_property
-    def sources_access(self):
+    def view_sources(self):
         # todo: tbh, this should just go via access permissions, no need to introduce this
-        return self.request.user_permissions.view_sources
+        return self.request.user_permissions.sources_access
 
 
 class MapPermissionsFromUser(metaclass=CachedMapPermissionsFromX):
@@ -81,9 +81,9 @@ class MapPermissionsFromUser(metaclass=CachedMapPermissionsFromX):
         return self.user.permissions.base_mapdata_access
 
     @cached_property
-    def sources_access(self):
+    def view_sources(self):
         # todo: tbh, this should just go via access permissions, no need to introduce this
-        return self.user.permissions.view_sources
+        return self.user.permissions.sources_access
 
 
 @dataclass(frozen=True)  # frozen seemed like a good idea but we could change it – if we rely on it, edit this comment

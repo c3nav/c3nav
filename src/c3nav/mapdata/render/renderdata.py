@@ -14,6 +14,7 @@ from shapely.prepared import PreparedGeometry
 
 from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.models.theme import Theme
+from c3nav.mapdata.permissions import ManualMapPermissions, active_map_permissions
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, SingleLevelGeometries, CompositeLevelGeometries
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 from c3nav.mapdata.utils.cache.package import CachePackage
@@ -57,6 +58,11 @@ class LevelRenderData:
 
     @staticmethod
     def rebuild(update_cache_key):
+        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+            return LevelRenderData._rebuild(update_cache_key)
+
+    @staticmethod
+    def _rebuild(update_cache_key):
         # Levels are automatically sorted by base_altitude, ascending
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
