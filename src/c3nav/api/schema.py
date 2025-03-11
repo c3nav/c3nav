@@ -203,7 +203,7 @@ class AnyGeometrySchema(BaseSchema):
     coordinates: Any
 
 
-GeometryByLevelSchema: TypeAlias = dict[int, list[GeometrySchema]]
+GeometriesByLevelSchema: TypeAlias = dict[int, list[GeometrySchema]]
 
 
 class StatsSchema(BaseSchema):
