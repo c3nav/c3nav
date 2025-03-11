@@ -42,6 +42,7 @@ def api_etag(permissions=True, quests=False, etag_func=active_map_permissions.et
         @wraps(func)
         def inner_wrapped_func(request, *args, **kwargs):
             # calculate the ETag
+            print(type(request), repr(request))
             response_format = "json"
             raw_etag = '%s:%s:%s' % (response_format, get_language(),
                                      (etag_func(request) if permissions else MapUpdate.current_cache_key()))
