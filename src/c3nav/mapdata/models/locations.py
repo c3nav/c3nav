@@ -30,11 +30,11 @@ from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
-from c3nav.mapdata.utils.locations import CustomLocation
 
 if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager  # noqa
     from c3nav.mapdata.models import Level, Space, Area, POI
+    from c3nav.mapdata.utils.locations import CustomLocation
 
 
 class LocationSlugManager(models.Manager):
@@ -771,7 +771,7 @@ class DynamicLocation(SpecificLocationTargetMixin, AccessRestrictionMixin, model
         pass
 
     @property
-    def coordinates(self) -> CustomLocation | None:
+    def coordinates(self) -> Optional["CustomLocation"]:
         if not self.position_secret:
             return None
         try:

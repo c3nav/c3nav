@@ -27,9 +27,8 @@ def make_serializable(values: Any):
             key: make_serializable(val)
             for key, val in values.items()
         }
-    from c3nav.routing.router import BaseRouterProxy
     if isinstance(values, (list, tuple, set, frozenset)):
-        if values and isinstance(next(iter(values)), (Model, BaseRouterProxy)):
+        if values and isinstance(next(iter(values)), Model):
             return type(values)(val.pk for val in values)
         return type(values)(make_serializable(val) for val in values)
     if isinstance(values, Promise):
