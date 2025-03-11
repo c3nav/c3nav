@@ -371,10 +371,10 @@ class Router:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
-    def locationpoint_to_routerpoint(self, location: LocationProtocol, locationpoint: LocationPoint,
+    def locationpoint_to_routerpoint(self, locationpoint: LocationPoint,
                                      restrictions: "RouterRestrictionSet") -> Optional["RouterPoint"]:
         point = Point(locationpoint[1:])
-        routerpoint = RouterPoint(location)
+        routerpoint = RouterPoint(CustomLocation(*locationpoint))
         space = self.space_for_point(locationpoint[0], point, restrictions)
         if space is None:
             return None
@@ -411,7 +411,7 @@ class Router:
             # anything else… we just use what LocationProtocol provides
             locations = tuple(
                 RouterLocation(location, targets=[routerpoint])
-                for routerpoint in (self.locationpoint_to_routerpoint(location, locationpoint, restrictions)
+                for routerpoint in (self.locationpoint_to_routerpoint(locationpoint, restrictions)
                                     for locationpoint in location.points)
                 if routerpoint
             )
@@ -421,7 +421,7 @@ class Router:
             dynamic_state = sublocation.dynamic_state
             if dynamic_state:
                 sublocation.targets.extend(filter(None, (
-                    self.locationpoint_to_routerpoint(location, locationpoint, restrictions)
+                    self.locationpoint_to_routerpoint(locationpoint, restrictions)
                     for locationpoint in dynamic_state.dynamic_points
                 )))
 
@@ -632,12 +632,10 @@ class Router:
             raise NoRouteFound
 
         # get best origin and destination
-        origin, origin_target = origins.get_location_for_node(origin_node,
-                                                              restrictions=restrictions)
-        destination, destination_target = destinations.get_location_for_node(destination_node,
-                                                                             restrictions=restrictions)
+        final_origin = origins.get_location_for_node(origin_node, restrictions=restrictions)
+        final_destination = destinations.get_location_for_node(destination_node, restrictions=restrictions)
 
-        if origin is None or destination is None:
+        if final_origin is None or final_destination is None:
             raise ValueError
 
         # recreate path
@@ -650,21 +648,21 @@ class Router:
         return Route(
             router=self,
             origin=RouteLocation(
-                location=origin,
-                point=origin_target.point,
-                dotted=bool(origin.get_nodes_addition(restrictions).get(origin_node))
+                location=final_origin.location,
+                point=final_origin.point,
+                dotted=bool(final_origin.get_nodes_addition(restrictions).get(origin_node))
             ),
             destination=RouteLocation(
-                location=destination,
-                point=destination_target.point,
-                dotted=bool(destination.get_nodes_addition(restrictions).get(destination_node))
+                location=final_destination.location,
+                point=final_destination.point,
+                dotted=bool(final_destination.get_nodes_addition(restrictions).get(destination_node))
             ),
             path_nodes=tuple(path_nodes),
             options=options,
-            origin_addition=origin.get_nodes_addition(restrictions).get(origin_node),
-            destination_addition=destination.get_nodes_addition(restrictions).get(destination_node),
-            origin_xyz=origin.xyz if isinstance(origin, RouterPoint) else None,
-            destination_xyz=destination.xyz if isinstance(destination, RouterPoint) else None,
+            origin_addition=final_origin.target.get_nodes_addition(restrictions).get(origin_node),
+            destination_addition=final_destination.target.get_nodes_addition(restrictions).get(destination_node),
+            origin_xyz=final_origin.xyz,
+            destination_xyz=final_destination.xyz,
             visible_locations=visible_locations
         )
 
@@ -793,7 +791,7 @@ class RouterArea(BaseRouterProxy[Area]):
 
 
 @dataclass
-class RouterPoint(BaseRouterProxy[POI | CustomLocation | CustomLocationProxyMixin]):
+class RouterPoint(BaseRouterProxy[POI | CustomLocation]):
     altitude: float | None = None
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
@@ -969,6 +967,23 @@ class RouterWayType:
 
 
 @dataclass
+class RouterLocationWithTarget:
+    location: RouterLocation
+    target: RouterLocationTarget
+
+    @property
+    def point(self) -> LocationPoint:
+        return self.target.point
+
+    @property
+    def xyz(self) -> tuple[float, float, float] | None:
+        return getattr(self.target, 'xyz', None)
+
+    def get_nodes_addition(self, restrictions: "RouterRestrictionSet"):
+        return self.target.get_nodes_addition(restrictions)
+
+
+@dataclass
 class RouterLocationSet:
     """
     Describes a Location selected as an origin or destination for a route. This might match multiple locations,
@@ -984,15 +999,13 @@ class RouterLocationSet:
             frozenset()
         )
 
-    def get_location_for_node(self, node,
-                              restrictions: "RouterRestrictionSet") -> (tuple[RouterLocation, RouterLocationTarget]
-                                                                        | tuple[None, None]):
+    def get_location_for_node(self, node, restrictions: "RouterRestrictionSet") -> RouterLocationWithTarget | None:
         for location in self.locations:
             if location.can_see(restrictions):
                 target = location.get_target_for_node(node, restrictions=restrictions)
                 if target:
-                    return location, target
-        return None, None
+                    return RouterLocationWithTarget(location, target)
+        return None
 
 
 @dataclass

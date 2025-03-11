@@ -30,6 +30,7 @@ from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
+from c3nav.mapdata.utils.locations import CustomLocation
 
 if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager  # noqa
@@ -344,7 +345,7 @@ class SpecificLocation(Location, models.Model):
             if static_targets:
                 return static_targets[0].subtitle
             elif dynamic:
-                return dynamic_targets[0].get_custom_location().subtitle  # todo: this should use the request
+                return dynamic_targets[0].coordinates.subtitle
         # todo: make this work better for multiple targets
         return None
 
@@ -776,13 +777,12 @@ class DynamicLocation(SpecificLocationTargetMixin, AccessRestrictionMixin, model
     def register_change(self, force=False):
         pass
 
-    def get_custom_location(self, request=None):
+    @property
+    def coordinates(self) -> CustomLocation | None:
         if not self.position_secret:
             return None
         try:
-            return Position.objects.get(secret=self.position_secret).get_custom_location(
-                request=request if request is not None else self.request
-            )
+            return Position.objects.get(secret=self.position_secret).coordinates
         except Position.DoesNotExist:
             return None
 
@@ -833,12 +833,6 @@ class Position(models.Model):
             if timezone.now() >= end_time:
                 self.coordinates = None
                 self.last_coordinates_update = end_time
-
-    def get_custom_location(self, request=None):
-        # todo: GET RID OF THIS
-        if request is not None:
-            self.request = request  # todo: this is ugly, yes
-        return self.coordinates
 
     @property
     def slug(self):
