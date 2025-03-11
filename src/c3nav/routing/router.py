@@ -19,7 +19,7 @@ from twisted.protocols.amp import Decimal
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
-from c3nav.mapdata.models.locations import CustomLocationProxyMixin, SpecificLocation
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
