@@ -51,7 +51,7 @@ def merge_bounds(*bounds: BoundsByLevelSchema) -> BoundsByLevelSchema:
             for level_id, zipped in zipped_bounds.items()}
 
 
-def get_locations() -> dict[int, Location]:
+def get_locations() -> dict[int, SpecificLocation | LocationGroup]:
     """
     Return all locations for this map permission context, by ID.
     This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
@@ -59,7 +59,7 @@ def get_locations() -> dict[int, Location]:
     """
     # todo this takes a long time because it's a lot of data, we might want to change that
     cache_key = f'mapdata:locations:{active_map_permissions.cache_key}'
-    locations: dict[int, Location]
+    locations: dict[int, SpecificLocation | LocationGroup]
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
@@ -181,6 +181,7 @@ def get_visible_locations() -> dict[int, Location]:
     This list has to be per context, because it includes the correct prefetch_related visibility filters etc,
     This returns a dictionary, which is already sorted by order.
     """
+    # todo: cache this better, obviously
     return {
         pk: location
         for pk, location in get_locations().items()
@@ -194,6 +195,7 @@ def get_searchable_locations() -> dict[int, Location]:
     This list has to be per context, because it includes the correct prefetch_related visibility filters etc,
     This returns a dictionary, which is already sorted by order.
     """
+    # todo: cache this better, obviously
     return {
         pk: location
         for pk, location in get_locations().items()
@@ -225,9 +227,9 @@ def _locations_by_slug() -> Mapping[NonEmptyStr, SlugTarget]:
     return locations
 
 
-def levels_by_level_index_for_request(request) -> Mapping[str, Level]:
+def levels_by_level_index_for_request() -> Mapping[str, Level]:
     """
-    Get mapping of level index to level for requestz
+    Get mapping of level index to level
     """
     cache_key = 'mapdata:levels:by_level_index:%s' % active_map_permissions.cache_key
     levels = proxied_cache.get(cache_key, None)
@@ -244,14 +246,14 @@ def levels_by_level_index_for_request(request) -> Mapping[str, Level]:
     return levels
 
 
-def get_custom_location_for_request(identifier: CustomLocationIdentifier, request) -> Optional["CustomLocation"]:
+def get_custom_location_for_request(identifier: CustomLocationIdentifier) -> Optional["CustomLocation"]:
     """
     Get a custom location based on the given identifier
     """
     match = re.match(r'^c:(?P<level>[a-z0-9-_.]+):(?P<x>-?\d+(\.\d+)?):(?P<y>-?\d+(\.\d+)?)$', identifier)
     if match is None:
         return None
-    level = levels_by_level_index_for_request(request).get(match.group('level'))
+    level = levels_by_level_index_for_request().get(match.group('level'))
     if not isinstance(level, Level):
         return None
     return CustomLocation(
@@ -384,29 +386,29 @@ class CustomLocation:
                 (_('ID'), self.id),
                 (_('Slug'), self.id),
                 (_('Level'), self.level.for_details_display()),
-                (_('Space'), self.space.for_details_display() if self.space else None),
+                (_('Space'), self._description.space.for_details_display() if self._description.space else None),
                 (_('Areas'), tuple({
                     'id': area.pk,
                     'slug': area.effective_slug,
                     'title': area.title,
                     'can_search': area.can_search,
-                } for area in self.areas)),
+                } for area in self._description.areas)),
                 (_('Grid Square'), self.grid_square or None),
                 (_('Near Area'), {
-                    'id': self.near_area.pk,
-                    'slug': self.near_area.effective_slug,
-                    'title': self.near_area.title,
-                    'can_search': self.near_area.can_search,
-                } if self.near_area else None),
+                    'id': self._description.near_area.pk,
+                    'slug': self._description.near_area.effective_slug,
+                    'title': self._description.near_area.title,
+                    'can_search': self._description.near_area.can_search,
+                } if self._description.near_area else None),
                 (_('Near POI'), {
-                    'id': self.near_poi.pk,
-                    'slug': self.near_poi.effective_slug,
-                    'title': self.near_poi.title,
-                    'can_search': self.near_poi.can_search,
-                } if self.near_poi else None),
+                    'id': self._description.near_poi.pk,
+                    'slug': self._description.near_poi.effective_slug,
+                    'title': self._description.near_poi.title,
+                    'can_search': self._description.near_poi.can_search,
+                } if self._description.near_poi else None),
                 (_('X Coordinate'), str(self.x)),
                 (_('Y Coordinate'), str(self.y)),
-                (_('Altitude'), None if self.altitude is None else str(round(self.altitude, 2))),
+                (_('Altitude'), None if self._description.altitude is None else str(round(self.altitude, 2))),
                 (_('Title'), self.title),
                 (_('Subtitle'), self.subtitle),
             ],

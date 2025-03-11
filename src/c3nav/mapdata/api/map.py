@@ -6,7 +6,7 @@ from celery import chain
 from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -25,7 +25,7 @@ from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, \
     BeaconMeasurement
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup, SpecificLocation
+from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
@@ -35,7 +35,7 @@ from c3nav.mapdata.schemas.responses import LocationGeometries, WithBoundsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import (get_searchable_locations,
                                            get_visible_locations,
-                                           LocationRedirect, get_location)
+                                           LocationRedirect, get_location as get_location_from_cache)
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -110,7 +110,7 @@ class ShowRedirects(BaseSchema):
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
-    location = get_location(identifier)
+    location = get_location_from_cache(identifier)
 
     if location is None:
         raise API404()
@@ -122,7 +122,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
             }))
 
     if isinstance(location, (DynamicLocation, Position)):
-        # todo: what does this do?
+        # todo: what does this do? … we don't want to cache dynamic stuff, this caching needs to happen correctly
         request._target_etag = None
         request._target_cache_key = None
 
