@@ -8,22 +8,20 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.models import Location
+from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
+from c3nav.mapdata.utils.locations import get_visible_locations
 from c3nav.routing.models import RouteOptions
 
 if TYPE_CHECKING:
-    from c3nav.routing.router import Router, RouterNode, RouterEdge, RouterLocation
+    from c3nav.routing.router import Router, RouterNode, RouterEdge, RouterLocation, RouterNodeAndEdge
 
 
-def describe_location(location, locations):
-    if hasattr(location, "can_describe") and location.can_describe:
-        final_location = locations.get(location.pk)
+def describe_location(location: LocationProtocol) -> LocationProtocol:
+    if isinstance(location, Location) and hasattr(location, "can_describe") and location.can_describe:
+        final_location = get_visible_locations().get(location.pk)
         if final_location is not None:
             location = final_location
-    # todo: oh my god this needs to be improved
-    from c3nav.routing.router import BaseRouterProxy
-    if isinstance(location, BaseRouterProxy):
-        location = location.src
     return location
 
 
@@ -34,7 +32,7 @@ class RouteNodeWithOptionalEdge(NamedTuple):
 
 @dataclass
 class RouteLocation:
-    location: "RouterLocation"
+    location: LocationProtocol
     point: Optional[LocationPoint]  # point of the actual target
     dotted: bool
 
@@ -50,7 +48,16 @@ class Route:
     destination_addition: Optional["RouterNodeAndEdge"]
     origin_xyz: np.ndarray | None
     destination_xyz: np.ndarray | None
-    visible_locations: Mapping[int, Location]
+
+    def get_end_distance(self, node_with_edge: RouteNodeWithOptionalEdge, xyz: tuple[float, float, float]):
+        if xyz is None:
+            return 0
+        node = (
+            node_with_edge.node
+            if isinstance(node_with_edge.node, RouterNode)
+            else self.router.nodes[node_with_edge.node]
+        )
+        return np.linalg.norm(node.xyz - xyz)
 
     def serialize(self):  # todo: move this into schema
         nodes: list[RouteNodeWithOptionalEdge] = [
@@ -65,21 +72,8 @@ class Route:
             )
 
         # calculate distances from origin and destination to the origin and destination nodes
-        if self.origin_xyz is not None:
-            node = nodes[0][0]
-            if not hasattr(node, 'xyz'):
-                node = self.router.nodes[node]
-            origin_distance = np.linalg.norm(node.xyz - self.origin_xyz)
-        else:
-            origin_distance = 0
-
-        if self.destination_xyz is not None:
-            node = nodes[-1][0]
-            if not hasattr(node, 'xyz'):
-                node = self.router.nodes[node]
-            destination_distance = np.linalg.norm(node.xyz - self.destination_xyz)
-        else:
-            destination_distance = 0
+        origin_distance = self.get_end_distance(nodes[0], self.origin_xyz)
+        destination_distance = self.get_end_distance(nodes[-1], self.destination_xyz)
 
         items: deque[RouteItem] = deque()
         last_node = None
@@ -187,8 +181,8 @@ class Route:
         summary = '%s (%s)' % (duration_str, distance_str)
 
         return OrderedDict((
-            ('origin', describe_location(self.origin, self.visible_locations)),
-            ('destination', describe_location(self.destination, self.visible_locations)),
+            ('origin', describe_location(self.origin.location)),
+            ('destination', describe_location(self.destination.location)),
             ('distance', round(distance, 2)),
             ('duration', round(duration)),
             ('distance_str', distance_str),
@@ -269,11 +263,11 @@ class RouteItem:
 
         if self.new_space:
             # todo: we should describe spaces more nicely
-            result['space'] = describe_location(self.space, self.route.visible_locations)
+            result['space'] = describe_location(self.space)
 
         if self.new_level:
             # todo: we should describe levels more nicely
-            result['level'] = describe_location(self.level, self.route.visible_locations)
+            result['level'] = describe_location(self.level)
 
         result['descriptions'] = [(icon, instruction) for (icon, instruction) in self.descriptions]
         return result

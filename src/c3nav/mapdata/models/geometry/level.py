@@ -32,7 +32,7 @@ from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipo
                                           cut_polygon_with_line, unwrap_geom)
 
 if TYPE_CHECKING:
-    from c3nav.mapdata.permissions import MapPermissions, active_map_permissions
+    from c3nav.mapdata.permissions import MapPermissions
 
 
 class LevelGeometryMixin(GeometryMixin, models.Model):
@@ -144,6 +144,7 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
 
     @property
     def can_access_geometry(self) -> bool:
+        from c3nav.mapdata.permissions import active_map_permissions
         return (self.base_mapdata_accessible
                 or active_map_permissions.all_base_mapdata
                 or self.id in active_map_permissions.spaces)
@@ -244,6 +245,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
     @classmethod
     def recalculate(cls):
+        from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
+        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+            return cls._recalculate()
+
+    @classmethod
+    def _recalculate(cls):
         # collect location areas
         all_areas: list[AltitudeArea] = []  # all non-ramp altitude areas of the entire map
         all_ramps: list[AltitudeArea] = []  # all ramp altitude areas of the entire map
