@@ -31,7 +31,7 @@ from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationIdentifier, PositionIdentifier
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
-from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema, MapSettingsSchema
+from c3nav.mapdata.schemas.responses import LocationGeometries, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.locations import (get_searchable_locations,
                                            get_visible_locations,
@@ -150,25 +150,25 @@ def location_display(request, identifier: LocationIdentifier):
     return json.loads(json.dumps(location, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings
 
 
-@map_api_router.get('/locations/{identifier}/geometry/', summary="location geometry",
-                    description="Get location geometry (if available)",
-                    response={200: LocationGeometry, **API404.dict(), **auth_responses})
-@api_stats('location_geometry')
+@map_api_router.get('/locations/{identifier}/geometries/', summary="location geometries",
+                    description="Get location geometries (if available)",
+                    response={200: LocationGeometries, **API404.dict(), **auth_responses})
+@api_stats('location_geometries')
 @api_etag(base_mapdata=True)
-def location_geometry(request, identifier: LocationIdentifier):
+def location_geometries(request, identifier: LocationIdentifier):
     location = get_location(identifier)
 
     if location is None:
         raise API404()
 
     if isinstance(location, LocationRedirect):
-        return redirect(reverse("api-v2:location_geometry", kwargs={
+        return redirect(reverse("api-v2:location_geometries", kwargs={
             "identifier": location.target.effective_slug,
         }))
 
-    return LocationGeometry(
+    return LocationGeometries(
         identifier=identifier,
-        geometry=location.get_geometry(request)
+        geometries=location.geometries_by_level
     )
 
 

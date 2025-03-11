@@ -2,7 +2,7 @@ from typing import Union, Annotated, Literal, Optional, ClassVar, Protocol
 
 from pydantic import Field as APIField, PositiveInt, NonNegativeInt
 
-from c3nav.api.schema import BaseSchema, GeometryByLevelSchema
+from c3nav.api.schema import BaseSchema, GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.schemas.model_base import (schema_description, LabelSettingsSchema,
                                               LocationPoint, BoundsByLevelSchema, TitleField, LocationIdentifier,
@@ -229,21 +229,12 @@ class LocationProtocol(Protocol):
     dynamic_state: DynamicLocationState | None
     locations: []  # todo: rename to sublocations?
 
+    geometries_by_level: GeometriesByLevelSchema  # geometries of with this location, without point geometries
+    geometries_or_points_by_level: GeometriesByLevelSchema  # geometries of with this location, points as fallback
+
     def details_display(self, editor_url: bool) -> LocationDisplay:
         """
         Get human-readable inforation to display about this location.
-        """
-        pass
-
-    def get_geometry(self, request) -> GeometryByLevelSchema:
-        """
-        Get geometry associated with this location. This will not include point geometries.
-        """
-        pass
-
-    def get_geometry_or_points(self, request) -> GeometryByLevelSchema:
-        """
-        Get geometry associated with this location. This will include points geometries as a fallback.
         """
         pass
 

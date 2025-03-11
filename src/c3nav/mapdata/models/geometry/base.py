@@ -8,7 +8,7 @@ from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
-from c3nav.api.schema import GeometryByLevelSchema
+from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
@@ -91,7 +91,8 @@ class GeometryMixin(models.Model):
     def grid_square(self):
         return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
-    def get_geometry(self, request) -> GeometryByLevelSchema:
+    @property
+    def geometries_by_level(self) -> GeometriesByLevelSchema:
         if "geometry" in self.get_deferred_fields() or self.level_id is None:
             return {}
         if self.can_access_geometry:
