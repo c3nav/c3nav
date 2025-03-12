@@ -22,7 +22,7 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.models import RouteOptions
-from c3nav.routing.router import Router
+from c3nav.routing.router import Router, RouterLevel, BaseRouterDatabaseTarget
 
 routing_api_router = APIRouter(tags=["routing"])
 
@@ -123,10 +123,30 @@ class ShortWayTypeSchema(DjangoModelSchema):
     pass
 
 
-class ShortSpaceSchema(DjangoModelSchema):
+class BaseRouterDatabaseTargetSchema(DjangoModelSchema):
+    location: Union[
+        Annotated[PositiveInt, APIField(title="location ID", example=1)],
+        Annotated[None, APIField(title="null", description="no location attached")]
+    ] = APIField(
+        title="location ID",
+        description="if set, this is the main location refering to this location target"
+    )
+
+    @classmethod
+    def get_overrides(cls, value) -> dict:
+        value: BaseRouterDatabaseTarget
+        location = value.get_location()
+        return {
+            **super().get_overrides(value),
+            "location": None if location is None else location.pk
+        }
+
+
+class RouteSpaceSchema(BaseRouterDatabaseTargetSchema):
     pass
 
-class RouteLevelSchema(DjangoModelSchema):
+
+class RouteLevelSchema(BaseRouterDatabaseTargetSchema):
     on_top_of: Union[
         Annotated[PositiveInt, APIField(title="level ID", description="level this level is on top of", example=1)],
         Annotated[None, APIField(title="null", description="this is a main level, not on top of any other")]
@@ -134,6 +154,15 @@ class RouteLevelSchema(DjangoModelSchema):
         title="on top of level ID",
         description="if set, this is not a main level, but it's on top of this other level"
     )
+
+    @classmethod
+    def get_overrides(cls, value) -> dict:
+        value: RouterLevel
+        return {
+            **super().get_overrides(value),
+            "on_top_of": value.on_top_of_id
+        }
+
 
 class RouteItemSchema(BaseSchema):
     id: Optional[PositiveInt]
@@ -144,7 +173,7 @@ class RouteItemSchema(BaseSchema):
     ] = APIField(None, title="waytype")
     space: Union[
         Annotated[
-            ShortSpaceSchema,
+            RouteSpaceSchema,
             APIField(title="space", descripiton="new space that is being entered")
         ],
         Annotated[None, APIField(title="null", description="staying in the same space")],

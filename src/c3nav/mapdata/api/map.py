@@ -156,7 +156,7 @@ def location_display(request, identifier: LocationIdentifier):
 @api_stats('location_geometries')
 @api_etag(base_mapdata=True)
 def location_geometries(request, identifier: LocationIdentifier):
-    location = get_location(identifier)
+    location = get_location_from_cache(identifier)
 
     if location is None:
         raise API404()
@@ -211,7 +211,7 @@ def set_position(request, position_id: PositionIdentifier, update: UpdatePositio
     if location.owner != request.user:
         raise APIPermissionDenied()
 
-    coordinates = get_location(update.coordinates_id)
+    coordinates = get_location_from_cache(update.coordinates_id)
     if coordinates is None:
         raise APIRequestValidationFailed('Cant resolve coordinates.')
 

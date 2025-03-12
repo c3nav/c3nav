@@ -702,13 +702,17 @@ class BaseRouterTarget[TargetT]:
 
 @dataclass
 class BaseRouterDatabaseTarget[TargetT: Model](BaseRouterTarget[TargetT]):
-    pk: int = field(init=False)
+    id: int = field(init=False)
     sorted_locations: list[int] = field(init=False)
 
     def __post_init__(self, src: TargetT):
         super().__post_init__(src)
-        self.pk = src.id
+        self.id = src.id
         self.sorted_locations = [location.pk for location in src.sorted_locations]
+
+    @property
+    def pk(self):
+        return self.id
 
     def get_location(self) -> SpecificLocation | None:
         # todo: do this nicer eventually
@@ -717,6 +721,14 @@ class BaseRouterDatabaseTarget[TargetT: Model](BaseRouterTarget[TargetT]):
             filter(None, (visible_locations.get(pk, None) for pk in self.sorted_locations)),
             (None, )
         )))
+
+    @property
+    def title(self):
+        location = self.get_location()
+        if location:
+            return location.title
+        # todo: fix this, make this nicer, in the functions that call this
+        return '(no title)'
 
 
 @dataclass
@@ -739,8 +751,15 @@ class BaseRouterGeometryTarget[TargetT: GeometryMixin, GeometryT: BaseGeometry](
 
 @dataclass
 class RouterLevel(BaseRouterDatabaseTarget[Level]):
+    on_top_of_id: int | None = field(init=False)
+    short_label: str = field(init=False)
     spaces: set[int] = field(default_factory=set)
     space_index: Index = field(default_factory=Index)
+
+    def __post_init__(self, src: Level):
+        super().__post_init__(src)
+        self.on_top_of_id: int | None = src.on_top_of_id
+        self.short_label: str = src.short_label
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         return self.access_restriction_id not in restrictions
@@ -748,11 +767,19 @@ class RouterLevel(BaseRouterDatabaseTarget[Level]):
 
 @dataclass
 class RouterSpace(BaseRouterGeometryTarget[Space, Polygon]):
+    level_id: int = field(init=False)
+    enter_description: str | None = field(init=False)
     areas: set[int] = field(default_factory=set)
     pois: set[int] = field(default_factory=set)
     altitudeareas: list[RouterAltitudeArea] = field(default_factory=list)
     leave_descriptions: dict[int, Promise] = field(default_factory=dict)
     cross_descriptions: dict[tuple[int, int], Promise] = field(default_factory=dict)
+
+    def __post_init__(self, src: Space):
+        super().__post_init__(src)
+        self.level_id = src.level_id
+        self.enter_description: str | None = src.enter_description
+        # todo: populate leave_description and cross_description as well?
 
     areas_index: Index = field(default_factory=Index)
     pois_index: Index = field(default_factory=Index)
