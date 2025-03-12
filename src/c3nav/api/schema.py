@@ -99,7 +99,7 @@ class BaseSchema(Schema):
         return handler(converted)
 
     @classmethod
-    def get_overrides(cls, value: Model) -> dict:
+    def get_overrides(cls, value) -> dict:
         return {}
 
 
