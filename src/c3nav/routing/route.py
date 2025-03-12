@@ -14,7 +14,7 @@ from c3nav.mapdata.utils.locations import get_visible_locations
 from c3nav.routing.models import RouteOptions
 
 if TYPE_CHECKING:
-    from c3nav.routing.router import Router, RouterNode, RouterEdge, RouterLocation, RouterNodeAndEdge
+    from c3nav.routing.router import Router, RouterNode, RouterEdge, RouterNodeAndEdge, RouterSpace, RouterLevel
 
 
 def describe_location(location: LocationProtocol) -> LocationProtocol:
@@ -181,8 +181,8 @@ class Route:
         summary = '%s (%s)' % (duration_str, distance_str)
 
         return OrderedDict((
-            ('origin', describe_location(self.origin.location)),
-            ('destination', describe_location(self.destination.location)),
+            ('origin', self.origin),
+            ('destination', self.destination),
             ('distance', round(distance, 2)),
             ('duration', round(duration)),
             ('distance_str', distance_str),
@@ -237,11 +237,11 @@ class RouteItem:
             return self.route.router.waytypes[self.edge.waytype]
 
     @cached_property
-    def space(self):
+    def space(self) -> "RouterSpace":
         return self.route.router.spaces[self.node.space]
 
     @cached_property
-    def level(self):
+    def level(self) -> "RouterLevel":
         return self.route.router.levels[self.space.level_id]
 
     @cached_property
@@ -263,11 +263,11 @@ class RouteItem:
 
         if self.new_space:
             # todo: we should describe spaces more nicely
-            result['space'] = describe_location(self.space)
+            result['space'] = self.space
 
         if self.new_level:
             # todo: we should describe levels more nicely
-            result['level'] = describe_location(self.level)
+            result['level'] = self.level
 
         result['descriptions'] = [(icon, instruction) for (icon, instruction) in self.descriptions]
         return result
