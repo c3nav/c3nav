@@ -695,8 +695,12 @@ class BaseRouterTarget:
 class BaseRouterDatabaseTarget(BaseRouterTarget):
     def __init__(self, src):
         super().__init__(src)
-        self.pk = src.id
+        self.id = src.id
         self.sorted_locations: list[int] = [location.pk for location in src.sorted_locations]
+
+    @property
+    def pk(self):
+        return self.id
 
     def get_location(self) -> SpecificLocation | None:
         # todo: do this nicer eventually
@@ -705,6 +709,14 @@ class BaseRouterDatabaseTarget(BaseRouterTarget):
             filter(None, (visible_locations.get(pk, None) for pk in self.sorted_locations)),
             (None, )
         )))
+
+    @property
+    def title(self):
+        location = self.get_location()
+        if location:
+            return location.title
+        # todo: fix this, make this nicer, in the functions that cal this
+        return '(no title)'
 
 
 @dataclass
@@ -725,8 +737,13 @@ class BaseRouterGeometryTarget(BaseRouterDatabaseTarget):
 
 @dataclass
 class RouterLevel(BaseRouterDatabaseTarget):
-    spaces: set[int] = field(default_factory=set)
-    space_index: Index = field(default_factory=Index)
+    def __init__(self, src: Level):
+        # todo: use dataclasses propertly here
+        super().__init__(src)
+        self.on_top_of_id: int | None = src.on_top_of_id
+        self.short_label: str = src.short_label
+        self.spaces: set[int] = set()
+        self.space_index = Index()
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         return self.access_restriction_id not in restrictions
@@ -736,6 +753,8 @@ class RouterLevel(BaseRouterDatabaseTarget):
 class RouterSpace(BaseRouterGeometryTarget):
     def __init__(self, src: Space):
         super().__init__(src)
+        self.level_id = src.level_id
+        self.enter_description: str | None = src.enter_description
         self.areas: set[int] = set()
         self.pois: set[int] = set()
         self.altitudeareas: list[RouterAltitudeArea] = []
