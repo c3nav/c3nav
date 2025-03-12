@@ -138,7 +138,7 @@ class MapPermissionContext:
 
     def get_value(self) -> MapPermissions:
         if not hasattr(self._active, "value"):
-            warnings.warn('No map permission context set, defaulting to public context.', RuntimeWarning)
+            warnings.warn('No map permission context set, defaulting to public context.', DeprecationWarning)
             return ManualMapPermissions.get_public_access()
         return self._active.value
 
