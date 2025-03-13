@@ -199,15 +199,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     }
 
     if not new and isinstance(obj, SpecificLocation):
-        targets = list(obj.get_targets())
-        if not targets:
+        if not obj.all_targets:
             ctx["secondary"] = {
                 "title": _('Targets'),
                 "text": _('This specific location has no targets'),
             }
         else:
             target_links = []
-            for target_obj in targets:
+            for target_obj in obj.all_targets:
                 reverse_kwargs = {'pk': target_obj.pk}
                 if hasattr(target_obj, "space_id"):
                     reverse_kwargs["space"] = target_obj.space_id

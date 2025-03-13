@@ -14,18 +14,17 @@ from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from shapely import Point
 from pydantic import PositiveInt
-from shapely.ops import unary_union
 from shapely import Point
+from shapely.ops import unary_union
 
 from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
-from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
-from c3nav.mapdata.permissions import active_map_permissions
+from c3nav.mapdata.permissions import active_map_permissions, LazyMapPermissionFilteredMapping, ManualMapPermissions
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
@@ -51,18 +50,29 @@ def merge_bounds(*bounds: BoundsByLevelSchema) -> BoundsByLevelSchema:
             for level_id, zipped in zipped_bounds.items()}
 
 
-def get_locations() -> dict[int, SpecificLocation | LocationGroup]:
+def get_all_locations() -> LazyMapPermissionFilteredMapping[int, SpecificLocation | LocationGroup]:
     """
     Return all locations for this map permission context, by ID.
-    This list has to be per request, because it includes the correct prefetch_related visibility filters etc,
     This returns a dictionary, which is already sorted by order.
+    The resulting data is automatically filtered by the active map permission.
     """
-    # todo this takes a long time because it's a lot of data, we might want to change that
-    cache_key = f'mapdata:locations:{active_map_permissions.cache_key}'
-    locations: dict[int, SpecificLocation | LocationGroup]
+    # todo: obviously this should just be precalculated at this point
+    cache_key = f'mapdata:locations:{MapUpdate.current_cache_key()}'
+    locations: LazyMapPermissionFilteredMapping[int, SpecificLocation | LocationGroup]
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
+
+    with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+        locations = LazyMapPermissionFilteredMapping(_get_locations())
+
+    proxied_cache.set(cache_key, locations, 1800)
+
+    return locations
+
+
+def _get_locations() -> dict[int, SpecificLocation | LocationGroup]:
+    # todo this takes a long time because it's a lot of data, we might want to change that
 
     # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
     locations = {location.pk: location for location in sorted((
@@ -95,14 +105,28 @@ def get_locations() -> dict[int, SpecificLocation | LocationGroup]:
                 group.locations.append(obj)
 
     levels = {level.pk: level for level in Level.objects.all()}
-    spaces = {space.pk: space for space in Space.objects.select_related('level').prefetch_related("locations__groups")}
+    spaces = {space.pk: space for space in Space.objects.select_related('level').prefetch_related(
+        "locations__groups", "locations__slug_set"
+    )}
 
-    # add levels to spaces: todo: fix this! hide locations etc bluh bluh
-    remove_pks = set()
+    # trigger some cached properties, then empty prefetch_related cache
+    for obj in chain(levels.values(), spaces.values()):
+        for location in obj.sorted_locations:
+            # noinspection PyStatementEffect
+            location.slug
+            # noinspection PyStatementEffect
+            location.redirect_slugs
+            # noinspection PyStatementEffect
+            location.sorted_groups
+            location._prefetched_objects_cache = {}
+
+        obj._prefetched_objects_cache = {}
+
+    # add levels to spaces: todo: hide locations etc bluh… what if a location has only on target and it's invisible?
     for pk, obj in locations.items():
         if not isinstance(obj, SpecificLocation):
             continue
-        targets = tuple(obj.get_targets())
+        targets = tuple(obj.all_targets)
         for target in targets:
             if isinstance(target, LevelGeometryMixin):
                 level = levels.get(target.level_id, None)
@@ -112,45 +136,34 @@ def get_locations() -> dict[int, SpecificLocation | LocationGroup]:
                 space = spaces.get(target.space_id, None)
                 if space is not None:
                     target.space = space
-        # todo: we don't want to remove things for groups of course, so once we merge these in… keep that in mind
-        if not targets:
-            remove_pks.add(pk)
-
-    # hide locations in hidden spaces or levels
-    for pk in remove_pks:
-        locations.pop(pk)
-
-    # add targets to LocationRedirects
-    remove_pks = set()
-    for pk, obj in locations.items():
-        if not isinstance(obj, LocationRedirect):
-            continue
-        target = locations.get(obj.target.pk, None)
-        if target is None:
-            remove_pks.add(pk)
-            continue
-        obj.target = target
-
-    # hide redirects to hidden locations
-    for pk in remove_pks:
-        locations.pop(pk)
+        # todo: we want to hide locations that only have targets in an invisible level… probably
 
     # apply better space geometries TODO: do this again?
     #for pk, geometry in get_better_space_geometries().items():
     #    if pk in locations:
     #        locations[pk].geometry = geometry
 
-    # precache cached properties
+    # trigger some cached properties, then empty prefetch_related cache
     for obj in locations.values():
-        if isinstance(obj, LocationRedirect):
-            continue
         # noinspection PyStatementEffect
-        obj.subtitle, obj.order
-        if isinstance(obj, GeometryMixin):  # TODO: do this again
-            # noinspection PyStatementEffect
-            obj.point
+        obj.slug
+        # noinspection PyStatementEffect
+        obj.redirect_slugs
 
-    proxied_cache.set(cache_key, locations, 1800)
+        if isinstance(obj, SpecificLocation):
+            # noinspection PyStatementEffect
+            obj.dynamic_targets
+            # noinspection PyStatementEffect
+            obj.sorted_groups
+
+            for target in obj.static_targets:
+                # noinspection PyStatementEffect
+                target.bounds
+                # noinspection PyStatementEffect
+                target.points
+                target._prefetched_objects_cache = {}
+
+        obj._prefetched_objects_cache = {}
 
     return locations
 
@@ -184,7 +197,7 @@ def get_visible_locations() -> dict[int, Location]:
     # todo: cache this better, obviously
     return {
         pk: location
-        for pk, location in get_locations().items()
+        for pk, location in get_all_locations().items()
         if location.can_search or location.can_describe
     }
 
@@ -198,7 +211,7 @@ def get_searchable_locations() -> dict[int, Location]:
     # todo: cache this better, obviously
     return {
         pk: location
-        for pk, location in get_locations().items()
+        for pk, location in get_all_locations().items()
         if location.can_search
     }
 
@@ -297,7 +310,7 @@ def get_location(identifier: int | str, *, redirect: bool = None) -> Optional[Lo
 
     # Is this an integer? Then get the location by its ID.
     if isinstance(identifier, int) or identifier.isdigit():
-        location = get_locations().get(int(identifier))
+        location = get_all_locations().get(int(identifier))
 
         # Return redirect if the location has a slug.
         return LocationRedirect(
@@ -321,7 +334,7 @@ def get_location(identifier: int | str, *, redirect: bool = None) -> Optional[Lo
         return None
 
     # Get the location from the available locations for this request.
-    location = get_locations().get(slug_target.target_id, None)
+    location = get_all_locations().get(slug_target.target_id, None)
 
     # If this should be a redirect, return a redirect if we found the location, otherwise return the location (or None)
     return LocationRedirect(

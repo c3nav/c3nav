@@ -24,7 +24,7 @@ from shapely.ops import unary_union
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Level
-from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from c3nav.mapdata.permissions import MapPermissions
 
 
-class LevelGeometryMixin(GeometryMixin, models.Model):
+class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
 
     class Meta:
@@ -78,6 +78,13 @@ class LevelGeometryMixin(GeometryMixin, models.Model):
         return (
             super().q_for_permissions(permissions, prefix=prefix) &
             Level.q_for_permissions(permissions, prefix=prefix+'level__')
+        )
+
+    @cached_property
+    def effective_access_restrictions(self) -> set[int]:
+        return (
+            super().effective_access_restrictions &
+            self.level.effective_access_restrictions
         )
 
     def pre_save_changed_geometries(self):
