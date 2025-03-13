@@ -1,7 +1,7 @@
 # flake8: noqa
 from collections import OrderedDict, deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Sequence, Optional, Mapping, NamedTuple, Union
+from typing import TYPE_CHECKING, Sequence, Optional, NamedTuple, Union
 
 import numpy as np
 from django.utils.functional import cached_property
@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from c3nav.mapdata.models import Location
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
-from c3nav.mapdata.utils.locations import get_visible_locations
+from c3nav.mapdata.locations import LocationManager
 from c3nav.routing.models import RouteOptions
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 def describe_location(location: LocationProtocol) -> LocationProtocol:
     if isinstance(location, Location) and hasattr(location, "can_describe") and location.can_describe:
-        final_location = get_visible_locations().get(location.pk)
+        final_location = LocationManager.get_visible().get(location.pk)
         if final_location is not None:
             location = final_location
     return location
