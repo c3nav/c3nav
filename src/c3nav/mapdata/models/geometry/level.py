@@ -82,7 +82,7 @@ class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Mode
     @cached_property
     def effective_access_restrictions(self) -> set[int]:
         return (
-            super().effective_access_restrictions &
+            super().effective_access_restrictions |
             self.level.effective_access_restrictions
         )
 
