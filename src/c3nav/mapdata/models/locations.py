@@ -1,11 +1,12 @@
 import operator
 import string
+import warnings
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce
 from itertools import chain
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Sequence
 
 from django.conf import settings
 from django.core.cache import cache
@@ -26,6 +27,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
+from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
@@ -96,14 +98,14 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
     class Meta:
         abstract = True
 
-    @property
+    @cached_property
     def slug(self) -> str | None:
         try:
             return next(iter(locationslug.slug for locationslug in self.slug_set.all() if not locationslug.redirect))
         except StopIteration:
             return None
 
-    @property
+    @cached_property
     def redirect_slugs(self) -> set[str]:
         return set(locationslug.slug for locationslug in self.slug_set.all() if locationslug.redirect)
 
@@ -148,19 +150,6 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def grid_square(self):
-        return None
-
-    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        # don't filter in the query here so prefetch_related works
-        result = self.get_color_sorted(color_manager)
-        return None if result is None else result[1]
-
-    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[tuple, str] | None:
-        # don't filter in the query here so prefetch_related works
-        for group in self.groups.all():
-            color = color_manager.locationgroup_fill_color(group)
-            if color:
-                return (0, group.category.priority, group.hierarchy, group.priority), color
         return None
 
     @property
@@ -220,78 +209,98 @@ class SpecificLocation(Location, models.Model):
 
     """ Targets """
 
-    def get_static_targets(self) -> Iterable[StaticLocationTarget]:
+    @cached_property
+    def static_targets(self) -> LazyMapPermissionFilteredSequence[StaticLocationTarget]:
         """
-        Get an iterator over all static location targets
+        Get all static location targets
+        """
+        return LazyMapPermissionFilteredSequence((
+            *self.levels.all(),
+            *self.spaces.all(),
+            *self.areas.all(),
+            *self.pois.all(),
+        ))
+
+    @cached_property
+    def dynamic_targets(self) -> LazyMapPermissionFilteredSequence[DynamicLocationTarget]:
+        """
+        Get all dynamic location targets
         """
         # noinspection PyTypeChecker
-        return chain(
-            self.levels.all(),
-            self.spaces.all(),
-            self.areas.all(),
-            self.pois.all(),
-        )
+        return LazyMapPermissionFilteredSequence(tuple(self.dynamiclocations.all()))
 
-    def get_dynamic_targets(self) -> Iterable[DynamicLocationTarget]:
-        """
-        Get an iterator over all dynamic location targets
-        """
-        # noinspection PyTypeChecker
-        return chain(
-            self.dynamiclocations.all(),
-        )
-
-    def get_targets(self) -> Iterable[LocationTarget]:
+    @cached_property
+    def all_targets(self) -> Iterable[LocationTarget]:
         """
         Get an iterator over all location targets
         """
         # noinspection PyTypeChecker
         return chain(
-            self.get_static_targets(),
-            self.get_dynamic_targets(),
+            self.static_targets,
+            self.dynamic_targets,
         )
 
     """ Main Properties """
 
     @cached_property
     def dynamic(self) -> int:
-        return len(self.dynamiclocations.all())
+        return len(self.dynamic_targets)
 
-    @property
+    @cached_property
     def effective_icon(self):
         icon = super().effective_icon
         if icon:
             return icon
         return next(iter(chain(
-            (group.icon for group in self.groups.all() if group.icon),
+            (group.icon for group in self.sorted_groups if group.icon),
             (None, )
         )))
 
-    @property
+    @cached_property
     def effective_label_settings(self):
         if self.label_settings:
             return self.label_settings
-        for group in self.groups.all():
+        for group in self.sorted_groups:
             if group.label_settings:
                 return group.label_settings
         return None
 
     @cached_property
+    def sorted_groups(self) -> LazyMapPermissionFilteredSequence["LocationGroup"]:
+        if 'groups' not in getattr(self, '_prefetched_objects_cache', ()):
+            warnings.warn('Accessing sorted_groups despite no prefetch_related. '
+                          'Returning no groups.', RuntimeWarning)
+            return LazyMapPermissionFilteredSequence(())
+        # they come sorted from the database already :)
+        return LazyMapPermissionFilteredSequence(tuple(self.groups.all()))
+
+    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
+        # don't filter in the query here so prefetch_related works
+        result = self.get_color_sorted(color_manager)
+        return None if result is None else result[1]
+
+    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[tuple, str] | None:
+        # don't filter in the query here so prefetch_related works
+        for group in self.sorted_groups:
+            color = color_manager.locationgroup_fill_color(group)
+            if color:
+                return (0, group.category.priority, group.hierarchy, group.priority), color
+        return None
+
+    @cached_property
     def order(self):
-        groups = tuple(self.groups.all())
+        groups = tuple(self.sorted_groups)
         if not groups:
             return (0, 0, 0)
         return (0, groups[0].category.priority, groups[0].priority)
 
     @cached_property
     def describing_groups(self):
-        groups = tuple(self.groups.all() if 'groups' in getattr(self, '_prefetched_objects_cache', ()) else ())
-        groups = tuple(group for group in groups if group.can_describe)
-        return groups
+        return tuple(group for group in self.sorted_groups if group.can_describe)
 
     @property
     def external_url_label(self):
-        for group in self.groups.all():
+        for group in self.sorted_groups:
             if group.external_url_label:
                 return group.external_url_label
         return None
@@ -300,11 +309,11 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def points(self) -> list[LocationPoint]:
-        return list(filter(None, (target.point for target in self.get_static_targets())))
+        return list(filter(None, (target.point for target in self.static_targets)))
 
     @property
     def dynamic_points(self) -> list[LocationPoint]:
-        return list(filter(None, (target.point for target in self.get_dynamic_targets())))
+        return list(filter(None, (target.point for target in self.dynamic_targets)))
 
     @staticmethod
     def get_bounds(*, targets: Iterable[LocationTarget]):
@@ -313,11 +322,11 @@ class SpecificLocation(Location, models.Model):
 
     @cached_property
     def bounds(self) -> BoundsByLevelSchema:
-        return self.get_bounds(targets=self.get_static_targets())
+        return self.get_bounds(targets=self.static_targets)
 
     @cached_property
     def dynamic_bounds(self) -> BoundsByLevelSchema:
-        return self.get_bounds(targets=self.get_targets())
+        return self.get_bounds(targets=self.all_targets)
 
     @staticmethod
     def get_grid_square(*, bounds) -> GridSquare:
@@ -339,8 +348,8 @@ class SpecificLocation(Location, models.Model):
     """ Subtitle """
 
     def get_target_subtitle(self, *, dynamic: bool) -> Optional[str]:
-        static_targets = tuple(self.get_static_targets())
-        dynamic_targets = tuple(self.get_dynamic_targets())
+        static_targets = self.static_targets
+        dynamic_targets = self.dynamic_targets
         if len(static_targets) + len(dynamic_targets) == 1:
             if static_targets:
                 return static_targets[0].subtitle
@@ -372,7 +381,7 @@ class SpecificLocation(Location, models.Model):
         # fallback if there is no subtitle  # todo: this could probably be better?
         if subtitle is not None:
             return subtitle
-        return _('Location') if len(tuple(self.get_targets())) == 1 else _('Locations')
+        return _('Location') if len(tuple(self.all_targets)) == 1 else _('Locations')
 
     @property
     def subtitle(self):
@@ -406,7 +415,7 @@ class SpecificLocation(Location, models.Model):
     def geometries_by_level(self) -> GeometriesByLevelSchema:
         # todo: eventually include dynamic targets in here?
         result = {}
-        for target in self.get_static_targets():
+        for target in self.static_targets:
             for level_id, geometries in target.geometries_by_level.items():
                 result.setdefault(level_id, []).extend(geometries)
         return result
@@ -415,7 +424,7 @@ class SpecificLocation(Location, models.Model):
     def geometries_or_points_by_level(self) -> GeometriesByLevelSchema:
         # todo: eventually include dynamic targets in here?
         result = {}
-        for target in self.get_static_targets():
+        for target in self.static_targets:
             target_geometry = target.geometries_by_level
             if target_geometry:
                 for level_id, geometries in target_geometry.items():
@@ -429,7 +438,7 @@ class SpecificLocation(Location, models.Model):
         result = super().details_display(**kwargs)
 
         groupcategories = {}
-        for group in self.groups.all():
+        for group in self.sorted_groups:
             groupcategories.setdefault(group.category, []).append(group)
 
         if grid.enabled:
@@ -469,7 +478,7 @@ class SpecificLocation(Location, models.Model):
                 for old_target in target_model.objects.filter(pk=target_id):
                     old_target.register_change(force=True)
         if changed or force:
-            for target in self.get_targets():
+            for target in self.all_targets:
                 target.register_change(force=True)
 
     def pre_save_changed_geometries(self):
@@ -492,12 +501,16 @@ class SpecificLocationTargetMixin(models.Model):
         abstract = True
 
     @cached_property
-    def sorted_locations(self) -> list[SpecificLocation]:
+    def sorted_locations(self) -> LazyMapPermissionFilteredSequence[SpecificLocation]:
         """
         highest priority first
         """
+        if 'locations' not in getattr(self, '_prefetched_objects_cache', ()):
+            warnings.warn('Accessing sorted_locations despite no prefetch_related. '
+                          'Returning empty list.', RuntimeWarning)
+            return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
-        return sorted(self.locations.all(), key=attrgetter("order"), reverse=True)
+        return LazyMapPermissionFilteredSequence(sorted(self.locations.all(), key=attrgetter("order"), reverse=True))
 
     @property
     def effective_icon(self) -> str | None:
