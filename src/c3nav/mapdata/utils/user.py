@@ -47,21 +47,20 @@ def get_user_data(request):
              if request.user.is_superuser or key in request.user_permissions.quests}
         ),
     })
-    request.user_data = result
     return result
 
 
-class CachedGetUserData:
-    def __init__(self):
-        self.cached = None
+def get_user_data_cached(request):
+    user_data = getattr(request, '_cached_user_data', None)
+    if user_data is not None:
+        return user_data
+    user_data = get_user_data(request)
+    request._cached_user_data = user_data
+    request.user_data = user_data
+    return user_data
 
-    def __call__(self, request) -> dict:
-        if self.cached is None:
-            self.cached = get_user_data(request)
-        return self.cached
 
-
-get_user_data_lazy = lazy(CachedGetUserData(), dict)
+get_user_data_lazy = lazy(get_user_data_cached, dict)
 
 
 def can_access_editor(request):
