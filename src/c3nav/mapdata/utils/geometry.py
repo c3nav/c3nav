@@ -3,29 +3,11 @@ from collections import deque, namedtuple
 from itertools import chain
 from typing import List, Sequence, Union
 
-from django.core import checks
 from django.utils.functional import cached_property
-from shapely import prepared, speedups
+from shapely import prepared
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
-
-if speedups.available:
-    speedups.enable()
-
-
-@checks.register()
-def check_speedups(app_configs, **kwargs):
-    errors = []
-    if not speedups.available:
-        errors.append(
-            checks.Warning(
-                'Your shapely version does not have speedups enabled. This will significantly slow down c3nav!',
-                obj='shapely.speedups',
-                id='c3nav.mapdata.W001',
-            )
-        )
-    return errors
 
 
 class WrappedGeometry():
