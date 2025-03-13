@@ -23,7 +23,8 @@ from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
-from c3nav.mapdata.utils.locations import get_visible_locations, get_location, merge_bounds
+from c3nav.mapdata.locations import LocationManager
+from c3nav.mapdata.utils.geometry import merge_bounds
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
 
@@ -160,7 +161,7 @@ def preview_location(request, slug):
     locations_to_check = [location]
     while locations_to_check:
         for location_id in locations_to_check.pop().locations:
-            sublocation = get_location(location_id)
+            sublocation = LocationManager.get(location_id)
             if sublocation.effective_slug not in locations:
                 locations[sublocation.effective_slug] = sublocation
                 locations_to_check.append(sublocation)

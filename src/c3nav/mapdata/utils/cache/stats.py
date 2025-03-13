@@ -1,4 +1,3 @@
-from itertools import chain
 from operator import itemgetter
 
 from django.contrib.auth import get_user_model
@@ -10,7 +9,7 @@ from c3nav.control.models import UserPermissions
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, LocationGroup, LocationSlug, Space
 from c3nav.mapdata.models.geometry.space import POI, Area, BeaconMeasurement
-from c3nav.mapdata.utils.locations import CustomLocation, get_location
+from c3nav.mapdata.locations import CustomLocation, LocationManager
 
 
 def increment_cache_key(cache_key):
@@ -163,7 +162,7 @@ def convert_location(data):
     for name, value in data:
         if name[0] != 'pk' or name[0] == 'c:anywhere':
             continue
-        location = get_location(name[1])
+        location = LocationManager.get(name[1])
         result['total'] += value
         if location is None:
             result['invalid'] += value

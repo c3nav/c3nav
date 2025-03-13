@@ -33,14 +33,13 @@ from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid, GridSchema
-from c3nav.mapdata.models import Location, Source
+from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
-from c3nav.mapdata.utils.locations import (levels_by_level_index_for_request, LocationRedirect,
-                                           get_location, CustomLocation)
-from c3nav.mapdata.utils.user import can_access_editor, get_user_data
+from c3nav.mapdata.locations import LocationRedirect, LocationManager
+from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
 from c3nav.site.compliance import add_compliance_checkbox
@@ -55,7 +54,7 @@ def check_location(location_slug: Optional[str], request) -> LocationProtocol | 
     if location_slug is None:
         return None
 
-    location = get_location(location_slug)
+    location = LocationManager.get(location_slug)
     if location is None:
         return None
 
@@ -133,7 +132,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'nearby': True if nearby else False,
     }
 
-    levels = levels_by_level_index_for_request()
+    levels = LocationManager.levels_by_level_index()
 
     level = levels.get(pos.level, None) if pos else None
     if level is not None:
@@ -520,7 +519,7 @@ def about_view(request):
 
 def get_report_location_for_request(pk):
     # todo: do we have similar code? is this function even needed?
-    location = get_location(pk)
+    location = LocationManager.get(pk)
     if location is None:
         raise Http404
     return location
@@ -545,14 +544,14 @@ def report_start_coordinates(request, coordinates):
 
 @never_cache
 def report_missing_check(request, coordinates):
-    location = get_location(coordinates)
+    location = LocationManager.get(coordinates)
     if not location.nearby.near_locations:
         return redirect(reverse('site.report_missing_choose', kwargs={"coordinates": coordinates}))
     return render(request, 'site/report_question.html', {
         'question': _('Are you sure it\'s not one of these?'),
         'locations': [
             {
-                'location': get_location(location_id),
+                'location': LocationManager.get(location_id),
             }
             for location_id in location.nearby.near_locations
         ],
@@ -567,7 +566,7 @@ def report_missing_check(request, coordinates):
 
 @never_cache
 def report_select_location(request, coordinates):
-    location = get_location(coordinates)
+    location = LocationManager.get(coordinates)
     nearby = list(location.nearby.near_locations)
     if location.nearby.space:
         nearby.append(location.nearby.space)
@@ -579,7 +578,7 @@ def report_select_location(request, coordinates):
         'locations': [
             {
                 'url': reverse('site.report_create', kwargs={"location": location_id}),
-                'location': get_location(location_id),
+                'location': LocationManager.get(location_id),
             }
             for location_id in nearby
         ],
@@ -641,7 +640,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.coordinates_id = coordinates
         form_kwargs["request"] = request
         if group:
-            group = get_location(group)
+            group = LocationManager.get(group)
             if not isinstance(group, LocationGroup):
                 raise Http404
             if group.can_report_missing == LocationGroup.CanReportMissing.REJECT:
@@ -834,7 +833,7 @@ def position_detail(request, pk):
 
 @login_required(login_url='site.login')
 def position_set(request, coordinates):
-    coordinates = get_location(coordinates)
+    coordinates = LocationManager.get(coordinates)
     if coordinates is None:
         raise Http404
 
