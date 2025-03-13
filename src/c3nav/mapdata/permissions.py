@@ -1,14 +1,12 @@
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import cached_property
-from typing import Protocol
+from functools import cached_property, lru_cache
+from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping
 
 from django.contrib.auth.models import User
 
-from c3nav.control.models import UserSpaceAccess
-from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
+from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
 
 try:
     from asgiref.local import Local as LocalContext
@@ -46,6 +44,7 @@ class MapPermissionsFromRequest(metaclass=CachedMapPermissionsFromX):
 
     @cached_property
     def spaces(self) -> dict[int, bool]:
+        from c3nav.control.models import UserSpaceAccess
         return UserSpaceAccess.get_for_user(self.request.user)
 
     @cached_property
@@ -74,6 +73,7 @@ class MapPermissionsFromUser(metaclass=CachedMapPermissionsFromX):
 
     @cached_property
     def spaces(self) -> dict[int, bool]:
+        from c3nav.control.models import UserSpaceAccess
         return UserSpaceAccess.get_for_user(self.user)
 
     @cached_property
@@ -144,6 +144,7 @@ class MapPermissionContext:
 
     @contextmanager
     def override(self, value: MapPermissions):
+        # todo: don't use this… usually
         prev_value = getattr(self._active, "value", None)
         self.set_value(value)
         yield
@@ -179,6 +180,7 @@ class MapPermissionContext:
 
     @property
     def cache_key(self):
+        from c3nav.mapdata.models import MapUpdate
         return f"{MapUpdate.current_cache_key()}:{self.cache_key_without_update}"
 
     def etag_func(self, request):
@@ -186,3 +188,107 @@ class MapPermissionContext:
 
 
 active_map_permissions = MapPermissionContext()
+
+
+class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[KT, VT]):
+    """
+    Wraps a mapping of AccessRestrictionLogicMixin objects.
+    Acts like a mapping (like dict) but will filter objects based on the active map permissions.
+    Caches the last 16 configurations.
+    """
+    def __init__(self, data: Mapping[KT, VT]):
+        self._data = data
+
+    def __len__(self) -> int:
+        return len(self._get())
+
+    def _get_for_permissions(self, permissions: set[int]) -> dict[KT, VT]:
+        return {key: value for key, value in self._data.items()
+                if not (value.effective_access_restrictions - permissions)}
+
+    @cached_property
+    def _get(self) -> Callable[[], dict[KT, VT]]:
+        # this is a hack to have one lru_cache per instance
+        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions.access_restrictions))
+
+    def __iter__(self) -> Iterator[KT]:
+        return iter(self._get())
+
+    def __getitem__(self, key: KT):
+        value = self._data[key]
+        if value.effective_access_restrictions - active_map_permissions.access_restrictions:
+           raise KeyError(key)
+        return value
+
+    def get(self, key: KT, default=None):
+        value = self._data.get(key, default)
+        if value is not None and value.effective_access_restrictions - active_map_permissions.access_restrictions:
+            return default
+        return value
+
+    def items(self):
+        return self._get().items()
+
+    def keys(self):
+        return self._get().keys()
+
+    def values(self):
+        return self._get().values()
+
+    def __contains__(self, item) -> bool:
+        return item in self._get()
+
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result.pop('_get', None)
+        return result
+
+
+class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](Sequence[T]):
+    """
+    Wraps a sequence of AccessRestrictionLogicMixin objects.
+    Acts like a sequence (like list, tuple, ...) but will filter objects based on the active map permissions.
+    Caches the last 16 configurations.
+    """
+    def __init__(self, data: Sequence[T]):
+        self._data = data
+
+    def _get_for_permissions(self, permissions: set[int]) -> tuple[T, ...]:
+        return tuple(item for item in self._data
+                     if not (item.effective_access_restrictions - permissions))
+
+    @cached_property
+    def _get(self) -> Callable[[], tuple[T, ...]]:
+        # this is a hack to have one lru_cache per instance
+        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions.access_restrictions))
+
+    def __len__(self) -> int:
+        return len(self._get())
+
+    def __getitem__(self, item: int):
+        if isinstance(item, slice):
+            raise TypeError('slicing a lazy filtered list would have confusing behavior, sorry.')
+        return self._get()[item]
+
+    def __iter__(self) -> Iterator[T]:
+        return iter(self._get())
+
+    def __contains__(self, item) -> bool:
+        return item in self._get()
+
+    def index(self, value: Any, start: int = 0, stop: int = ...) -> int:
+        i = self._get().index(value, start, stop)
+        if i < start or (stop is not ... and i >= stop):
+            raise ValueError
+        return i
+
+    def count(self, value: Any) -> int:
+        return self._get().count(value)
+
+    def __reversed__(self) -> Iterator[T]:
+        return iter(reversed(self._get()))
+
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result.pop('_get', None)
+        return result

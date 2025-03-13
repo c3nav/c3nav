@@ -13,7 +13,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Space
-from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
+from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
@@ -27,7 +27,7 @@ if typing.TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager
 
 
-class SpaceGeometryMixin(GeometryMixin):
+class SpaceGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
     space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
 
     class Meta:
@@ -71,6 +71,13 @@ class SpaceGeometryMixin(GeometryMixin):
         return (
             super().q_for_permissions(permissions, prefix=prefix) &
             Space.q_for_permissions(permissions, prefix=prefix + 'space__')
+        )
+
+    @cached_property
+    def effective_access_restrictions(self) -> set[int]:
+        return (
+            super().effective_access_restrictions &
+            self.space.effective_access_restrictions
         )
 
     def register_change(self, force=False):
