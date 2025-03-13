@@ -1,13 +1,16 @@
 import math
 from collections import deque, namedtuple
 from itertools import chain
-from typing import List, Sequence, Union
+from typing import List, Sequence, Union, TYPE_CHECKING
 
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
+
+if TYPE_CHECKING:
+    from c3nav.mapdata.schemas.model_base import BoundsByLevelSchema
 
 
 class WrappedGeometry():
@@ -354,3 +357,13 @@ def cut_ring(ring: LinearRing) -> List[LinearRing]:
         new_ring = new_ring[:index+1]
 
     return rings
+
+
+def merge_bounds(*bounds: "BoundsByLevelSchema") -> "BoundsByLevelSchema":
+    collected_bounds = {}
+    for one_bounds in bounds:
+        for level_id, level_bounds in one_bounds.items():
+            collected_bounds.setdefault(level_id, []).append(chain(*level_bounds))
+    zipped_bounds = {level_id: tuple(zip(*level_bounds)) for level_id, level_bounds in collected_bounds.items()}
+    return {level_id: ((min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3])))
+            for level_id, zipped in zipped_bounds.items()}
