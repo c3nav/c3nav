@@ -26,7 +26,7 @@ from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
 from c3nav.mapdata.utils.index import Index
-from c3nav.mapdata.utils.locations import CustomLocation, get_visible_locations
+from c3nav.mapdata.locations import CustomLocation, LocationManager
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.models import RouteOptions
 from c3nav.routing.route import Route, RouteLocation
@@ -704,7 +704,7 @@ class BaseRouterDatabaseTarget(BaseRouterTarget):
 
     def get_location(self) -> SpecificLocation | None:
         # todo: do this nicer eventually
-        visible_locations = get_visible_locations()
+        visible_locations = LocationManager.get_visible()
         return next(iter(chain(
             filter(None, (visible_locations.get(pk, None) for pk in self.sorted_locations)),
             (None, )

@@ -33,9 +33,7 @@ from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationI
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import LocationGeometries, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.mapdata.utils.locations import (get_searchable_locations,
-                                           get_visible_locations,
-                                           LocationRedirect, get_location as get_location_from_cache)
+from c3nav.mapdata.locations import LocationRedirect, LocationManager
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -92,8 +90,8 @@ class LocationListFilters(BaseSchema):
 @api_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
-        return get_searchable_locations().values()
-    return get_visible_locations().values()
+        return LocationManager.get_searchable().values()
+    return LocationManager.get_visible().values()
 
 
 class ShowRedirects(BaseSchema):
@@ -110,7 +108,7 @@ class ShowRedirects(BaseSchema):
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
-    location = get_location_from_cache(identifier)
+    location = LocationManager.get(identifier)
 
     if location is None:
         raise API404()
@@ -156,7 +154,7 @@ def location_display(request, identifier: LocationIdentifier):
 @api_stats('location_geometries')
 @api_etag(base_mapdata=True)
 def location_geometries(request, identifier: LocationIdentifier):
-    location = get_location_from_cache(identifier)
+    location = LocationManager.get(identifier)
 
     if location is None:
         raise API404()
@@ -211,7 +209,7 @@ def set_position(request, position_id: PositionIdentifier, update: UpdatePositio
     if location.owner != request.user:
         raise APIPermissionDenied()
 
-    coordinates = get_location_from_cache(update.coordinates_id)
+    coordinates = LocationManager.get(update.coordinates_id)
     if coordinates is None:
         raise APIRequestValidationFailed('Cant resolve coordinates.')
 
