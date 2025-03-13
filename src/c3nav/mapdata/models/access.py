@@ -448,6 +448,6 @@ class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):
     @cached_property
     def effective_access_restrictions(self) -> set[int]:
         return (
-            super().effective_access_restrictions &
+            super().effective_access_restrictions |
             ({self.access_restriction_id} if self.access_restriction_id else set())
         )
