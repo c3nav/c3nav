@@ -1,3 +1,4 @@
+from itertools import chain
 from operator import itemgetter
 
 from django.contrib.auth import get_user_model

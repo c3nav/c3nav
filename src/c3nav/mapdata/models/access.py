@@ -2,6 +2,7 @@ import pickle
 import uuid
 from collections import namedtuple
 from datetime import timedelta
+from functools import cached_property
 from typing import Sequence, TYPE_CHECKING, Optional
 
 from django.conf import settings
@@ -417,10 +418,7 @@ class AccessPermission(models.Model):
             transaction.on_commit(lambda: cache.delete(self.access_permission_key()))
 
 
-class AccessRestrictionMixin(models.Model):
-    access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
-                                           verbose_name=_('Access Restriction'), on_delete=models.PROTECT)
-
+class AccessRestrictionLogicMixin(models.Model):
     objects = UseQForPermissionsManager()
 
     class Meta:
@@ -428,5 +426,31 @@ class AccessRestrictionMixin(models.Model):
 
     @classmethod
     def q_for_permissions(cls, permissions: "MapPermissions", prefix=''):
-        return (Q(**{prefix+'access_restriction__isnull': True}) |
-                Q(**{prefix+'access_restriction__pk__in': permissions.access_restrictions}))
+        return Q()
+
+    @cached_property
+    def effective_access_restrictions(self) -> set[int]:
+        return set()
+
+
+class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):
+    access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
+                                           verbose_name=_('Access Restriction'), on_delete=models.PROTECT)
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def q_for_permissions(cls, permissions: "MapPermissions", prefix=''):
+        return (
+            super().q_for_permissions(permissions, prefix) &
+            (Q(**{prefix+'access_restriction__isnull': True}) |
+             Q(**{prefix+'access_restriction__pk__in': permissions.access_restrictions}))
+        )
+
+    @cached_property
+    def effective_access_restrictions(self) -> set[int]:
+        return (
+            super().effective_access_restrictions &
+            ({self.access_restriction_id} if self.access_restriction_id else set())
+        )
