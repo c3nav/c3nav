@@ -24,7 +24,7 @@ from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMea
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.mapdata.utils.locations import CustomLocation
+from c3nav.mapdata.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
 from c3nav.routing.router import Router

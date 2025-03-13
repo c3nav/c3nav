@@ -6,7 +6,7 @@ from decimal import Decimal
 from functools import reduce
 from itertools import chain
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Sequence
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable
 
 from django.conf import settings
 from django.core.cache import cache
@@ -36,7 +36,7 @@ from c3nav.mapdata.utils.fields import LocationById
 if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager  # noqa
     from c3nav.mapdata.models import Level, Space, Area, POI
-    from c3nav.mapdata.utils.locations import CustomLocation
+    from c3nav.mapdata.locations import CustomLocation
 
 
 class LocationSlugManager(models.Manager):
@@ -317,7 +317,7 @@ class SpecificLocation(Location, models.Model):
 
     @staticmethod
     def get_bounds(*, targets: Iterable[LocationTarget]):
-        from c3nav.mapdata.utils.locations import merge_bounds
+        from c3nav.mapdata.utils.geometry import merge_bounds
         return merge_bounds(*filter(None, (target.bounds for target in targets)))
 
     @cached_property
