@@ -59,6 +59,7 @@ class LocationManager:
         """
         Get mapping of level index to level
         """
+        cls._maybe_update()
         return cls._levels_by_level_index
 
     @classmethod
