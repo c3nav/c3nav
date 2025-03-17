@@ -313,7 +313,7 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def dynamic_points(self) -> list[LocationPoint]:
-        return list(filter(None, (target.point for target in self.dynamic_targets)))
+        return list(filter(None, (target.dynamic_point for target in self.dynamic_targets)))
 
     @staticmethod
     def get_bounds(*, targets: Iterable[LocationTarget]):
@@ -513,15 +513,6 @@ class SpecificLocationTargetMixin(models.Model):
         return LazyMapPermissionFilteredSequence(sorted(self.locations.all(), key=attrgetter("order"), reverse=True))
 
     @property
-    def effective_icon(self) -> str | None:
-        # todo: do we want this method, at all?
-        # todo: enhance performance using generator
-        icons = [location.effective_icon for location in self.sorted_locations if location.effective_icon]
-        if not icons:
-            return None
-        return icons[0]
-
-    @property
     def title(self) -> str:
         return self.sorted_locations[0].title if self.sorted_locations else str(self)
 
@@ -537,19 +528,7 @@ class SpecificLocationTargetMixin(models.Model):
         return {}
 
     @property
-    def point(self) -> Optional[LocationPoint]:
-        return None
-
-    @property
-    def points(self) -> list[LocationPoint]:
-        return []
-
-    @property
     def bounds(self) -> Optional[BoundsSchema]:
-        return None
-
-    @property
-    def grid_square(self):
         return None
 
     @property
@@ -785,10 +764,20 @@ class DynamicLocation(SpecificLocationTargetMixin, AccessRestrictionMixin, model
 
     @property
     def coordinates(self) -> Optional["CustomLocation"]:
+        # todo: this needs to be cached
         if not self.position_secret:
             return None
         try:
             return Position.objects.get(secret=self.position_secret).coordinates
+        except Position.DoesNotExist:
+            return None
+
+    @property
+    def dynamic_point(self) -> Optional[LocationPoint]:
+        if not self.position_secret:
+            return None
+        try:
+            return Position.objects.get(secret=self.position_secret).coordinates.point
         except Position.DoesNotExist:
             return None
 
@@ -814,7 +803,7 @@ class Position(models.Model):
                                                help_text=_('0 for no timeout'))
     coordinates_id = models.CharField(_('coordinates'), null=True, blank=True, max_length=48)
 
-    coordinates = LocationById()
+    coordinates: "CustomLocation" = LocationById()
 
     dynamic = 1
     subtitle = _('Position')
