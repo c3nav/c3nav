@@ -12,6 +12,7 @@ class LocalCacheProxy:
     # django cache, buffered using a LRU cache
     # only usable for stuff that never changes, obviously
     # todo: ensure thread-safety, compatible with async + daphne etc
+    # todo: ensure expire?
     def __init__(self, maxsize=128):
         self._maxsize = maxsize
         self._mapupdate = None
