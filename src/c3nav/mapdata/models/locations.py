@@ -289,10 +289,9 @@ class SpecificLocation(Location, models.Model):
 
     @cached_property
     def order(self):
-        groups = tuple(self.sorted_groups)
-        if not groups:
+        if not self.sorted_groups:
             return (0, 0, 0)
-        return (0, groups[0].category.priority, groups[0].priority)
+        return (0, self.sorted_groups[0].category.priority, self.sorted_groups[0].priority)
 
     @cached_property
     def describing_groups(self):
@@ -393,7 +392,7 @@ class SpecificLocation(Location, models.Model):
     @property
     def dynamic_subtitle(self):
         return self.get_subtitle(
-            target_subtitle=self.get_target_subtitle(dynamic=False),
+            target_subtitle=self.get_target_subtitle(dynamic=True),
             grid_square=self.dynamic_grid_square,
         )
 
