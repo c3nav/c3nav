@@ -12,6 +12,7 @@ class NoneFromCache:
 class LocalCacheProxy:
     # django cache, buffered using a LRU cache
     # only usable for stuff that never needs to know about changes made by other cache clients, obviously
+    # todo: ensure expire?
     def __init__(self, maxsize=128):
         self._maxsize = maxsize
         self._mapupdate = None
