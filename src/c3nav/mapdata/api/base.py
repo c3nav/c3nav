@@ -19,6 +19,8 @@ from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 
+
+# todo: this ignores expire… so… hm?
 request_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_API)
 
 
