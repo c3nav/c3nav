@@ -35,4 +35,10 @@ class Migration(migrations.Migration):
             name='effective_order',
             field=models.PositiveIntegerField(default=2147483647, editable=False),
         ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='effective_icon',
+            field=models.CharField(editable=False, max_length=32, null=True, verbose_name='icon'),
+        ),
+        migrations.RunPython(fill_effective_cache, migrations.RunPython.noop),
     ]

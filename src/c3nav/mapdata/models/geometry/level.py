@@ -258,7 +258,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     @classmethod
     def recalculate(cls):
         from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
-        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+        with active_map_permissions.disable_access_checks():
             return cls._recalculate()
 
     @classmethod
