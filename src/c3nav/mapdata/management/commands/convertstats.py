@@ -29,7 +29,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         data = json.load(options['statsfile'])
         end_time = int(dateutil.parser.parse(data['end_date']).timestamp())
-        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+        with active_map_permissions.disable_access_checks():
             result = convert_stats(data)
         if options['graphite']:
             lines = []

@@ -174,7 +174,7 @@ class LocationManager:
         cache_key = MapUpdate.current_cache_key()
         if cache_key != cls._cache_key:
             cls._cache_key = cache_key
-            with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+            with active_map_permissions.disable_access_checks():
                 cache_key = f'mapdata:all_locations:{cache_key}'
                 all_locations: dict[int, SpecificLocation | LocationGroup] | None
                 all_locations = cache.get(cache_key, None)
