@@ -21,6 +21,7 @@ from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, LocationGroup, 
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
 from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.update import MapUpdateTuple
 from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
@@ -51,6 +52,7 @@ EdgeIndex: TypeAlias = tuple[int, int]
 class Router:
     filename: ClassVar = settings.CACHE_ROOT / 'router'
 
+    update: MapUpdateTuple
     levels: dict[int, "RouterLevel"]
     spaces: dict[int, "RouterSpace"]
     areas: dict[int, "RouterArea"]
@@ -68,12 +70,12 @@ class Router:
         return max(area.get_altitudes(point)[0] for area in areas if area.geometry_prep.intersects(point))
 
     @classmethod
-    def rebuild(cls, update):
+    def rebuild(cls, update: MapUpdateTuple):
         with active_map_permissions.disable_access_checks():
             return cls._rebuild(update)
 
     @classmethod
-    def _rebuild(cls, update):
+    def _rebuild(cls, update: MapUpdateTuple):
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'locations__groups',
                                                       'spaces__holes', 'spaces__columns', 'spaces__locations__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
@@ -319,6 +321,7 @@ class Router:
             restriction.edges = np.array(restriction.edges, dtype=np.uint32).reshape((-1, 2))
 
         router = cls(
+            update=update,
             levels=levels,
             spaces=spaces,
             areas=areas,
@@ -335,24 +338,22 @@ class Router:
         return router
 
     @classmethod
-    def build_filename(cls, update):
+    def build_filename(cls, update: MapUpdateTuple):
         return settings.CACHE_ROOT / MapUpdate.build_cache_key(*update) / 'router.pickle'
 
     @classmethod
-    def load_nocache(cls, update):
+    def load_nocache(cls, update: MapUpdateTuple):
         return pickle.load(open(cls.build_filename(update), 'rb'))
 
     cached = LocalContext()
 
-    class NoUpdate:
-        pass
+    NoUpdate = (-1, -1)
 
     @classmethod
     def load(cls):
         from c3nav.mapdata.models import MapUpdate
         update = MapUpdate.last_processed_update()
-        if getattr(cls.cached, 'update', cls.NoUpdate) != update:
-            cls.cached.update = update
+        if getattr(cls.cached, 'update', cls.NoUpdate) < update:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
