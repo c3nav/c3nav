@@ -208,10 +208,21 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             target_links = []
             for target_obj in obj.all_targets:
                 reverse_kwargs = {'pk': target_obj.pk}
-                if hasattr(target_obj, "space_id"):
+
+                try:
+                    target_obj._meta.get_field("space")
+                except FieldDoesNotExist:
+                    pass
+                else:
                     reverse_kwargs["space"] = target_obj.space_id
-                elif hasattr(target_obj, "level_id"):
+
+                try:
+                    target_obj._meta.get_field("level")
+                except FieldDoesNotExist:
+                    pass
+                else:
                     reverse_kwargs["level"] = target_obj.level_id
+
                 target_title = str(target_obj.title)
                 target_url = reverse('editor.'+target_obj._meta.default_related_name+'.edit', kwargs=reverse_kwargs)
                 if str(obj.title) != target_title:
