@@ -126,7 +126,7 @@ def conditional_geojson(obj, update_cache_key_match):
 # noinspection PyPep8Naming
 def get_level_geometries_result(request, level_id: int, update_cache_key: str, update_cache_key_match: True):
     try:
-        level = Level.qs_for_permissions().get(pk=level_id)
+        level = Level.objects.get(pk=level_id)
     except Level.DoesNotExist:
         raise API404('Level not found')
 
@@ -198,7 +198,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
 
 def get_space_geometries_result(request, space_id: int, update_cache_key: str, update_cache_key_match: bool):
     try:
-        space = Space.qs_for_permissions().select_related('level', 'level__on_top_of').get(pk=space_id)
+        space = Space.objects.select_related('level', 'level__on_top_of').get(pk=space_id)
     except Space.DoesNotExist:
         raise API404('space not found')
 
@@ -217,7 +217,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         )
 
         levels_for_level = LevelsForLevel.for_level(level.primary_level, special_if_on_top=True)
-        other_spaces = Space.qs_for_permissions().filter(level__pk__in=levels_for_level.levels).only(
+        other_spaces = Space.objects.filter(level__pk__in=levels_for_level.levels).only(
             'geometry', 'level',
         ).prefetch_related(
             Prefetch('locations__groups', LocationGroup.objects.only(
