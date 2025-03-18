@@ -13,6 +13,9 @@ from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
+from django.db.models.aggregates import Max, Min
+from django.db.models.expressions import Window, F, OuterRef
+from django.db.models.functions.window import RowNumber
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -69,10 +72,6 @@ class LocationSlug(models.Model):
     @property
     def target_id(self):
         return self.group_id or self.specific_id
-
-    @cached_property
-    def order(self):
-        return (-1, 0)
 
     class Meta:
         verbose_name = _('Location Slug')
@@ -176,6 +175,10 @@ DynamicLocationTarget: TypeAlias = Union["DynamicLocation"]
 LocationTarget = StaticLocationTarget | DynamicLocationTarget
 
 
+class LocationSubtitle:
+    pass
+
+
 class SpecificLocation(Location, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
@@ -199,10 +202,14 @@ class SpecificLocation(Location, models.Model):
     pois = models.ManyToManyField('POI', related_name='locations')
     dynamiclocations = models.ManyToManyField('DynamicLocation', related_name='locations')
 
+    effective_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_icon = models.CharField(_('icon'), max_length=32, null=True, editable=False)
+
     class Meta:
         verbose_name = _('Specific Location')
         verbose_name_plural = _('Specific Locations')
         default_related_name = 'specific_locations'
+        ordering = ('effective_order',)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -287,11 +294,24 @@ class SpecificLocation(Location, models.Model):
                 return (0, group.category.priority, group.hierarchy, group.priority), color
         return None
 
-    @cached_property
-    def order(self):
-        if not self.sorted_groups:
-            return (0, 0, 0)
-        return (0, self.sorted_groups[0].category.priority, self.sorted_groups[0].priority)
+    @classmethod
+    def calculate_effective_order(cls):
+        cls.objects.annotate(
+            min_group_effective_order=Min("groups__effective_order"),
+            row_num=Window(
+                expression=RowNumber(),
+                order_by=("min_group_effective_order", "pk")
+            ),
+        ).update(effective_order=F("row_num")+LocationGroup.objects.count())
+
+    @classmethod
+    def calculate_effective_icon(cls):
+        cls.objects.annotate(
+            new_effective_icon=LocationGroup.objects.filter(
+                specific_locations__in=OuterRef("pk"),
+                icon__isnull=False,
+            ).order_by("effective_order").values("icon")[:1],
+        ).update(effective_icon=F("new_effective_icon"))
 
     @cached_property
     def describing_groups(self):
@@ -509,7 +529,7 @@ class SpecificLocationTargetMixin(models.Model):
                           'Returning empty list.', RuntimeWarning)
             return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
-        return LazyMapPermissionFilteredSequence(sorted(self.locations.all(), key=attrgetter("order"), reverse=True))
+        return LazyMapPermissionFilteredSequence(sorted(self.locations.all(), key=attrgetter("effective_order")))
 
     @property
     def title(self) -> str:
@@ -640,13 +660,15 @@ class LocationGroup(Location, models.Model):
     load_group_contribute = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                               verbose_name=_('contribute to load group'))
 
+    effective_order = models.PositiveIntegerField(default=2**31-1)
+
     objects = LocationGroupManager()
 
     class Meta:
         verbose_name = _('Location Group')
         verbose_name_plural = _('Location Groups')
         default_related_name = 'locationgroups'
-        ordering = ('-category__priority', '-priority')
+        ordering = ('effective_order',)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -697,9 +719,14 @@ class LocationGroup(Location, models.Model):
                                               {'num': len(self.locations)}))
         return result
 
-    @cached_property
-    def order(self):
-        return (1, self.category.priority, self.priority)
+    @classmethod
+    def calculate_effective_order(cls):
+        cls.objects.annotate(
+            new_effective_order=Window(
+                expression=RowNumber(),
+                order_by=('-category__priority', '-priority')
+            )
+        ).update(effective_order=F('new_effective_order'))
 
     def pre_save_changed_geometries(self):
         if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):

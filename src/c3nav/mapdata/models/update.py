@@ -291,6 +291,12 @@ class MapUpdate(models.Model):
         if new:
             old_cache_key = self.current_cache_key()
 
+        # todo: move this to some kind of processupdates stage
+        from c3nav.mapdata.models.locations import LocationGroup, SpecificLocation
+        LocationGroup.calculate_effective_order()
+        SpecificLocation.calculate_effective_order()
+        SpecificLocation.calculate_effective_icon()
+
         super().save(**kwargs)
 
         with suppress(FileExistsError):
