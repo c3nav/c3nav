@@ -219,7 +219,7 @@ class LocationManager:
             *LocationGroup.objects.select_related(
                 'category', 'label_settings'
             ).prefetch_related("slug_set"),
-        ), key=operator.attrgetter('order'), reverse=True)}
+        ), key=operator.attrgetter('effective_order'))}
 
         # add locations to groups
         locationgroups = {pk: obj for pk, obj in locations.items() if isinstance(obj, LocationGroup)}
