@@ -119,8 +119,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
                 "identifier": location.target.effective_slug,
             }))
 
-    if isinstance(location, (DynamicLocation, Position)):
-        # todo: what does this do? … we don't want to cache dynamic stuff, this caching needs to happen correctly
+    if location.dynamic:
         request._target_etag = None
         request._target_cache_key = None
 
