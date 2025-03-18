@@ -682,7 +682,7 @@ class CustomLocationDescription(NamedTuple):
 @dataclass
 class BaseRouterTarget:
     def __init__(self, src):
-        self.point = src.point
+        self.point = getattr(src, "point", None)
         self.nodes: set[int] = set()
         self.nodes_addition: NodeConnectionsByNode = {}
         self.access_restriction_id: int | None = src.access_restriction_id
