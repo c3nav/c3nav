@@ -687,13 +687,13 @@ class CustomLocationDescription(NamedTuple):
 @dataclass
 class BaseRouterTarget[TargetT]:
     src: InitVar[TargetT]
-    point: LocationPoint = field(init=False)
+    point: LocationPoint | None = field(init=False)
     nodes: set[int] = field(default_factory=set)
     nodes_addition: NodeConnectionsByNode = field(default_factory=dict)
     access_restriction_id: int | None = field(init=False)
 
     def __post_init__(self, src: TargetT):
-        self.point = src.point
+        self.point = getattr(src, "point", None)
         self.access_restriction_id = src.access_restriction_id
 
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
