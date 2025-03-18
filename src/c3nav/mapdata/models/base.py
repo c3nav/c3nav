@@ -9,7 +9,7 @@ from c3nav.mapdata.models import MapUpdate
 
 class TitledMixin(models.Model):
     title = I18nField(_('Title'), plural_name='titles', blank=True, fallback_any=True, fallback_value='{model} {pk}')
-    titles: dict
+    titles: dict[str, str]
 
     class Meta:
         abstract = True
