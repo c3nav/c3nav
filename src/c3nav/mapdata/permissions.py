@@ -57,6 +57,10 @@ class MapPermissionsFromRequest(metaclass=CachedMapPermissionsFromX):
         # todo: tbh, this should just go via access permissions, no need to introduce this
         return self.request.user_permissions.sources_access
 
+    @cached_property
+    def full(self):
+        return self.request.user.is_superuser
+
 
 class MapPermissionsFromUser(metaclass=CachedMapPermissionsFromX):
     """
@@ -85,6 +89,10 @@ class MapPermissionsFromUser(metaclass=CachedMapPermissionsFromX):
     def view_sources(self):
         # todo: tbh, this should just go via access permissions, no need to introduce this
         return self.user.permissions.sources_access
+
+    @cached_property
+    def full(self):
+        return self.user.is_superuser
 
 
 @dataclass(frozen=True)  # frozen seemed like a good idea but we could change it – if we rely on it, edit this comment
@@ -116,8 +124,8 @@ class ManualMapPermissions:
 
 
 class FullAccessContextManager:
-    def __set_name__(self, owner, name):
-        self.ctx = owner
+    def __init__(self, ctx):
+        self.ctx = ctx
 
     def __call__(self):
         return self.ctx.override(ManualMapPermissions.get_full_access())
@@ -156,7 +164,9 @@ class MapPermissionContext:
             return ManualMapPermissions.get_public_access()
         return self._active.value
 
-    disable_access_checks = FullAccessContextManager()
+    @cached_property
+    def disable_access_checks(self):
+        return FullAccessContextManager(self)
 
     @contextmanager
     def override(self, value: MapPermissions):
