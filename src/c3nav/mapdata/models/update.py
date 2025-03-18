@@ -192,6 +192,10 @@ class MapUpdate(models.Model):
     def process_updates(cls):
         logger = logging.getLogger('c3nav')
 
+        cls.last_update()
+        cls.last_processed_update()
+        cls.last_processed_geometry_update()
+
         with cls.get_updates_to_process() as new_updates:
             prev_keys = (
                 cls.current_processed_cache_key(),
