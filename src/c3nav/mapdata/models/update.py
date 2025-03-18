@@ -5,6 +5,7 @@ import time
 from contextlib import contextmanager, suppress, nullcontext
 from functools import cached_property
 from sqlite3 import DatabaseError
+from typing import TypeAlias
 
 from django.conf import settings
 from django.core.cache import cache
@@ -17,6 +18,9 @@ from shapely.ops import unary_union
 from c3nav.mapdata.tasks import process_map_updates, delete_map_cache_key
 from c3nav.mapdata.utils.cache.changes import GeometryChangeTracker
 from c3nav.mapdata.utils.cache.local import per_request_cache
+
+
+MapUpdateTuple: TypeAlias = tuple[int, int]
 
 
 class MapUpdate(models.Model):
@@ -47,7 +51,7 @@ class MapUpdate(models.Model):
         self.was_processed = self.processed
 
     @classmethod
-    def last_update(cls, force=False):
+    def last_update(cls, force=False) -> MapUpdateTuple:
         if not force:
             last_update = per_request_cache.get('mapdata:last_update', None)
             if last_update is not None:
@@ -62,7 +66,7 @@ class MapUpdate(models.Model):
         return last_update
 
     @classmethod
-    def last_processed_update(cls, force=False, lock=True):
+    def last_processed_update(cls, force=False, lock=True) -> MapUpdateTuple:
         if not force:
             last_processed_update = per_request_cache.get('mapdata:last_processed_update', None)
             if last_processed_update is not None:
@@ -77,7 +81,7 @@ class MapUpdate(models.Model):
         return last_processed_update
 
     @classmethod
-    def last_processed_geometry_update(cls, force=False):
+    def last_processed_geometry_update(cls, force=False) -> MapUpdateTuple:
         if not force:
             last_processed_geometry_update = per_request_cache.get('mapdata:last_processed_geometry_update', None)
             if last_processed_geometry_update is not None:
@@ -93,7 +97,7 @@ class MapUpdate(models.Model):
         return last_processed_geometry_update
 
     @property
-    def to_tuple(self):
+    def to_tuple(self) -> MapUpdateTuple:
         return self.pk, int(make_naive(self.datetime).timestamp())
 
     @property
@@ -113,7 +117,7 @@ class MapUpdate(models.Model):
         return cls.build_cache_key(*cls.last_processed_geometry_update())
 
     @staticmethod
-    def build_cache_key(pk, timestamp):
+    def build_cache_key(pk: int, timestamp: int):
         return int_to_base36(pk)+'_'+int_to_base36(timestamp)
 
     @classmethod

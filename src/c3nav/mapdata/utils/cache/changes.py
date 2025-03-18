@@ -3,6 +3,7 @@ import os
 from django.db.models.signals import m2m_changed, post_delete
 from shapely.ops import unary_union
 
+from c3nav.mapdata.models.update import MapUpdateTuple
 from c3nav.mapdata.utils.cache.maphistory import MapHistory
 from c3nav.mapdata.utils.models import get_submodels
 
@@ -59,7 +60,7 @@ class GeometryChangeTracker:
             self._geometries_by_level.setdefault(level_id, []).append(other._get_unary_union(level_id))
         self._unary_unions = {}
 
-    def save(self, last_update, new_update):
+    def save(self, last_update: MapUpdateTuple, new_update: MapUpdateTuple):
         self.finalize()
 
         for level_id, geometries in self._geometries_by_level.items():

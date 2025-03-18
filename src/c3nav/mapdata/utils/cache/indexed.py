@@ -1,5 +1,11 @@
 import math
 import struct
+from os import PathLike
+from pathlib import Path
+from typing import Self, Optional
+
+from scipy.linalg._decomp_interpolative import NDArray
+from shapely import Polygon, MultiPolygon
 
 import numpy as np
 
@@ -22,29 +28,30 @@ class GeometryIndexed:
     dtype = np.uint16
     variant_id = 0
 
-    def __init__(self, resolution=None, x=0, y=0, data=None, filename=None):
+    def __init__(self, resolution: Optional[int] = None, x: int = 0, y: int = 0,
+                 data: NDArray = None, filename: str | bytes | PathLike = None):
         if resolution is None:
             from django.conf import settings
             resolution = settings.CACHE_RESOLUTION
-        self.resolution = resolution
+        self.resolution: int = resolution
         self.x = x
         self.y = y
-        self.data = data if data is not None else self._get_empty_array()
+        self.data: NDArray = data if data is not None else self._get_empty_array()
         self.filename = filename
 
     @classmethod
-    def _get_empty_array(cls):
+    def _get_empty_array(cls) -> NDArray:
         return np.empty((0, 0), dtype=cls.dtype)
 
     @classmethod
-    def open(cls, filename):
+    def open(cls, filename: str | bytes | PathLike) -> Self:
         with open(filename, 'rb') as f:
             instance = cls.read(f)
         instance.filename = filename
         return instance
 
     @classmethod
-    def read(cls, f):
+    def read(cls, f) -> Self:
         variant_id, resolution, x, y, width, height = struct.unpack('<BBhhHH', f.read(10))
         if variant_id != cls.variant_id:
             raise ValueError('variant id does not match')
@@ -61,10 +68,10 @@ class GeometryIndexed:
         return cls(**kwargs)
 
     @classmethod
-    def _read_metadata(cls, f, kwargs):
+    def _read_metadata(cls, f, kwargs: dict):
         pass
 
-    def save(self, filename=None):
+    def save(self, filename: str | bytes | PathLike = None):
         if filename is None:
             filename = self.filename
         if filename is None:
@@ -81,7 +88,7 @@ class GeometryIndexed:
     def _write_metadata(self, f):
         pass
 
-    def _get_geometry_bounds(self, geometry):
+    def get_geometry_bounds(self, geometry: Polygon | MultiPolygon) -> tuple[int, int, int, int]:
         minx, miny, maxx, maxy = geometry.bounds
         return (
             int(math.floor(minx / self.resolution)),
@@ -90,7 +97,7 @@ class GeometryIndexed:
             int(math.ceil(maxy / self.resolution)),
         )
 
-    def fit_bounds(self, minx, miny, maxx, maxy):
+    def fit_bounds(self, minx: int, miny: int, maxx: int, maxy: int):
         height, width = self.data.shape
 
         if self.data.size:
@@ -110,9 +117,10 @@ class GeometryIndexed:
         self.x = minx
         self.y = miny
 
-    def get_geometry_cells(self, geometry, bounds=None):
+    def get_geometry_cells(self, geometry: Polygon | MultiPolygon,
+                           bounds: Optional[tuple[int, int, int, int]] = None) -> NDArray:
         if bounds is None:
-            bounds = self._get_geometry_bounds(geometry)
+            bounds = self.get_geometry_bounds(geometry)
         minx, miny, maxx, maxy = bounds
 
         height, width = self.data.shape
@@ -135,11 +143,11 @@ class GeometryIndexed:
         return cells
 
     @property
-    def bounds(self):
+    def bounds(self) -> tuple[int, int, int, int]:
         height, width = self.data.shape
         return self.x, self.y, self.x+width, self.y+height
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: tuple[slice, slice] | Polygon | MultiPolygon) -> int:
         if isinstance(key, tuple):
             xx, yy = key
 
@@ -158,15 +166,15 @@ class GeometryIndexed:
 
         from shapely.geometry.base import BaseGeometry
         if isinstance(key, BaseGeometry):
-            bounds = self._get_geometry_bounds(key)
+            bounds = self.get_geometry_bounds(key)
             return self.data[self.get_geometry_cells(key, bounds)]
 
         raise TypeError('GeometryIndexed index must be a shapely geometry or tuple, not %s' % type(key).__name__)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Polygon | MultiPolygon, value: NDArray | int):
         from shapely.geometry.base import BaseGeometry
         if isinstance(key, BaseGeometry):
-            bounds = self._get_geometry_bounds(key)
+            bounds = self.get_geometry_bounds(key)
             self.fit_bounds(*bounds)
             cells = self.get_geometry_cells(key, bounds)
             self.data[cells] = value
@@ -198,23 +206,23 @@ class LevelGeometryIndexed(GeometryIndexed):
     variant_name = None
 
     @classmethod
-    def level_filename(cls, level_id, mode):
+    def level_filename(cls, level_id: int, mode) -> Path:
         from django.conf import settings
         return settings.CACHE_ROOT / ('%s_%s_level_%d' % (cls.variant_name, mode, level_id))
 
     @classmethod
-    def open_level(cls, level_id, mode, **kwargs):
+    def open_level(cls, level_id: int, mode, **kwargs) -> Self:
         # noinspection PyArgumentList
         return cls.open(cls.level_filename(level_id, mode), **kwargs)
 
-    def save_level(self, level_id, mode):
+    def save_level(self, level_id: int, mode):
         # noinspection PyArgumentList
         return self.save(self.level_filename(level_id, mode))
 
     cached = LocalContext()
 
     @classmethod
-    def open_level_cached(cls, level_id, mode):
+    def open_level_cached(cls, level_id: int, mode) -> Self:
         from c3nav.mapdata.models import MapUpdate
         cache_key = MapUpdate.current_processed_cache_key()
         if getattr(cls.cached, 'key', None) != cache_key:

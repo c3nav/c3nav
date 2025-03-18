@@ -1,8 +1,12 @@
 import struct
 from itertools import chain
+from os import PathLike
+from typing import Optional, Self
+from shapely import Polygon, MultiPolygon
 
 import numpy as np
 
+from c3nav.mapdata.models.update import MapUpdateTuple
 from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
 
 
@@ -17,12 +21,12 @@ class MapHistory(LevelGeometryIndexed):
     variant_id = 1
     variant_name = 'history'
 
-    def __init__(self, updates, **kwargs):
+    def __init__(self, updates: list[MapUpdateTuple], **kwargs):
         super().__init__(**kwargs)
         self.updates = updates
 
     @classmethod
-    def _read_metadata(cls, f, kwargs):
+    def _read_metadata(cls, f, kwargs: dict):
         num_updates = struct.unpack('<H', f.read(2))[0]
         updates = struct.unpack('<'+'II'*num_updates, f.read(num_updates*8))
         updates = list(zip(updates[0::2], updates[1::2]))
@@ -33,7 +37,7 @@ class MapHistory(LevelGeometryIndexed):
         f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
 
     @classmethod
-    def open(cls, filename, default_update=None):
+    def open(cls, filename: str | bytes | PathLike, default_update: Optional[MapUpdateTuple] = None) -> Self:
         try:
             instance = super().open(filename)
         except FileNotFoundError:
@@ -44,7 +48,7 @@ class MapHistory(LevelGeometryIndexed):
             instance.save()
         return instance
 
-    def add_geometry(self, geometry, update):
+    def add_geometry(self, geometry: Polygon | MultiPolygon, update: MapUpdateTuple):
         if self.updates[-1] != update:
             self.updates.append(update)
 
@@ -63,7 +67,7 @@ class MapHistory(LevelGeometryIndexed):
         self.simplify()
         super().write(*args, **kwargs)
 
-    def composite(self, other, mask_geometry):
+    def composite(self, other: Self, mask_geometry: Optional[Polygon | MultiPolygon]):
         if self.resolution != other.resolution:
             raise ValueError('Cannot composite with different resolutions.')
 
@@ -98,7 +102,7 @@ class MapHistory(LevelGeometryIndexed):
         self.updates = new_updates
         self.simplify()
 
-    def last_update(self, minx, miny, maxx, maxy):
+    def last_update(self, minx: float, miny: float, maxx: float, maxy: float) -> MapUpdateTuple:
         cells = self[minx:maxx, miny:maxy]
         if cells.size:
             return self.updates[cells.max()]
