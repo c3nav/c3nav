@@ -58,7 +58,7 @@ class LevelRenderData:
 
     @staticmethod
     def rebuild(update_cache_key):
-        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+        with active_map_permissions.disable_access_checks():
             return LevelRenderData._rebuild(update_cache_key)
 
     @staticmethod
