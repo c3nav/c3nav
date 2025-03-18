@@ -22,6 +22,7 @@ from shapely.ops import nearest_points
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
+from c3nav.mapdata.models.update import MapUpdateTuple
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.locations import CustomLocation
@@ -110,6 +111,7 @@ class LocatorResult(NamedTuple):
 
 @dataclass
 class Locator:
+    update: MapUpdateTuple
     peers: list[LocatorPeer] = field(default_factory=list)
     peer_lookup: dict[TypedIdentifier, int] = field(default_factory=dict)
     xyz: np.array = field(default_factory=(lambda: np.empty((0,))))
@@ -123,7 +125,7 @@ class Locator:
         return [self.peers[peer_id].suggestion for peer_id in self.initial_80211mc_peers]
 
     @classmethod
-    def rebuild(cls, update, router):
+    def rebuild(cls, update: MapUpdateTuple, router: Router):
         locator = cls()
         locator._rebuild(router)
         pickle.dump(locator, open(cls.build_filename(update), 'wb'))
@@ -287,24 +289,22 @@ class Locator:
         }
 
     @classmethod
-    def build_filename(cls, update):
+    def build_filename(cls, update: MapUpdateTuple):
         return settings.CACHE_ROOT / MapUpdate.build_cache_key(*update) / 'locator.pickle'
 
     @classmethod
-    def load_nocache(cls, update):
+    def load_nocache(cls, update: MapUpdateTuple):
         return pickle.load(open(cls.build_filename(update), 'rb'))
 
     cached = LocalContext()
 
-    class NoUpdate:
-        pass
+    NoUpdate = (-1, -1)
 
     @classmethod
     def load(cls):
         from c3nav.mapdata.models import MapUpdate
         update = MapUpdate.last_processed_update()
-        if getattr(cls.cached, 'update', cls.NoUpdate) != update:
-            cls.cached.update = update
+        if getattr(cls.cached, 'update', cls.NoUpdate) < update:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
