@@ -24,8 +24,9 @@ if TYPE_CHECKING:
 class UseQForPermissionsManager(models.Manager):
     def get_queryset(self):
         from c3nav.mapdata.permissions import active_map_permissions
-        permissions = active_map_permissions.get_value()
-        return super().get_queryset().filter(self.model.q_for_permissions(permissions))
+        if active_map_permissions.full:
+            return super().get_queryset()
+        return super().get_queryset().filter(self.model.q_for_permissions(active_map_permissions))
 
 
 class AccessRestriction(TitledMixin, models.Model):
