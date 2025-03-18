@@ -14,7 +14,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.aggregates import Max, Min
-from django.db.models.expressions import Window, F, OuterRef
+from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value
 from django.db.models.functions.window import RowNumber
 from django.urls import reverse
 from django.utils import timezone
@@ -30,7 +30,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
-from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence
+from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.local import per_request_cache
@@ -254,16 +254,6 @@ class SpecificLocation(Location, models.Model):
         return len(self.dynamic_targets)
 
     @cached_property
-    def effective_icon(self):
-        icon = super().effective_icon
-        if icon:
-            return icon
-        return next(iter(chain(
-            (group.icon for group in self.sorted_groups if group.icon),
-            (None, )
-        )))
-
-    @cached_property
     def effective_label_settings(self):
         if self.label_settings:
             return self.label_settings
@@ -296,22 +286,37 @@ class SpecificLocation(Location, models.Model):
 
     @classmethod
     def calculate_effective_order(cls):
-        cls.objects.annotate(
-            min_group_effective_order=Min("groups__effective_order"),
-            row_num=Window(
-                expression=RowNumber(),
-                order_by=("min_group_effective_order", "pk")
-            ),
-        ).update(effective_order=F("row_num")+LocationGroup.objects.count())
+        with active_map_permissions.disable_access_checks():
+            min_group_effective_order_ids = {}
+            for pk, min_group_effective_order in cls._default_manager.annotate(
+                min_group_effective_order=Min("groups__effective_order"),
+            ).values_list('pk', 'min_group_effective_order'):
+                min_group_effective_order_ids.setdefault(min_group_effective_order, set()).add(pk)
+
+            cls.objects.update(effective_order=Subquery(
+                cls.objects.filter(pk=OuterRef('pk')).annotate(
+                    min_group_effective_order=Case(
+                        *(When(pk__in=pks, then=Value(min_group_effective_order))
+                          for min_group_effective_order, pks in min_group_effective_order_ids.items()),
+                        default=Value(0),
+                    ),
+                    row_num=Window(
+                        expression=RowNumber(),
+                        order_by=("min_group_effective_order", "pk"),
+                    ),
+                    new_effective_order=F("row_num") + LocationGroup.objects.count()
+                ).values('new_effective_order')[:1]
+            ))
 
     @classmethod
     def calculate_effective_icon(cls):
-        cls.objects.annotate(
-            new_effective_icon=LocationGroup.objects.filter(
-                specific_locations__in=OuterRef("pk"),
-                icon__isnull=False,
-            ).order_by("effective_order").values("icon")[:1],
-        ).update(effective_icon=F("new_effective_icon"))
+        with active_map_permissions.disable_access_checks():
+            cls.objects.annotate(
+                new_effective_icon=LocationGroup.objects.filter(
+                    specific_locations__in=OuterRef("pk"),
+                    icon__isnull=False,
+                ).order_by("effective_order").values("icon")[:1],
+            ).update(effective_icon=F("new_effective_icon"))
 
     @cached_property
     def describing_groups(self):
@@ -722,12 +727,15 @@ class LocationGroup(Location, models.Model):
 
     @classmethod
     def calculate_effective_order(cls):
-        cls.objects.annotate(
-            new_effective_order=Window(
-                expression=RowNumber(),
-                order_by=('-category__priority', '-priority')
-            )
-        ).update(effective_order=F('new_effective_order'))
+        with active_map_permissions.disable_access_checks():
+            cls.objects.update(effective_order=Subquery(
+                cls.objects.filter(pk=OuterRef('pk')).annotate(
+                    new_effective_order=Window(
+                        expression=RowNumber(),
+                        order_by=('-category__priority', '-priority')
+                    )
+                ).values('new_effective_order')[:1]
+            ))
 
     def pre_save_changed_geometries(self):
         if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):

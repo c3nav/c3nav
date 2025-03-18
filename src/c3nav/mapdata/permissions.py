@@ -1,5 +1,5 @@
 import warnings
-from contextlib import contextmanager
+from contextlib import contextmanager, AbstractContextManager
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping
@@ -19,6 +19,7 @@ class MapPermissions(Protocol):
     spaces: dict[int, bool]   # accessible space geometry
     all_base_mapdata: bool  # all spaces the users can access, with value True if they may also edit them
     view_sources: bool  # can view sources
+    full: bool
 
 
 class CachedMapPermissionsFromX(type):
@@ -92,6 +93,7 @@ class ManualMapPermissions:
     spaces: dict[int, bool]
     all_base_mapdata: bool
     view_sources: bool
+    full: bool = False
 
     @classmethod
     def get_full_access(cls):
@@ -100,6 +102,7 @@ class ManualMapPermissions:
             spaces={},
             all_base_mapdata=True,
             view_sources=True,
+            full=True,
         )
 
     @classmethod
@@ -110,6 +113,17 @@ class ManualMapPermissions:
             all_base_mapdata=False,
             view_sources=False,
         )
+
+
+class FullAccessContextManager:
+    def __set_name__(self, owner, name):
+        self.ctx = owner
+
+    def __call__(self):
+        return self.ctx.override(ManualMapPermissions.get_full_access())
+
+    def __bool__(self):
+        raise ValueError('This should not happen!')
 
 
 class MapPermissionContext:
@@ -142,6 +156,8 @@ class MapPermissionContext:
             return ManualMapPermissions.get_public_access()
         return self._active.value
 
+    disable_access_checks = FullAccessContextManager()
+
     @contextmanager
     def override(self, value: MapPermissions):
         # todo: don't use this… usually
@@ -168,6 +184,10 @@ class MapPermissionContext:
     @property
     def view_sources(self) -> bool:
         return self.get_value().view_sources
+
+    @property
+    def full(self) -> bool:
+        return self.get_value().full
 
     @property
     def cache_key_without_update(self):

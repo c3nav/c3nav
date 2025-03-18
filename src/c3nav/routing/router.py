@@ -70,7 +70,7 @@ class Router:
 
     @classmethod
     def rebuild(cls, update):
-        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+        with active_map_permissions.disable_access_checks():
             return cls._rebuild(update)
 
     @classmethod
