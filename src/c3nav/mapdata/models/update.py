@@ -4,11 +4,10 @@ import pickle
 import time
 from contextlib import contextmanager, suppress, nullcontext
 from functools import cached_property
-from sqlite3 import DatabaseError
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models, transaction
+from django.db import models, transaction, DatabaseError
 from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import gettext_lazy as _
