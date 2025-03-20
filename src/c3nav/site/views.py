@@ -27,18 +27,17 @@ from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 from django.views.i18n import LANGUAGE_QUERY_PARAMETER, set_language
-from pydantic.type_adapter import TypeAdapter
 
 from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid, GridSchema
+from c3nav.mapdata.locations import LocationRedirect, LocationManager
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
-from c3nav.mapdata.locations import LocationRedirect, LocationManager
 from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
@@ -106,6 +105,8 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
                         )
                     )
 
+
+
     origin = None
     destination = None
     routing = False
@@ -120,11 +121,13 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         else:
             destination = check_location(slug, request)
 
+
+
     state = {
         'routing': routing,
-        'origin': (TypeAdapter(SingleLocationItemSchema).validate_python(origin).model_dump()
+        'origin': (SingleLocationItemSchema.validate_python(origin).model_dump()
                    if origin else None),
-        'destination': (TypeAdapter(SingleLocationItemSchema).validate_python(destination).model_dump()
+        'destination': (SingleLocationItemSchema.validate_python(destination).model_dump()
                         if destination else None),
         'sidebar': routing or destination is not None,
         'details': True if details else False,
