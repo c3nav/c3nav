@@ -6,7 +6,7 @@ from shapely import Polygon, MultiPolygon
 
 import numpy as np
 
-from c3nav.mapdata.models.update import MapUpdateTuple
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
 
 

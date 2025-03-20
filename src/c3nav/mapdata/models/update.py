@@ -5,7 +5,6 @@ import time
 from contextlib import contextmanager, suppress, nullcontext
 from functools import cached_property
 from sqlite3 import DatabaseError
-from typing import TypeAlias
 
 from django.conf import settings
 from django.core.cache import cache
@@ -18,9 +17,9 @@ from shapely.ops import unary_union
 from c3nav.mapdata.tasks import process_map_updates, delete_map_cache_key
 from c3nav.mapdata.utils.cache.changes import GeometryChangeTracker
 from c3nav.mapdata.utils.cache.local import per_request_cache
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 
 
-MapUpdateTuple: TypeAlias = tuple[int, int]
 
 
 class MapUpdate(models.Model):
