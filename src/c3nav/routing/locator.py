@@ -22,7 +22,7 @@ from shapely.ops import nearest_points
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
-from c3nav.mapdata.models.update import MapUpdateTuple
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.locations import CustomLocation
