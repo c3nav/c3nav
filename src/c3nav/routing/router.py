@@ -26,7 +26,7 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.models.update import MapUpdateTuple
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint

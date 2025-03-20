@@ -15,11 +15,40 @@ except ImportError:
 
 
 class MapPermissions(Protocol):
-    access_restrictions: set[int]  # accessible access permissions
-    spaces: dict[int, bool]   # accessible space geometry
-    all_base_mapdata: bool  # all spaces the users can access, with value True if they may also edit them
-    view_sources: bool  # can view sources
-    full: bool
+    @property
+    def access_restrictions(self) -> set[int]:
+        """
+        accessible access permissions
+        """
+        pass
+
+    @property
+    def spaces(self) -> dict[int, bool]:
+        """
+        accessible space geometry
+        """
+        pass
+
+    @property
+    def all_base_mapdata(self) -> bool:
+        """
+        all spaces the users can access, with value True if they may also edit them
+        """
+        pass
+
+    @property
+    def view_sources(self) -> bool:
+        """
+        can view sources
+        """
+        pass
+
+    @property
+    def full(self) ->  bool:
+        """
+        full access – disable filtering
+        """
+        pass
 
 
 class CachedMapPermissionsFromX(type):
@@ -134,7 +163,7 @@ class FullAccessContextManager:
         raise ValueError('This should not happen!')
 
 
-class MapPermissionContext:
+class MapPermissionContext(MapPermissions):
     """
     This is great, but it is also a controversial design choice.
     Having global context like this is a bit intransparent.
@@ -226,20 +255,22 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
     Acts like a mapping (like dict) but will filter objects based on the active map permissions.
     Caches the last 16 configurations.
     """
-    def __init__(self, data: Mapping[KT, VT]):
+    def __init__(self, data: dict[KT, VT]):
         self._data = data
 
     def __len__(self) -> int:
         return len(self._get())
 
-    def _get_for_permissions(self, permissions: set[int]) -> dict[KT, VT]:
+    def _get_for_permissions(self, permissions: MapPermissions) -> dict[KT, VT]:
+        if permissions.full:
+            return self._data.copy()
         return {key: value for key, value in self._data.items()
-                if not (value.effective_access_restrictions - permissions)}
+                if not (value.effective_access_restrictions - permissions.access_restrictions)}
 
     @cached_property
     def _get(self) -> Callable[[], dict[KT, VT]]:
         # this is a hack to have one lru_cache per instance
-        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions.access_restrictions))
+        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions))
 
     def __iter__(self) -> Iterator[KT]:
         return iter(self._get())
@@ -283,14 +314,16 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](Sequence
     def __init__(self, data: Sequence[T]):
         self._data = data
 
-    def _get_for_permissions(self, permissions: set[int]) -> tuple[T, ...]:
+    def _get_for_permissions(self, permissions: MapPermissions) -> tuple[T, ...]:
+        if permissions.full:
+            return tuple(self._data)
         return tuple(item for item in self._data
-                     if not (item.effective_access_restrictions - permissions))
+                     if not (item.effective_access_restrictions - permissions.access_restrictions))
 
     @cached_property
     def _get(self) -> Callable[[], tuple[T, ...]]:
         # this is a hack to have one lru_cache per instance
-        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions.access_restrictions))
+        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions))
 
     def __len__(self) -> int:
         return len(self._get())

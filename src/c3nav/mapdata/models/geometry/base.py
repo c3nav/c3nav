@@ -76,7 +76,7 @@ class GeometryMixin(models.Model):
         return good_representative_point(self.geometry)
 
     @cached_property
-    def point(self) -> LocationPoint:
+    def point(self) -> LocationPoint | None:
         if self.main_level_id is None:
             return None
         return (self.main_level_id, *(round(i, 2) for i in self.good_representative_point.coords[0]))
