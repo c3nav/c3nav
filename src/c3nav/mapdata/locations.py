@@ -255,8 +255,7 @@ class LocationManager:
         for pk, obj in locations.items():
             if not isinstance(obj, SpecificLocation):
                 continue
-            targets = tuple(obj.all_targets)
-            for target in targets:
+            for target in obj.all_targets:
                 if isinstance(target, LevelGeometryMixin):
                     level = levels.get(target.level_id, None)
                     if level is not None:
@@ -289,7 +288,7 @@ class LocationManager:
                     # noinspection PyStatementEffect
                     target.bounds
                     # noinspection PyStatementEffect
-                    target.points
+                    target.point
                     target._prefetched_objects_cache = {}
 
             obj._prefetched_objects_cache = {}

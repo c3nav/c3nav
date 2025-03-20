@@ -6,7 +6,7 @@ from decimal import Decimal
 from functools import reduce
 from itertools import chain
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Iterator
 
 from django.conf import settings
 from django.core.cache import cache
@@ -236,8 +236,8 @@ class SpecificLocation(Location, models.Model):
         # noinspection PyTypeChecker
         return LazyMapPermissionFilteredSequence(tuple(self.dynamiclocations.all()))
 
-    @cached_property
-    def all_targets(self) -> Iterable[LocationTarget]:
+    @property  # do not cache! this is an iterator!
+    def all_targets(self) -> Iterator[LocationTarget]:
         """
         Get an iterator over all location targets
         """
@@ -557,6 +557,10 @@ class SpecificLocationTargetMixin(models.Model):
 
     @property
     def subtitle(self):
+        return None
+
+    @cached_property
+    def point(self) -> LocationPoint | None:
         return None
 
     def get_color_sorted(self, color_manager) -> tuple[tuple, str] | None:

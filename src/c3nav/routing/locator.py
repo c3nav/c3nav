@@ -15,7 +15,7 @@ from pydantic_extra_types.mac_address import MacAddress
 from shapely import Point
 
 from c3nav.mapdata.models import MapUpdate, Space
-from c3nav.mapdata.models.update import MapUpdateTuple
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.locations import CustomLocation
