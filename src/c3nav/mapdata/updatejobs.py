@@ -1,0 +1,288 @@
+import logging
+from dataclasses import dataclass
+from functools import wraps
+from typing import Callable, TYPE_CHECKING, Iterable
+
+from django.conf import settings
+from django.db import IntegrityError, transaction, DatabaseError
+from django.utils import timezone
+
+from c3nav.mapdata.tasks import run_mapupdate_job
+
+if TYPE_CHECKING:
+    from c3nav.mapdata.models import MapUpdate
+
+
+logger = logging.getLogger('c3nav')
+
+
+class CantStartMapUpdateJob(Exception):
+    pass
+
+
+@dataclass
+class MapUpdateJobConfig:
+    key: str
+    title: str
+    func: Callable[[tuple["MapUpdate", ...]], bool]
+    eager: bool
+    dependencies: frozenset[str]
+
+    def run(self, mapupdates: tuple["MapUpdate", ...], *, nowait=True):
+        from c3nav.mapdata.models.update import MapUpdate, MapUpdateJobStatus, MapUpdateJob
+        logger.info(f'Running job: {self.title}')
+        MapUpdate.last_update(force=True)
+        try:
+            job = mapupdates[-1].jobs.create(job_type=self.key, status=MapUpdateJobStatus.RUNNING)
+        except IntegrityError:
+            raise CantStartMapUpdateJob
+        e = None
+        with transaction.atomic():
+            job: MapUpdateJob = MapUpdateJob.objects.select_for_update(nowait=nowait).get(pk=job.pk)
+            try:
+                had_effect = self.func(mapupdates)
+            except Exception as e:
+                job.update_status(MapUpdateJobStatus.FAILED)
+                raise
+            else:
+                job.update_status(MapUpdateJobStatus.SUCCESS if had_effect else MapUpdateJobStatus.SKIPPED)
+        if e:
+            raise e
+
+
+update_job_configs: dict[str, MapUpdateJobConfig] = {}
+
+
+class MapUpdateJobCallable:
+    def __init__(self, key: str, func: Callable[[tuple["MapUpdate", ...]], bool]):
+        self.key = key
+        self.func = func
+
+    def __call__(self, mapupdates: tuple["MapUpdate", ...]) -> bool:
+        return self.func(mapupdates)
+
+
+def register_mapupdate_job(title: str, *, eager: bool = False,
+                           dependencies: Iterable[MapUpdateJobCallable] = ()) -> (
+        Callable[[Callable[[tuple["MapUpdate", ...]], bool]], MapUpdateJobCallable]
+):
+    def wrapper(func: Callable[[tuple["MapUpdate", ...]], bool]) -> MapUpdateJobCallable:
+        app_name = func.__module__.split('c3nav.', 1)[1].split('.', 1)[0]
+        func_name = func.__name__
+        key = f"{app_name}.{func_name}"
+        if key in update_job_configs:
+            raise TypeError(f"{key} already registered")
+
+        update_job_configs[key] = MapUpdateJobConfig(
+            key=key,
+            title=title,
+            func=func,
+            eager=eager,
+            dependencies=frozenset(dependency.key for dependency in dependencies),
+        )
+        return wraps(func)(MapUpdateJobCallable(key=key, func=func))
+
+    return wrapper
+
+
+def run_eager_mapupdate_jobs(mapupdate: "MapUpdate"):
+    """
+    Run all eager jobs, this function is to be called when creating a mapupdate, and only if celery is disabled
+    """
+    remaining_job_types = {job_type for job_type, job_config in update_job_configs.items() if job_config.eager}
+    done_jobs = set()
+    while True:
+        try:
+            next_job_type = next(iter(job_type for job_type in remaining_job_types
+                                      if not (update_job_configs[job_type].dependencies - done_jobs)))
+        except StopIteration:
+            break
+        update_job_configs[next_job_type].run((mapupdate,), nowait=False)
+        done_jobs.add(next_job_type)
+        remaining_job_types.remove(next_job_type)
+
+
+def run_mapupdate_jobs():
+    """
+    Run all jobs, blocking, this is for manage.py processupdates
+    """
+    remaining_job_types = set(update_job_configs.keys())
+    done_jobs = set()
+
+    # collect running jobs
+    from c3nav.mapdata.models.update import MapUpdateJob, MapUpdateJobStatus
+    running_jobs = {job.job_type: job for job in MapUpdateJob.objects.filter(status=MapUpdateJobStatus.RUNNING)}
+
+    while True:
+        try:
+            next_job_type = next(iter(job_type for job_type in remaining_job_types
+                                      if not (update_job_configs[job_type].dependencies - done_jobs)))
+        except StopIteration:
+            break
+        running_job = running_jobs.get(next_job_type)
+        if running_job and check_running_job(running_job):
+            logger.info(f"Job already running, why are you using processupdates?: {next_job_type}")
+        else:
+            try:
+                run_job(next_job_type)
+            except CantStartMapUpdateJob:
+                logger.info(f"Couldn't start job, race condition?: {next_job_type}")
+        done_jobs.add(next_job_type)
+        remaining_job_types.remove(next_job_type)
+
+
+def run_job(job_type: str, schedule_next=False):
+    """
+    Run job with whatever updates it can be ran with.
+    This can throw an excpetion if it can't be run right now.
+    """
+    from c3nav.mapdata.models.update import MapUpdate, MapUpdateJob
+    job_config = update_job_configs[job_type]
+    last_update_for_job = MapUpdateJob.last_successful_or_skipped_update(job_type)
+    newest_update_for_job = min((
+        MapUpdate.last_update(),
+        *(MapUpdateJob.last_successful_or_skipped_update(dependency) for dependency in job_config.dependencies)
+    ))
+    if newest_update_for_job <= last_update_for_job:
+        logger.info(f'No updates for job: {update_job_configs[job_type].title}')
+        return
+    job_config.run(
+        tuple(MapUpdate.objects.filter(pk__gt=last_update_for_job[0], pk__lte=newest_update_for_job[0]))
+    )
+    if schedule_next:
+        schedule_available_mapupdate_jobs_as_tasks()
+
+
+def check_running_job(running_job):
+    if (timezone.now() - running_job.start).total_seconds() < 10:
+        # job just started, don't try to timeout it
+        return True
+
+    try:
+        # try to select_for_update this job and set it to timed out
+        with transaction.atomic():
+            from c3nav.mapdata.models.update import MapUpdateJob, MapUpdateJobStatus
+            job = MapUpdateJob.objects.select_for_update(nowait=True).get(pk=running_job.pk)
+            job.status = MapUpdateJobStatus.TIMEOUT
+            job.end = timezone.now()
+            job.save()
+            logger.info(f"Successfully timeouted job: {update_job_configs[running_job.job_type].title}")
+    except DatabaseError:
+        # job is running and row is still locked (so the process is still running)
+        return True
+
+    return False
+
+
+def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
+    """
+    Schedule job runs for all jobs, or jobs with the given dependency.
+    """
+    from c3nav.mapdata.models.update import MapUpdateJob, MapUpdateJobStatus
+    last_map_update = MapUpdate.last_update()
+    last_updates_for_jobs = {}
+
+    # collect running jobs
+    running_jobs = {job.job_type: job for job in MapUpdateJob.objects.filter(status=MapUpdateJobStatus.RUNNING)}
+
+    filtered_jobs = {}
+    if dependency is not None:
+        filtered_jobs = {job_type: job_config for job_type, job_config in update_job_configs.items()
+                         if dependency in job_config.dependencies}
+    if not filtered_jobs:
+        # if we are meant to filter by dependency but no jobs depends on this dependency, don't filter
+        filtered_jobs = update_job_configs
+
+    # collect last run
+    for job_type, job_config in filtered_jobs.items():
+        if dependency is not None and dependency not in job_config.dependencies:
+            continue
+        last_updates_for_jobs[job_type] = MapUpdateJob.last_successful_or_skipped_update(job_type)
+
+    for job_type, job_config in filtered_jobs.items():
+        last_update = last_updates_for_jobs[job_type]
+        if last_update >= last_map_update:
+            # job is already up to date
+            continue
+
+        for dependency in job_config.dependencies:
+            if last_updates_for_jobs[dependency] <= last_update:
+                # job is up to date with dependency, need to wait for dependency
+                continue
+
+        running_job = running_jobs.get(job_type)
+        if running_job:
+            if check_running_job(running_job):
+                continue
+
+        run_mapupdate_job.delay(job_type=job_type)
+
+
+@register_mapupdate_job("LocationGroup order",
+                        eager=True, dependencies=set())
+def recalculate_locationgroup_order(mapupdates: tuple["MapUpdate", ...]) -> bool:
+    from c3nav.mapdata.models import LocationGroup
+    LocationGroup.calculate_effective_order()
+    return True
+
+
+@register_mapupdate_job("SpecificLocation order",
+                        eager=True, dependencies=set())
+def recalculate_specificlocation_order(mapupdates: tuple["MapUpdate", ...]) -> bool:
+    from c3nav.mapdata.models import LocationGroup
+    LocationGroup.calculate_effective_order()
+    return True
+
+
+@register_mapupdate_job("effective icons",
+                        eager=True, dependencies=(recalculate_locationgroup_order,
+                                                  recalculate_specificlocation_order))
+def recalculate_effective_icon(mapupdates: tuple["MapUpdate", ...]) -> bool:
+    from c3nav.mapdata.models import LocationGroup
+    LocationGroup.calculate_effective_order()
+    return True
+
+
+@register_mapupdate_job("geometries", dependencies=(recalculate_effective_icon, ))  # todo: depend on colors
+def recalculate_geometries(mapupdates: tuple["MapUpdate", ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    from c3nav.mapdata.models.update import MapUpdate
+    geometry_update_cache_key = MapUpdate.build_cache_key(*mapupdates[-1].to_tuple)
+    (settings.CACHE_ROOT / geometry_update_cache_key).mkdir(exist_ok=True)
+
+    from c3nav.mapdata.utils.cache.changes import changed_geometries
+    changed_geometries.reset()
+
+    logger.info('Recalculating altitude areas...')
+
+    from c3nav.mapdata.models import AltitudeArea
+    AltitudeArea.recalculate()
+
+    logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
+
+    for new_update in mapupdates:
+        logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
+                    {'id': new_update.pk, 'type': new_update.type})
+        try:
+            new_changes = new_update.get_changed_geometries()
+            if new_changes is None:
+                logger.warning('changed_geometries pickle file not found.')
+            else:
+                logger.info('%.3f m² affected by this update.' % new_changes.area)
+                changed_geometries.combine(new_changes)
+        except EOFError:
+            logger.warning('changed_geometries pickle file corrupted.')
+
+    logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
+
+    changed_geometries.save(mapupdates[0].to_tuple, mapupdates[-1].to_tuple)
+
+    logger.info('Rebuilding level render data...')
+
+    from c3nav.mapdata.render.renderdata import LevelRenderData
+    LevelRenderData.rebuild(geometry_update_cache_key)
+
+    return True
