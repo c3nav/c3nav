@@ -41,6 +41,7 @@ class MapHistory(LevelGeometryIndexed):
     @classmethod
     def open(cls, filename: str | bytes | PathLike,
              default_update: Optional[MapUpdateTuple] = None, purge=False) -> Self:
+        # todo: make sure purge is ever used
         if not purge:
             try:
                 return super().open(filename)
@@ -48,8 +49,8 @@ class MapHistory(LevelGeometryIndexed):
                 pass
 
         if default_update is None:
-            from c3nav.mapdata.models import MapUpdate
-            default_update = MapUpdate.last_processed_update()
+            from c3nav.mapdata.models.update import MapUpdateJob
+            default_update = MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
         instance = cls(updates=[default_update], filename=filename)
         instance.save()
         return instance

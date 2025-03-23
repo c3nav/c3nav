@@ -159,16 +159,6 @@ class MapUpdate(models.Model):
             per_request_cache.set('mapdata:last_update', last_update, None)
         return last_update
 
-    @classmethod
-    def last_processed_update(cls, force=False) -> MapUpdateTuple:
-        # todo: get rid of this
-        return MapUpdateJob.last_successful_update("routing.rebuild_locator", nocache=force)
-
-    @classmethod
-    def last_processed_geometry_update(cls, force=False) -> MapUpdateTuple:
-        # todo: get rid of this
-        return MapUpdateJob.last_successful_update("mapupdate.recalculate_geometries", nocache=force)
-
     @property
     def to_tuple(self) -> MapUpdateTuple:
         return self.pk, int(make_naive(self.datetime).timestamp())
@@ -181,16 +171,9 @@ class MapUpdate(models.Model):
     def current_cache_key(cls):
         return cls.build_cache_key(*cls.last_update())
 
-    @classmethod
-    def current_processed_cache_key(cls):
-        return cls.build_cache_key(*cls.last_processed_update())
-
-    @classmethod
-    def current_processed_geometry_cache_key(cls):
-        return cls.build_cache_key(*cls.last_processed_geometry_update())
-
     @staticmethod
     def build_cache_key(pk: int, timestamp: int):
+        # todo: get rid of this, this belongs into MapUpdateTuple
         return int_to_base36(pk)+'_'+int_to_base36(timestamp)
 
     @classmethod

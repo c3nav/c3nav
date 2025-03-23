@@ -18,6 +18,7 @@ from shapely import LineString, Point, box, unary_union
 
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.models.update import MapUpdateJob
 from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.render.engines import ImageRenderEngine
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
@@ -340,7 +341,7 @@ def tile(request, level, zoom, x, y, theme, ext: Union[Literal["png"], Literal["
         return HttpResponse('use %s instead of /map/' % settings.TILE_CACHE_SERVER,
                             status=400, content_type='text/plain')
 
-    processed_geometry_update = str(MapUpdate.last_processed_geometry_update()[0])
+    processed_geometry_update = str(MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")[0])
 
     zoom = int(zoom)
     if not (-2 <= zoom <= 5):
@@ -451,7 +452,9 @@ def tile(request, level, zoom, x, y, theme, ext: Union[Literal["png"], Literal["
     return response
 
 
-@etag(lambda *args, **kwargs: MapUpdate.current_processed_cache_key())
+@etag(lambda *args, **kwargs: MapUpdate.build_cache_key(
+    *MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
+))
 @no_language()
 def map_history(request, level, mode, filetype):
     if not request.user.is_superuser:
@@ -477,16 +480,20 @@ def map_history(request, level, mode, filetype):
     return response
 
 
-@etag(lambda *args, **kwargs: MapUpdate.current_processed_geometry_cache_key())
+@etag(lambda *args, **kwargs: MapUpdate.build_cache_key(
+    *MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
+))
 @no_language()
 def get_cache_package(request, filetype):
-    processed_geometry_update = str(MapUpdate.last_processed_geometry_update()[0])
+    processed_geometry_update = str(MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")[0])
 
     enforce_tile_secret_auth(request)
 
     filename = 'package.' + filetype
-    cache_package = CachePackage.get_filename(MapUpdate.current_processed_geometry_cache_key(),
-                                              filetype[4:] if filetype != 'tar' else None)
+    cache_package = CachePackage.get_filename(
+        MapUpdate.build_cache_key(*MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")),
+        filetype[4:] if filetype != 'tar' else None
+    )
     try:
         size = cache_package.stat().st_size
         f = cache_package.open('rb')
