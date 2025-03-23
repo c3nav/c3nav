@@ -8,3 +8,4 @@ class MapdataConfig(AppConfig):
         from c3nav.mapdata.utils.cache.changes import register_signals
         register_signals()
         import c3nav.mapdata.metrics  # noqa
+        import c3nav.mapdata.updatejobs  # noqa
