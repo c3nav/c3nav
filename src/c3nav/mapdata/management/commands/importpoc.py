@@ -40,7 +40,7 @@ class Command(BaseCommand):
         r.raise_for_status()
         items = TypeAdapter(list[PocImportItem]).validate_python(r.json())
 
-        with MapUpdate.lock():
+        with MapUpdate.creation_lock():
             changed_geometries.reset()
             self.do_import(items)
             MapUpdate.objects.create(type='importnoc')

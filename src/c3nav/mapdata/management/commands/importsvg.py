@@ -177,7 +177,7 @@ class Command(BaseCommand):
         if model.objects.filter(space=options['space'], import_tag=options['name']).exists():
             raise CommandError(_('objects with this import tag already exist in this space.'))
 
-        with MapUpdate.lock():
+        with MapUpdate.creation_lock():
             changed_geometries.reset()
             for path in svg.findall('.//svg:path', namespaces):
                 for polygon in self.parse_svg_data(path.attrib['d']):

@@ -353,7 +353,7 @@ class ChangeSet(models.Model):
     def apply(self, user):
         if self.problems.any:
             raise ValueError("Can't apply if there's still problems!")
-        with MapUpdate.lock():
+        with MapUpdate.creation_lock():
             # todo: reimplement
             update = self.updates.create(user=user, state='applied')
             map_update = MapUpdate.objects.create(user=user, type='changeset')

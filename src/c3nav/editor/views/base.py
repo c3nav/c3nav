@@ -65,7 +65,7 @@ def accesses_mapdata(func):
         if request.changeset.direct_editing:
             # For direct editing, a mapupdate is created if any changes are made
             # So, if this request may commit changes, lock the MapUpdate system, which also starts a transaction.
-            with (MapUpdate.lock() if writable_method else noctx()):
+            with (MapUpdate.creation_lock() if writable_method else noctx()):
                 # Reset the changed geometries tracker, this will be read when a MapUpdate is created.
                 changed_geometries.reset()
 
