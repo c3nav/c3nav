@@ -41,7 +41,7 @@ class Command(BaseCommand):
                          headers={"Authorization": "Token "+settings.HUB_API_SECRET})
         r.raise_for_status()
 
-        with MapUpdate.lock():
+        with MapUpdate.creation_lock():
             changed_geometries.reset()
             self.do_import(r.json())
             MapUpdate.objects.create(type='importhub')

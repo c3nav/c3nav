@@ -171,7 +171,7 @@ class MapUpdate(models.Model):
             if last_update is not None:
                 return last_update
         try:
-            with cls.lock():
+            with cls.creation_lock():
                 last_update = cls.objects.latest().to_tuple
                 per_request_cache.set('mapdata:last_update', last_update, None)
         except cls.DoesNotExist:
@@ -213,7 +213,7 @@ class MapUpdate(models.Model):
 
     @classmethod
     @contextmanager
-    def lock(cls):
+    def creation_lock(cls):
         with transaction.atomic():
             try:
                 earliest = cls.objects.earliest()
