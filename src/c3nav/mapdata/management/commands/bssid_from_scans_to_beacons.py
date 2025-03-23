@@ -10,6 +10,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         with transaction.atomic():
-            with MapUpdate.lock():
+            with MapUpdate.creation_lock():
                 BeaconMeasurement.contribute_bssid_to_beacons(BeaconMeasurement.objects.all())
                 MapUpdate.objects.create(type='bssids_from_scans_to_beacons')
