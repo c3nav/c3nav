@@ -33,7 +33,7 @@ class Command(BaseCommand):
                  for name, item in r.json()["markers"].items()
                  if not name.startswith("__polyline")}
 
-        with MapUpdate.lock():
+        with MapUpdate.creation_lock():
             changed_geometries.reset()
             self.do_import(items)
             MapUpdate.objects.create(type='importnoc')
