@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from c3nav.control.forms import MapUpdateFilterForm, MapUpdateForm
 from c3nav.control.views.base import control_panel_view
 from c3nav.mapdata.models import MapUpdate
+from c3nav.mapdata.models.update import MapUpdateJob
 from c3nav.mapdata.tasks import process_map_updates
 
 
@@ -55,8 +56,7 @@ def map_updates(request):  # todo: make class based view
         if request.GET['purge_all_cache'] in ('1', '0'):
             queryset = queryset.filter(purge_all_cache=request.GET['purge_all_cache'] == '1')
     if request.GET.get('processed', None):
-        if request.GET['processed'] in ('1', '0'):
-            queryset = queryset.filter(processed=request.GET['processed'] == '1')
+        queryset = queryset.filter(pk__lte=MapUpdateJob.last_successful_update(request.GET['processed'])[0])
     if request.GET.get('user_id', None):
         if request.GET['user_id'].isdigit():
             queryset = queryset.filter(user_id=request.GET['user_id'])
