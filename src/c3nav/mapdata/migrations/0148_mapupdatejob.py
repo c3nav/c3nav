@@ -20,8 +20,6 @@ def create_last_mapupdate_job(apps, model_name):
         )
 
 
-
-
 def fill_mapupdate_processed(apps, model_name):
     MapUpdate = apps.get_model('mapdata', 'MapUpdate')
     MapUpdateJob = apps.get_model('mapdata', 'MapUpdateJob')
@@ -54,7 +52,7 @@ class Migration(migrations.Migration):
                 'get_latest_by': ('end', 'start'),
                 'verbose_name': 'Map update job',
                 'verbose_name_plural': 'Map update jobs',
-                'constraints': [models.UniqueConstraint(condition=models.Q(('status__in', (0, 1))), fields=('mapupdate', 'job_type'), name='no_duplicate_jobs_unless_failed')],
+                'constraints': [models.UniqueConstraint(condition=models.Q(('status__in', (0, 3))), fields=('mapupdate', 'job_type'), name='no_duplicate_jobs_unless_failed')],
             },
         ),
         migrations.RunPython(create_last_mapupdate_job, fill_mapupdate_processed),
