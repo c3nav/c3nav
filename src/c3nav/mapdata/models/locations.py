@@ -13,7 +13,7 @@ from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.aggregates import Max, Min
+from django.db.models.aggregates import Min
 from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value
 from django.db.models.functions.window import RowNumber
 from django.urls import reverse
