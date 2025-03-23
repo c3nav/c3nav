@@ -13,45 +13,25 @@ from c3nav.celery import app
 logger = logging.getLogger('c3nav')
 
 
-@app.task(bind=True, max_retries=10)
-def process_map_updates(self):
-    if self.request.called_directly:
-        logger.info('Processing map updates by direct command...')
-    else:
-        logger.info('Processing map updates...')
+@app.task(bind=True)
+def schedule_available_mapupdate_jobs(self):
+    from c3nav.mapdata.updatejobs import schedule_available_mapupdate_jobs_as_tasks
+    schedule_available_mapupdate_jobs_as_tasks()
 
-    from c3nav.mapdata.models import MapUpdate
+
+@app.task(bind=True)
+def run_mapupdate_job(self, job_type: str):
+    from c3nav.mapdata.updatejobs import run_job, CantStartMapUpdateJob
     try:
-        try:
-            updates = MapUpdate.process_updates()
-        except MapUpdate.ProcessUpdatesAlreadyRunning:
-            if self.request.called_directly:
-                raise
-            logger.info('Processing is already running, retrying in 30 seconds.')
-            raise self.retry(countdown=30)
-        except Exception:
-            cache.set('mapdata:last_process_updates_run', (int(time.time()), False), None)
-            raise
-        else:
-            cache.set('mapdata:last_process_updates_run', (int(time.time()), True), None)
-    except MaxRetriesExceededError:
-        logger.info('Cannot retry, retries exceeded. Exiting.')
-        return
+        run_job(job_type, schedule_next=True)
+    except CantStartMapUpdateJob:
+        logger.info(f'Cannot run job: {job_type}')
 
-    if updates:
-        print()
-
-    logger.info(ngettext_lazy('%d map update processed.', '%d map updates processed.', len(updates)) % len(updates))
-
-    if updates:
-        logger.info(_('Last processed update: %(date)s (#%(id)d)') % {
-            'date': date_format(updates[-1].datetime, 'DATETIME_FORMAT'),
-            'id': updates[-1].pk,
-        })
 
 
 @app.task(bind=True, max_retries=10)
 def delete_map_cache_key(self, cache_key):
+    # todo: get rid of this by having the cache entries be versioned
     if hasattr(cache, 'keys'):
         for key in cache.keys(f'*{cache_key}*'):
             cache.delete(key)
