@@ -6,15 +6,16 @@ from django.db import migrations, models
 
 def create_last_mapupdate_job(apps, model_name):
     MapUpdate = apps.get_model('mapdata', 'MapUpdate')
+    MapUpdateJob = apps.get_model('mapdata', 'MapUpdateJob')
     try:
         last_processed_update = MapUpdate.objects.filter(processed=True).latest()
     except MapUpdate.DoesNotExist:
         return
 
-    for job_type in ("locations-meta", "altitudeareas", "renderdata", "router", "locator"):
+    for job_type, title in MapUpdateJob._meta.get_field("job_type").choices:
         last_processed_update.jobs.create(
             job_type=job_type,
-            status=3,
+            status=4,
             start=last_processed_update.datetime,
             end=last_processed_update.datetime,
         )
@@ -24,7 +25,7 @@ def fill_mapupdate_processed(apps, model_name):
     MapUpdate = apps.get_model('mapdata', 'MapUpdate')
     MapUpdateJob = apps.get_model('mapdata', 'MapUpdateJob')
     try:
-        last_finished_job = MapUpdateJob.objects.filter(job_type="locator", status=3).latest()
+        last_finished_job = MapUpdateJob.objects.filter(job_type="routing.rebuild_locator", status=3).latest()
     except MapUpdateJob.DoesNotExist:
         return
 
@@ -42,8 +43,8 @@ class Migration(migrations.Migration):
             name='MapUpdateJob',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('job_type', models.CharField(choices=[('locations-meta', 'generate location metadata'), ('altitudeareas', 'recalculate altitude areas'), ('renderdata', 'generate render data'), ('router', 'generate router'), ('locator', 'generate locator')], db_index=True, max_length=16)),
-                ('status', models.PositiveSmallIntegerField(choices=[(0, 'running'), (1, 'failed'), (2, 'timeout'), (3, 'success')], db_index=True)),
+                ('job_type', models.CharField(choices=[('mapdata.recalculate_locationgroup_order', 'LocationGroup order'), ('mapdata.recalculate_specificlocation_order', 'SpecificLocation order'), ('mapdata.recalculate_effective_icon', 'effective icons'), ('mapdata.recalculate_geometries', 'geometries')], db_index=True, max_length=64)),
+                ('status', models.PositiveSmallIntegerField(choices=[(0, 'running'), (1, 'failed'), (2, 'timeout'), (3, 'not needed'), (4, 'success')], db_index=True)),
                 ('start', models.DateTimeField(auto_now_add=True)),
                 ('end', models.DateTimeField(null=True)),
                 ('mapupdate', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='jobs', to='mapdata.mapupdate')),
@@ -52,7 +53,10 @@ class Migration(migrations.Migration):
                 'get_latest_by': ('end', 'start'),
                 'verbose_name': 'Map update job',
                 'verbose_name_plural': 'Map update jobs',
-                'constraints': [models.UniqueConstraint(condition=models.Q(('status__in', (0, 3))), fields=('mapupdate', 'job_type'), name='no_duplicate_jobs_unless_failed')],
+                'constraints': [
+                    models.UniqueConstraint(condition=models.Q(('status', 0)), fields=('job_type',), name='only_one_job_per_type_running'),
+                    models.UniqueConstraint(condition=models.Q(('status__in', (0, 3, 4))), fields=('mapupdate', 'job_type'), name='no_duplicate_jobs_per_update_unless_failed'),
+                ],
             },
         ),
         migrations.RunPython(create_last_mapupdate_job, fill_mapupdate_processed),
