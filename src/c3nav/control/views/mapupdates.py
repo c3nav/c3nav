@@ -14,7 +14,7 @@ from c3nav.control.forms import MapUpdateFilterForm, MapUpdateForm
 from c3nav.control.views.base import control_panel_view
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.update import MapUpdateJob
-from c3nav.mapdata.tasks import process_map_updates
+from c3nav.mapdata.tasks import schedule_available_mapupdate_jobs
 
 
 @login_required(login_url='site.login')
@@ -37,7 +37,7 @@ def map_updates(request):  # todo: make class based view
                 return redirect(request.path_info)
         elif 'process_updates' in request.POST:
             if settings.HAS_CELERY:
-                process_map_updates.delay()
+                schedule_available_mapupdate_jobs.delay()
                 messages.success(request, _('Map update processing successfully queued.'))
             else:
                 messages.error(request, _('Map update processing was not be queued because celery is not configured.'))

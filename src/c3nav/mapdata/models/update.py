@@ -10,7 +10,6 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import models, transaction
 from django.db.models.constraints import UniqueConstraint
-from django.db.models.expressions import Exists, OuterRef
 from django.db.models.query_utils import Q
 from django.utils import timezone
 from django.utils.http import int_to_base36
@@ -18,30 +17,27 @@ from django.utils.timezone import make_naive
 from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
-from c3nav.mapdata.tasks import process_map_updates, delete_map_cache_key
+from c3nav.mapdata.tasks import delete_map_cache_key, schedule_available_mapupdate_jobs
+from c3nav.mapdata.updatejobs import update_job_configs, run_eager_mapupdate_jobs
 from c3nav.mapdata.utils.cache.changes import GeometryChangeTracker
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.cache.types import MapUpdateTuple
-
-
-class MapUpdateJobType(models.TextChoices):
-    LOCATION_META = "locations-meta", _("generate location metadata")
-    ALTITUDE_AREAS = "altitudeareas", _("recalculate altitude areas")
-    RENDERDATA = "renderdata", _("generate render data")
-    ROUTER = "router", _("generate router")
-    LOCATOR = "locator", _("generate locator")
 
 
 class MapUpdateJobStatus(models.IntegerChoices):
     RUNNING = 0, _("running")
     FAILED = 1, _("failed")
     TIMEOUT = 2, _("timeout")
-    SUCCESS = 3, _("success")
+    SKIPPED = 3, _("not needed")
+    SUCCESS = 4, _("success")
+
+
+MAPUPDATE_JOB_TYPES = ((key, job_config.title) for key, job_config in update_job_configs.items())
 
 
 class MapUpdateJob(models.Model):
     mapupdate = models.ForeignKey("MapUpdate", on_delete=models.CASCADE, related_name="jobs")
-    job_type = models.CharField(max_length=16, choices=MapUpdateJobType.choices, db_index=True)
+    job_type = models.CharField(max_length=64, choices=MAPUPDATE_JOB_TYPES, db_index=True)
     status = models.PositiveSmallIntegerField(choices=MapUpdateJobStatus.choices, db_index=True)
     start = models.DateTimeField(auto_now_add=True)
     end = models.DateTimeField(null=True)
@@ -51,94 +47,76 @@ class MapUpdateJob(models.Model):
         verbose_name_plural = _('Map update jobs')
         constraints = [
             UniqueConstraint(
+                fields=("job_type", ),
+                condition=Q(status=MapUpdateJobStatus.RUNNING),
+                name="only_one_job_per_type_running"
+            ),
+            UniqueConstraint(
                 fields=("mapupdate", "job_type"),
-                condition=Q(status__in=(MapUpdateJobStatus.RUNNING, MapUpdateJobStatus.SUCCESS)),
-                name="no_duplicate_jobs_unless_failed"
+                condition=Q(status__in=(MapUpdateJobStatus.RUNNING,
+                                        MapUpdateJobStatus.SKIPPED,
+                                        MapUpdateJobStatus.SUCCESS)),
+                name="no_duplicate_jobs_per_update_unless_failed"
             )
         ]
         get_latest_by = ("end", "start")
 
     @classmethod
     @contextmanager
-    def lock(cls, job_type: MapUpdateJobType):
+    def lock(cls, job_type: str):
+        if job_type not in update_job_configs:
+            raise ValueError(f'Uknown job type: {job_type}')
         with transaction.atomic():
-            try:
-                first = cls.objects.filter(job_type=job_type).order_by("pk").first()
-            except cls.DoesNotExist:
-                try:
-                    first = cls.objects.order_by("pk").first()
-                except cls.DoesNotExist:
-                    yield
+            first = cls.objects.filter(job_type=job_type).order_by("pk").first()
+            if first is None:
+                first = cls.objects.order_by("pk").first()
+            if first is None:
+                yield
             yield cls.objects.select_for_update().get(pk=first.pk)
 
     @classmethod
-    def last_successful_update(cls, job_type: MapUpdateJobType | str, *, nocache: bool = False,
-                               geometry_only = False) -> MapUpdateTuple:
-        cache_key = f"mapdata:last_job:{job_type}:{geometry_only}:update"
+    def _last_update_with_state(cls, job_type: str, states: set[MapUpdateJobStatus]) -> MapUpdateTuple:
+        if job_type not in update_job_configs:
+            raise ValueError(f'Uknown job type: {job_type}')
+        try:
+            with cls.lock(job_type):
+                last_finished_job = MapUpdateJob.objects.filter(
+                    job_type=job_type,
+                    status__in=states,
+                ).select_related("mapupdate").latest()
+                return last_finished_job.mapupdate.to_tuple
+        except MapUpdateJob.DoesNotExist:
+            return (0, 0)
+
+    @classmethod
+    def last_successful_or_skipped_update(cls, job_type: str) -> MapUpdateTuple:
+        return cls._last_update_with_state(job_type, {MapUpdateJobStatus.SUCCESS, MapUpdateJobStatus.SKIPPED})
+
+    @classmethod
+    def last_successful_update(cls, job_type: str, *, nocache: bool = False) -> MapUpdateTuple:
+        if job_type not in update_job_configs:
+            raise ValueError(f'Uknown job type: {job_type}')
+        cache_key = f"mapdata:last_job:{job_type}:update"
         if not nocache:
             last_update = per_request_cache.get(cache_key, None)
             if last_update is not None:
                 return last_update
-        try:
-            with cls.lock(job_type):
-                last_finished_job = MapUpdateJob.objects.filter(
-                    job_type=MapUpdateJobType.LOCATOR,
-                    status=MapUpdateJobStatus.SUCCESS,
-                    **({"mapupdate__geometries_changed": True} if geometry_only else {}),
-                ).select_related("mapupdate").latest()
-                last_processed_update = last_finished_job.mapupdate.to_tuple
-                per_request_cache.set(cache_key, last_processed_update, None)
-        except MapUpdateJob.DoesNotExist:
-            last_processed_update = (0, 0)
-            per_request_cache.set(cache_key, last_processed_update, None)
-        return last_processed_update
 
-    def mark_success(self):
-        self.status = MapUpdateJobStatus.SUCCESS
+        last_successful_update = cls._last_update_with_state(job_type, {MapUpdateJobStatus.SUCCESS})
+        per_request_cache.set(cache_key, last_successful_update, None)
+        return last_successful_update
+
+    def update_status(self, status: MapUpdateJobStatus):
+        if self.status != MapUpdateJobStatus.RUNNING:
+            raise ValueError
+        self.status = status
         self.end = timezone.now()
         self.save()
-
-        last_geometry_update = MapUpdate.objects.filter(pk__lte=self.mapupdate_id, geometries_changed=True).latest()
-        transaction.on_commit(
-            lambda: per_request_cache.set(f"mapdata:last_job:{self.job_type}:{False}:update",
-                                          self.mapupdate.to_tuple, None)
-        )
-        transaction.on_commit(
-            lambda: per_request_cache.set(f"mapdata:last_job:{self.job_type}:{True}:update",
-                                          last_geometry_update, None)
-        )
-
-
-class MapUpdateQuerySet(models.QuerySet):
-    def with_all_jobs_success(self):
-        return self.with_job_success(MapUpdateJobType.LOCATOR)
-
-    def with_job_success(self, job_type: MapUpdateJobType):
-        return self.with_job(
-            job_type=job_type,
-            status=MapUpdateJobStatus.SUCCESS,
-        )
-
-    def with_job(self, **kwargs):
-        return self.filter(Exists(MapUpdateJob.objects.filter(
-            mapupdate=OuterRef("pk"),
-            **kwargs,
-        )))
-
-    def without_all_jobs_success(self):
-        return self.without_job_success(MapUpdateJobType.LOCATOR)
-
-    def without_job_success(self, job_type: MapUpdateJobType):
-        return self.without_job(
-            job_type=job_type,
-            status=MapUpdateJobStatus.SUCCESS,
-        )
-
-    def without_job(self, **kwargs):
-        return self.exclude(Exists(MapUpdateJob.objects.filter(
-            mapupdate=OuterRef("pk"),
-            **kwargs,
-        )))
+        if status == MapUpdateJobStatus.SUCCESS:
+            transaction.on_commit(
+                lambda: per_request_cache.set(f"mapdata:last_successful_job:{self.job_type}:update",
+                                              self.mapupdate.to_tuple, None)
+            )
 
 
 class MapUpdate(models.Model):
@@ -155,8 +133,6 @@ class MapUpdate(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
     type = models.CharField(max_length=32, choices=TYPES)
     geometries_changed = models.BooleanField()
-
-    objects = models.Manager.from_queryset(MapUpdateQuerySet)()
 
     class Meta:
         verbose_name = _('Map update')
@@ -182,11 +158,13 @@ class MapUpdate(models.Model):
 
     @classmethod
     def last_processed_update(cls, force=False) -> MapUpdateTuple:
-        return MapUpdateJob.last_successful_update(MapUpdateJobType.LOCATOR, nocache=force)
+        # todo: get rid of this
+        return MapUpdateJob.last_successful_update("routing.rebuild_locator", nocache=force)
 
     @classmethod
     def last_processed_geometry_update(cls, force=False) -> MapUpdateTuple:
-        return MapUpdateJob.last_successful_update(MapUpdateJobType.LOCATOR, geometry_only=True, nocache=force)
+        # todo: get rid of this
+        return MapUpdateJob.last_successful_update("mapupdate.recalculate_geometries", nocache=force)
 
     @property
     def to_tuple(self) -> MapUpdateTuple:
@@ -256,132 +234,6 @@ class MapUpdate(models.Model):
             cache.set(cache_key, result, 86400)
         return result
 
-    class ProcessUpdatesAlreadyRunning(Exception):
-        pass
-
-    @classmethod
-    @contextmanager
-    def get_updates_to_process(cls):
-        try:
-            last_processed_update: MapUpdateTuple = cls.last_processed_update()
-        except MapUpdateJob.DoesNotExist:
-            queryset = cls.objects.all()
-        else:
-            queryset = cls.objects.filter(pk__gt=last_processed_update[0])
-
-        with transaction.atomic():
-            if settings.HAS_REDIS:
-                import redis
-                lock_aquired = None
-                client = redis.Redis(connection_pool=settings.REDIS_CONNECTION_POOL)
-                lock = client.lock('mapupdate:process_updates:lock', timeout=1800)
-                try:
-                    lock_aquired = lock.acquire(blocking=False)
-                    if not lock_aquired:
-                        raise cls.ProcessUpdatesAlreadyRunning
-                    cache.set('mapdata:last_process_updates_start', int(time.time()), None)
-                    yield tuple(queryset)
-                finally:
-                    if lock_aquired:
-                        lock.release()
-            else:
-                try:
-                    yield tuple(queryset.select_for_update(nowait=True))
-                except DatabaseError:
-                    raise cls.ProcessUpdatesAlreadyRunning
-
-    @classmethod
-    def process_updates(cls):
-        logger = logging.getLogger('c3nav')
-
-        cls.last_update()
-        cls.last_processed_update()
-        cls.last_processed_geometry_update()
-
-        with cls.get_updates_to_process() as new_updates:
-            new_updates: tuple[MapUpdate]
-
-            prev_keys = (
-                cls.current_processed_cache_key(),
-                cls.current_processed_geometry_cache_key(),
-            )
-
-            for key in prev_keys:
-                # todo: eventually get ridof/move this
-                transaction.on_commit(lambda: delete_map_cache_key.delay(cache_key=key))
-
-            if not new_updates:
-                return ()
-
-            jobs = []
-            for job_type in (MapUpdateJobType.LOCATION_META,
-                             MapUpdateJobType.ALTITUDE_AREAS,
-                             MapUpdateJobType.RENDERDATA,
-                             MapUpdateJobType.ROUTER,
-                             MapUpdateJobType.LOCATOR):
-                jobs.append(new_updates[-1].jobs.create(
-                    job_type=job_type,
-                    status=MapUpdateJobStatus.RUNNING,
-                ))
-
-            update_cache_key = MapUpdate.build_cache_key(*new_updates[-1].to_tuple)
-            (settings.CACHE_ROOT / update_cache_key).mkdir(exist_ok=True)
-
-            last_geometry_update = ([None] + [update for update in new_updates if update.geometries_changed])[-1]
-
-            if last_geometry_update is not None:
-                geometry_update_cache_key = MapUpdate.build_cache_key(*last_geometry_update.to_tuple)
-                (settings.CACHE_ROOT / geometry_update_cache_key).mkdir(exist_ok=True)
-
-                from c3nav.mapdata.utils.cache.changes import changed_geometries
-                changed_geometries.reset()
-
-                logger.info('Recalculating altitude areas...')
-
-                from c3nav.mapdata.models import AltitudeArea
-                AltitudeArea.recalculate()
-
-                logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
-
-                last_processed_update = cls.last_processed_update(force=True)
-
-                for new_update in new_updates:
-                    logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
-                                {'id': new_update.pk, 'type': new_update.type})
-                    try:
-                        new_changes = new_update.get_changed_geometries()
-                        if new_changes is None:
-                            logger.warning('changed_geometries pickle file not found.')
-                        else:
-                            logger.info('%.3f m² affected by this update.' % new_changes.area)
-                            changed_geometries.combine(new_changes)
-                    except EOFError:
-                        logger.warning('changed_geometries pickle file corrupted.')
-
-                logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
-
-                changed_geometries.save(last_processed_update, new_updates[-1].to_tuple)
-
-                logger.info('Rebuilding level render data...')
-
-                from c3nav.mapdata.render.renderdata import LevelRenderData
-                LevelRenderData.rebuild(geometry_update_cache_key)
-            else:
-                logger.info('No geometries affected.')
-
-            logger.info('Rebuilding router...')
-            from c3nav.routing.router import Router
-            router = Router.rebuild(new_updates[-1].to_tuple)
-
-            logger.info('Rebuilding locator...')
-            from c3nav.routing.locator import Locator
-            Locator.rebuild(new_updates[-1].to_tuple, router)
-
-            for job in jobs:
-                job.mark_success()
-
-            return new_updates
-
     def save(self, **kwargs):
         new = self.pk is None
         if not new:
@@ -418,5 +270,7 @@ class MapUpdate(models.Model):
             )
             if settings.HAS_CELERY and settings.AUTO_PROCESS_UPDATES:
                 transaction.on_commit(
-                    lambda: process_map_updates.delay()
+                    lambda: schedule_available_mapupdate_jobs.delay()
                 )
+            else:
+                run_eager_mapupdate_jobs(self)
