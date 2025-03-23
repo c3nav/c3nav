@@ -52,7 +52,7 @@ class MapUpdateJob(models.Model):
         constraints = [
             UniqueConstraint(
                 fields=("mapupdate", "job_type"),
-                condition=Q(status__in=(MapUpdateJobStatus.RUNNING, MapUpdateJobStatus.FAILED)),
+                condition=Q(status__in=(MapUpdateJobStatus.RUNNING, MapUpdateJobStatus.SUCCESS)),
                 name="no_duplicate_jobs_unless_failed"
             )
         ]
