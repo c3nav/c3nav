@@ -154,14 +154,14 @@ class CachePackage:
 
     @classmethod
     def open_cached(cls) -> Self:
-        from c3nav.mapdata.models import MapUpdate
-        cache_key = MapUpdate.current_processed_geometry_cache_key()
+        from c3nav.mapdata.models.update import MapUpdate, MapUpdateJob
+        cache_key = MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
         if getattr(cls.cached, 'key', None) != cache_key:
             cls.cached.key = cache_key
             cls.cached.data = None
 
         if cls.cached.data is None:
-            cls.cached.data = cls.open(update_cache_key=cache_key)
+            cls.cached.data = cls.open(update_cache_key=MapUpdate.build_cache_key(*cache_key))
 
         return cls.cached.data
 
