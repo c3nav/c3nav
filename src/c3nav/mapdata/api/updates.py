@@ -10,6 +10,7 @@ from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import MapUpdate
+from c3nav.mapdata.models.update import MapUpdateJob
 from c3nav.mapdata.schemas.models import DataOverlaySchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.user import get_user_data
@@ -121,7 +122,10 @@ def fetch_updates(request, response: HttpResponse):
 
     result = {
         'last_site_update': SiteUpdate.last_update(),
-        'last_map_update': MapUpdate.current_processed_cache_key(),
+        'last_map_update': MapUpdate.build_cache_key(
+            # todo: turn MapUpdateTuple into a namedtuple with cache key builder
+            *MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
+        ),
     }
     if cross_origin is None:
         result.update({

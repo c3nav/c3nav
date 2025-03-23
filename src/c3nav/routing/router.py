@@ -500,7 +500,7 @@ class Router:
 
     def shortest_path(self, restrictions: "RouterRestrictionSet", options):
         options_key = options.serialize_string()
-        cache_key = 'router:shortest_path:%s:%s:%s' % (MapUpdate.current_processed_cache_key(),
+        cache_key = 'router:shortest_path:%s:%s:%s' % (MapUpdate.build_cache_key(*self.update),
                                                        restrictions.cache_key,
                                                        options_key)
         result = cache.get(cache_key)
