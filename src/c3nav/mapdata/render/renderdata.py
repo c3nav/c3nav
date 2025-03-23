@@ -14,6 +14,7 @@ from shapely.prepared import PreparedGeometry
 
 from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.models.theme import Theme
+from c3nav.mapdata.models.update import MapUpdateJob
 from c3nav.mapdata.permissions import ManualMapPermissions, active_map_permissions
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, SingleLevelGeometries, CompositeLevelGeometries
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
@@ -388,7 +389,7 @@ class LevelRenderData:
     def get(cls, level, theme):
         # get the current render data from local variable if no new processed mapupdate exists.
         # this is much faster than any other possible cache
-        cache_key = MapUpdate.current_processed_geometry_cache_key()
+        cache_key = MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
         level_pk = level.pk if isinstance(level, Level) else level
         theme_pk = theme.pk if isinstance(theme, Theme) else theme
         key = f'{level_pk}_{theme_pk}'
@@ -400,7 +401,7 @@ class LevelRenderData:
             if result is not None:
                 return result
 
-        result = pickle.load(open(cls._level_filename(cache_key, level_pk, theme_pk), 'rb'))
+        result = pickle.load(open(cls._level_filename(MapUpdate.build_cache_key(*cache_key), level_pk, theme_pk), 'rb'))
 
         cls.cached.data[key] = result
         return result
