@@ -251,8 +251,8 @@ def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
         logger.info('No geometries affected.')
         return False
 
-    geometry_update_cache_key = mapupdates[-1].to_tuple.cache_key
-    (settings.CACHE_ROOT / geometry_update_cache_key).mkdir(exist_ok=True)
+    geometry_update_folder_name = mapupdates[-1].to_tuple.folder_name
+    (settings.CACHE_ROOT / geometry_update_folder_name).mkdir(exist_ok=True)
 
     changed_geometries.reset()
 
@@ -281,6 +281,6 @@ def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
 
     logger.info('Rebuilding level render data...')
 
-    LevelRenderData.rebuild(geometry_update_cache_key)
+    LevelRenderData.rebuild(geometry_update_folder_name)
 
     return True
