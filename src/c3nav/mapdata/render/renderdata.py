@@ -65,10 +65,11 @@ class LevelRenderData:
     @staticmethod
     def _rebuild(update_folder_name):
         # Levels are automatically sorted by base_altitude, ascending
-        levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
-                                                      'spaces__holes', 'spaces__areas', 'spaces__columns',
-                                                      'spaces__obstacles', 'spaces__lineobstacles',
-                                                      'spaces__locations__groups', 'spaces__ramps'))
+        levels = tuple(Level.objects.prefetch_related(
+            'altitudeareas', 'buildings', 'doors',
+            'spaces', 'spaces__holes', 'spaces__columns', 'spaces__obstacles', 'spaces__lineobstacles', 'spaces__ramps',
+            'spaces__areas__locations__groups', 'spaces__pois__locations__groups', 'spaces__locations__groups',
+        ))
 
         package = CachePackage(bounds=tuple(chain(*Source.max_bounds())))
 
