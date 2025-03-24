@@ -1,10 +1,11 @@
-from django.core.cache import cache
+from django.db import models
 from django.db import models
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import MapUpdate
+from c3nav.mapdata.utils.cache.proxied import versioned_cache
 
 
 class TitledMixin(models.Model):
@@ -33,8 +34,8 @@ class BoundsMixin(models.Model):
 
     @classmethod
     def max_bounds(cls):
-        cache_key = 'mapdata:max_bounds:%s:%s' % (cls.__name__, MapUpdate.last_update().cache_key)
-        result = cache.get(cache_key, None)
+        cache_key = f"mapdata:max_bounds:{cls.__name__}"
+        result = versioned_cache.get(MapUpdate.last_update(), cache_key, None)
         if result is not None:
             return result
         from c3nav.mapdata.permissions import active_map_permissions
@@ -43,7 +44,7 @@ class BoundsMixin(models.Model):
                                                  models.Max('right'), models.Max('top'))
             result = ((float(result['left__min'] or 0), float(result['bottom__min'] or 0)),
                       (float(result['right__max'] or 10), float(result['top__max'] or 10)))
-        cache.set(cache_key, result, 900)
+        versioned_cache.set(MapUpdate.last_update(), cache_key, result, 900)
         return result
 
     @property

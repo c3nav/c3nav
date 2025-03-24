@@ -15,16 +15,15 @@ from django.utils.http import content_disposition_header
 from django.views.decorators.http import etag
 from shapely import LineString, Point, box, unary_union
 
+from c3nav.mapdata.locations import LocationManager
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate
-from c3nav.mapdata.models.update import MapUpdateJob
 from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.render.engines import ImageRenderEngine
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
-from c3nav.mapdata.locations import LocationManager
 from c3nav.mapdata.utils.geometry import merge_bounds
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
@@ -102,6 +101,7 @@ def cache_preview(request, key, last_update, render_fn):
 
     data = None
     if settings.CACHE_PREVIEWS:
+        # todo: what is all of this?
         previews_directory = settings.PREVIEWS_ROOT / key
         last_update_file = previews_directory / 'last_update'
         preview_file = previews_directory / 'preview.png'
