@@ -1,9 +1,10 @@
 import operator
 import warnings
+from abc import abstractmethod, ABC
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, lru_cache, reduce
-from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping
+from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Optional
 
 from django.contrib.auth.models import User
 
@@ -245,7 +246,33 @@ class MapPermissionContext(MapPermissions):
 active_map_permissions = MapPermissionContext()
 
 
-class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[KT, VT]):
+class BaseMapPermissionFiltered[T](ABC):
+    @abstractmethod
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> T:
+        pass
+
+    @property
+    @abstractmethod
+    def _all_restrictions(self) -> frozenset[int]:
+        pass
+
+    @cached_property
+    def _get(self) -> Callable[[], T]:
+        # this is a hack to have one lru_cache per instance
+        # todo: this probably is still slower than it needs to be, because of the set operation?
+        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(
+            full=active_map_permissions.full,
+            permissions=active_map_permissions.access_restrictions - self._all_restrictions
+        ))
+
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result.pop('_get', None)
+        return result
+
+
+class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[KT, VT],
+                                                                            BaseMapPermissionFiltered[dict[KT, VT]]):
     """
     Wraps a mapping of AccessRestrictionLogicMixin objects.
     Acts like a mapping (like dict) but will filter objects based on the active map permissions.
@@ -266,14 +293,6 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
     @cached_property
     def _all_restrictions(self) -> frozenset[int]:
         return reduce(operator.or_, (item.effective_access_restrictions for item in self._data.values()), frozenset())
-
-    @cached_property
-    def _get(self) -> Callable[[], dict[KT, VT]]:
-        # this is a hack to have one lru_cache per instance
-        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(
-            full=active_map_permissions.full,
-            permissions=active_map_permissions.access_restrictions - self._all_restrictions
-        ))
 
     def __iter__(self) -> Iterator[KT]:
         return iter(self._get())
@@ -302,38 +321,9 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
     def __contains__(self, item) -> bool:
         return item in self._get()
 
-    def __getstate__(self):
-        result = self.__dict__.copy()
-        result.pop('_get', None)
-        return result
 
-
-class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](Sequence[T]):
-    """
-    Wraps a sequence of AccessRestrictionLogicMixin objects.
-    Acts like a sequence (like list, tuple, ...) but will filter objects based on the active map permissions.
-    Caches the last 16 configurations.
-    """
-    def __init__(self, data: Sequence[T]):
-        self._data = data
-
-    def _get_for_permissions(self, full: bool, permissions: set[int]) -> tuple[T, ...]:
-        if full:
-            return tuple(self._data)
-        return tuple(item for item in self._data
-                     if not (item.effective_access_restrictions - permissions))
-
-    @cached_property
-    def _all_restrictions(self) -> frozenset[int]:
-        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data), frozenset())
-
-    @cached_property
-    def _get(self) -> Callable[[], tuple[T, ...]]:
-        # this is a hack to have one lru_cache per instance
-        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(
-            full=active_map_permissions.full,
-            permissions=active_map_permissions.access_restrictions - self._all_restrictions
-        ))
+class BaseLazyMapPermissionFilteredSequence[T](Sequence[T], BaseMapPermissionFiltered[tuple[T, ...]], ABC):
+    _data: Sequence
 
     def __len__(self) -> int:
         return len(self._get())
@@ -361,7 +351,73 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](Sequence
     def __reversed__(self) -> Iterator[T]:
         return iter(reversed(self._get()))
 
-    def __getstate__(self):
-        result = self.__dict__.copy()
-        result.pop('_get', None)
-        return result
+
+class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazyMapPermissionFilteredSequence[T]):
+    """
+    Wraps a sequence of AccessRestrictionLogicMixin objects.
+    Acts like a sequence (like list, tuple, ...) but will filter objects based on the active map permissions.
+    Caches the last 16 configurations.
+    """
+    def __init__(self, data: Sequence[T]):
+        self._data = data
+
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> tuple[T, ...]:
+        if full:
+            return tuple(self._data)
+        return tuple(item for item in self._data
+                     if not (item.effective_access_restrictions - permissions))
+
+    @cached_property
+    def _all_restrictions(self) -> frozenset[int]:
+        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data), frozenset())
+
+
+class MapPermissionTaggedItem[T](NamedTuple):
+    value: T
+    access_restrictions: frozenset[int]
+
+
+class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSequence[T]):
+    """
+    Wraps a sequence of MapPermissionTaggedItem[T] objects.
+    Acts like a Sequence[T] (like list, tuple, ...) but will filter objects based on the active map permissions.
+    Caches the last 16 configurations.
+    """
+    def __init__(self, data: Sequence[MapPermissionTaggedItem[T]]):
+        self._data = data
+
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> tuple[T, ...]:
+        if full:
+            return tuple(item.value for item in self._data)
+        return tuple(item.value for item in self._data
+                     if not (item.access_restrictions - permissions))
+
+    @cached_property
+    def _all_restrictions(self) -> frozenset[int]:
+        return reduce(operator.or_, (item.access_restrictions for item in self._data), frozenset())
+
+
+class LazyMapPermissionFilteredTaggedValue[T](BaseMapPermissionFiltered[Optional[T]]):
+    """
+    Wraps a sequence of MapPermissionTaggedItem[T] objects.
+    Allows you to get the first visible item based on the active map permissions.
+    Caches the last 16 configurations.
+    """
+    def __init__(self, data: Sequence[MapPermissionTaggedItem[T]]):
+        self._data = data
+
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> Optional[T]:
+        try:
+            if full:
+                return next(iter(item.value for item in self._data))
+            return next(iter(item.value for item in self._data
+                             if not (item.access_restrictions - permissions)))
+        except StopIteration:
+            return None
+
+    @cached_property
+    def _all_restrictions(self) -> frozenset[int]:
+        return reduce(operator.or_, (item.access_restrictions for item in self._data), frozenset())
+
+    def get(self) -> Optional[T]:
+        return self._get()
