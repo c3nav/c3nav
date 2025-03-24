@@ -28,7 +28,6 @@ def run_mapupdate_job(self, job_type: str):
         logger.info(f'Cannot run job: {job_type}')
 
 
-
 @app.task(bind=True, max_retries=10)
 def delete_map_cache_key(self, cache_key):
     # todo: get rid of this by having the cache entries be versioned
