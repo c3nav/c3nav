@@ -29,12 +29,12 @@ class MapHistory(LevelGeometryIndexed):
     def _read_metadata(cls, f, kwargs: dict):
         num_updates = struct.unpack('<H', f.read(2))[0]
         updates = struct.unpack('<'+'II'*num_updates, f.read(num_updates*8))
-        updates = list(zip(updates[0::2], updates[1::2]))
+        updates = [MapUpdateTuple.from_legacy(v) for v in zip(updates[0::2], updates[1::2])]
         kwargs['updates'] = updates
 
     def _write_metadata(self, f):
         f.write(struct.pack('<H', len(self.updates)))
-        f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
+        f.write(struct.pack('<'+'II'*len(self.updates), *chain(*(update.as_legacy for update in self.updates))))
 
     @classmethod
     def open(cls, filename: str | bytes | PathLike, default_update: Optional[MapUpdateTuple] = None) -> Self:

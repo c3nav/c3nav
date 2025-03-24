@@ -117,9 +117,10 @@ class MapUpdateJob(models.Model):
             if last_update is not None:
                 return last_update
 
-        last_successful_job = cls._last_job_with_state(job_type, {MapUpdateJobStatus.SUCCESS}).to_tuple
-        per_request_cache.set(cache_key, last_successful_job, None)
-        return last_successful_job
+        last_successful_job = cls._last_job_with_state(job_type, {MapUpdateJobStatus.SUCCESS})
+        result = MapUpdateTuple.get_empty() if last_successful_job is None else last_successful_job.to_tuple
+        per_request_cache.set(cache_key, result, None)
+        return result
 
     def update_status(self, status: MapUpdateJobStatus):
         if self.status != MapUpdateJobStatus.RUNNING:
