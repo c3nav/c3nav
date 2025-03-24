@@ -22,7 +22,7 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
                                          AccessRestriction, AccessRestrictionGroup)
-from c3nav.mapdata.models.update import MAPUPDATE_JOB_TYPES
+from c3nav.mapdata.models.update import MAPUPDATE_JOB_TYPE_CHOICES
 from c3nav.mapdata.quests.base import quest_types
 from c3nav.site.models import Announcement
 
@@ -345,7 +345,7 @@ class MapUpdateFilterForm(Form):
         required=False
     )
     processed = ChoiceField(
-        choices=(('', _('any')), *MAPUPDATE_JOB_TYPES),
+        choices=(('', _('any')), *MAPUPDATE_JOB_TYPE_CHOICES),
         required=False
     )
     user_id = IntegerField(min_value=1, required=False)

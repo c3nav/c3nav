@@ -131,19 +131,21 @@ def sidebar_view(func=None, select_related=None):
     return wrapped
 
 
-def editor_etag_func(request, *args, **kwargs):
+def editor_base_etag_func(request):
     try:
         changeset = request.changeset
     except AttributeError:
         changeset = ChangeSet.get_for_request(request)
         request.changeset = changeset
+    return (changeset.raw_cache_key_by_changes + ':' +
+            str(int(request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET)))
 
+
+def editor_etag_func(request, *args, **kwargs):
     if len(get_messages(request)):
         return None
 
-    return (get_language() + ':' + changeset.raw_cache_key_by_changes + ':' +
-            active_map_permissions.cache_key + ':' + str(request.user.pk or 0)
-            + ':' + str(int(request.user_permissions.can_access_base_mapdata))
-            + ':' + ','.join(str(i) for i in request.user_space_accesses)
-            + ':' + str(int(request.user.is_superuser))
-            + ':' + str(int(request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET)))
+    return (get_language() + ':' + editor_base_etag_func(request) + ':' +
+            active_map_permissions.permissions_cache_key + ':' + str(request.user.pk or 0)
+            + ':' + active_map_permissions.space_permissions_cache_key
+            + ':' + str(int(request.user.is_superuser)))
