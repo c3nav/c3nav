@@ -47,7 +47,7 @@ def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = 
             # calculate the ETag
             raw_etag = (
                 f"{get_language()}:"
-                f"{base_etag_func(request) if base_etag_func else MapUpdate.current_cache_key(*cache_job_types)}"
+                f"{base_etag_func(request) if base_etag_func else MapUpdate.last_update(*cache_job_types).cache_key}"
             )
             if permissions:
                 raw_etag += f":{active_map_permissions.permissions_cache_key}"

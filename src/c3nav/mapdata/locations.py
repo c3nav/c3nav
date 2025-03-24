@@ -301,7 +301,7 @@ class LocationManager:
 def get_better_space_geometries():
     # todo: get rid of this… we no longer use it but this code probably needs to be used again somewhere else
     # change space geometries for better representative points
-    cache_key = f'mapdata:better_space_geometries:{MapUpdate.current_cache_key()}'
+    cache_key = f'mapdata:better_space_geometries:{MapUpdate.last_update().cache_key}'
     result = cache.get(cache_key, None)
     if result is not None:
         return result

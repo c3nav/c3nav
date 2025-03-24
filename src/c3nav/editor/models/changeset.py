@@ -406,14 +406,14 @@ class ChangeSet(models.Model):
     @property
     def raw_cache_key_without_changes(self):
         if self.pk is None:
-            return MapUpdate.current_cache_key()
-        return ':'.join((str(self.pk), MapUpdate.current_cache_key()))
+            return MapUpdate.last_update().cache_key
+        return ':'.join((str(self.pk), MapUpdate.last_update().cache_key))
 
     @property
     def raw_cache_key_by_changes(self):
         if self.pk is None:
-            return MapUpdate.current_cache_key()
-        return ':'.join((str(self.pk), MapUpdate.current_cache_key(), self.last_change_cache_key))
+            return MapUpdate.last_update().cache_key
+        return ':'.join((str(self.pk), MapUpdate.last_update().cache_key, self.last_change_cache_key))
 
     def get_absolute_url(self):
         if self.pk is None:

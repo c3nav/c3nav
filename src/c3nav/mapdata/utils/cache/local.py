@@ -45,7 +45,7 @@ class LocalCacheProxy:
         # todo: would be nice to not need this… why do we need this?
 
         from c3nav.mapdata.models import MapUpdate
-        mapupdate = MapUpdate.current_cache_key()
+        mapupdate = MapUpdate.last_update()
         if self._mapupdate != mapupdate:
             self._items = OrderedDict()
             self._mapupdate = mapupdate
