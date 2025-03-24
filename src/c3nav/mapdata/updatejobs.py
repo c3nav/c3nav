@@ -147,7 +147,8 @@ def run_job(job_type: str, schedule_next=False):
         logger.info(f'No updates for job: {update_job_configs[job_type].title}')
         return
     job_config.run(
-        tuple(MapUpdate.objects.filter(pk__gt=last_update_for_job[0], pk__lte=newest_update_for_job[0]))
+        tuple(MapUpdate.objects.filter(pk__gt=last_update_for_job.mapupdate_id,
+                                       pk__lte=newest_update_for_job.mapupdate_id))
     )
     if schedule_next:
         schedule_available_mapupdate_jobs_as_tasks()
@@ -249,8 +250,7 @@ def recalculate_geometries(mapupdates: tuple["MapUpdate", ...]) -> bool:
         logger.info('No geometries affected.')
         return False
 
-    from c3nav.mapdata.models.update import MapUpdate
-    geometry_update_cache_key = MapUpdate.build_cache_key(*mapupdates[-1].to_tuple)
+    geometry_update_cache_key = mapupdates[-1].to_tuple.cache_key
     (settings.CACHE_ROOT / geometry_update_cache_key).mkdir(exist_ok=True)
 
     from c3nav.mapdata.utils.cache.changes import changed_geometries
