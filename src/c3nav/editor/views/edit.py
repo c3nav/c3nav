@@ -470,7 +470,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 def get_visible_spaces(request):
     cache_key = 'editor:visible_spaces:%s:%s' % (
         request.changeset.raw_cache_key_by_changes,
-        active_map_permissions.cache_key,
+        active_map_permissions.permissions_cache_key,
     )
     visible_spaces = cache.get(cache_key, None)
     if visible_spaces is None:

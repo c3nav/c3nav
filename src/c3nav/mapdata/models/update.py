@@ -2,20 +2,19 @@ import os
 import pickle
 from contextlib import contextmanager, suppress
 from functools import cached_property
+from typing import Iterable, Self
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models, transaction, DatabaseError
-from django.db.models.constraints import UniqueConstraint
+from django.db import models, transaction
+from django.db.models.constraints import UniqueConstraint, CheckConstraint
 from django.db.models.query_utils import Q
 from django.utils import timezone
-from django.utils.http import int_to_base36
-from django.utils.timezone import make_naive
+from django.utils.choices import BaseChoiceIterator
 from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
 from c3nav.mapdata.tasks import delete_map_cache_key, schedule_available_mapupdate_jobs
-from c3nav.mapdata.updatejobs import update_job_configs, run_eager_mapupdate_jobs
 from c3nav.mapdata.utils.cache.changes import GeometryChangeTracker
 from c3nav.mapdata.utils.cache.local import per_request_cache
 from c3nav.mapdata.utils.cache.types import MapUpdateTuple
@@ -29,12 +28,18 @@ class MapUpdateJobStatus(models.IntegerChoices):
     SUCCESS = 4, _("success")
 
 
-MAPUPDATE_JOB_TYPES = ((key, job_config.title) for key, job_config in update_job_configs.items())
+class LazyUpdateJobConfigsChoices(BaseChoiceIterator, Iterable):
+    def __iter__(self):
+        from c3nav.mapdata.updatejobs import update_job_configs
+        return iter((key, job_config.title) for key, job_config in update_job_configs.items())
+
+
+MAPUPDATE_JOB_TYPE_CHOICES = LazyUpdateJobConfigsChoices()
 
 
 class MapUpdateJob(models.Model):
     mapupdate = models.ForeignKey("MapUpdate", on_delete=models.CASCADE, related_name="jobs")
-    job_type = models.CharField(max_length=64, choices=MAPUPDATE_JOB_TYPES, db_index=True)
+    job_type = models.CharField(max_length=64, choices=MAPUPDATE_JOB_TYPE_CHOICES, db_index=True)
     status = models.PositiveSmallIntegerField(choices=MapUpdateJobStatus.choices, db_index=True)
     start = models.DateTimeField(auto_now_add=True)
     end = models.DateTimeField(null=True)
@@ -54,6 +59,10 @@ class MapUpdateJob(models.Model):
                                         MapUpdateJobStatus.SKIPPED,
                                         MapUpdateJobStatus.SUCCESS)),
                 name="no_duplicate_jobs_per_update_unless_failed"
+            ),
+            CheckConstraint(
+                condition=Q(end__isnull=False) | Q(status=MapUpdateJobStatus.RUNNING),
+                name="set_end_if_not_running",
             )
         ]
         get_latest_by = ("end", "start")
@@ -61,6 +70,7 @@ class MapUpdateJob(models.Model):
     @classmethod
     @contextmanager
     def lock(cls, job_type: str):
+        from c3nav.mapdata.updatejobs import update_job_configs
         if job_type not in update_job_configs:
             raise ValueError(f'Uknown job type: {job_type}')
         with transaction.atomic():
@@ -71,8 +81,14 @@ class MapUpdateJob(models.Model):
                 yield
             yield cls.objects.select_for_update().get(pk=first.pk)
 
+    @property
+    def to_tuple(self) -> MapUpdateTuple:
+        return MapUpdateTuple(timestamp=int(self.end.timestamp() * 1_000_000) if self.end else 0,
+                              job_id=self.pk, update_id=self.mapupdate_id)
+
     @classmethod
-    def _last_update_with_state(cls, job_type: str, states: set[MapUpdateJobStatus]) -> MapUpdateTuple:
+    def _last_job_with_state(cls, job_type: str, states: set[MapUpdateJobStatus]) -> Self | None:
+        from c3nav.mapdata.updatejobs import update_job_configs
         if job_type not in update_job_configs:
             raise ValueError(f'Uknown job type: {job_type}')
         try:
@@ -81,16 +97,17 @@ class MapUpdateJob(models.Model):
                     job_type=job_type,
                     status__in=states,
                 ).select_related("mapupdate").latest()
-                return last_finished_job.mapupdate.to_tuple
+                return last_finished_job
         except MapUpdateJob.DoesNotExist:
-            return MapUpdateTuple(mapupdate_id=0, timestamp=0)
+            return None
 
     @classmethod
-    def last_successful_or_skipped_update(cls, job_type: str) -> MapUpdateTuple:
-        return cls._last_update_with_state(job_type, {MapUpdateJobStatus.SUCCESS, MapUpdateJobStatus.SKIPPED})
+    def last_successful_or_skipped_job(cls, job_type: str) -> Self | None:
+        return cls._last_job_with_state(job_type, {MapUpdateJobStatus.SUCCESS, MapUpdateJobStatus.SKIPPED})
 
     @classmethod
-    def last_successful_update(cls, job_type: str, *, nocache: bool = False) -> MapUpdateTuple:
+    def last_successful_job(cls, job_type: str, *, nocache: bool = False) -> MapUpdateTuple:
+        from c3nav.mapdata.updatejobs import update_job_configs
         if job_type not in update_job_configs:
             raise ValueError(f'Uknown job type: {job_type}')
         cache_key = f"mapdata:last_job:{job_type}:update"
@@ -99,9 +116,9 @@ class MapUpdateJob(models.Model):
             if last_update is not None:
                 return last_update
 
-        last_successful_update = cls._last_update_with_state(job_type, {MapUpdateJobStatus.SUCCESS})
-        per_request_cache.set(cache_key, last_successful_update, None)
-        return last_successful_update
+        last_successful_job = cls._last_job_with_state(job_type, {MapUpdateJobStatus.SUCCESS}).to_tuple
+        per_request_cache.set(cache_key, last_successful_job, None)
+        return last_successful_job
 
     def update_status(self, status: MapUpdateJobStatus):
         if self.status != MapUpdateJobStatus.RUNNING:
@@ -139,8 +156,8 @@ class MapUpdate(models.Model):
         get_latest_by = 'datetime'
 
     @classmethod
-    def last_update(cls, force=False) -> MapUpdateTuple:
-        if not force:
+    def _last_update(cls, nocache: bool = False) -> MapUpdateTuple:
+        if not nocache:
             last_update = per_request_cache.get('mapdata:last_update', None)
             if last_update is not None:
                 return last_update
@@ -149,18 +166,29 @@ class MapUpdate(models.Model):
                 last_update = cls.objects.latest().to_tuple
                 per_request_cache.set('mapdata:last_update', last_update, None)
         except cls.DoesNotExist:
-            last_update = MapUpdateTuple(mapupdate_id=0, timestamp=0)
+            last_update = MapUpdateTuple.get_empty()
             per_request_cache.set('mapdata:last_update', last_update, None)
         return last_update
 
+    @classmethod
+    def last_update(cls, *job_types: str, nocache: bool = False) -> MapUpdateTuple:
+        """
+        Get oldest MapUpdateTuple for the given job types.
+        If now job type are given, return MapUpdateTuple for latest map update.
+        """
+        if job_types:
+            return min((MapUpdateJob.last_successful_job(job_type, nocache=nocache) for job_type in job_types))
+        else:
+            return cls._last_update(nocache=nocache)
+
     @property
     def to_tuple(self) -> MapUpdateTuple:
-        return MapUpdateTuple(mapupdate_id=self.pk, timestamp=int(make_naive(self.datetime).timestamp()))
+        return MapUpdateTuple(timestamp=int(self.datetime.timestamp()*1_000_000), job_id=0, update_id=self.pk)
 
     @classmethod
-    def current_cache_key(cls) -> str:
+    def current_cache_key(cls, *job_types: str) -> str:
         # todo: need to get rid of this
-        return cls.last_update().cache_key
+        return cls.last_update(*job_types).cache_key
 
     @classmethod
     @contextmanager
@@ -239,4 +267,5 @@ class MapUpdate(models.Model):
                     lambda: schedule_available_mapupdate_jobs.delay()
                 )
             else:
+                from c3nav.mapdata.updatejobs import run_eager_mapupdate_jobs
                 run_eager_mapupdate_jobs(self)
