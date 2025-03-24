@@ -81,7 +81,7 @@ class ColorManager:
     @classmethod
     def for_theme(cls, theme):
         from c3nav.mapdata.models import MapUpdate
-        current_cache_key = MapUpdate.current_cache_key()
+        current_cache_key = MapUpdate.last_update().cache_key
         if cls.cache_key != current_cache_key:
             cls.default_theme = None
             cls.themes = {}
