@@ -9,6 +9,7 @@ from pydantic import TypeAdapter, BaseModel
 from c3nav.api.schema import BaseSchema, PointSchema
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import within_changeset
+from c3nav.mapdata.models import MapUpdate
 
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.permissions import active_map_permissions
@@ -66,7 +67,8 @@ class Quest:
 
     @classmethod
     def cached_get_all_for_request(cls, request) -> list["QuestSchema"]:
-        cache_key = f'quests:{cls.quest_type}:{active_map_permissions.cache_key}'
+        # todo: fix caching here
+        cache_key = f'quests:{cls.quest_type}:{MapUpdate.current_cache_key()}:{active_map_permissions.cache_key}'
         result = cache.get(cache_key, None)
         if result is not None:
             return result

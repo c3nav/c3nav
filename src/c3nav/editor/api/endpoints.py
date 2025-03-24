@@ -62,7 +62,7 @@ def geometrystyles(request):
                        response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
-@api_etag_with_update_cache_key(etag_func=editor_etag_func)
+@api_etag_with_update_cache_key()
 @accesses_mapdata
 def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
@@ -82,7 +82,7 @@ def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheK
                        response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
-@api_etag_with_update_cache_key(etag_func=editor_etag_func)
+@api_etag_with_update_cache_key()
 @accesses_mapdata
 def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:

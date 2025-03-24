@@ -20,6 +20,7 @@ from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
+from c3nav.mapdata.models.update import MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions, LazyMapPermissionFilteredMapping, ManualMapPermissions
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
@@ -171,7 +172,8 @@ class LocationManager:
 
     @classmethod
     def _maybe_update(cls):
-        cache_key = MapUpdate.current_cache_key()
+
+        cache_key = MapUpdateJob.last_successful_update("mapdata.recalculate_effective_icon")
         if cache_key != cls._cache_key:
             cls._cache_key = cache_key
             with active_map_permissions.disable_access_checks():
