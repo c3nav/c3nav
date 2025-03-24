@@ -1,12 +1,6 @@
 import logging
-import time
 
-from celery.exceptions import MaxRetriesExceededError
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
-from django.utils.formats import date_format
-from django.utils.translation import gettext_lazy as _
-from django.utils.translation import ngettext_lazy
 
 from c3nav.celery import app
 
@@ -26,14 +20,6 @@ def run_mapupdate_job(self, job_type: str):
         run_job(job_type, schedule_next=True)
     except CantStartMapUpdateJob:
         logger.info(f'Cannot run job: {job_type}')
-
-
-@app.task(bind=True, max_retries=10)
-def delete_map_cache_key(self, cache_key):
-    # todo: get rid of this by having the cache entries be versioned
-    if hasattr(cache, 'keys'):
-        for key in cache.keys(f'*{cache_key}*'):
-            cache.delete(key)
 
 
 @app.task(bind=True, max_retries=10)
