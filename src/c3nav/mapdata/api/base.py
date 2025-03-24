@@ -1,7 +1,7 @@
 import json
 import time
 from functools import wraps
-from typing import Optional
+from typing import Optional, Callable
 
 from django.conf import settings
 from django.core.cache import cache
@@ -24,7 +24,8 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 request_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_API)
 
 
-def api_etag(permissions=True, quests=False, etag_func=active_map_permissions.etag_func, base_mapdata=False,
+def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = (),
+             base_etag_func: Optional[Callable] = None, base_mapdata=False,
              etag_add_key: Optional[tuple[str, str]] = None):
 
     def outer_wrapper(func):
@@ -44,14 +45,16 @@ def api_etag(permissions=True, quests=False, etag_func=active_map_permissions.et
         @wraps(func)
         def inner_wrapped_func(request, *args, **kwargs):
             # calculate the ETag
-            print(type(request), repr(request))
-            response_format = "json"
-            raw_etag = '%s:%s:%s' % (response_format, get_language(),
-                                     (etag_func(request) if permissions else MapUpdate.current_cache_key()))
+            raw_etag = (
+                f"{get_language()}:"
+                f"{base_etag_func(request) if base_etag_func else MapUpdate.current_cache_key(*cache_job_types)}"
+            )
+            if permissions:
+                raw_etag += f":{active_map_permissions.permissions_cache_key}"
             if quests:
-                raw_etag += 'all' if request.user.is_superuser else f':{','.join(request.user_permissions.quests)}'
+                raw_etag += ':all' if request.user.is_superuser else f':{','.join(request.user_permissions.quests)}'
             if base_mapdata:
-                raw_etag += ':%d' % request.user_permissions.can_access_base_mapdata
+                raw_etag += f":{active_map_permissions.base_mapdata_cache_key}"
 
             if etag_add_key:
                 etag_add_cache_key = (

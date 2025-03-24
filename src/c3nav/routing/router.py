@@ -352,7 +352,7 @@ class Router:
     @classmethod
     def load(cls):
         from c3nav.mapdata.models.update import MapUpdateJob
-        update = MapUpdateJob.last_successful_update("routing.rebuild_router")
+        update = MapUpdateJob.last_successful_job("routing.rebuild_router")
         if getattr(cls.cached, 'update', cls.NoUpdate) < update:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
