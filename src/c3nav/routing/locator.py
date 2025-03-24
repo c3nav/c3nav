@@ -303,7 +303,7 @@ class Locator:
     @classmethod
     def load(cls):
         from c3nav.mapdata.models.update import MapUpdateJob
-        update = MapUpdateJob.last_successful_update("routing.rebuild_locator")
+        update = MapUpdateJob.last_successful_job("routing.rebuild_locator")
         if getattr(cls.cached, 'update', cls.NoUpdate) < update:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data

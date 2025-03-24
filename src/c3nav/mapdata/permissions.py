@@ -230,16 +230,16 @@ class MapPermissionContext(MapPermissions):
         return self.get_value().full
 
     @property
-    def cache_key(self):
+    def permissions_cache_key(self) -> str:
         # todo: we definitely want to find a way to shorten this
         return (
-            '-'.join(str(i) for i in sorted(self.access_restrictions) or '0') + ":"
-            + ('a' if self.all_base_mapdata else ('-'.join(str(i) for i in sorted(self.access_restrictions) or '0')))
-            + f":{self.view_sources:d}"
+            '-'.join(str(i) for i in sorted(self.access_restrictions) or '0')
+            + f":{self.view_sources:d}"  # todo: get rid of view_sources
         )
 
-    def etag_func(self, request):
-        return f'{MapUpdate.current_cache_key()}:{self.cache_key}'
+    @property
+    def base_mapdata_cache_key(self) -> str:
+        return 'a' if self.all_base_mapdata else ('-'.join(str(i) for i in sorted(self.spaces) or '0'))
 
 
 active_map_permissions = MapPermissionContext()
