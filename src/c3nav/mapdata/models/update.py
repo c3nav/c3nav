@@ -83,7 +83,7 @@ class MapUpdateJob(models.Model):
                 ).select_related("mapupdate").latest()
                 return last_finished_job.mapupdate.to_tuple
         except MapUpdateJob.DoesNotExist:
-            return (0, 0)
+            return MapUpdateTuple(mapupdate_id=0, timestamp=0)
 
     @classmethod
     def last_successful_or_skipped_update(cls, job_type: str) -> MapUpdateTuple:
@@ -153,17 +153,13 @@ class MapUpdate(models.Model):
                 last_update = cls.objects.latest().to_tuple
                 per_request_cache.set('mapdata:last_update', last_update, None)
         except cls.DoesNotExist:
-            last_update = (0, 0)
+            last_update = MapUpdateTuple(mapupdate_id=0, timestamp=0)
             per_request_cache.set('mapdata:last_update', last_update, None)
         return last_update
 
     @property
     def to_tuple(self) -> MapUpdateTuple:
-        return self.pk, int(make_naive(self.datetime).timestamp())
-
-    @property
-    def cache_key(self):
-        return self.build_cache_key(self.pk, int(make_naive(self.datetime).timestamp()))
+        return MapUpdateTuple(mapupdate_id=self.pk, timestamp=int(make_naive(self.datetime).timestamp()))
 
     @classmethod
     def current_cache_key(cls):
