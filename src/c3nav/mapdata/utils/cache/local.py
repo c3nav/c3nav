@@ -69,4 +69,5 @@ class RequestLocalCacheProxy(LocalCacheProxy):
         pass
 
 
+# todo: we want multiple copies of this
 per_request_cache = RequestLocalCacheProxy(maxsize=settings.CACHE_SIZE_LOCATIONS)

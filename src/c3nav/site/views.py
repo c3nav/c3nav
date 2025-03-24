@@ -287,10 +287,12 @@ def migrate_access_permissions_after_login(request):
     if not request.user.is_authenticated:
         raise ValueError
     with transaction.atomic():
-        session_token = request.session.pop("accesspermission_session_token", None)
+        session_token: str | None = request.session.pop("accesspermission_session_token", None)
         if session_token:
             AccessPermission.objects.filter(session_token=session_token).update(session_token=None, user=request.user)
-            transaction.on_commit(lambda: cache.delete(AccessPermission.request_access_permission_key(request)))
+            transaction.on_commit(
+                lambda: cache.delete(AccessPermission.get_access_permission_key_for_session_token(session_token))
+            )
 
 
 @never_cache
