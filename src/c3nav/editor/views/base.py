@@ -147,5 +147,5 @@ def editor_etag_func(request, *args, **kwargs):
 
     return (get_language() + ':' + editor_base_etag_func(request) + ':' +
             active_map_permissions.permissions_cache_key + ':' + str(request.user.pk or 0)
-            + ':' + active_map_permissions.space_permissions_cache_key
+            + ':' + active_map_permissions.base_mapdata_cache_key
             + ':' + str(int(request.user.is_superuser)))

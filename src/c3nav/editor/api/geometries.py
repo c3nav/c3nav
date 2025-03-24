@@ -209,7 +209,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         raise APIPermissionDenied
 
     if request.user_permissions.can_access_base_mapdata:
-        doors = [door for door in level.doors.filter(Door.q_for_permissions()).all()
+        doors = [door for door in level.doors.all()
                  if unwrap_geom(door.geometry).intersects(unwrap_geom(space.geometry))]
         doors_space_geom = unary_union(
             [unwrap_geom(door.geometry) for door in doors] +
@@ -233,8 +233,6 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         other_spaces_lower = [s for s in other_spaces if s.level_id in levels_for_level.levels_under]
         other_spaces_upper = [s for s in other_spaces if s.level_id in levels_for_level.levels_on_top]
         other_spaces = [s for s in other_spaces if s.level_id == level.pk]
-
-        space.bounds = True
 
         # deactivated for performance reasons
         buildings = level.buildings.all()
