@@ -134,6 +134,7 @@ def user_detail(request, user):  # todo: make class based view
             access_permissions.setdefault(
                 permission.access_restriction_id or ("g%d" % permission.access_restriction_group_id), []
             ).append(permission)
+        # todo: type hinting
         access_permissions = tuple(
             {
                 'pk': pk,

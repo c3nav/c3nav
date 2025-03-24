@@ -389,19 +389,19 @@ class LevelRenderData:
     def get(cls, level, theme):
         # get the current render data from local variable if no new processed mapupdate exists.
         # this is much faster than any other possible cache
-        cache_key = MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
+        map_update = MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
         level_pk = level.pk if isinstance(level, Level) else level
         theme_pk = theme.pk if isinstance(theme, Theme) else theme
         key = f'{level_pk}_{theme_pk}'
-        if getattr(cls.cached, 'key', None) != cache_key:
-            cls.cached.key = cache_key
+        if getattr(cls.cached, 'key', None) != map_update:
+            cls.cached.key = map_update
             cls.cached.data = {}
         else:
             result = cls.cached.data.get(key, None)
             if result is not None:
                 return result
 
-        result = pickle.load(open(cls._level_filename(MapUpdate.build_cache_key(*cache_key), level_pk, theme_pk), 'rb'))
+        result = pickle.load(open(cls._level_filename(map_update.cache_key, level_pk, theme_pk), 'rb'))
 
         cls.cached.data[key] = result
         return result
