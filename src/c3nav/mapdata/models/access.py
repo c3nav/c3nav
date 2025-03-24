@@ -3,7 +3,7 @@ import uuid
 from collections import namedtuple
 from datetime import timedelta
 from functools import cached_property
-from typing import Sequence, TYPE_CHECKING, Optional
+from typing import Sequence, TYPE_CHECKING, Optional, overload, Never
 
 from django.conf import settings
 from django.core.cache import cache
@@ -250,27 +250,38 @@ class AccessPermission(models.Model):
         )
 
     @staticmethod
-    def build_access_permission_key(*, session_token: str | None = None, user_id: int | None = None):
-        if session_token:
-            if user_id:
-                raise ValueError
-            return 'mapdata:%s:session_access_permissions:%s' % (MapUpdate.current_cache_key(), session_token)
-        elif user_id:
-            return 'mapdata:%s:user_access_permissions:%d' % (MapUpdate.current_cache_key(),user_id)
-        raise ValueError
+    def get_access_permission_key_for_user(user_id: int) -> str:
+        """
+        Generate access permission cache key (to store granted access permissions under) for the given user.
+        """
+        return 'mapdata:%s:user_access_permissions:%d' % (MapUpdate.current_cache_key(), user_id)
 
     @staticmethod
-    def request_access_permission_key(request):
+    def get_access_permission_key_for_session_token(session_token: str) -> str:
+        """
+        Generate access permission cache key (to store granted access permissions under) for the given session token.
+        """
+        return 'mapdata:%s:session_access_permissions:%s' % (MapUpdate.current_cache_key(), session_token)
+
+    @staticmethod
+    def get_access_permission_key_for_request(request) -> str:
+        """
+        Generate access permission cache key (to store granted access permissions under) for the given request.
+        """
         if request.user.is_authenticated:
-            return AccessPermission.build_access_permission_key(user_id=request.user.pk)
-        return AccessPermission.build_access_permission_key(
-            session_token=request.session.get("accesspermission_session_token", "NONE")
+            return AccessPermission.get_access_permission_key_for_user(request.user.pk)
+        return AccessPermission.get_access_permission_key_for_session_token(
+            request.session.get("accesspermission_session_token", "NONE")
         )
 
-    def access_permission_key(self):
+    @property
+    def access_permission_key(self) -> str:
+        """
+        Generate access permission cache key (to store granted access permissions under) for this instance.
+        """
         if self.user_id:
-            return AccessPermission.build_access_permission_key(user_id=self.user_id)
-        return AccessPermission.build_access_permission_key(session_token=self.session_token)
+            return AccessPermission.get_access_permission_key_for_user(self.user_id)
+        return AccessPermission.get_access_permission_key_for_session_token(str(self.session_token))
 
     @classmethod
     def queryset_for_user(cls, user, can_grant=None):
@@ -334,7 +345,7 @@ class AccessPermission(models.Model):
         if request.user.is_authenticated and request.user_permissions.grant_all_access:
             return AccessRestriction.get_all()
 
-        cache_key = cls.request_access_permission_key(request)+f':{can_grant}'
+        cache_key = cls.get_access_permission_key_for_request(request) + f':{can_grant}'
         access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
             permissions = cls.get_for_request_with_expire_date(request, can_grant=can_grant)
@@ -385,7 +396,7 @@ class AccessPermission(models.Model):
         if UserPermissions.get_for_user(user).grant_all_access:
             return AccessRestriction.get_all()
 
-        cache_key = cls.build_access_permission_key(user_id=user.pk)+f':{can_grant}'
+        cache_key = f"{cls.get_access_permission_key_for_user(user.pk)}:{can_grant}"
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
             permissions = cls.get_for_user_with_expire_date(user, can_grant=can_grant)
@@ -411,12 +422,12 @@ class AccessPermission(models.Model):
     def save(self, *args, **kwargs):
         with transaction.atomic():
             super().save(*args, **kwargs)
-            transaction.on_commit(lambda: cache.delete(self.access_permission_key()))
+            transaction.on_commit(lambda: cache.delete(self.access_permission_key))
 
     def delete(self, *args, **kwargs):
         with transaction.atomic():
             super().delete(*args, **kwargs)
-            transaction.on_commit(lambda: cache.delete(self.access_permission_key()))
+            transaction.on_commit(lambda: cache.delete(self.access_permission_key))
 
 
 class AccessRestrictionLogicMixin(models.Model):
