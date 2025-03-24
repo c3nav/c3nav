@@ -401,7 +401,7 @@ class LevelRenderData:
             if result is not None:
                 return result
 
-        result = pickle.load(open(cls._level_filename(map_update.cache_key, level_pk, theme_pk), 'rb'))
+        result = pickle.load(open(cls._level_filename(map_update.folder_name, level_pk, theme_pk), 'rb'))
 
         cls.cached.data[key] = result
         return result
