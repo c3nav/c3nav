@@ -1,8 +1,10 @@
 from collections import OrderedDict
 from contextvars import ContextVar
 
-from django.core.cache import cache
 from django.conf import settings
+from django.core.cache import cache
+
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 
 
 class NoneFromCache:
@@ -79,6 +81,10 @@ class LocalCacheProxy:
     def clear(self):
         self._items.set(OrderedDict())
 
+    def delete(self, key: str):
+        cache.delete(key)
+        self._items.pop(key, None)
+
 
 class RequestLocalCacheProxy(LocalCacheProxy):
     """ this is a subclass without prune, to be cleared after every request """
@@ -89,5 +95,33 @@ class RequestLocalCacheProxy(LocalCacheProxy):
         pass
 
 
-# todo: we want multiple copies of this
+class VersionedCacheProxy:
+    # django cache, but with version
+    def __init__(self, orig_cache):
+        self.orig_cache = orig_cache
+
+    def _convert_key(self, key: str) -> str:
+        return f"{key}:versioned"
+
+    def get(self, version: MapUpdateTuple, key: str, default=None):
+        # needs to be MapUpdateTuple because we compare it below
+        result = self.orig_cache.get(self._convert_key(key), default=None)
+        if result is None:
+            return default
+        if result[0] < version:
+            return default
+        return result[1]
+
+    def set(self, version: MapUpdateTuple, key: str, value, expire):
+        self.orig_cache.set(self._convert_key(key), (version, value), expire)
+
+    def delete(self, key: str):
+        self.orig_cache.delete(key)
+
+
+versioned_cache = VersionedCacheProxy(cache)
+versioned_proxied_cache = VersionedCacheProxy(LocalCacheProxy(maxsize=128))
+
+# todo: we want multiple copies of this?
 per_request_cache = RequestLocalCacheProxy(maxsize=settings.CACHE_SIZE_LOCATIONS)
+versioned_per_request_cache = VersionedCacheProxy(per_request_cache)

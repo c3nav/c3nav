@@ -9,7 +9,6 @@ from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
-from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation, ValidationError
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
@@ -38,6 +37,7 @@ from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
+from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
 from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
@@ -293,7 +293,9 @@ def migrate_access_permissions_after_login(request):
         if session_token:
             AccessPermission.objects.filter(session_token=session_token).update(session_token=None, user=request.user)
             transaction.on_commit(
-                lambda: cache.delete(AccessPermission.get_access_permission_key_for_session_token(session_token))
+                lambda: versioned_per_request_cache.delete(
+                    AccessPermission.get_access_permission_key_for_session_token(session_token)
+                )
             )
 
 

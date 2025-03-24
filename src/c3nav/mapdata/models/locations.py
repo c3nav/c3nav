@@ -33,7 +33,7 @@ from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
-from c3nav.mapdata.utils.cache.local import per_request_cache
+from c3nav.mapdata.utils.cache.proxied import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
 
 if TYPE_CHECKING:

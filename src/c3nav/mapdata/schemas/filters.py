@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import Literal, Optional, Type, Annotated
 
-from django.core.cache import cache
 from django.db.models import Model, QuerySet
 from pydantic import Field as APIField, AfterValidator
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, DataOverlay
 from c3nav.mapdata.permissions import active_map_permissions
+from c3nav.mapdata.utils.cache.proxied import versioned_cache
 
 
 @dataclass
@@ -19,16 +19,16 @@ class ValidateID:
         # todo: cache this locally, better, maybe lazily?
         # todo: this needs correct caching by permissions … which might be determined by processupdates
         cache_key = (
-            f"mapdata:api:pks:{cls.model.__name__}:{MapUpdate.last_update().cache_key}"
+            f"mapdata:api:pks:{cls.model.__name__}"
             + (f":{active_map_permissions.permissions_cache_key}" if hasattr(cls.model, 'q_for_permissions') else "")
         )
 
-        result = cache.get(cache_key, None)
+        result = versioned_cache.get(MapUpdate.last_update(), cache_key, None)
         if result is not None:
             return result
 
         result = frozenset(cls.model.objects.values_list("id", flat=True))
-        cache.set(cache_key, result, 300)
+        versioned_cache.set(MapUpdate.last_update(), cache_key, result, 300)
 
         return result
 
