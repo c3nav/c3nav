@@ -17,16 +17,16 @@ from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 from shapely.ops import unary_union
 from twisted.protocols.amp import Decimal
 
-from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
+from c3nav.mapdata.locations import CustomLocation, LocationManager
+from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, LocationGroup, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.utils.cache.types import MapUpdateTuple
-from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
-from c3nav.mapdata.locations import CustomLocation, LocationManager
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.models import RouteOptions
 from c3nav.routing.route import Route, RouteLocation
@@ -339,7 +339,7 @@ class Router:
 
     @classmethod
     def build_filename(cls, update: MapUpdateTuple):
-        return settings.CACHE_ROOT / MapUpdate.build_cache_key(*update) / 'router.pickle'
+        return settings.CACHE_ROOT / update.cache_key / 'router.pickle'
 
     @classmethod
     def load_nocache(cls, update: MapUpdateTuple):
@@ -500,9 +500,7 @@ class Router:
 
     def shortest_path(self, restrictions: "RouterRestrictionSet", options):
         options_key = options.serialize_string()
-        cache_key = 'router:shortest_path:%s:%s:%s' % (MapUpdate.build_cache_key(*self.update),
-                                                       restrictions.cache_key,
-                                                       options_key)
+        cache_key = 'router:shortest_path:%s:%s:%s' % (self.update.cache_key, restrictions.cache_key, options_key)
         result = cache.get(cache_key)
         if result:
             distances, predecessors = result

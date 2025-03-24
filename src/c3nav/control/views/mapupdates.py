@@ -53,7 +53,7 @@ def map_updates(request):  # todo: make class based view
         if request.GET['geometries_changed'] in ('1', '0'):
             queryset = queryset.filter(geometries_changed=request.GET['geometries_changed'] == '1')
     if request.GET.get('processed', None):
-        queryset = queryset.filter(pk__lte=MapUpdateJob.last_successful_update(request.GET['processed'])[0])
+        queryset = queryset.filter(pk__lte=MapUpdateJob.last_successful_update(request.GET['processed']).mapupdate_id)
     if request.GET.get('user_id', None):
         if request.GET['user_id'].isdigit():
             queryset = queryset.filter(user_id=request.GET['user_id'])
