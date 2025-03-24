@@ -1,62 +1,52 @@
-from typing import Literal, Optional, Type
+from dataclasses import dataclass
+from typing import Literal, Optional, Type, Annotated
 
 from django.core.cache import cache
 from django.db.models import Model, QuerySet
-from pydantic import Field as APIField
+from pydantic import Field as APIField, AfterValidator
 
-from c3nav.api.exceptions import APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, Door, Building, \
-    DataOverlay
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, DataOverlay
 from c3nav.mapdata.permissions import active_map_permissions
 
 
-def get_keys_for_model(request, model: Type[Model], key: str) -> set:
-    # todo: can we do this more nicely?
-    # get all accessible keys for this model for this request
-    if hasattr(model, 'q_for_permissions'):
-        cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key, active_map_permissions.cache_key)
-    else:
-        cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key,
-                                                   MapUpdate.current_cache_key())
+@dataclass
+class ValidateID:
+    model: Type[Model]
 
-    result = cache.get(cache_key, None)
-    if result is not None:
+    @classmethod
+    def _get_ids_for_model(cls) -> frozenset[int]:
+        # todo: cache this locally, better, maybe lazily?
+        # todo: this needs correct caching by permissions … which might be determined by processupdates
+        cache_key = (
+            f"mapdata:api:pks:{cls.model.__name__}:{MapUpdate.current_cache_key()}"
+            + (f":{active_map_permissions.cache_key}" if hasattr(cls.model, 'q_for_permissions') else "")
+        )
+
+        result = cache.get(cache_key, None)
+        if result is not None:
+            return result
+
+        result = frozenset(cls.model.objects.values_list("id", flat=True))
+        cache.set(cache_key, result, 300)
+
         return result
 
-    result = set(model.objects.values_list(key, flat=True))
-    cache.set(cache_key, result, 300)
-
-    return result
-
-
-def assert_valid_value(request, model: Type[Model], key: str, values: set):
-    keys = get_keys_for_model(request, model, key)
-    remainder = values-keys
-    if remainder:
-        raise APIRequestValidationFailed("Unknown %s: %r" % (model.__name__, remainder))
+    def __call__(self, value: Optional[int]):
+        return not (isinstance(value, int) and value in self._get_ids_for_model())
 
 
 class FilterSchema(BaseSchema):
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         return qs
 
-    def validate(self, request):
-        pass
-
 
 class ByLevelFilter(FilterSchema):
-    level: Optional[int] = APIField(
-        None,
+    # todo: if level is calculated by processupdates, the endpoint should probably not answer for a while
+    level: Annotated[Optional[int], AfterValidator(ValidateID(Level)), APIField(
         title="filter by level",
         description="if set, only items belonging to the level with this ID will be shown"
-    )
-
-    def validate(self, request):
-        super().validate(request)
-        if self.level is not None:
-            assert_valid_value(request, Level, "pk", {self.level})
+    )] = None
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.level is not None:
@@ -65,16 +55,10 @@ class ByLevelFilter(FilterSchema):
 
 
 class BySpaceFilter(FilterSchema):
-    space: Optional[int] = APIField(
-        None,
+    space: Annotated[Optional[int], AfterValidator(ValidateID(Space)), APIField(
         title="filter by space",
         description="if set, only items belonging to the space with this ID will be shown"
-    )
-
-    def validate(self, request):
-        super().validate(request)
-        if self.space is not None:
-            assert_valid_value(request, Space, "pk", {self.space})
+    )] = None
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.space is not None:
@@ -83,16 +67,10 @@ class BySpaceFilter(FilterSchema):
 
 
 class ByCategoryFilter(FilterSchema):
-    category: Optional[int] = APIField(
-        None,
+    category: Annotated[Optional[int], AfterValidator(ValidateID(LocationGroupCategory)), APIField(
         title="filter by location group category",
         description="if set, only groups belonging to the location group category with this ID will be shown"
-    )
-
-    def validate(self, request):
-        super().validate(request)
-        if self.category is not None:
-            assert_valid_value(request, LocationGroupCategory, "pk", {self.category})
+    )] = None
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.category is not None:
@@ -101,16 +79,10 @@ class ByCategoryFilter(FilterSchema):
 
 
 class ByGroupFilter(FilterSchema):
-    group: Optional[int] = APIField(
-        None,
+    group: Annotated[Optional[int], AfterValidator(ValidateID(LocationGroup)), APIField(
         title="filter by location group",
         description="if set, only items belonging to the location group with this ID will be shown"
-    )
-
-    def validate(self, request):
-        super().validate(request)
-        if self.group is not None:
-            assert_valid_value(request, LocationGroup, "pk", {self.group})
+    )] = None
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.group is not None:
@@ -119,16 +91,10 @@ class ByGroupFilter(FilterSchema):
 
 
 class ByOnTopOfFilter(FilterSchema):
-    on_top_of: Optional[Literal["null"] | int] = APIField(
-        None,
+    on_top_of: Annotated[Optional[Literal["null"] | int], AfterValidator(ValidateID(Level)), APIField(
         title='filter by on top of level ID (or "null")',
         description='if set, only levels on top of the level with this ID (or "null" for no level) will be shown'
-    )
-
-    def validate(self, request):
-        super().validate(request)
-        if self.group is not None and self.group != "null":
-            assert_valid_value(request, Level, "pk", {self.on_top_of})
+    )] = None
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.on_top_of is not None:
@@ -137,15 +103,10 @@ class ByOnTopOfFilter(FilterSchema):
 
 
 class ByOverlayFilter(FilterSchema):
-    overlay: int = APIField(
+    overlay: Annotated[int, AfterValidator(ValidateID(DataOverlay)), APIField(
         title='filter by data overlay',
         description='only show overlay features belonging to this overlay'
-    )
-
-    def validate(self, request):
-        super().validate(request)
-        if self.overlay is not None:
-            assert_valid_value(request, DataOverlay, "pk", {self.overlay})
+    )] = None
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.overlay is not None:

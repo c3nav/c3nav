@@ -158,13 +158,9 @@ class MapUpdate(models.Model):
         return MapUpdateTuple(mapupdate_id=self.pk, timestamp=int(make_naive(self.datetime).timestamp()))
 
     @classmethod
-    def current_cache_key(cls):
-        return cls.build_cache_key(*cls.last_update())
-
-    @staticmethod
-    def build_cache_key(pk: int, timestamp: int):
-        # todo: get rid of this, this belongs into MapUpdateTuple
-        return int_to_base36(pk)+'_'+int_to_base36(timestamp)
+    def current_cache_key(cls) -> str:
+        # todo: need to get rid of this
+        return cls.last_update().cache_key
 
     @classmethod
     @contextmanager
