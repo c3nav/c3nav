@@ -1,7 +1,8 @@
+import operator
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import cached_property, lru_cache
+from functools import cached_property, lru_cache, reduce
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping
 
 from django.contrib.auth.models import User
@@ -256,16 +257,23 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
     def __len__(self) -> int:
         return len(self._get())
 
-    def _get_for_permissions(self, permissions: MapPermissions) -> dict[KT, VT]:
-        if permissions.full:
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> dict[KT, VT]:
+        if full:
             return self._data.copy()
         return {key: value for key, value in self._data.items()
-                if not (value.effective_access_restrictions - permissions.access_restrictions)}
+                if not (value.effective_access_restrictions - permissions)}
+
+    @cached_property
+    def _all_restrictions(self) -> frozenset[int]:
+        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data.values()), frozenset())
 
     @cached_property
     def _get(self) -> Callable[[], dict[KT, VT]]:
         # this is a hack to have one lru_cache per instance
-        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions))
+        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(
+            full=active_map_permissions.full,
+            permissions=active_map_permissions.access_restrictions - self._all_restrictions
+        ))
 
     def __iter__(self) -> Iterator[KT]:
         return iter(self._get())
@@ -309,16 +317,23 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](Sequence
     def __init__(self, data: Sequence[T]):
         self._data = data
 
-    def _get_for_permissions(self, permissions: MapPermissions) -> tuple[T, ...]:
-        if permissions.full:
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> tuple[T, ...]:
+        if full:
             return tuple(self._data)
         return tuple(item for item in self._data
-                     if not (item.effective_access_restrictions - permissions.access_restrictions))
+                     if not (item.effective_access_restrictions - permissions))
+
+    @cached_property
+    def _all_restrictions(self) -> frozenset[int]:
+        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data), frozenset())
 
     @cached_property
     def _get(self) -> Callable[[], tuple[T, ...]]:
         # this is a hack to have one lru_cache per instance
-        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(active_map_permissions))
+        return lru_cache(maxsize=16)(lambda: self._get_for_permissions(
+            full=active_map_permissions.full,
+            permissions=active_map_permissions.access_restrictions - self._all_restrictions
+        ))
 
     def __len__(self) -> int:
         return len(self._get())

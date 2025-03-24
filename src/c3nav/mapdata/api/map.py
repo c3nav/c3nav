@@ -120,7 +120,6 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
             }))
 
     if location.dynamic:
-        # todo: does this work
         request._target_etag = None
         request._target_cache_key = None
 
