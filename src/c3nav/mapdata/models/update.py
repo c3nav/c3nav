@@ -14,9 +14,9 @@ from django.utils.choices import BaseChoiceIterator
 from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
-from c3nav.mapdata.tasks import delete_map_cache_key, schedule_available_mapupdate_jobs
+from c3nav.mapdata.tasks import schedule_available_mapupdate_jobs
 from c3nav.mapdata.utils.cache.changes import GeometryChangeTracker
-from c3nav.mapdata.utils.cache.local import per_request_cache
+from c3nav.mapdata.utils.cache.proxied import per_request_cache
 from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 
 
@@ -240,10 +240,6 @@ class MapUpdate(models.Model):
         if self.geometries_changed is None:
             self.geometries_changed = not changed_geometries.is_empty
 
-        old_cache_key = None
-        if new:
-            old_cache_key = self.last_update().cache_key
-
         super().save(**kwargs)
 
         with suppress(FileExistsError):
@@ -253,8 +249,6 @@ class MapUpdate(models.Model):
             pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
 
         if new:
-            # todo: eventually get rid of this
-            transaction.on_commit(lambda: delete_map_cache_key.delay(cache_key=old_cache_key))
             transaction.on_commit(
                 lambda: per_request_cache.set('mapdata:last_update', self.to_tuple, None)
             )

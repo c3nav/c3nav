@@ -11,7 +11,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from pydantic import PositiveInt
 from shapely import Point
-from shapely.ops import unary_union
 
 from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
@@ -20,12 +19,10 @@ from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
-from c3nav.mapdata.models.update import MapUpdateJob
-from c3nav.mapdata.permissions import active_map_permissions, LazyMapPermissionFilteredMapping, ManualMapPermissions
+from c3nav.mapdata.permissions import active_map_permissions, LazyMapPermissionFilteredMapping
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
-from c3nav.mapdata.utils.geometry import unwrap_geom
 
 try:
     from asgiref.local import Local as LocalContext
@@ -296,27 +293,6 @@ class LocationManager:
             obj._prefetched_objects_cache = {}
 
         return locations
-
-
-def get_better_space_geometries():
-    # todo: get rid of this… we no longer use it but this code probably needs to be used again somewhere else
-    # change space geometries for better representative points
-    cache_key = f'mapdata:better_space_geometries:{MapUpdate.last_update().cache_key}'
-    result = cache.get(cache_key, None)
-    if result is not None:
-        return result
-
-    result = {}
-    for space in Space.objects.prefetch_related('columns', 'holes'):
-        geometry = space.geometry.difference(
-            unary_union(tuple(unwrap_geom(obj.geometry) for obj in chain(space.columns.all(), space.holes.all())))
-        )
-        if not geometry.is_empty:
-            result[space.pk] = geometry
-
-    cache.set(cache_key, result, 1800)
-
-    return result
 
 
 @dataclass
