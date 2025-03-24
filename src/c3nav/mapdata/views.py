@@ -324,7 +324,7 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
         return HttpResponse('use %s instead of /map/' % settings.TILE_CACHE_SERVER,
                             status=400, content_type='text/plain')
 
-    processed_geometry_update = str(MapUpdateJob.last_successful_job("mapdata.recalculate_geometries")[0])
+    processed_geometry_update = str(MapUpdate.last_update("mapdata.recalculate_geometries").update_id)
 
     zoom = int(zoom)
     if not (-2 <= zoom <= 5):
@@ -427,7 +427,7 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
     return response
 
 
-@etag(lambda *args, **kwargs: MapUpdateJob.last_successful_job("mapdata.recalculate_geometries").cache_key)
+@etag(lambda *args, **kwargs: MapUpdate.last_update("mapdata.recalculate_geometries").cache_key)
 @no_language()
 def map_history(request, level, mode, filetype):
     if not request.user.is_superuser:
@@ -450,16 +450,16 @@ def map_history(request, level, mode, filetype):
     return response
 
 
-@etag(lambda *args, **kwargs: MapUpdateJob.last_successful_job("mapdata.recalculate_geometries").cache_key)
+@etag(lambda *args, **kwargs: MapUpdate.last_update("mapdata.recalculate_geometries").cache_key)
 @no_language()
 def get_cache_package(request, filetype):
-    processed_geometry_update = str(MapUpdateJob.last_successful_job("mapdata.recalculate_geometries")[0])
+    processed_geometry_update = str(MapUpdate.last_update("mapdata.recalculate_geometries").update_id)
 
     enforce_tile_secret_auth(request)
 
     filename = 'package.' + filetype
     cache_package = CachePackage.get_filename(
-        MapUpdateJob.last_successful_job("mapdata.recalculate_geometries").cache_key,
+        MapUpdate.last_update("mapdata.recalculate_geometries").cache_key,
         filetype[4:] if filetype != 'tar' else None
     )
     try:
