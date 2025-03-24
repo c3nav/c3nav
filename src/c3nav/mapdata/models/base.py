@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import MapUpdate
+from c3nav.mapdata.permissions import active_map_permissions
 
 
 class TitledMixin(models.Model):
@@ -37,10 +38,11 @@ class BoundsMixin(models.Model):
         result = cache.get(cache_key, None)
         if result is not None:
             return result
-        result = cls.objects.all().aggregate(models.Min('left'), models.Min('bottom'),
-                                             models.Max('right'), models.Max('top'))
-        result = ((float(result['left__min'] or 0), float(result['bottom__min'] or 0)),
-                  (float(result['right__max'] or 10), float(result['top__max'] or 10)))
+        with active_map_permissions.disable_access_checks():
+            result = cls.objects.all().aggregate(models.Min('left'), models.Min('bottom'),
+                                                 models.Max('right'), models.Max('top'))
+            result = ((float(result['left__min'] or 0), float(result['bottom__min'] or 0)),
+                      (float(result['right__max'] or 10), float(result['top__max'] or 10)))
         cache.set(cache_key, result, 900)
         return result
 
