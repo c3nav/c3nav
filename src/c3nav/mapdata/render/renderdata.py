@@ -389,7 +389,7 @@ class LevelRenderData:
     def get(cls, level, theme):
         # get the current render data from local variable if no new processed mapupdate exists.
         # this is much faster than any other possible cache
-        map_update = MapUpdateJob.last_successful_job("mapdata.recalculate_geometries")
+        map_update = MapUpdate.last_update("mapdata.recalculate_geometries")
         level_pk = level.pk if isinstance(level, Level) else level
         theme_pk = theme.pk if isinstance(theme, Theme) else theme
         key = f'{level_pk}_{theme_pk}'
