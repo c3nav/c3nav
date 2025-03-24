@@ -339,7 +339,7 @@ class Router:
 
     @classmethod
     def build_filename(cls, update: MapUpdateTuple):
-        return settings.CACHE_ROOT / update.cache_key / 'router.pickle'
+        return settings.CACHE_ROOT / update.folder_name / 'router.pickle'
 
     @classmethod
     def load_nocache(cls, update: MapUpdateTuple):
