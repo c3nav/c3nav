@@ -2,7 +2,7 @@ import re
 from functools import wraps
 
 from c3nav.mapdata.permissions import active_map_permissions, MapPermissionsFromRequest
-from c3nav.mapdata.utils.cache.local import per_request_cache, LocalCacheProxy
+from c3nav.mapdata.utils.cache.proxied import per_request_cache, LocalCacheProxy
 from c3nav.mapdata.utils.user import get_user_data_lazy
 
 
