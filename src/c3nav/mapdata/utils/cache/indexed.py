@@ -224,7 +224,7 @@ class LevelGeometryIndexed(GeometryIndexed):
     @classmethod
     def open_level_cached(cls, level_id: int, mode) -> Self:
         from c3nav.mapdata.models.update import MapUpdateJob
-        cache_key = MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
+        cache_key = MapUpdateJob.last_successful_job("mapdata.recalculate_geometries")
         if getattr(cls.cached, 'key', None) != cache_key:
             cls.cached.key = cache_key
             cls.cached.data = {}

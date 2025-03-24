@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
             name='MapUpdateJob',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('job_type', models.CharField(choices=[('mapdata.recalculate_locationgroup_order', 'LocationGroup order'), ('mapdata.recalculate_specificlocation_order', 'SpecificLocation order'), ('mapdata.recalculate_effective_icon', 'effective icons'), ('mapdata.recalculate_geometries', 'geometries')], db_index=True, max_length=64)),
+                ('job_type', models.CharField(choices=(('mapdata.recalculate_locationgroup_order', 'LocationGroup order'), ('mapdata.recalculate_specificlocation_order', 'SpecificLocation order'), ('mapdata.recalculate_effective_icon', 'effective icons'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64)),
                 ('status', models.PositiveSmallIntegerField(choices=[(0, 'running'), (1, 'failed'), (2, 'timeout'), (3, 'not needed'), (4, 'success')], db_index=True)),
                 ('start', models.DateTimeField(auto_now_add=True)),
                 ('end', models.DateTimeField(null=True)),
@@ -56,6 +56,7 @@ class Migration(migrations.Migration):
                 'constraints': [
                     models.UniqueConstraint(condition=models.Q(('status', 0)), fields=('job_type',), name='only_one_job_per_type_running'),
                     models.UniqueConstraint(condition=models.Q(('status__in', (0, 3, 4))), fields=('mapupdate', 'job_type'), name='no_duplicate_jobs_per_update_unless_failed'),
+                    models.CheckConstraint(condition=models.Q(('end__isnull', False), ('status', 0), _connector='OR'), name='set_end_if_not_running')
                 ],
             },
         ),
