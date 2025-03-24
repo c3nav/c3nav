@@ -191,11 +191,6 @@ class MapUpdate(models.Model):
         return MapUpdateTuple(timestamp=int(self.datetime.timestamp()*1_000_000), job_id=0, update_id=self.pk)
 
     @classmethod
-    def current_cache_key(cls, *job_types: str) -> str:
-        # todo: need to get rid of this
-        return cls.last_update(*job_types).cache_key
-
-    @classmethod
     @contextmanager
     def creation_lock(cls):
         with transaction.atomic():
@@ -251,7 +246,7 @@ class MapUpdate(models.Model):
 
         old_cache_key = None
         if new:
-            old_cache_key = self.current_cache_key()
+            old_cache_key = self.last_update().cache_key
 
         super().save(**kwargs)
 

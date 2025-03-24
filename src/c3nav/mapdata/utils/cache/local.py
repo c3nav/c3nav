@@ -55,7 +55,7 @@ class LocalCacheProxy:
     def _check_mapupdate(self):
         # todo: thanks to enable_globally() we shouldn't need this any more
         from c3nav.mapdata.models import MapUpdate
-        mapupdate = MapUpdate.current_cache_key()
+        mapupdate = MapUpdate.last_update()
         if self._mapupdate != mapupdate:
             self.clear()
             self._mapupdate = mapupdate
