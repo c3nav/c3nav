@@ -40,16 +40,16 @@ class CachePackage:
             self.theme_ids.append(theme_id)
 
     @staticmethod
-    def get_filename(update_cache_key, compression=None):
+    def get_filename(update_folder_name, compression=None):
         from django.conf import settings
         if compression is not None:
-            return settings.CACHE_ROOT / update_cache_key / f'package.tar.{compression}'
+            return settings.CACHE_ROOT / update_folder_name / f'package.tar.{compression}'
         else:
-            return settings.CACHE_ROOT / update_cache_key / 'package.tar'
+            return settings.CACHE_ROOT / update_folder_name / 'package.tar'
 
-    def save(self, update_cache_key, filename=None, compression=None):
+    def save(self, update_folder_name, filename=None, compression=None):
         if filename is None:
-            filename = self.get_filename(update_cache_key, compression=compression)
+            filename = self.get_filename(update_folder_name, compression=compression)
 
         filemode = 'w'
         fileobj = None
@@ -93,9 +93,9 @@ class CachePackage:
         obj.write(data)
         self._add_bytesio(f, filename, data)
 
-    def save_all(self, update_cache_key, filename=None):
+    def save_all(self, update_folder_name, filename=None):
         for compression in (None, 'gz', 'xz', 'zst'):
-            self.save(update_cache_key, filename, compression)
+            self.save(update_folder_name, filename, compression)
 
     @classmethod
     def read(cls, f: BinaryIO) -> Self:
@@ -141,11 +141,11 @@ class CachePackage:
         return cls(bounds, levels)
 
     @classmethod
-    def open(cls, update_cache_key=None, package: Optional[str | os.PathLike] = None) -> Self:
+    def open(cls, update_folder_name=None, package: Optional[str | os.PathLike] = None) -> Self:
         if package is None:
-            if update_cache_key is None:
+            if update_folder_name is None:
                 raise ValueError
-            package = cls.get_filename(update_cache_key)
+            package = cls.get_filename(update_folder_name)
         elif not hasattr(package, 'open'):
             package = Path(package)
         return cls.read(package.open('rb'))
@@ -161,7 +161,7 @@ class CachePackage:
             cls.cached.data = None
 
         if cls.cached.data is None:
-            cls.cached.data = cls.open(update_cache_key=map_update.cache_key)
+            cls.cached.data = cls.open(update_folder_name=map_update.folder_name)
 
         return cls.cached.data
 
