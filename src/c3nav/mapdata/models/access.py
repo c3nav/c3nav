@@ -51,7 +51,7 @@ class AccessRestriction(TitledMixin, models.Model):
 
     @staticmethod
     def get_all() -> set[int]:
-        cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
+        cache_key = 'all_access_restrictions:%s' % MapUpdate.last_update().cache_key
         access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
             access_restriction_ids = set(AccessRestriction._base_manager.values_list('pk', flat=True))
@@ -60,7 +60,7 @@ class AccessRestriction(TitledMixin, models.Model):
 
     @staticmethod
     def get_all_public() -> set[int]:
-        cache_key = 'public_access_restrictions:%s' % MapUpdate.current_cache_key()
+        cache_key = 'public_access_restrictions:%s' % MapUpdate.last_update().cache_key
         access_restriction_ids = per_request_cache.get(cache_key, None)
         if access_restriction_ids is None:
             access_restriction_ids = set(AccessRestriction._base_manager.filter(public=True)
@@ -251,14 +251,14 @@ class AccessPermission(models.Model):
         """
         Generate access permission cache key (to store granted access permissions under) for the given user.
         """
-        return 'mapdata:%s:user_access_permissions:%d' % (MapUpdate.current_cache_key(), user_id)
+        return 'mapdata:%s:user_access_permissions:%d' % (MapUpdate.last_update().cache_key, user_id)
 
     @staticmethod
     def get_access_permission_key_for_session_token(session_token: str) -> str:
         """
         Generate access permission cache key (to store granted access permissions under) for the given session token.
         """
-        return 'mapdata:%s:session_access_permissions:%s' % (MapUpdate.current_cache_key(), session_token)
+        return 'mapdata:%s:session_access_permissions:%s' % (MapUpdate.last_update().cache_key, session_token)
 
     @staticmethod
     def get_access_permission_key_for_request(request) -> str:
@@ -408,7 +408,7 @@ class AccessPermission(models.Model):
     def cache_key_for_request(cls, request, with_update=True):
         # todo: we want to probably move this somewhere else and use MapPermissionsFromRequest
         return (
-            ((MapUpdate.current_cache_key()+':') if with_update else '') +
+            ((MapUpdate.last_update().cache_key+':') if with_update else '') +
             '-'.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
         )
 
