@@ -122,10 +122,7 @@ def fetch_updates(request, response: HttpResponse):
 
     result = {
         'last_site_update': SiteUpdate.last_update(),
-        'last_map_update': MapUpdate.build_cache_key(
-            # todo: turn MapUpdateTuple into a namedtuple with cache key builder
-            *MapUpdateJob.last_successful_update("mapdata.recalculate_geometries")
-        ),
+        'last_map_update': MapUpdateJob.last_successful_update("mapdata.recalculate_geometries").cache_key,
     }
     if cross_origin is None:
         result.update({

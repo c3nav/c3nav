@@ -188,7 +188,7 @@ class Locator:
 
     @classmethod
     def build_filename(cls, update: MapUpdateTuple):
-        return settings.CACHE_ROOT / MapUpdate.build_cache_key(*update) / 'locator.pickle'
+        return settings.CACHE_ROOT / update.cache_key / 'locator.pickle'
 
     @classmethod
     def load_nocache(cls, update: MapUpdateTuple):
