@@ -18,7 +18,7 @@ class MapUpdateTuple(NamedTuple):
 
     @property
     def folder_name(self) -> str:
-        return f"update-{self.update_id:010d}"
+        return f"update-{self.update_id}"
 
     @property
     def as_legacy(self) -> tuple[int, int]:
