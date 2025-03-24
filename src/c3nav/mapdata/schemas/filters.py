@@ -20,7 +20,7 @@ class ValidateID:
         # todo: this needs correct caching by permissions … which might be determined by processupdates
         cache_key = (
             f"mapdata:api:pks:{cls.model.__name__}:{MapUpdate.current_cache_key()}"
-            + (f":{active_map_permissions.cache_key}" if hasattr(cls.model, 'q_for_permissions') else "")
+            + (f":{active_map_permissions.permissions_cache_key}" if hasattr(cls.model, 'q_for_permissions') else "")
         )
 
         result = cache.get(cache_key, None)
