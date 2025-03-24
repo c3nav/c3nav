@@ -172,8 +172,8 @@ class LocationManager:
 
     @classmethod
     def _maybe_update(cls):
-
-        cache_key = MapUpdateJob.last_successful_job("mapdata.recalculate_effective_icon")
+        # todo: altitude of points could change later!!
+        cache_key = MapUpdate.last_update("mapdata.recalculate_effective_icon")
         if cache_key != cls._cache_key:
             cls._cache_key = cache_key
             with active_map_permissions.disable_access_checks():
