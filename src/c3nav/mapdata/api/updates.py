@@ -123,7 +123,7 @@ def fetch_updates(request, response: HttpResponse):
 
     result = {
         'last_site_update': SiteUpdate.last_update(),
-        'last_map_update': MapUpdateJob.last_successful_job("mapdata.recalculate_geometries").cache_key,
+        'last_map_update': MapUpdate.last_update("mapdata.recalculate_geometries").cache_key,
     }
     if cross_origin is None:
         user_data = dict(request.user_data)

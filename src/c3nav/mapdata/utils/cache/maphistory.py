@@ -49,8 +49,8 @@ class MapHistory(LevelGeometryIndexed):
                 pass
 
         if default_update is None:
-            from c3nav.mapdata.models.update import MapUpdateJob
-            default_update = MapUpdateJob.last_successful_job("mapdata.recalculate_geometries")
+            from c3nav.mapdata.models.update import MapUpdate
+            default_update = MapUpdate.last_update("mapdata.recalculate_geometries")
         instance = cls(updates=[default_update], filename=filename)
         instance.save()
         return instance
