@@ -68,7 +68,7 @@ class Quest:
     @classmethod
     def cached_get_all_for_request(cls, request) -> list["QuestSchema"]:
         # todo: fix caching here
-        cache_key = f'quests:{cls.quest_type}:{MapUpdate.current_cache_key()}:{active_map_permissions.permissions_cache_key}'
+        cache_key = f'quests:{cls.quest_type}:{MapUpdate.last_update().cache_key}:{active_map_permissions.permissions_cache_key}'
         result = cache.get(cache_key, None)
         if result is not None:
             return result

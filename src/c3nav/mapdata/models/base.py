@@ -33,7 +33,7 @@ class BoundsMixin(models.Model):
 
     @classmethod
     def max_bounds(cls):
-        cache_key = 'mapdata:max_bounds:%s:%s' % (cls.__name__, MapUpdate.current_cache_key())
+        cache_key = 'mapdata:max_bounds:%s:%s' % (cls.__name__, MapUpdate.last_update().cache_key)
         result = cache.get(cache_key, None)
         if result is not None:
             return result
