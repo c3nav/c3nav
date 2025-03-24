@@ -3,7 +3,7 @@ import uuid
 from collections import namedtuple
 from datetime import timedelta
 from functools import cached_property
-from typing import Sequence, TYPE_CHECKING, Optional, overload, Never
+from typing import Sequence, TYPE_CHECKING, Optional
 
 from django.conf import settings
 from django.core.cache import cache
@@ -15,7 +15,7 @@ from django.utils.translation import ngettext_lazy
 
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.base import TitledMixin
-from c3nav.mapdata.utils.cache.local import per_request_cache
+from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
 
 if TYPE_CHECKING:
     from c3nav.mapdata.permissions import MapPermissions
@@ -51,21 +51,22 @@ class AccessRestriction(TitledMixin, models.Model):
 
     @staticmethod
     def get_all() -> set[int]:
-        cache_key = 'all_access_restrictions:%s' % MapUpdate.last_update().cache_key
-        access_restriction_ids = per_request_cache.get(cache_key, None)
+        cache_key = "all_access_restrictions"
+        access_restriction_ids = versioned_per_request_cache.get(MapUpdate.last_update(), cache_key, None)
         if access_restriction_ids is None:
             access_restriction_ids = set(AccessRestriction._base_manager.values_list('pk', flat=True))
-            per_request_cache.set(cache_key, access_restriction_ids, 300)
+            versioned_per_request_cache.set(MapUpdate.last_update(), cache_key, access_restriction_ids, 300)
         return access_restriction_ids
 
     @staticmethod
     def get_all_public() -> set[int]:
-        cache_key = 'public_access_restrictions:%s' % MapUpdate.last_update().cache_key
-        access_restriction_ids = per_request_cache.get(cache_key, None)
+        cache_key = "public_access_restrictions"
+        access_restriction_ids = versioned_per_request_cache.get(MapUpdate.last_update(), cache_key, None)
         if access_restriction_ids is None:
-            access_restriction_ids = set(AccessRestriction._base_manager.filter(public=True)
-                                         .values_list('pk', flat=True))
-            per_request_cache.set(cache_key, access_restriction_ids, 300)
+            access_restriction_ids = set(
+                AccessRestriction._base_manager.filter(public=True).values_list('pk', flat=True)
+            )
+            versioned_per_request_cache.set(MapUpdate.last_update(), cache_key, access_restriction_ids, 300)
         return access_restriction_ids
 
 
@@ -251,14 +252,14 @@ class AccessPermission(models.Model):
         """
         Generate access permission cache key (to store granted access permissions under) for the given user.
         """
-        return 'mapdata:%s:user_access_permissions:%d' % (MapUpdate.last_update().cache_key, user_id)
+        return f"mapdata:user_access_permissions:{user_id}"
 
     @staticmethod
     def get_access_permission_key_for_session_token(session_token: str) -> str:
         """
         Generate access permission cache key (to store granted access permissions under) for the given session token.
         """
-        return 'mapdata:%s:session_access_permissions:%s' % (MapUpdate.last_update().cache_key, session_token)
+        return f"mapdata:session_access_permissions:{session_token}"
 
     @staticmethod
     def get_access_permission_key_for_request(request) -> str:
@@ -342,15 +343,16 @@ class AccessPermission(models.Model):
         if request.user.is_authenticated and request.user_permissions.grant_all_access:
             return AccessRestriction.get_all()
 
-        cache_key = cls.get_access_permission_key_for_request(request) + f':{can_grant}'
-        access_restriction_ids = per_request_cache.get(cache_key, None)
+        cache_key = f"{cls.get_access_permission_key_for_request(request)}:{can_grant}"
+        access_restriction_ids = versioned_per_request_cache.get(MapUpdate.last_update(), cache_key, None)
         if access_restriction_ids is None:
             permissions = cls.get_for_request_with_expire_date(request, can_grant=can_grant)
 
             access_restriction_ids = set(permissions.keys())
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now() + timedelta(seconds=120))
-            per_request_cache.set(cache_key, access_restriction_ids, min(300, (expire_date - timezone.now()).total_seconds()))
+            versioned_per_request_cache.set(MapUpdate.last_update(), cache_key, access_restriction_ids,
+                                            min(300, (expire_date - timezone.now()).total_seconds()))
         return set(access_restriction_ids) | (set() if can_grant else AccessRestriction.get_all_public())
 
     @classmethod
@@ -404,27 +406,15 @@ class AccessPermission(models.Model):
             cache.set(cache_key, access_restriction_ids, min(300, (expire_date-timezone.now()).total_seconds()))
         return set(access_restriction_ids) | (set() if can_grant else AccessRestriction.get_all_public())
 
-    @classmethod
-    def cache_key_for_request(cls, request, with_update=True):
-        # todo: we want to probably move this somewhere else and use MapPermissionsFromRequest
-        return (
-            ((MapUpdate.last_update().cache_key+':') if with_update else '') +
-            '-'.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
-        )
-
-    @classmethod
-    def etag_func(cls, request, *args, **kwargs):
-        return cls.cache_key_for_request(request)
-
     def save(self, *args, **kwargs):
         with transaction.atomic():
             super().save(*args, **kwargs)
-            transaction.on_commit(lambda: cache.delete(self.access_permission_key))
+            transaction.on_commit(lambda: versioned_per_request_cache.delete(self.access_permission_key))
 
     def delete(self, *args, **kwargs):
         with transaction.atomic():
             super().delete(*args, **kwargs)
-            transaction.on_commit(lambda: cache.delete(self.access_permission_key))
+            transaction.on_commit(lambda: versioned_per_request_cache.delete(self.access_permission_key))
 
 
 class AccessRestrictionLogicMixin(models.Model):

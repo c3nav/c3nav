@@ -10,7 +10,6 @@ from typing import Optional, Sequence, TypeAlias, ClassVar, NamedTuple, Union
 
 import numpy as np
 from django.conf import settings
-from django.core.cache import cache
 from django.utils.functional import cached_property, Promise
 from shapely import prepared
 from shapely.geometry import LineString, Point, Polygon, MultiPolygon
@@ -25,6 +24,7 @@ from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
+from c3nav.mapdata.utils.cache.proxied import versioned_cache
 from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
@@ -500,8 +500,8 @@ class Router:
 
     def shortest_path(self, restrictions: "RouterRestrictionSet", options):
         options_key = options.serialize_string()
-        cache_key = 'router:shortest_path:%s:%s:%s' % (self.update.cache_key, restrictions.cache_key, options_key)
-        result = cache.get(cache_key)
+        cache_key = f"router:shortest_path:{restrictions.cache_key}:{options_key}"
+        result = versioned_cache.get(self.update, cache_key)
         if result:
             distances, predecessors = result
             return (np.frombuffer(distances, dtype=np.float64).reshape(self.graph.shape),
@@ -567,8 +567,8 @@ class Router:
         graph[tuple(restrictions.edges.transpose().tolist())] = np.inf
 
         distances, predecessors = self.shortest_path_func(graph, directed=True, return_predecessors=True)
-        cache.set(cache_key, (distances.astype(np.float64).tobytes(),
-                              predecessors.astype(np.int32).tobytes()), 600)
+        versioned_cache.set(self.update, cache_key, (distances.astype(np.float64).tobytes(),
+                                                     predecessors.astype(np.int32).tobytes()), 600)
         return distances, predecessors
 
     def get_restrictions(self, permissions: set[int]) -> "RouterRestrictionSet":

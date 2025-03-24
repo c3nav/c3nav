@@ -1,12 +1,11 @@
 import warnings
-from contextlib import contextmanager, AbstractContextManager
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping
 
 from django.contrib.auth.models import User
 
-from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
 
 try:

@@ -16,12 +16,12 @@ from c3nav.mapdata.models import AccessRestriction, LocationGroup, MapUpdate
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.permissions import active_map_permissions
-from c3nav.mapdata.utils.cache.local import LocalCacheProxy
+from c3nav.mapdata.utils.cache.proxied import LocalCacheProxy, VersionedCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 
 
 # todo: this ignores expire… so… hm?
-request_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_API)
+request_cache = VersionedCacheProxy(LocalCacheProxy(maxsize=settings.CACHE_SIZE_API))
 
 
 def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = (),
@@ -37,7 +37,7 @@ def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = 
                     response['ETag'] = request._target_etag
                 response['Cache-Control'] = 'no-cache'
                 if request._target_cache_key:
-                    request_cache.set(request._target_cache_key, response, 900)
+                    request_cache.set(request._target_version, request._target_cache_key, response, 900)
             return response
         return outer_wrapped_func
 
@@ -45,10 +45,14 @@ def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = 
         @wraps(func)
         def inner_wrapped_func(request, *args, **kwargs):
             # calculate the ETag
-            raw_etag = (
-                f"{get_language()}:"
-                f"{base_etag_func(request) if base_etag_func else MapUpdate.last_update(*cache_job_types).cache_key}"
-            )
+            last_update = MapUpdate.last_update(*cache_job_types)
+
+            # prefix will not be part of the etag, but part of the cache key
+            etag_prefix = f"{last_update.cache_key}:" if base_etag_func is None else ""
+
+            raw_etag = get_language()
+            if base_etag_func:
+                raw_etag += f":{base_etag_func(request)}"
             if permissions:
                 raw_etag += f":{active_map_permissions.permissions_cache_key}"
             if quests:
@@ -57,6 +61,7 @@ def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = 
                 raw_etag += f":{active_map_permissions.base_mapdata_cache_key}"
 
             if etag_add_key:
+                # todo: we need a nicer solution for this oh my god
                 etag_add_cache_key = (
                     f'mapdata:etag_add:{etag_add_key[1]}:{getattr(kwargs[etag_add_key[0]], etag_add_key[1])}'
                 )
@@ -66,13 +71,13 @@ def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = 
                     cache.set(etag_add_cache_key, etag_add, 300)
                 raw_etag += ':%d' % etag_add
 
-
-            etag = quote_etag(raw_etag)
+            etag = quote_etag(etag_prefix+raw_etag)
 
             response = get_conditional_response(request, etag)
             if response:
                 return response
 
+            request._target_version = last_update
             request._target_etag = etag
 
             # calculate the cache key
@@ -94,7 +99,7 @@ def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = 
 
             request._target_cache_key = cache_key
 
-            response = request_cache.get(cache_key)
+            response = request_cache.get(last_update, cache_key)
             if response is not None:
                 return response
 
