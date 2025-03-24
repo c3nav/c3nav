@@ -41,7 +41,7 @@ def parse_tile_access_cookie(cookie, tile_secret):
 
 
 def build_base_cache_key(last_update):
-    return '%x-%x' % last_update
+    return '%x-%x-%x' % last_update
 
 
 def build_access_cache_key(access_permissions: set):

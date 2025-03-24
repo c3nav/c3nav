@@ -8,13 +8,13 @@ from c3nav.routing.router import Router
 
 @register_mapupdate_job("router", dependencies=(recalculate_geometries, ))
 def rebuild_router(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    (settings.CACHE_ROOT / mapupdates[-1].to_tuple.cache_key).mkdir(exist_ok=True)
+    (settings.CACHE_ROOT / mapupdates[-1].to_tuple.folder_name).mkdir(exist_ok=True)
     Router.rebuild(mapupdates[-1].to_tuple)
     return True
 
 
 @register_mapupdate_job("locator", dependencies=(rebuild_router, ))
 def rebuild_locator(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    (settings.CACHE_ROOT / mapupdates[-1].to_tuple.cache_key).mkdir(exist_ok=True)
+    (settings.CACHE_ROOT / mapupdates[-1].to_tuple.folder_name).mkdir(exist_ok=True)
     Locator.rebuild(mapupdates[-1].to_tuple, Router.load())
     return True
