@@ -58,12 +58,12 @@ class LevelRenderData:
     darken_much: bool = False
 
     @staticmethod
-    def rebuild(update_cache_key):
+    def rebuild(update_folder_name):
         with active_map_permissions.disable_access_checks():
-            return LevelRenderData._rebuild(update_cache_key)
+            return LevelRenderData._rebuild(update_folder_name)
 
     @staticmethod
-    def _rebuild(update_cache_key):
+    def _rebuild(update_folder_name):
         # Levels are automatically sorted by base_altitude, ascending
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
@@ -371,19 +371,19 @@ class LevelRenderData:
                                   restrictions=access_restriction_affected,
                                   level_restriction=render_level.access_restriction_id)
 
-                render_data.save(update_cache_key, render_level.pk, theme)
+                render_data.save(update_folder_name, render_level.pk, theme)
 
-        package.save_all(update_cache_key)
+        package.save_all(update_folder_name)
 
     cached = LocalContext()
 
     @staticmethod
-    def _level_filename(update_cache_key, level_pk, theme_pk):
+    def _level_filename(update_folder_name, level_pk, theme_pk):
         if theme_pk is None:
             name = 'render_data_level_%d.pickle' % level_pk
         else:
             name = 'render_data_level_%d_theme_%d.pickle' % (level_pk, theme_pk)
-        return settings.CACHE_ROOT / update_cache_key / name
+        return settings.CACHE_ROOT / update_folder_name / name
 
     @classmethod
     def get(cls, level, theme):
@@ -406,5 +406,5 @@ class LevelRenderData:
         cls.cached.data[key] = result
         return result
 
-    def save(self, update_cache_key, level_pk, theme_pk):
-        return pickle.dump(self, open(self._level_filename(update_cache_key, level_pk, theme_pk), 'wb'))
+    def save(self, update_folder_name, level_pk, theme_pk):
+        return pickle.dump(self, open(self._level_filename(update_folder_name, level_pk, theme_pk), 'wb'))
