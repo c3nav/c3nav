@@ -232,7 +232,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if space_id and 'target_space' in self.fields:
             cache_key = 'editor:neighbor_spaces:%s:%s%d' % (
                 self.request.changeset.raw_cache_key_by_changes,
-                active_map_permissions.cache_key_without_update,
+                active_map_permissions.cache_key,
                 space_id
             )
             other_spaces = cache.get(cache_key, None)
