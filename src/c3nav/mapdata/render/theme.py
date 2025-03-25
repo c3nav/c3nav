@@ -14,7 +14,9 @@ RENDER_COLOR_OBSTACLES_DEFAULT_BORDER = "#888888"
 
 class ThemeColorManager:
     # TODO: border colors are not implemented yet?
+    # todo: get rid of this eventually, make it a contextmanager
     def __init__(self, theme: Theme = None):
+        self.theme_id = theme.pk if theme is not None else 0
         if theme is None:
             self.background = settings.BASE_THEME['map']['background']
             self.wall_fill = settings.BASE_THEME['map']['wall_fill']
