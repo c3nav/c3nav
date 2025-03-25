@@ -205,16 +205,14 @@ class LocationManager:
         # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
         locations = {location.pk: location for location in sorted((
             *SpecificLocation.objects.prefetch_related(
-               Prefetch('groups', LocationGroup.objects.select_related(
-                   'category', 'label_settings'
-               ).prefetch_related("slug_set")),
+               Prefetch("groups"),
                # todo: starting to think that bounds and subtitles should be cached so we don't need… this
                Prefetch('levels', Level.objects.prefetch_related('buildings', 'altitudeareas')),
                Prefetch('spaces'),
                Prefetch('areas'),
                Prefetch('pois'),
                Prefetch('dynamiclocations'),
-            ).select_related('label_settings').prefetch_related("slug_set"),
+            ).select_related("effective_label_settings").prefetch_related("slug_set"),
             *LocationGroup.objects.select_related(
                 'category', 'label_settings'
             ).prefetch_related("slug_set"),
@@ -227,6 +225,7 @@ class LocationManager:
         for obj in locations.values():
             if not isinstance(obj, SpecificLocation):
                 continue
+            # todo: only pull ids
             for group in obj.groups.all():
                 group = locationgroups.get(group.pk, None)
                 if group is not None:
