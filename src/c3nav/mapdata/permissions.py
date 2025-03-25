@@ -1,4 +1,5 @@
 import operator
+import sys
 import warnings
 from abc import abstractmethod, ABC
 from contextlib import contextmanager
@@ -6,6 +7,7 @@ from dataclasses import dataclass
 from functools import cached_property, lru_cache, reduce
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Optional
 
+from django.apps.registry import apps
 from django.contrib.auth.models import User
 from django.utils.functional import lazy
 
@@ -192,6 +194,14 @@ class MapPermissionContext(MapPermissions):
 
     def get_value(self) -> MapPermissions:
         if not hasattr(self._active, "value"):
+            if not apps.ready:
+                return ManualMapPermissions.get_full_access()
+
+            # todo: this should fail, absolutely
+            if 'manage.py' in sys.argv and 'runserver' not in sys.argv:
+                warnings.warn('No map permission context set, defaulting to full context.', DeprecationWarning)
+                return ManualMapPermissions.get_full_access()
+
             warnings.warn('No map permission context set, defaulting to public context.', DeprecationWarning)
             return ManualMapPermissions.get_public_access()
         return self._active.value
