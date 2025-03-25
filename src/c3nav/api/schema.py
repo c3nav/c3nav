@@ -65,7 +65,7 @@ class ModelDataForwarder:
             return make_serializable(self.overrides[key])
         with suppress(FieldDoesNotExist):
             field = self.obj._meta.get_field(key)
-            if field.is_relation:
+            if key != "effective_label_settings" and field.is_relation:  # todo: ugly hack, lets remove this exception
                 if field.many_to_many:
                     return [obj.pk for obj in getattr(self.obj, key).all()]
                 return make_serializable(getattr(self.obj, field.attname))
