@@ -176,7 +176,7 @@ class JSONField(models.TextField):
 special_pattern = r'(%%|%(\([^)]*\))?[^a-z]*[a-z]|<[^>]*>|\{[^}]*\})'
 
 
-def get_i18n_value(i18n_dict, fallback_language, fallback_any, fallback_value):
+def get_i18n_value(i18n_dict, *, fallback_language, fallback_any, fallback_value):
     lang = get_language()
     if i18n_dict:
         if lang in i18n_dict:

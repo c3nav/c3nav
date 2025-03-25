@@ -5,9 +5,8 @@ from django.db import migrations, models
 
 def fill_effective_cache(apps, model_name):
     from c3nav.mapdata.models.locations import LocationGroup, SpecificLocation
-    LocationGroup.calculate_effective_order()
-    SpecificLocation.calculate_effective_order()
-    SpecificLocation.calculate_effective_icon()
+    LocationGroup.recalculate_effective_order()
+    SpecificLocation.recalculate_effective_order()
 
 
 class Migration(migrations.Migration):
