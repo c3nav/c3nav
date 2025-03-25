@@ -269,15 +269,6 @@ class SpecificLocation(Location, models.Model):
     def dynamic(self) -> int:
         return len(self.dynamic_targets)
 
-    @cached_property
-    def sorted_groups(self) -> LazyMapPermissionFilteredSequence["LocationGroup"]:
-        if 'groups' not in getattr(self, '_prefetched_objects_cache', ()):
-            warnings.warn('Accessing sorted_groups despite no prefetch_related. '
-                          'Returning no groups.', RuntimeWarning)
-            return LazyMapPermissionFilteredSequence(())
-        # they come sorted from the database already :)
-        return LazyMapPermissionFilteredSequence(tuple(self.groups.all()))
-
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
         # don't filter in the query here so prefetch_related works
         self.cached_effective_colors.get(color_manager.theme_id, None)
@@ -544,15 +535,16 @@ class SpecificLocation(Location, models.Model):
     def details_display(self, *, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
 
-        groupcategories = {}
-        for group in self.sorted_groups:
-            groupcategories.setdefault(group.category, []).append(group)
-
         if grid.enabled:
             grid_square = self.grid_square
             if grid_square is not None:
                 grid_square_title = (_('Grid Squares') if grid_square and '-' in grid_square else _('Grid Square'))
                 result['display'].insert(3, (grid_square_title, grid_square or None))
+
+        groupcategories = {}
+        # todo: add this again
+        #for group in self.sorted_groups:
+        #    groupcategories.setdefault(group.category, []).append(group)
 
         for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
             result['display'].insert(3, (
