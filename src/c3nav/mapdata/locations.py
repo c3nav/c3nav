@@ -244,8 +244,6 @@ class LocationManager:
                 location.slug
                 # noinspection PyStatementEffect
                 location.redirect_slugs
-                # noinspection PyStatementEffect
-                location.sorted_groups
                 location._prefetched_objects_cache = {}
 
             obj._prefetched_objects_cache = {}
@@ -280,8 +278,6 @@ class LocationManager:
             if isinstance(obj, SpecificLocation):
                 # noinspection PyStatementEffect
                 obj.dynamic_targets
-                # noinspection PyStatementEffect
-                obj.sorted_groups
 
                 for target in obj.static_targets:
                     # noinspection PyStatementEffect
