@@ -8,6 +8,7 @@ from django.db import IntegrityError, transaction, DatabaseError
 from django.utils import timezone
 
 from c3nav.mapdata.models import MapUpdate, LocationGroup, AltitudeArea
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.render.renderdata import LevelRenderData
 from c3nav.mapdata.tasks import run_mapupdate_job
@@ -89,6 +90,9 @@ def run_eager_mapupdate_jobs(mapupdate: MapUpdate):
     Run all eager jobs, this function is to be called when creating a mapupdate, and only if celery is disabled
     """
     remaining_job_types = {job_type for job_type, job_config in update_job_configs.items() if job_config.eager}
+    running_jobs = {job.job_type: job for job in MapUpdateJob.objects.filter(job_type__in=remaining_job_types,
+                                                                             status=MapUpdateJobStatus.RUNNING)}
+
     done_jobs = set()
     while True:
         try:
@@ -96,7 +100,17 @@ def run_eager_mapupdate_jobs(mapupdate: MapUpdate):
                                       if not (update_job_configs[job_type].dependencies - done_jobs)))
         except StopIteration:
             break
-        update_job_configs[next_job_type].run((mapupdate,), nowait=False)
+        running_job = running_jobs.get(next_job_type)
+
+        if running_job and check_running_job(running_job):
+            logger.info(f"Job already running, this shouldn't happen: {next_job_type}")
+            raise CantStartMapUpdateJob(f"Can't ran eager job because already running: {next_job_type}")
+
+        try:
+            update_job_configs[next_job_type].run((mapupdate,), nowait=False)
+        except CantStartMapUpdateJob:
+            raise CantStartMapUpdateJob(f"Can't ran eager job because race condition?: {next_job_type}")
+
         done_jobs.add(next_job_type)
         remaining_job_types.remove(next_job_type)
 
@@ -226,26 +240,26 @@ def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
 @register_mapupdate_job("LocationGroup order",
                         eager=True, dependencies=set())
 def recalculate_locationgroup_order(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationGroup.calculate_effective_order()
+    LocationGroup.recalculate_effective_order()
     return True
 
 
 @register_mapupdate_job("SpecificLocation order",
                         eager=True, dependencies=set())
 def recalculate_specificlocation_order(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationGroup.calculate_effective_order()
+    SpecificLocation.recalculate_effective_order()
     return True
 
 
-@register_mapupdate_job("effective icons",
+@register_mapupdate_job("SpecificLocation cached from parents",
                         eager=True, dependencies=(recalculate_locationgroup_order,
                                                   recalculate_specificlocation_order))
-def recalculate_effective_icon(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationGroup.calculate_effective_order()
+def recalculate_specificlocation_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    SpecificLocation.recalculate_cached_from_parents()
     return True
 
 
-@register_mapupdate_job("geometries", dependencies=(recalculate_effective_icon, ))  # todo: depend on colors
+@register_mapupdate_job("geometries", dependencies=(recalculate_specificlocation_cached_from_parents, ))  # todo: depend on colors
 def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')

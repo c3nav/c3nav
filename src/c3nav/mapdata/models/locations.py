@@ -1,12 +1,13 @@
 import operator
 import string
 import warnings
+from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce
 from itertools import chain
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Iterator
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Iterator, Sequence
 
 from django.conf import settings
 from django.core.cache import cache
@@ -23,14 +24,16 @@ from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _, get_language, get_language_info
 from django.utils.translation import ngettext_lazy
+from django_pydantic_field import SchemaField
 from shapely import Point
 
 from c3nav.api.schema import GeometriesByLevelSchema
-from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
-from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions
+from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions, \
+    MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.cache.proxied import per_request_cache
@@ -134,7 +137,7 @@ class Location(AccessRestrictionMixin, TitledMixin, models.Model):
         }
         if self.external_url:
             result['external_url'] = {
-                'title': self.external_url_label or _('Open external URL'),
+                'title': self.effective_external_url_label or _('Open external URL'),
                 'url': self.external_url,
             }
         return result
@@ -175,8 +178,14 @@ DynamicLocationTarget: TypeAlias = Union["DynamicLocation"]
 LocationTarget = StaticLocationTarget | DynamicLocationTarget
 
 
-class LocationSubtitle:
-    pass
+@dataclass(frozen=True)
+class FillAndBorderColor:
+    fill: str | None
+    border: str | None
+
+
+ColorByTheme: TypeAlias = dict[int, FillAndBorderColor]
+DescribingTitles: TypeAlias = list[MapPermissionTaggedItem[dict[str, str]]]
 
 
 class SpecificLocation(Location, models.Model):
@@ -204,6 +213,13 @@ class SpecificLocation(Location, models.Model):
 
     effective_order = models.PositiveIntegerField(default=2**31-1, editable=False)
     effective_icon = models.CharField(_('icon'), max_length=32, null=True, editable=False)
+    effective_label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, editable=False,
+                                                 related_name='+', on_delete=models.CASCADE)
+    effective_external_url_label = I18nField(_('external URL label'), null=True, editable=False,
+                                             fallback_any=True, fallback_value="",
+                                             plural_name='effective_external_url_labels')
+    cached_effective_colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
+    cached_describing_titles: DescribingTitles = SchemaField(schema=DescribingTitles, default=list)
 
     class Meta:
         verbose_name = _('Specific Location')
@@ -254,15 +270,6 @@ class SpecificLocation(Location, models.Model):
         return len(self.dynamic_targets)
 
     @cached_property
-    def effective_label_settings(self):
-        if self.label_settings:
-            return self.label_settings
-        for group in self.sorted_groups:
-            if group.label_settings:
-                return group.label_settings
-        return None
-
-    @cached_property
     def sorted_groups(self) -> LazyMapPermissionFilteredSequence["LocationGroup"]:
         if 'groups' not in getattr(self, '_prefetched_objects_cache', ()):
             warnings.warn('Accessing sorted_groups despite no prefetch_related. '
@@ -273,19 +280,18 @@ class SpecificLocation(Location, models.Model):
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
         # don't filter in the query here so prefetch_related works
-        result = self.get_color_sorted(color_manager)
-        return None if result is None else result[1]
+        self.cached_effective_colors.get(color_manager.theme_id, None)
 
-    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[tuple, str] | None:
+    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
         # don't filter in the query here so prefetch_related works
-        for group in self.sorted_groups:
-            color = color_manager.locationgroup_fill_color(group)
-            if color:
-                return (0, group.category.priority, group.hierarchy, group.priority), color
-        return None
+        # todo: this still needs updating
+        color = self.get_color(color_manager)
+        if color is None:
+            return None
+        return self.effective_order, color
 
     @classmethod
-    def calculate_effective_order(cls):
+    def recalculate_effective_order(cls):
         with active_map_permissions.disable_access_checks():
             min_group_effective_order_ids = {}
             for pk, min_group_effective_order in cls._default_manager.annotate(
@@ -309,25 +315,102 @@ class SpecificLocation(Location, models.Model):
             ))
 
     @classmethod
-    def calculate_effective_icon(cls):
+    def calculate_effective_x(cls, name: str, default=...):
+        output_field = cls._meta.get_field(f"effective_{name}")
+        cls.objects.annotate(**{
+            f"group_effective_{name}": LocationGroup.objects.filter(**{
+                "specific_locations__in": OuterRef("pk"),
+                f"{name}__isnull": False,
+            }).order_by("effective_order").values(name)[:1],
+            f"new_effective_{name}": (
+                Case(When(**{f"group_effective_{name}__isnull": False}, then=F(f"group_effective_{name}")),
+                     default=F(f"{name}") if default is ... else Value(default, output_field=output_field),
+                     output_field=output_field)
+            )
+        }).update(**{f"effective_{name}": F(f"new_effective_{name}")})
+
+    @classmethod
+    def _bulk_cached_update[T](cls, name: str, values: Sequence[tuple[set[int], T]], default: T):
+        output_field = cls._meta.get_field(f"cached_{name}")
+        cls.objects.annotate(
+            **{f"new_{name}": Case(
+                *(When(pk__in=pks, then=Value(value, output_field=output_field)) for pks, value in values),
+                default=Value(default, output_field=output_field),
+            )}
+        ).update(**{f"cached_{name}": F(f"new_{name}")})
+
+    @classmethod
+    def calculate_cached_effective_color(cls):
+        # collect ids for each value so we can later bulk-update
+        colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
+        for specific_location in cls.objects.prefetch_related("groups__theme_colors"):
+            location_colors: ColorByTheme = {}
+            for group in reversed(specific_location.groups.all()):
+                # add colors from this group
+                if group.color and 0 not in location_colors:
+                    location_colors[0] = FillAndBorderColor(fill=group.color, border=None)
+                location_colors.update({
+                    theme_color.theme_id: FillAndBorderColor(fill=theme_color.fill_color,
+                                                             border=theme_color.border_color)
+                    for theme_color in group.theme_colors.all()
+                    if (theme_color.theme_id not in location_colors
+                        and theme_color.fill_color and theme_color.border_color)
+                })
+            colors.setdefault(tuple(sorted(location_colors.items())), set()).add(specific_location.pk)
+
+        cls._bulk_cached_update(
+            name="effective_colors",
+            values=tuple((pks, dict(colors)) for colors, pks in colors.items()),
+            default={}
+        )
+
+    @classmethod
+    def calculate_cached_describing_titles(cls):
+        all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
+        for specific_location in cls.objects.prefetch_related("groups__theme_colors"):
+            location_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
+            for group in reversed(specific_location.groups.all()):
+                if not (group.can_describe and group.titles):
+                    continue
+                restrictions: frozenset[int] = (
+                    frozenset((group.access_restriction_id,)) if group.access_restriction_id else frozenset()
+                )
+                titles: tuple[tuple[str, str], ...] = tuple(group.titles.items())  # noqa
+                if not restrictions or all((restrictions-other_restrictions)
+                                           for titles, other_restrictions in location_describing_titles):
+                    # new restriction set was not covered by previous ones
+                    location_describing_titles.append((titles, restrictions))
+                if not restrictions:
+                    # no access restrictions? that's it, no more groups to evaluate
+                    break
+            all_describing_titles.setdefault(tuple(location_describing_titles), set()).add(specific_location.pk)
+        cls._bulk_cached_update(
+            name="describing_titles",
+            values=tuple(
+                (pks, [
+                    MapPermissionTaggedItem(value=dict(titles), access_restrictions=restrictions)
+                    for titles, restrictions in entries
+                ]) for entries, pks in all_describing_titles.items()
+            ),
+            default=[]
+        )
+
+    @classmethod
+    def recalculate_cached_from_parents(cls):
         with active_map_permissions.disable_access_checks():
-            cls.objects.annotate(
-                new_effective_icon=LocationGroup.objects.filter(
-                    specific_locations__in=OuterRef("pk"),
-                    icon__isnull=False,
-                ).order_by("effective_order").values("icon")[:1],
-            ).update(effective_icon=F("new_effective_icon"))
+            cls.calculate_effective_x("icon")
+            cls.calculate_effective_x("external_url_labels", "{}")
+            cls.calculate_effective_x("label_settings")
+
+            cls.calculate_cached_effective_color()
+            cls.calculate_cached_describing_titles()
 
     @cached_property
-    def describing_groups(self):
-        return tuple(group for group in self.sorted_groups if group.can_describe)
-
-    @property
-    def external_url_label(self):
-        for group in self.sorted_groups:
-            if group.external_url_label:
-                return group.external_url_label
-        return None
+    def describing_title(self) -> str:
+        return lazy_get_i18n_value(
+            LazyMapPermissionFilteredTaggedValue(self.cached_describing_titles, default={}).get(),
+            fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value=""
+        )
 
     """ Points / Bounds / Grid """
 
@@ -384,7 +467,7 @@ class SpecificLocation(Location, models.Model):
 
     def get_subtitle(self, *, target_subtitle: Optional[str], grid_square: GridSquare) -> str:
         # get subtitle from highest ranked describing group
-        subtitle = self.describing_groups[0].title if self.describing_groups else None
+        subtitle = str(self.describing_title) or None
 
         # add grid square if available
         if grid_square:
@@ -563,13 +646,14 @@ class SpecificLocationTargetMixin(models.Model):
     def point(self) -> LocationPoint | None:
         return None
 
-    def get_color_sorted(self, color_manager) -> tuple[tuple, str] | None:
-        # todo: enhance performance using generator
-        color_sorted = list(filter(None, [location.get_color_sorted(color_manager)
-                                          for location in self.sorted_locations]))
-        if not color_sorted:
+    def get_color_sorted(self, color_manager) -> tuple[int, str] | None:
+        # todo: cache this in db?
+        try:
+            return next(iter(filter(None,
+                (location.get_color_sorted(color_manager) for location in self.sorted_locations)
+            )))
+        except StopIteration:
             return None
-        return color_sorted[0]
 
     def get_location(self, can_describe=False) -> Optional[SpecificLocation]:
         # todo: do we want to get rid of this?
@@ -729,8 +813,12 @@ class LocationGroup(Location, models.Model):
                                               {'num': len(self.locations)}))
         return result
 
+    @property
+    def effective_external_url_label(self):
+        return self.external_url_label
+
     @classmethod
-    def calculate_effective_order(cls):
+    def recalculate_effective_order(cls):
         with active_map_permissions.disable_access_checks():
             cls.objects.update(effective_order=Subquery(
                 cls.objects.filter(pk=OuterRef('pk')).annotate(
