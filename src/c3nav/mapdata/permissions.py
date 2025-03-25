@@ -263,7 +263,8 @@ class BaseMapPermissionFiltered[T](ABC):
         # todo: this probably is still slower than it needs to be, because of the set operation?
         return lru_cache(maxsize=16)(lambda: self._get_for_permissions(
             full=active_map_permissions.full,
-            permissions=active_map_permissions.access_restrictions - self._all_restrictions
+            permissions=(active_map_permissions.access_restrictions -
+                         (set() if active_map_permissions.full else self._all_restrictions))
         ))
 
     def __getstate__(self):
