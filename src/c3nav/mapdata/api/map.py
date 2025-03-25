@@ -87,7 +87,7 @@ class LocationListFilters(BaseSchema):
 @map_api_router.get('/locations/', summary="list locations",
                     description="Get locations",
                     response={200: list[ListedLocationItemSchema], **validate_responses, **auth_responses})
-@api_etag(cache_job_types=("mapdata.recalculate_effective_icon", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_specificlocation_cached_from_parents", ))  # todo: finer job_types
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
         return LocationManager.get_searchable().values()
@@ -106,7 +106,7 @@ class ShowRedirects(BaseSchema):
                     description="Retrieve location",
                     response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
-@api_etag(cache_job_types=("mapdata.recalculate_effective_icon", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_specificlocation_cached_from_parents", ))  # todo: finer job_types
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
     location = LocationManager.get(identifier)
 
@@ -130,7 +130,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
                     description="Retrieve displayable information about a location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
-@api_etag(cache_job_types=("mapdata.recalculate_effective_icon", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_specificlocation_cached_from_parents", ))  # todo: finer job_types
 def location_display(request, identifier: LocationIdentifier):
     location = get_location(identifier)
     if location is None:
@@ -151,7 +151,7 @@ def location_display(request, identifier: LocationIdentifier):
                     description="Get location geometries (if available)",
                     response={200: LocationGeometries, **API404.dict(), **auth_responses})
 @api_stats('location_geometries')
-@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_effective_icon", ))  # todo: finer job_types
+@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_specificlocation_cached_from_parents", ))  # todo: finer job_types
 def location_geometries(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
 

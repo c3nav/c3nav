@@ -17,7 +17,6 @@ from c3nav.editor.changes import ChangedObjectCollection, ChangeProblems
 from c3nav.editor.operations import DatabaseOperationCollection
 from c3nav.editor.tasks import send_changeset_proposed_notification
 from c3nav.mapdata.models import MapUpdate, DataOverlayFeature, DataOverlay
-from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.permissions import MapPermissionsFromRequest
 
 

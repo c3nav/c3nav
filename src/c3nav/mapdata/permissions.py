@@ -7,6 +7,7 @@ from functools import cached_property, lru_cache, reduce
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Optional
 
 from django.contrib.auth.models import User
+from django.utils.functional import lazy
 
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
 
@@ -397,27 +398,30 @@ class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSe
         return reduce(operator.or_, (item.access_restrictions for item in self._data), frozenset())
 
 
-class LazyMapPermissionFilteredTaggedValue[T](BaseMapPermissionFiltered[Optional[T]]):
+class LazyMapPermissionFilteredTaggedValue[T, DT](BaseMapPermissionFiltered[T | DT]):
     """
     Wraps a sequence of MapPermissionTaggedItem[T] objects.
     Allows you to get the first visible item based on the active map permissions.
     Caches the last 16 configurations.
     """
-    def __init__(self, data: Sequence[MapPermissionTaggedItem[T]]):
+    def __init__(self, data: Sequence[MapPermissionTaggedItem[T]], *, default: DT = None):
         self._data = data
+        self._default = default
 
-    def _get_for_permissions(self, full: bool, permissions: set[int]) -> Optional[T]:
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> T | DT:
         try:
             if full:
                 return next(iter(item.value for item in self._data))
             return next(iter(item.value for item in self._data
                              if not (item.access_restrictions - permissions)))
         except StopIteration:
-            return None
+            return self._default
 
     @cached_property
     def _all_restrictions(self) -> frozenset[int]:
         return reduce(operator.or_, (item.access_restrictions for item in self._data), frozenset())
 
-    def get(self) -> Optional[T]:
-        return self._get()
+    @cached_property
+    def get(self) -> Callable[[], T | DT]:
+        # hack to make the actual _get call lazy
+        return lazy(self._get, dict)
