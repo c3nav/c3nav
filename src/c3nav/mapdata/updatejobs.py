@@ -10,6 +10,7 @@ from django.utils import timezone
 from c3nav.mapdata.models import MapUpdate, LocationGroup, AltitudeArea
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.render.renderdata import LevelRenderData
 from c3nav.mapdata.tasks import run_mapupdate_job
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -40,7 +41,8 @@ class MapUpdateJobConfig:
         with transaction.atomic():
             job: MapUpdateJob = MapUpdateJob.objects.select_for_update(nowait=nowait).get(pk=job.pk)
             try:
-                had_effect = self.func(mapupdates)
+                with active_map_permissions.disable_access_checks():
+                    had_effect = self.func(mapupdates)
             except Exception as e:
                 job.update_status(MapUpdateJobStatus.FAILED)
                 raise
