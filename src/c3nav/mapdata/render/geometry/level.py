@@ -10,7 +10,7 @@ from shapely import prepared, box
 from shapely.geometry import GeometryCollection, Polygon, MultiPolygon
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import Space, Level, AltitudeArea, Source
+from c3nav.mapdata.models import Space, Level, AltitudeArea
 from c3nav.mapdata.render.geometry.altitudearea import AltitudeAreaGeometries
 from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 from c3nav.mapdata.render.geometry.mesh import Mesh
@@ -301,7 +301,7 @@ class SingleLevelGeometries(BaseLevelGeometries):
             if level.intermediate:
                 holes_geom = unary_union([
                     holes_geom,
-                    box(*chain(*Source.max_bounds())).difference(buildings_geom).difference(spaces_geom)
+                    box(*chain(*Level.max_bounds())).buffer(10).difference(buildings_geom).difference(spaces_geom)
                 ])
 
         else:

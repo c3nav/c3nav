@@ -71,7 +71,7 @@ class LevelRenderData:
             'spaces__areas__locations__groups', 'spaces__pois__locations__groups', 'spaces__locations__groups',
         ))
 
-        package = CachePackage(bounds=tuple(chain(*Source.max_bounds())))
+        package = CachePackage(bounds=tuple(chain(*Level.max_bounds())))
 
         # todo: we should check that levels on top come before their levels as they should
 

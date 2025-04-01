@@ -183,8 +183,8 @@ class GeometryIndexed:
         raise TypeError('GeometryIndexed index must be a shapely geometry, not %s' % type(key).__name__)
 
     def to_image(self):
-        from c3nav.mapdata.models import Source
-        (minx, miny), (maxx, maxy) = Source.max_bounds()
+        from c3nav.mapdata.models import Level
+        (minx, miny), (maxx, maxy) = Level.max_bounds()
 
         height, width = self.data.shape
         image_data = np.zeros((int(math.ceil((maxy-miny)/self.resolution)),
