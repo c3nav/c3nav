@@ -1064,7 +1064,7 @@ c3nav = {
                 const $other_locationinput = $(this).is('.as-origin') ? $destination : $origin;
                 const other_location = $other_locationinput.data('location');
                 c3nav._locationinput_set($locationinput, location);
-                if (other_location && (other_location.id === location.id || (other_location.locations && other_location.locations.includes(location.id)))) {
+                if (other_location && (other_location.id === location.id || (other_location.sublocations && other_location.sublocations.includes(location.id)))) {
                     c3nav._locationinput_set($other_locationinput, null);
                 }
                 c3nav.update_state(true);
@@ -2170,9 +2170,9 @@ c3nav = {
         const bounds = {};
 
         // add a location to the map as a marker
-        if (location.locations && location.locations.length) {
-            for (let i = 0; i < location.locations.length; i++) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon, true));
+        if (location.sublocations && location.sublocations.length) {
+            for (let i = 0; i < location.sublocations.length; i++) {
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.sublocations[i]], icon, true));
             }
         }
 
