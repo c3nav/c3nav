@@ -68,6 +68,14 @@ def register_mapupdate_job(title: str, *, eager: bool = False,
                            dependencies: Iterable[MapUpdateJobCallable] = ()) -> (
         Callable[[Callable[[tuple[MapUpdate, ...]], bool]], MapUpdateJobCallable]
 ):
+    """
+    Register the decorated function as a mapupdate job.
+
+    :param title: title to show to users
+    :param eager: True if this should be run immediately if no celery is active (only if dependencies are eager too)
+    :param dependencies: other functions that have been registered as functions that need to run before this one
+    :return: True if the job did something, False if it was skipped cause no action was required
+    """
     def wrapper(func: Callable[[tuple[MapUpdate, ...]], bool]) -> MapUpdateJobCallable:
         app_name = func.__module__.split('c3nav.', 1)[1].split('.', 1)[0]
         func_name = func.__name__
