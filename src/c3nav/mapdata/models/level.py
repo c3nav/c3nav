@@ -1,5 +1,5 @@
 from decimal import Decimal
-from itertools import chain, batched
+from itertools import chain
 from operator import attrgetter
 from typing import Optional
 
@@ -13,6 +13,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.locations import SpecificLocationTargetMixin
 from c3nav.mapdata.schemas.model_base import BoundsSchema
+from c3nav.mapdata.utils.cache.proxied import versioned_cache
 
 level_index_re = _lazy_re_compile(r"^[-a-zA-Z0-9._]+\Z")
 validate_level_index = RegexValidator(
@@ -41,6 +42,15 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
                                    help_text=_('used for the level selector'))
     level_index = models.CharField(max_length=20, verbose_name=_('level index'), unique=True,
                                    validators=[validate_level_index], help_text=_('used for coordinates'))
+
+    effective_bottom = models.DecimalField(_('bottom coordinate'),
+                                           max_digits=6, decimal_places=2, editable=False, default=0)
+    effective_left = models.DecimalField(_('left coordinate'),
+                                         max_digits=6, decimal_places=2, editable=False, default=0)
+    effective_top = models.DecimalField(_('top coordinate'),
+                                        max_digits=6, decimal_places=2, editable=False, default=100)
+    effective_right = models.DecimalField(_('right coordinate'),
+                                          max_digits=6, decimal_places=2, editable=False, default=100)
 
     class Meta:
         verbose_name = _('Level')
@@ -104,11 +114,38 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     def level_id(self) -> int:
         return self.pk
 
+    @classmethod
+    def max_bounds(cls) -> tuple[tuple[float, float], tuple[float, float]]:
+        # todo: calculate this as part of processupdates?
+        cache_key = f"mapdata:max_bounds:levels"
+        from c3nav.mapdata.models import MapUpdate
+        last_update = MapUpdate.last_update("mapdata.recalculate_level_bounds")
+        result = versioned_cache.get(last_update, cache_key, None)  # todo: get correct update
+        if result is not None:
+            return result
+        from c3nav.mapdata.permissions import active_map_permissions
+        with active_map_permissions.disable_access_checks():
+            result = cls.objects.all().aggregate(models.Min('effective_left'), models.Min('effective_bottom'),
+                                                 models.Max('effective_right'), models.Max('effective_top'))
+            result = ((float(result['effective_left__min'] or 0), float(result['effective_bottom__min'] or 0)),
+                      (float(result['effective_right__max'] or 10), float(result['effective_top__max'] or 10)))
+        versioned_cache.set(last_update, cache_key, result, 900)
+        return result
+
+    @classmethod
+    def recalculate_bounds(cls):
+        for level in cls.objects.prefetch_related("altitudeareas", "buildings").all():
+            level.effective_left, level.effective_bottom, level.effective_right, level.effective_top = unary_union(
+                tuple(item.geometry.buffer(0) for item in chain(level.altitudeareas.all(), level.buildings.all()))
+            ).bounds
+            level.save()
+
     @cached_property
     def bounds(self) -> Optional[BoundsSchema]:
-        return {self.primary_level_pk: tuple(batched((round(i, 2) for i in unary_union(
-            tuple(item.geometry.buffer(0) for item in chain(self.altitudeareas.all(), self.buildings.all()))
-        ).bounds), 2))}
+        return {
+            self.primary_level_pk: ((self.effective_left, self.effective_bottom),
+                                    (self.effective_right, self.effective_top))
+        }
 
     @property
     def title(self):

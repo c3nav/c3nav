@@ -24,8 +24,8 @@ class CachePackageLevel(NamedTuple):
 
 
 class CachePackage:
-    def __init__(self, bounds, levels=None):
-        self.bounds = bounds
+    def __init__(self, bounds: tuple[float, float, float, float], levels=None):
+        self.bounds = bounds  # minx, miny, maxx, maxy
         self.levels = {} if levels is None else levels
         self.theme_ids = []
 

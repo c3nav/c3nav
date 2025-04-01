@@ -205,12 +205,7 @@ class LocationManager:
         # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
         locations = {location.pk: location for location in sorted((
             *SpecificLocation.objects.prefetch_related(
-               # todo: starting to think that bounds and subtitles should be cached so we don't need… this
-               Prefetch('levels', Level.objects.prefetch_related('buildings', 'altitudeareas')),
-               Prefetch('spaces'),
-               Prefetch('areas'),
-               Prefetch('pois'),
-               Prefetch('dynamiclocations'),
+               "levels", "spaces", "areas", "pois", "dynamiclocations",
             ).select_related("effective_label_settings").prefetch_related("slug_set"),
             *LocationGroup.objects.select_related(
                 'category', 'label_settings'

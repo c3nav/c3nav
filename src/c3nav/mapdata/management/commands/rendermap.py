@@ -102,7 +102,7 @@ class Command(BaseCommand):
                             help=_('override filename'))
 
     def handle(self, *args, **options):
-        (minx, miny), (maxx, maxy) = Source.max_bounds()
+        (minx, miny), (maxx, maxy) = Level.max_bounds()
         if options['minx'] is not None:
             minx = options['minx']
         if options['miny'] is not None:

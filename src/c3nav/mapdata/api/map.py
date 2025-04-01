@@ -21,9 +21,10 @@ from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidati
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.api.base import api_etag, api_stats
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models import Source, Theme, Area, Space
+from c3nav.mapdata.locations import LocationRedirect, LocationManager
+from c3nav.mapdata.models import Theme, Area, Space, Level
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import DynamicLocation, Position, LocationGroup, LoadGroup
+from c3nav.mapdata.models.locations import Position, LocationGroup, LoadGroup
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
@@ -31,7 +32,6 @@ from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationI
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import LocationGeometries, WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.mapdata.locations import LocationRedirect, LocationManager
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -44,7 +44,7 @@ map_api_router = APIRouter(tags=["map"])
 def map_settings(request):
     initial_bounds = settings.INITIAL_BOUNDS
     if not initial_bounds:
-        initial_bounds = tuple(chain(*Source.max_bounds()))
+        initial_bounds = tuple(chain(*Level.max_bounds()))
     else:
         initial_bounds = (tuple(settings.INITIAL_BOUNDS)[:2], tuple(settings.INITIAL_BOUNDS)[2:])
 
@@ -62,7 +62,7 @@ def map_settings(request):
 @api_etag(permissions=False)
 def bounds(request):
     return {
-        "bounds": Source.max_bounds(),
+        "bounds": Level.max_bounds(),
     }
 
 
