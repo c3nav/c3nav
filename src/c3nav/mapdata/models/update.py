@@ -175,7 +175,8 @@ class MapUpdate(models.Model):
     def last_update(cls, *job_types: str, nocache: bool = False) -> MapUpdateTuple:
         """
         Get oldest MapUpdateTuple for the given job types.
-        If now job type are given, return MapUpdateTuple for latest map update.
+        The job needs to not have been skipped (needs to have returned True).
+        If no job types are given, return MapUpdateTuple for latest map update.
         """
         if job_types:
             return min((MapUpdateJob.last_successful_job(job_type, nocache=nocache) for job_type in job_types))
