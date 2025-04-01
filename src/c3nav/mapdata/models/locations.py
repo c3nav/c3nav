@@ -221,6 +221,8 @@ class SpecificLocation(Location, models.Model):
     cached_effective_colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
     cached_describing_titles: DescribingTitles = SchemaField(schema=DescribingTitles, default=list)
 
+    sublocations = []
+
     class Meta:
         verbose_name = _('Specific Location')
         verbose_name_plural = _('Specific Locations')
@@ -765,8 +767,6 @@ class LocationGroup(Location, models.Model):
             if key not in deferred_fields
         }
 
-    locations = []
-
     def details_display(self, *, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].insert(3, (_('Category'), self.category.title))
@@ -804,6 +804,11 @@ class LocationGroup(Location, models.Model):
                                num_locations=(ngettext_lazy('%(num)d location', '%(num)d locations', 'num') %
                                               {'num': len(self.locations)}))
         return result
+
+    @cached_property
+    def sublocations(self) -> list[int]:
+        # noinspection PyUnresolvedReferences
+        return [l.pk for l in self.specific_locations.all()]
 
     @property
     def effective_external_url_label(self):
