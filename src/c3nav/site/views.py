@@ -125,9 +125,9 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     state = {
         'routing': routing,
-        'origin': (SingleLocationItemSchema.validate_python(origin).model_dump()
+        'origin': (SingleLocationItemSchema.model_validate(origin).model_dump()
                    if origin else None),
-        'destination': (SingleLocationItemSchema.validate_python(destination).model_dump()
+        'destination': (SingleLocationItemSchema.model_validate(destination).model_dump()
                         if destination else None),
         'sidebar': routing or destination is not None,
         'details': True if details else False,
