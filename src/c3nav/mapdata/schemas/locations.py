@@ -353,10 +353,10 @@ class ListedLocationItemSchema(BaseLocationItemSchema):
         title="load group to display",
     )]
 
-    locations: Annotated[
+    sublocations: Annotated[
         list[PositiveInt],
         APIField(  # todo: this should be a set… but json serialization?
-            description="IDs of all locations that belong to this grouo",
+            description="IDs of all locations that directly belong to this grouo",
             examples=[(1, 2, 3)],
         )
     ] = []
