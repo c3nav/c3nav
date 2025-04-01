@@ -227,7 +227,7 @@ class LocationProtocol(Protocol):
 
     nearby: NearbySchema | None
     dynamic_state: DynamicLocationState | None
-    locations: []  # todo: rename to sublocations?
+    sublocations: []
 
     geometries_by_level: GeometriesByLevelSchema  # geometries of with this location, without point geometries
     geometries_or_points_by_level: GeometriesByLevelSchema  # geometries of with this location, points as fallback

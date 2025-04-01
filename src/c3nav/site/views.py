@@ -32,7 +32,7 @@ from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid, GridSchema
 from c3nav.mapdata.locations import LocationRedirect, LocationManager
-from c3nav.mapdata.models import Source
+from c3nav.mapdata.models import Source, Level
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
@@ -147,7 +147,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     initial_bounds = settings.INITIAL_BOUNDS
     if not initial_bounds:
-        initial_bounds = tuple(chain(*Source.max_bounds()))
+        initial_bounds = tuple(chain(*Level.max_bounds()))
 
     if origin is not None and destination is not None:
         metadata = {
@@ -200,7 +200,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     from c3nav.mapdata.models.theme import Theme
     ctx = {
-        'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
+        'bounds': json.dumps(Level.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple((level.pk, level.level_index, level.short_label) for level in levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
