@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction, DatabaseError
 from django.utils import timezone
 
-from c3nav.mapdata.models import MapUpdate, LocationGroup, AltitudeArea
+from c3nav.mapdata.models import MapUpdate, LocationGroup, AltitudeArea, Level
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions
@@ -306,5 +306,16 @@ def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     logger.info('Rebuilding level render data...')
 
     LevelRenderData.rebuild(geometry_update_folder_name)
+
+    return True
+
+
+@register_mapupdate_job("level bounds", dependencies=(recalculate_geometries, ))
+def recalculate_level_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Level.recalculate_bounds()
 
     return True
