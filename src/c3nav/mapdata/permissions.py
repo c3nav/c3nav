@@ -415,7 +415,7 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](BaseMapPermissionFiltered[T | 
     Allows you to get the first visible item based on the active map permissions.
     Caches the last 16 configurations.
     """
-    def __init__(self, data: Sequence[MapPermissionTaggedItem[T]], *, default: DT = None):
+    def __init__(self, data: Sequence[MapPermissionTaggedItem[T]], *, default: DT):
         self._data = data
         self._default = default
 
@@ -436,3 +436,8 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](BaseMapPermissionFiltered[T | 
     def get(self) -> Callable[[], T | DT]:
         # hack to make the actual _get call lazy
         return lazy(self._get, dict)
+
+    def __getstate__(self):
+        result = super().__getstate__()
+        result.pop('get', None)
+        return result
