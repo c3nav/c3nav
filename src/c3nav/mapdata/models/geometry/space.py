@@ -9,15 +9,16 @@ from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field.fields import SchemaField
 from pydantic_extra_types.mac_address import MacAddress
-from shapely import Polygon, MultiPolygon, GeometryCollection
-from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping, shape
+from shapely import Polygon, MultiPolygon
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping, shape, Point
 
+from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestriction, UseQForPermissionsManager, \
     AccessRestrictionLogicMixin
 from c3nav.mapdata.models.base import TitledMixin
-from c3nav.mapdata.models.geometry.base import GeometryMixin, EffectiveGeometryMixin
+from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin
 from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationGeometryTargetMixin
 from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -125,7 +126,7 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
         default_related_name = 'columns'
 
 
-class Area(EffectiveGeometryMixin, SpaceGeometryMixin, SpecificLocationGeometryTargetMixin,
+class Area(CachedEffectiveGeometryMixin, SpaceGeometryMixin, SpecificLocationGeometryTargetMixin,
            AccessRestrictionMixin, models.Model):
     """
     An area in a space.
@@ -351,6 +352,16 @@ class POI(SpaceGeometryMixin, SpecificLocationGeometryTargetMixin, AccessRestric
     @property
     def y(self):
         return self.geometry.y
+
+    @property
+    def geometries_by_level(self) -> GeometriesByLevelSchema:
+        if self.level_id is None:
+            return {}
+        return {self.level_id: self.geometry}
+
+    @property
+    def effective_geometry(self) -> Point:
+        return self.geometry
 
 
 class Hole(SpaceGeometryMixin, models.Model):

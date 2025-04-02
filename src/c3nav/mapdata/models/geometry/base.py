@@ -6,7 +6,7 @@ from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
-from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, shape
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, shape, Point
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -75,25 +75,8 @@ class GeometryMixin(models.Model):
         return result
 
     @property
-    def grid_square(self):
-        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
-
-    @property
-    def geometries_by_level(self) -> GeometriesByLevelSchema:
-        # todo: relying on level_id would be nice to avoid
-        if "geometry" in self.get_deferred_fields() or self.level_id is None:
-            return {}
-        return {
-            self.level_id: [self.geometry if self.can_access_geometry else self.geometry.minimum_rotated_rectangle]
-        }
-
-    @property
     def can_access_geometry(self) -> bool:
         return True
-
-    @property
-    def effective_geometry(self):
-        return self.geometry
 
     @property
     def all_geometry_changed(self):
@@ -161,7 +144,7 @@ class LazyMapPermissionFilteredBounds(NamedTuple):
     maxy: LazyMapPermissionFilteredTaggedValue[float, None]
 
 
-class EffectiveGeometryMixin(models.Model):
+class CachedEffectiveGeometryMixin(models.Model):
     cached_effective_geometries: CachedEffectiveGeometries = SchemaField(schema=CachedEffectiveGeometries, default=list)
     cached_points: CachedPoints = SchemaField(schema=CachedPoints, default=list)
     cached_bounds: CachedBounds = SchemaField(schema=CachedBounds, null=True)
@@ -182,6 +165,14 @@ class EffectiveGeometryMixin(models.Model):
     @property
     def effective_geometry(self) -> Polygon | MultiPolygon | GeometryCollection:
         return self._effective_geometries.get()
+
+    @property
+    def geometries_by_level(self) -> GeometriesByLevelSchema:
+        if self.level_id is None:
+            return {}
+        return {
+            self.level_id: [self.effective_geometry]  # todo: split into multiple polygons maybe?
+        }
 
     @cached_property
     def _points(self) -> LazyMapPermissionFilteredTaggedValue[tuple[float, float], None]:
