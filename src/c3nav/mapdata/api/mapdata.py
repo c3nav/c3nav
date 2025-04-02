@@ -59,6 +59,7 @@ def mapdata_list_endpoint(request,
     if hasattr(model, 'can_access_geometry'):
         for obj in result:
             if not obj.can_access_geometry:
+                # todo: wow would it be nice to get rid of this
                 obj._hide_geometry = True
 
     return result

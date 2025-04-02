@@ -55,7 +55,8 @@ class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Mode
 
     @property
     def can_access_geometry(self) -> bool:
-        return False
+        from c3nav.mapdata.permissions import active_map_permissions
+        return active_map_permissions.all_base_mapdata
 
     @property
     def subtitle(self):
