@@ -13,7 +13,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.locations import SpecificLocationTargetMixin
 from c3nav.mapdata.schemas.model_base import BoundsSchema
-from c3nav.mapdata.utils.cache.proxied import versioned_cache
+from c3nav.mapdata.utils.cache.proxied import versioned_cache, versioned_per_request_cache
 
 level_index_re = _lazy_re_compile(r"^[-a-zA-Z0-9._]+\Z")
 validate_level_index = RegexValidator(
@@ -117,10 +117,10 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     @classmethod
     def max_bounds(cls) -> tuple[tuple[float, float], tuple[float, float]]:
         # todo: calculate this as part of processupdates?
-        cache_key = f"mapdata:max_bounds:levels"
+        cache_key = "mapdata:max_bounds:levels"
         from c3nav.mapdata.models import MapUpdate
         last_update = MapUpdate.last_update("mapdata.recalculate_level_bounds")
-        result = versioned_cache.get(last_update, cache_key, None)  # todo: get correct update
+        result = versioned_per_request_cache.get(last_update, cache_key, None)  # todo: get correct update
         if result is not None:
             return result
         from c3nav.mapdata.permissions import active_map_permissions
@@ -129,7 +129,7 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
                                                  models.Max('effective_right'), models.Max('effective_top'))
             result = ((float(result['effective_left__min'] or 0), float(result['effective_bottom__min'] or 0)),
                       (float(result['effective_right__max'] or 10), float(result['effective_top__max'] or 10)))
-        versioned_cache.set(last_update, cache_key, result, 900)
+        versioned_per_request_cache.set(last_update, cache_key, result, 900)
         return result
 
     @classmethod
