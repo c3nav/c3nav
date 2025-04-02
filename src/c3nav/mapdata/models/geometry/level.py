@@ -3,7 +3,7 @@ from collections import deque, namedtuple
 from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
-from typing import Sequence, TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING, TypeAlias
 
 import numpy as np
 from django.core.exceptions import ObjectDoesNotExist
@@ -17,7 +17,7 @@ from pydantic import Field as APIField
 from scipy.interpolate._rbfinterp import RBFInterpolator
 from shapely import prepared
 from shapely.affinity import scale
-from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon, mapping
+from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon, Polygon, shape, GeometryCollection
 from shapely.geometry.polygon import orient
 from shapely.ops import unary_union
 
@@ -25,14 +25,14 @@ from c3nav.api.schema import BaseSchema, PolygonSchema, MultiPolygonSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
-from c3nav.mapdata.models.geometry.base import GeometryMixin, EffectiveGeometryMixin
+from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin
 from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationGeometryTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
 
 if TYPE_CHECKING:
-    from c3nav.mapdata.permissions import MapPermissions
+    from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
 
 
 class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
@@ -114,7 +114,10 @@ class Building(LevelGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(EffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGeometryTargetMixin,
+CachedSimplifiedGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema]]
+
+
+class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGeometryTargetMixin,
             AccessRestrictionMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
@@ -135,6 +138,8 @@ class Space(EffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGeometry
                                        help_text=_('if unknown, this will be a quest. if yes, quests for enter, '
                                                    'leave or cross descriptions to this room will be generated.'))
     media_panel_done = models.BooleanField(default=False, verbose_name=_("All media panels mapped"))
+
+    cached_simplified_geometries: CachedSimplifiedGeometries = SchemaField(schema=CachedSimplifiedGeometries, default=list)
 
     class Meta:
         verbose_name = _('Space')
@@ -219,6 +224,53 @@ class Space(EffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGeometry
 
             space.cached_effective_geometries = result
             space.save()
+
+    @classmethod
+    def recalculate_simplified_geometiies(cls):
+        for space in cls.objects.all():
+            results: list[MapPermissionTaggedItem[Polygon]] = []
+            # we are caching resulting polygons by their area to find duplicates
+            results_by_area: dict[float, list[MapPermissionTaggedItem[Polygon]]] = {}
+
+            # go through all possible space geometries, starting with the least restricted ones
+            for space_geometry, access_restriction_ids in reversed(space.cached_effective_geometries):
+                # get the minimum rotated rectangle
+                simplified_geometry = shape(space_geometry).minimum_rotated_rectangle
+
+                # seach whether we had this same polygon as a result before
+                for previous_result in results_by_area.get(simplified_geometry.area, []):
+                    if (access_restriction_ids >= results_by_area
+                            and previous_result.value.equals_exact(simplified_geometry, 1e-3)):
+                        # if the found polygon matches and has a subset of restrictions, no need to store this one
+                        break
+
+                # create and store item
+                item = MapPermissionTaggedItem(
+                    value=simplified_geometry,
+                    access_restrictions=access_restriction_ids
+                )
+                results_by_area.setdefault(simplified_geometry.area, []).append(item)
+                results.append(item)
+
+            # we need to reverse the list back to make the logic work
+            space.cached_simplified_geometries = list(reversed(results))
+            space.save()
+
+    @cached_property
+    def _simplified_geometries(self) -> LazyMapPermissionFilteredTaggedValue[Polygon, GeometryCollection]:
+        return LazyMapPermissionFilteredTaggedValue(tuple(
+            MapPermissionTaggedItem(
+                value=shape(item.value.model_dump()),
+                access_restrictions=item.access_restrictions
+            )
+            for item in self.cached_effective_geometries
+        ), default=GeometryCollection())
+
+    @property
+    def effective_geometry(self) -> Polygon | MultiPolygon | GeometryCollection:
+        if not self.can_access_geometry:
+            return self._simplified_geometries.get()
+        return super().effective_geometry
 
 
 class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
