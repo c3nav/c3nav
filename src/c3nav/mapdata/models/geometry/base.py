@@ -1,13 +1,12 @@
 from contextlib import contextmanager
 from itertools import batched
-from operator import itemgetter
 from typing import TypeAlias, NamedTuple, Sequence, Iterator
 
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
-from shapely.geometry import Point, Polygon, MultiPolygon, GeometryCollection, shape
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, shape
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
@@ -75,43 +74,26 @@ class GeometryMixin(models.Model):
             result['original_geometry'] = format_geojson(smart_mapping(original_geometry), rounded=False)
         return result
 
-    @cached_property
-    def good_representative_point(self):
-        return good_representative_point(self.geometry)
-
-    @cached_property
-    def point(self) -> LocationPoint | None:
-        if self.main_level_id is None:
-            return None
-        return (self.main_level_id, *(round(i, 2) for i in self.good_representative_point.coords[0]))
-
-    @cached_property
-    def bounds(self) -> BoundsByLevelSchema:
-        if self.main_level_id is None:
-            return None
-        return {self.main_level_id: tuple(batched((round(i, 2) for i in self.geometry.bounds), 2))}
-
     @property
     def grid_square(self):
         return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     @property
     def geometries_by_level(self) -> GeometriesByLevelSchema:
+        # todo: relying on level_id would be nice to avoid
         if "geometry" in self.get_deferred_fields() or self.level_id is None:
             return {}
-        if self.can_access_geometry:
-            return {self.level_id: [self.geometry]}
-        return {self.level_id: [self.geometry.minimum_rotated_rectangle]}
+        return {
+            self.level_id: [self.geometry if self.can_access_geometry else self.geometry.minimum_rotated_rectangle]
+        }
 
     @property
     def can_access_geometry(self) -> bool:
         return True
 
-    def get_shadow_geojson(self):
-        pass
-
-    def contains(self, x, y) -> bool:
-        return self.geometry.contains(Point(x, y))
+    @property
+    def effective_geometry(self):
+        return self.geometry
 
     @property
     def all_geometry_changed(self):
