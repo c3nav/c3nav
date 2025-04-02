@@ -9,15 +9,16 @@ from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field.fields import SchemaField
 from pydantic_extra_types.mac_address import MacAddress
-from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
+from shapely import Polygon, MultiPolygon, GeometryCollection
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping, shape
 
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.base import TitledMixin
-from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
-from c3nav.mapdata.permissions import MapPermissions
+from c3nav.mapdata.models.geometry.base import GeometryMixin, EffectiveGeometryMixin
+from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationGeometryTargetMixin
+from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -122,7 +123,8 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
         default_related_name = 'columns'
 
 
-class Area(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
+class Area(EffectiveGeometryMixin, SpaceGeometryMixin, SpecificLocationGeometryTargetMixin,
+           AccessRestrictionMixin, models.Model):
     """
     An area in a space.
     """
@@ -140,6 +142,45 @@ class Area(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMix
         verbose_name = _('Area')
         verbose_name_plural = _('Areas')
         default_related_name = 'areas'
+
+    @classmethod
+    def recalculate_effective_geometries(cls):
+        # this function is intentionally not fully optimized yet. this could be changed, but please write tests first
+        for area in cls.objects.prefetch_related("space", "space__level"):
+            results: list[MapPermissionTaggedItem[Polygon | MultiPolygon]] = []
+            # we are caching resulting polygons by their area to find duplicates
+            results_by_area: dict[float, list[MapPermissionTaggedItem[Polygon | MultiPolygon]]] = {}
+
+            # go through all possible space geometries, starting with the least restricted ones
+            for space_geometry, access_restriction_ids in reversed(area.space.cached_effective_geometries):
+                # further restrict with the access restrictions of this area
+                item_access_restrictions = access_restriction_ids | area.effective_access_restrictions
+
+                # crop this area to this version of the space
+                geometry = area.geometry.intersection(shape(space_geometry))
+
+                # no geometry left? goodbye
+                if geometry.is_empty:
+                    continue
+
+                # seach whether we had this same polygon as a result before
+                for previous_result in results_by_area.get(geometry.area, []):
+                    if (item_access_restrictions >= results_by_area
+                            and previous_result.value.equals_exact(geometry, 1e-3)):
+                        # if the found polygon matches and has a subset of restrictions, no need to store this one
+                        break
+
+                # create and store item
+                item = MapPermissionTaggedItem(
+                    value=geometry,
+                    access_restrictions=access_restriction_ids
+                )
+                results_by_area.setdefault(geometry.area, []).append(item)
+                results.append(item)
+
+            # we need to reverse the list back to make the logic work
+            area.cached_effective_geometries = list(reversed(results))
+            area.save()
 
 
 class Stair(SpaceGeometryMixin, models.Model):
@@ -290,7 +331,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         return result
 
 
-class POI(SpaceGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
+class POI(SpaceGeometryMixin, SpecificLocationGeometryTargetMixin, AccessRestrictionMixin, models.Model):
     """
     A point of interest
     """
