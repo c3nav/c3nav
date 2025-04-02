@@ -85,7 +85,7 @@ def assert_multilinestring(geometry: LineString | MultiLineString | GeometryColl
     return [geom for geom in geometry.geoms if isinstance(geom, LineString)]
 
 
-def good_representative_point(geometry):
+def good_representative_point(geometry) -> Point:
     if isinstance(geometry, Point):
         return geometry
     c = geometry.centroid

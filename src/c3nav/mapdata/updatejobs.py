@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction, DatabaseError
 from django.utils import timezone
 
-from c3nav.mapdata.models import MapUpdate, LocationGroup, AltitudeArea, Level
+from c3nav.mapdata.models import MapUpdate, LocationGroup, AltitudeArea, Level, Space, Area
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions
@@ -269,7 +269,69 @@ def recalculate_specificlocation_cached_from_parents(mapupdates: tuple[MapUpdate
     return True
 
 
-@register_mapupdate_job("geometries", dependencies=(recalculate_specificlocation_cached_from_parents, ))  # todo: depend on colors
+@register_mapupdate_job("Space effective geometries")
+def recalculate_space_effective_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Space.recalculate_effective_geometries()
+    return True
+
+
+@register_mapupdate_job("Area effective geometries")
+def recalculate_area_effective_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Area.recalculate_effective_geometries()
+    return True
+
+
+@register_mapupdate_job("Space points", dependencies=(recalculate_space_effective_geometries, ))
+def recalculate_space_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Space.recalculate_points()
+    return True
+
+
+@register_mapupdate_job("Area points", dependencies=(recalculate_area_effective_geometries, ))
+def recalculate_area_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Area.recalculate_points()
+    return True
+
+
+@register_mapupdate_job("Space bounds", dependencies=(recalculate_space_effective_geometries, ))
+def recalculate_space_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Space.recalculate_bounds()
+    return True
+
+
+@register_mapupdate_job("Area bounds", dependencies=(recalculate_area_effective_geometries, ))
+def recalculate_area_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Area.recalculate_bounds()
+    return True
+
+
+@register_mapupdate_job("geometries", dependencies=(recalculate_space_effective_geometries,
+                                                         recalculate_area_effective_geometries,
+                                                         recalculate_specificlocation_cached_from_parents, ))  # todo: depend on colors
 def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')

@@ -17,16 +17,16 @@ from pydantic import Field as APIField
 from scipy.interpolate._rbfinterp import RBFInterpolator
 from shapely import prepared
 from shapely.affinity import scale
-from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon
+from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon, mapping
 from shapely.geometry.polygon import orient
 from shapely.ops import unary_union
 
-from c3nav.api.schema import BaseSchema
+from c3nav.api.schema import BaseSchema, PolygonSchema, MultiPolygonSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
-from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationTargetMixin
+from c3nav.mapdata.models.geometry.base import GeometryMixin, EffectiveGeometryMixin
+from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationGeometryTargetMixin
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
@@ -114,7 +114,8 @@ class Building(LevelGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
+class Space(EffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGeometryTargetMixin,
+            AccessRestrictionMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
@@ -160,6 +161,67 @@ class Space(LevelGeometryMixin, SpecificLocationTargetMixin, AccessRestrictionMi
         return (self.base_mapdata_accessible
                 or active_map_permissions.all_base_mapdata
                 or self.id in active_map_permissions.spaces)
+
+    @classmethod
+    def recalculate_effective_geometries(cls):
+        # collect all buildings, by level and merge polygons
+        buildings_by_level = {}
+        for building in buildings_by_level:
+            buildings_by_level.setdefault(building.level_id, []).append(building.geometry)
+        buildings_by_level = {level_id: unary_union(geoms) for level_id, geoms in buildings_by_level.items()}
+
+        for space in cls.objects.prefetch_related("columns").select_related("level"):
+            # collect all columns by restrictions and merge polygons
+            columns_by_restrictions = {}
+            for column in space.columns.all():
+                access_restriction_id = column.access_restriction_id
+                if access_restriction_id in space.effective_access_restrictions:
+                    # remove access restrictions of the space to avoid unnecessary duplicates
+                    access_restriction_id = None
+                columns_by_restrictions.setdefault(access_restriction_id, []).append(unwrap_geom(column.geometry))
+            columns_by_restrictions = {access_restriction_id: unary_union(geoms)
+                                       for access_restriction_id, geoms in columns_by_restrictions.items()}
+
+            # collect all restrictions we know for columns
+            column_restrictions: frozenset[int] = frozenset(columns_by_restrictions.keys()) - {None}  # noqa
+
+            # create starting geometry with building cropped off (if outside) and always-visible colums removed
+            starting_geometry = unwrap_geom(space.geometry)
+            if space.outside and space.level_id in buildings_by_level:
+                starting_geometry = starting_geometry.difference(buildings_by_level[space.level_id])
+            if None in columns_by_restrictions:
+                starting_geometry = starting_geometry.difference(columns_by_restrictions[None])
+
+            # start building the results
+            from c3nav.mapdata.permissions import MapPermissionTaggedItem
+            result: list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]] = []
+
+            # get all combinations of restrictions, any number of them, from n tuples down to single tuples to none#
+            # yes this HAS TO get down to none, don't optimize, Area.recalculate_effecive_geometries depends on it
+            for num_selected_restrictions in reversed(range(0, len(column_restrictions)+1)):
+                for selected_restrictions in combinations(column_restrictions, num_selected_restrictions):
+                    # now add (=subtract) all columns that have an access restriction that the user CAN'T see
+                    # columns have inverted access restriction logic, hiding areas unless you have the permission
+                    geometry = starting_geometry.difference(unary_union(tuple(
+                        geom for access_restriction_id, geom in columns_by_restrictions.items()
+                        if access_restriction_id not in selected_restrictions
+                    )))
+                    if geometry.is_empty:
+                        # no geometry is the default
+                        continue
+
+                    result.append(MapPermissionTaggedItem(
+                        value=geometry,
+                        # here we add the access restrictions of the space back in
+                        access_restrictions=frozenset(selected_restrictions) | space.effective_access_restrictions,
+                    ))
+
+            if not result:
+                print("Space with no effective geometry at all:", space)
+                pass # todo: some nice warning here wrould be nice… in other places too
+
+            space.cached_effective_geometries = result
+            space.save()
 
 
 class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
@@ -257,7 +319,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
     @classmethod
     def recalculate(cls):
-        from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
+        from c3nav.mapdata.permissions import active_map_permissions
         with active_map_permissions.disable_access_checks():
             return cls._recalculate()
 
