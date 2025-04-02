@@ -27,7 +27,7 @@ from django.utils.translation import ngettext_lazy
 from django_pydantic_field import SchemaField
 from shapely import Point
 
-from c3nav.api.schema import GeometriesByLevelSchema
+from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
@@ -652,6 +652,16 @@ class SpecificLocationTargetMixin(models.Model):
     def get_location(self, can_describe=False) -> Optional[SpecificLocation]:
         # todo: do we want to get rid of this?
         return next(iter((*(location for location in self.sorted_locations if location.can_describe), None)))
+
+
+CachedEffectiveGeometries = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]
+
+
+class SpecificLocationGeometryTargetMixin(SpecificLocationTargetMixin):
+    geometry = None
+
+    class Meta:
+        abstract = True
 
 
 class LocationGroupCategory(models.Model):

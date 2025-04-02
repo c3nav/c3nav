@@ -1,15 +1,19 @@
 from contextlib import contextmanager
 from itertools import batched
+from operator import itemgetter
+from typing import TypeAlias, NamedTuple, Sequence, Iterator
 
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from shapely.geometry import Point
+from django_pydantic_field import SchemaField
+from shapely.geometry import Point, Polygon, MultiPolygon, GeometryCollection, shape
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
-from c3nav.api.schema import GeometriesByLevelSchema
+from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema
 from c3nav.mapdata.grid import grid
+from c3nav.mapdata.permissions import MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -149,3 +153,127 @@ class GeometryMixin(models.Model):
     def delete(self, *args, **kwargs):
         self.pre_delete_changed_geometries()
         super().delete(*args, **kwargs)
+
+
+CachedEffectiveGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]
+CachedPoints: TypeAlias = list[MapPermissionTaggedItem[tuple[float, float]]]
+CachedBound: TypeAlias = list[MapPermissionTaggedItem[float]]
+
+
+class CachedBounds(NamedTuple):
+    minx: list[MapPermissionTaggedItem[float]]
+    miny: list[MapPermissionTaggedItem[float]]
+    maxx: list[MapPermissionTaggedItem[float]]
+    maxy: list[MapPermissionTaggedItem[float]]
+
+
+class LazyMapPermissionFilteredBounds(NamedTuple):
+    minx: LazyMapPermissionFilteredTaggedValue[float, None]
+    miny: LazyMapPermissionFilteredTaggedValue[float, None]
+    maxx: LazyMapPermissionFilteredTaggedValue[float, None]
+    maxy: LazyMapPermissionFilteredTaggedValue[float, None]
+
+
+class EffectiveGeometryMixin(models.Model):
+    cached_effective_geometries: CachedEffectiveGeometries = SchemaField(schema=CachedEffectiveGeometries, default=list)
+    cached_points: CachedPoints = SchemaField(schema=CachedPoints, default=list)
+    cached_bounds: CachedBounds = SchemaField(schema=CachedBounds, null=True)
+
+    class Meta:
+        abstract = True
+
+    @cached_property
+    def _effective_geometries(self) -> LazyMapPermissionFilteredTaggedValue[Polygon | MultiPolygon, GeometryCollection]:
+        return LazyMapPermissionFilteredTaggedValue(tuple(
+            MapPermissionTaggedItem(
+                value=shape(item.value.model_dump()),
+                access_restrictions=item.access_restrictions
+            )
+            for item in self.cached_effective_geometries
+        ), default=GeometryCollection())
+
+    @property
+    def effective_geometry(self) -> Polygon | MultiPolygon | GeometryCollection:
+        return self._effective_geometries.get()
+
+    @cached_property
+    def _points(self) -> LazyMapPermissionFilteredTaggedValue[tuple[float, float], None]:
+        return LazyMapPermissionFilteredTaggedValue(self.cached_points, default=None)
+
+    @property
+    def point(self) -> LocationPoint | None:
+        if self.main_level_id is None:
+            return None
+        xy = self._points.get()
+        if xy is None:
+            return None
+        return self.main_level_id, *xy
+
+    @classmethod
+    def recalculate_points(cls):
+        for space in cls.objects.prefetch_related():
+            results: list[MapPermissionTaggedItem[tuple[float, float]]] = []
+
+            # we are caching resulting points to find duplicates
+            point_results: dict[tuple[float, float], list[frozenset[int]]] = {}
+
+            # go through all possible geometries, starting with the least restricted ones
+            for geometry, access_restriction_ids in reversed(space.cached_effective_geometries):
+                point = good_representative_point(shape(geometry)).coords[0]
+
+                # seach whether we had this same points as a result before
+                for previous_result in point_results.get(point, []):
+                    if access_restriction_ids >= previous_result:
+                        # if we already had this point with a subset of these access restrictions, skip
+                        break
+
+                # create and store item
+                item = MapPermissionTaggedItem(value=point, access_restrictions=access_restriction_ids)
+                point_results.setdefault(point, []).append(access_restriction_ids)
+                results.append(item)
+
+            # we need to reverse the list back to make the logic work
+            space.cached_points = list(reversed(results))
+            space.save()
+
+    @cached_property
+    def _bounds(self) -> LazyMapPermissionFilteredBounds:
+        return LazyMapPermissionFilteredBounds(
+            *(LazyMapPermissionFilteredTaggedValue(item, default=None) for item in self.cached_bounds)
+        )
+
+    @property
+    def bounds(self) -> BoundsByLevelSchema:
+        values = tuple(item.get() for item in self._bounds)
+        if any((v is None) for v in values):
+            return {}
+        return {self.main_level_id: tuple(batched((round(i, 2) for i in values), 2))}
+
+    @staticmethod
+    def filter_bounds(bounds: Sequence[tuple[float, frozenset[int]]]) -> Iterator[MapPermissionTaggedItem[float]]:
+        last_value = None
+        done = []
+        for value, restrictions in bounds:
+            if value != last_value:
+                done = []
+                last_value = value
+            if any((d <= restrictions) for d in done):
+                # skip restriction supersets of other instances of the same value
+                continue
+            done.append(restrictions)
+            yield MapPermissionTaggedItem(value=value, access_restrictions=restrictions)
+
+    @classmethod
+    def recalculate_bounds(cls):
+        for obj in cls.objects.prefetch_related():
+            if obj.cached_effective_geometries:
+                geometries, access_restrictions = zip(*obj.cached_effective_geometries)
+                obj.cached_bounds = CachedBounds(*(
+                    list(cls.filter_bounds(sorted(zip(values, access_restrictions),
+                                                  key=lambda v: (v[0]*(-1 if (i > 1) else 1), len(v[1])),
+                                                  reverse=(i > 1))))
+                    for i, values in enumerate(zip(*(shape(geometry).bounds for geometry in geometries)))
+                ))
+            else:
+                obj.cached_bounds = CachedBounds([], [], [], [])
+            obj.save()
