@@ -36,7 +36,7 @@ class LevelChildEditUtils(DefaultEditUtils):
 
     @property
     def _geometry_url(self):
-        return '/api/v2/editor/geometries/level/' + str(self.level.primary_level_pk)  # todo: resolve correctly
+        return '/api/v2/editor/geometries/level/' + str(self.level.primary_level_id)  # todo: resolve correctly
 
 
 @dataclass

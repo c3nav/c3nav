@@ -1,17 +1,16 @@
 from contextlib import contextmanager
 from itertools import batched
-from typing import TypeAlias, NamedTuple, Sequence, Iterator
+from typing import TypeAlias, NamedTuple
 
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
-from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, shape, Point
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, shape
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema
-from c3nav.mapdata.grid import grid
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
@@ -122,7 +121,6 @@ class GeometryMixin(models.Model):
 
 CachedEffectiveGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]
 CachedPoints: TypeAlias = list[MapPermissionTaggedItem[tuple[float, float]]]
-CachedBound: TypeAlias = list[MapPermissionTaggedItem[float]]
 
 
 class CachedBounds(NamedTuple):
@@ -175,12 +173,12 @@ class CachedEffectiveGeometryMixin(models.Model):
 
     @property
     def point(self) -> LocationPoint | None:
-        if self.main_level_id is None:
+        if self.primary_level_id is None:
             return None
         xy = self._points.get()
         if xy is None:
             return None
-        return self.main_level_id, *xy
+        return self.primary_level_id, *xy
 
     @classmethod
     def recalculate_points(cls):
@@ -217,34 +215,26 @@ class CachedEffectiveGeometryMixin(models.Model):
 
     @property
     def bounds(self) -> BoundsByLevelSchema:
+        # todo: remove
         values = tuple(item.get() for item in self._bounds)
         if any((v is None) for v in values):
             return {}
-        return {self.main_level_id: tuple(batched((round(i, 2) for i in values), 2))}
-
-    @staticmethod
-    def filter_bounds(bounds: Sequence[tuple[float, frozenset[int]]]) -> Iterator[MapPermissionTaggedItem[float]]:
-        last_value = None
-        done = []
-        for value, restrictions in bounds:
-            if value != last_value:
-                done = []
-                last_value = value
-            if any((d <= restrictions) for d in done):
-                # skip restriction supersets of other instances of the same value
-                continue
-            done.append(restrictions)
-            yield MapPermissionTaggedItem(value=value, access_restrictions=restrictions)
+        return {self.primary_level_id: tuple(batched((round(i, 2) for i in values), 2))}
 
     @classmethod
     def recalculate_bounds(cls):
         for obj in cls.objects.prefetch_related():
             if obj.cached_effective_geometries:
+                # turns the list of geometries with access restrictions
+                # into a list of geometries and a list of access restrictions
                 geometries, access_restrictions = zip(*obj.cached_effective_geometries)
+
                 obj.cached_bounds = CachedBounds(*(
-                    list(cls.filter_bounds(sorted(zip(values, access_restrictions),
-                                                  key=lambda v: (v[0]*(-1 if (i > 1) else 1), len(v[1])),
-                                                  reverse=(i > 1))))
+                    list(MapPermissionTaggedItem.skip_redundant(
+                        (MapPermissionTaggedItem(round(item[0], 2), item[1]) for item in zip(values, access_restrictions)),
+                        reverse=(i > 1),  # sort in reverse for maxx/maxy
+                    ))
+                    # zip the collected bounds into 4 iterators of tagged items
                     for i, values in enumerate(zip(*(shape(geometry).bounds for geometry in geometries)))
                 ))
             else:
