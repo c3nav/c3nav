@@ -1,13 +1,14 @@
 import operator
 import string
 import warnings
+from collections import deque, defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce
-from itertools import chain
+from itertools import chain, batched
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterator, Sequence
 
 from django.conf import settings
 from django.core.cache import cache
@@ -20,24 +21,26 @@ from django.db.models.functions.window import RowNumber
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, lazy
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _, get_language, get_language_info
 from django.utils.translation import ngettext_lazy
 from django_pydantic_field import SchemaField
-from shapely import Point
 
-from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema
+from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
+from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions, \
-    MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
+    MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue, LazyMapPermissionFilteredTaggedValueSequence
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
-from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema
+from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema, \
+    DjangoCompatibleLocationPoint
 from c3nav.mapdata.utils.cache.proxied import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
+from c3nav.mapdata.utils.geometry import merge_bounds
 
 if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager
@@ -185,7 +188,11 @@ class FillAndBorderColor:
 
 
 ColorByTheme: TypeAlias = dict[int, FillAndBorderColor]
-DescribingTitles: TypeAlias = list[MapPermissionTaggedItem[dict[str, str]]]
+CachedTitles: TypeAlias = list[MapPermissionTaggedItem[dict[str, str]]]
+
+CachedBoundsByLevel: TypeAlias = dict[int, CachedBounds]
+CachedGeometriesByLevel: TypeAlias = dict[int, list[list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]]]
+CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
 class SpecificLocation(Location, models.Model):
@@ -219,7 +226,11 @@ class SpecificLocation(Location, models.Model):
                                              fallback_any=True, fallback_value="",
                                              plural_name='effective_external_url_labels')
     cached_effective_colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
-    cached_describing_titles: DescribingTitles = SchemaField(schema=DescribingTitles, default=list)
+    cached_describing_titles: CachedTitles = SchemaField(schema=CachedTitles, default=list)
+
+    cached_geometries: CachedGeometriesByLevel = SchemaField(schema=CachedGeometriesByLevel, null=True)
+    cached_points: CachedLocationPoints = SchemaField(schema=CachedLocationPoints, null=True)
+    cached_bounds: CachedBoundsByLevel = SchemaField(schema=CachedBoundsByLevel, null=True)
 
     sublocations = []
 
@@ -401,32 +412,90 @@ class SpecificLocation(Location, models.Model):
     @cached_property
     def describing_title(self) -> str:
         return lazy_get_i18n_value(
-            LazyMapPermissionFilteredTaggedValue(self.cached_describing_titles, default={}).get(),
+            lazy(LazyMapPermissionFilteredTaggedValue(self.cached_describing_titles, default={}).get, dict)(),
             fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value=""
         )
 
     """ Points / Bounds / Grid """
 
+    @classmethod
+    def recalculate_points(cls):
+        for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
+            obj: SpecificLocation
+            obj.cached_points = [
+                [
+                    MapPermissionTaggedItem( # add primary level to turn the xy coordinates into a location point
+                        value=(target.primary_level_id, *item.value),
+                        access_restrictions=item.access_restrictions
+                    ) for item in target.cached_points
+                ] for target in chain(obj.levels.all(), obj.spaces.all(), obj.areas.all(), obj.pois.all())
+            ]
+            obj.save()
+
+    @cached_property
+    def _points(self) -> LazyMapPermissionFilteredTaggedValueSequence[LocationPoint]:
+        if not self.cached_points:
+            return LazyMapPermissionFilteredTaggedValueSequence([])
+        return LazyMapPermissionFilteredTaggedValueSequence([
+            LazyMapPermissionFilteredTaggedValue(points, default=None)
+            for points in self.cached_points
+        ])
+
     @property
     def points(self) -> list[LocationPoint]:
-        return list(filter(None, (target.point for target in self.static_targets)))
+        return list(self._points)
 
     @property
     def dynamic_points(self) -> list[LocationPoint]:
         return list(filter(None, (target.dynamic_point for target in self.dynamic_targets)))
 
-    @staticmethod
-    def get_bounds(*, targets: Iterable[LocationTarget]):
-        from c3nav.mapdata.utils.geometry import merge_bounds
-        return merge_bounds(*filter(None, (target.bounds for target in targets)))
+    @classmethod
+    def recalculate_bounds(cls):
+        for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
+            obj: SpecificLocation
+            # collect the cached bounds of all static targets, grouped by level
+            collected_bounds: dict[int, deque[CachedBounds]] = defaultdict(deque)
+            for target in chain(obj.levels.all(), obj.spaces.all(),  obj.areas.all(), obj.pois.all()):
+                collected_bounds[target.primary_level_id].append(target.cached_bounds)
+
+            result: CachedBoundsByLevel = {}
+            for level_id, collected_level_bounds in collected_bounds.items():
+                result[level_id] = CachedBounds(*(
+                    list(MapPermissionTaggedItem.skip_redundant(values, reverse=(i > 1)))  # sort reverse for maxx/maxy
+                    # zip the collected bounds into 4 iterators of tagged items
+                    for i, values in enumerate(chain(*items) for items in zip(*collected_level_bounds))
+                ))
+            obj.cached_bounds = result
+            obj.save()
 
     @cached_property
+    def _bounds(self) -> dict[int, LazyMapPermissionFilteredBounds]:
+        return {
+            level_id: LazyMapPermissionFilteredBounds(
+                *(LazyMapPermissionFilteredTaggedValue(item, default=None) for item in level_bounds)
+            )
+            for level_id, level_bounds in self.cached_bounds.items()
+        }
+
+    @property
     def bounds(self) -> BoundsByLevelSchema:
-        return self.get_bounds(targets=self.static_targets)
+        if not self.cached_bounds:
+            return {}
+        return {
+            level_id: tuple(batched((round(i, 2) for i in level_bounds), 2))
+            for level_id, level_bounds in (
+                # get bounds fo reach level
+                (cached_level_id, tuple(item.get() for item in cached_level_bounds))
+                for cached_level_id, cached_level_bounds in self._bounds.items()
+            ) if not any((v is None) for v in level_bounds)
+        }
 
     @cached_property
     def dynamic_bounds(self) -> BoundsByLevelSchema:
-        return self.get_bounds(targets=self.all_targets)
+        return merge_bounds(
+            self.bounds,
+            *filter(None, (target.bounds for target in self.dynamic_targets))
+        )
 
     @staticmethod
     def get_grid_square(*, bounds) -> GridSquare:
@@ -444,6 +513,28 @@ class SpecificLocation(Location, models.Model):
     @property
     def dynamic_grid_square(self) -> GridSquare:
         return self.get_grid_square(bounds=self.dynamic_bounds)
+
+    @classmethod
+    def recalculate_geometries(cls):
+        for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
+            result: CachedGeometriesByLevel = {}
+            for target in chain(obj.levels.all(), obj.spaces.all(),  obj.areas.all(), obj.pois.all()):
+                result.setdefault(target.primary_level_id, []).append(target.cached_effective_geometries)
+            obj.cached_geometries = result
+            obj.save()
+
+    @cached_property
+    def geometries_by_level(self) -> GeometriesByLevel:
+        # todo: eventually include dynamic targets in here?
+        if not self.cached_geometries:
+            return {}
+        return {
+            level_id: LazyMapPermissionFilteredTaggedValueSequence([
+                LazyMapPermissionFilteredTaggedValue(geometries, default=None)
+                for geometries in level_geometries
+            ])
+            for level_id, level_geometries in self.cached_geometries.items()
+        }
 
     """ Subtitle """
 
@@ -485,10 +576,15 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def subtitle(self):
-        return self.get_subtitle(
-            target_subtitle=self.get_target_subtitle(dynamic=False),
-            grid_square=self.grid_square,
-        )
+        try:
+            return self.get_subtitle(
+                target_subtitle=self.get_target_subtitle(dynamic=False),
+                grid_square=self.grid_square,
+            )
+        except:
+            import traceback
+            traceback.print_exc()
+            return 'abc'
 
     @property
     def dynamic_subtitle(self):
@@ -510,29 +606,6 @@ class SpecificLocation(Location, models.Model):
             bounds=self.dynamic_bounds,
             nearby=None,  # todo: add nearby information
         )
-
-    @property
-    def geometries_by_level(self) -> GeometriesByLevelSchema:
-        # todo: eventually include dynamic targets in here?
-        result = {}
-        for target in self.static_targets:
-            for level_id, geometries in target.geometries_by_level.items():
-                result.setdefault(level_id, []).extend(geometries)
-        return result
-
-    @property
-    def geometries_or_points_by_level(self) -> GeometriesByLevelSchema:
-        # todo: eventually include dynamic targets in here?
-        result = {}
-        for target in self.static_targets:
-            target_geometry = target.geometries_by_level
-            if target_geometry:
-                for level_id, geometries in target_geometry.items():
-                    result.setdefault(level_id, []).extend(geometries)
-            else:
-                for level_id, x, y in target.points:
-                    result.setdefault(level_id, []).append(Point(x, y))
-        return result
 
     def details_display(self, *, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
@@ -567,18 +640,8 @@ class SpecificLocation(Location, models.Model):
     """ Changed Geometries """
 
     def register_changed_geometries(self, force=False):
-        changed = (
-          self.level_id, self.space_id, self.area_id, self.poi_id, self.dynamiclocation_id
-        ) != self._orig["target"]
-        if changed and any(self._orig["target"]):
-            if any(self._orig["target"]):
-                from c3nav.mapdata.models import Level, Space, Area, POI
-                target_i = next(iter(i for i, t in enumerate(self._orig["target"]) if t))
-                target_model = (Level, Space, Area, POI, DynamicLocation)[target_i]
-                target_id = self._orig["target"][target_i]
-                for old_target in target_model.objects.filter(pk=target_id):
-                    old_target.register_change(force=True)
-        if changed or force:
+        # todo: maybe not just if force but also if some property changed?
+        if force:
             for target in self.all_targets:
                 target.register_change(force=True)
 
@@ -630,6 +693,7 @@ class SpecificLocationTargetMixin(models.Model):
 
     @property
     def bounds(self) -> Optional[BoundsSchema]:
+        # todo: remove
         return None
 
     @property
@@ -946,7 +1010,6 @@ class Position(models.Model):
     can_describe = False
 
     geometries_by_level = {}
-    geometries_or_points_by_level = {}
 
     class Meta:
         verbose_name = _('Dynamic position')

@@ -1,7 +1,7 @@
 from decimal import Decimal
 from itertools import chain
 from operator import attrgetter
-from typing import Optional
+from typing import Optional, Never
 
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
@@ -11,7 +11,9 @@ from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models.geometry.base import CachedPoints, CachedBounds
 from c3nav.mapdata.models.locations import SpecificLocationTargetMixin
+from c3nav.mapdata.permissions import MapPermissionTaggedItem
 from c3nav.mapdata.schemas.model_base import BoundsSchema
 from c3nav.mapdata.utils.cache.proxied import versioned_cache, versioned_per_request_cache
 
@@ -95,6 +97,10 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     def primary_level_pk(self):
         return self.pk if self.on_top_of_id is None else self.on_top_of_id
 
+    @property
+    def primary_level_id(self):
+        return self.pk if self.on_top_of_id is None else self.on_top_of_id
+
     def for_details_display(self):
         location = self.get_location()
         if location:
@@ -134,19 +140,34 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
 
     @classmethod
     def recalculate_bounds(cls):
-        for level in cls.objects.prefetch_related("altitudeareas", "buildings").all():
+        for level in cls.objects.prefetch_related("spaces", "buildings").all():
             level.effective_left, level.effective_bottom, level.effective_right, level.effective_top = unary_union(
-                tuple(item.geometry.buffer(0) for item in chain(level.altitudeareas.all(), level.buildings.all()))
+                tuple(item.geometry.buffer(0) for item in chain(level.spaces.all(), level.buildings.all()))
             ).bounds
             level.save()
 
     @cached_property
     def bounds(self) -> Optional[BoundsSchema]:
         return {
-            self.primary_level_pk: ((self.effective_left, self.effective_bottom),
+            self.primary_level_id: ((self.effective_left, self.effective_bottom),
                                     (self.effective_right, self.effective_top))
         }
 
     @property
     def title(self):
         return _('Level %(short_label)s') % {"short_label": self.short_label}
+
+    @property
+    def cached_effective_geometries(self) -> list[Never]:
+        return []
+
+    @property
+    def cached_points(self) -> list[Never]:
+        return []
+
+    @property
+    def cached_bounds(self) -> CachedBounds:
+        return CachedBounds(*(
+            (MapPermissionTaggedItem(value=float(value), access_restrictions=frozenset(self.effective_access_restrictions)), )
+            for value in (self.effective_left, self.effective_bottom, self.effective_right, self.effective_top)
+        ))

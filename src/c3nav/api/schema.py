@@ -1,7 +1,7 @@
 from contextlib import suppress
 from dataclasses import dataclass, is_dataclass
 from types import NoneType
-from typing import Annotated, Any, Literal, Union, ClassVar, TypeAlias, Iterable
+from typing import Annotated, Any, Literal, Union, ClassVar, TypeAlias, Iterable, Sequence
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model
@@ -208,6 +208,7 @@ class AnyGeometrySchema(BaseSchema):
 
 
 GeometriesByLevelSchema: TypeAlias = dict[int, list[GeometrySchema]]
+type GeometriesByLevel = dict[int, Sequence[GeometrySchema]]
 
 
 class StatsSchema(BaseSchema):

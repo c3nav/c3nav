@@ -261,10 +261,6 @@ class LocationManager:
                 obj.dynamic_targets
 
                 for target in obj.static_targets:
-                    # noinspection PyStatementEffect
-                    target.bounds
-                    # noinspection PyStatementEffect
-                    target.point
                     target._prefetched_objects_cache = {}
 
             obj._prefetched_objects_cache = {}
@@ -362,10 +358,6 @@ class CustomLocation:
 
     @property
     def geometries_by_level(self) -> GeometriesByLevelSchema:
-        return {}
-
-    @property
-    def geometries_or_points_by_level(self) -> GeometriesByLevelSchema:
         return {self.level.pk: [Point(self.x, self.y)]}
 
     @cached_property
