@@ -177,7 +177,7 @@ def preview_location(request, slug):
         level_id = counts.most_common(1)[0][0]
         highlight = True
         geometries = list(chain(*(
-            loc.geometries_or_points_by_level.get(level_id, ()) for loc in locations
+            loc.geometries_by_level.get(level_id, ()) for loc in locations
         )))
     else:
         # there are no points, so we will show a bounding box of the biggest level
@@ -266,11 +266,11 @@ def preview_route(request, slug, slug2):
 
     origin_geometry = [
         geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry)
-        for geometry in route.origin.location.geometries_or_points_by_level.get(origin_level, [])
+        for geometry in route.origin.location.geometries_by_level.get(origin_level, [])
     ]
     destination_geometry = [
         geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry)
-        for geometry in route.detination.location.geometries_or_points_by_level.get(origin_level, [])
+        for geometry in route.detination.location.geometries_by_level.get(origin_level, [])
     ]
 
     all_geoms = [

@@ -1,6 +1,6 @@
 import math
 import re
-from typing import Annotated, Optional, Union, TYPE_CHECKING
+from typing import Annotated, Optional, Union, TYPE_CHECKING, TypeAlias
 
 from pydantic import Field as APIField
 from pydantic import PositiveInt
@@ -172,7 +172,7 @@ class LabelSettingsSchema(TitledSchema, DjangoModelSchema):  # todo: add titles 
     )
 
 
-LocationPoint = Annotated[
+LocationPoint: TypeAlias = Annotated[
     tuple[
         Annotated[PositiveInt, APIField(title="level ID")],
         Annotated[float, APIField(title="x coordinate")],
@@ -184,6 +184,7 @@ LocationPoint = Annotated[
         examples=[(1, 4.2, 13.37)]
     )
 ]
+DjangoCompatibleLocationPoint: TypeAlias = tuple[int, float, float]
 
 
 class WithGeometrySchema(BaseSchema):
