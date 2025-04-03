@@ -27,7 +27,7 @@ class Quest:
 
     @property
     def level_id(self) -> int:
-        return self.obj.main_level_id
+        return self.obj.primary_level_id
 
     @property
     def identifier(self) -> str:

@@ -92,7 +92,7 @@ def level_detail(request, pk):
         'child_models': [child_model(request, model_name, kwargs={'level': pk}, parent=level)
                          for model_name in submodels],
         'levels_on_top': level.levels_on_top.all(),
-        'geometry_url': ('/api/v2/editor/geometries/level/'+str(level.primary_level_pk)
+        'geometry_url': ('/api/v2/editor/geometries/level/'+str(level.primary_level_id)
                          if request.user_permissions.can_access_base_mapdata else None),
     })
 
@@ -688,7 +688,7 @@ def graph_edit(request, level=None, space=None):
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
             'level': level,
-            'geometry_url': '/api/v2/editor/geometries/level/'+str(level.primary_level_pk),
+            'geometry_url': '/api/v2/editor/geometries/level/'+str(level.primary_level_id),
         })
     elif space is not None:
         space = get_object_or_404(Space.objects.select_related('level').defer('geometry'), pk=space)

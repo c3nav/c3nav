@@ -5,7 +5,7 @@ from abc import abstractmethod, ABC
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, lru_cache, reduce
-from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Optional
+from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Optional, Generator, Iterable, Self
 
 from django.apps.registry import apps
 from django.contrib.auth.models import User
@@ -383,10 +383,41 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazy
     def _all_restrictions(self) -> frozenset[int]:
         return reduce(operator.or_, (item.effective_access_restrictions for item in self._data), frozenset())
 
+    def __repr__(self):
+        return f"LazyMapPermissionFilteredSequence({self._data})"
+
 
 class MapPermissionTaggedItem[T](NamedTuple):
     value: T
     access_restrictions: frozenset[int]
+
+    @staticmethod
+    def skip_redundant_presorted[T](values: Iterable["MapPermissionTaggedItem[T]"]) -> Generator["MapPermissionTaggedItem[T]"]:
+        """
+        Yield every item unless it was preceeded by one with the same value and a subset of access restrictions.
+        Only works if idential values are all next to each other. Use skip_redundant() otherwise.
+        """
+        last_value = None
+        done = []
+        for item in values:
+            if item.value != last_value:
+                done = []
+                last_value = item.value
+            if any((d <= item.access_restrictions) for d in done):
+                # skip restriction supersets of other instances of the same value
+                continue
+            done.append(item.access_restrictions)
+            yield item
+
+    @staticmethod
+    def skip_redundant[T](values: Iterable["MapPermissionTaggedItem[T]"],
+                          *, reverse: bool = False) -> Generator["MapPermissionTaggedItem[T]"]:
+        """
+        Sort items by value – ascending by default, descending if reverse=True
+        Then, yield all items that unless there is one with the same value and a subset of access restrictions.
+        """
+        values = sorted(values, key=lambda item: (item.value * (-1 if reverse else 1), len(item.access_restrictions)))
+        yield from MapPermissionTaggedItem.skip_redundant_presorted(values)
 
 
 class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSequence[T]):
@@ -408,6 +439,9 @@ class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSe
     def _all_restrictions(self) -> frozenset[int]:
         return reduce(operator.or_, (item.access_restrictions for item in self._data), frozenset())
 
+    def __repr__(self):
+        return f"LazyMapPermissionFilteredTaggedSequence({self._data})"
+
 
 class LazyMapPermissionFilteredTaggedValue[T, DT](BaseMapPermissionFiltered[T | DT]):
     """
@@ -420,6 +454,7 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](BaseMapPermissionFiltered[T | 
         self._default = default
 
     def _get_for_permissions(self, full: bool, permissions: set[int]) -> T | DT:
+        # todo: cache based least common permission denominator, so an empty value is fast
         try:
             if full:
                 return next(iter(item.value for item in self._data))
@@ -434,10 +469,38 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](BaseMapPermissionFiltered[T | 
 
     @cached_property
     def get(self) -> Callable[[], T | DT]:
-        # hack to make the actual _get call lazy
-        return lazy(self._get, dict)
+        return self._get
 
     def __getstate__(self):
         result = super().__getstate__()
         result.pop('get', None)
         return result
+
+    def __repr__(self):
+        return f"LazyMapPermissionFilteredTaggedValue({self._data}, default={self._default})"
+
+
+class LazyMapPermissionFilteredTaggedValueSequence[T](BaseLazyMapPermissionFilteredSequence[T]):
+    """
+    Wraps a sequence of LazyMapPermissionFilteredTaggedValue[T] objects.
+    Acts like a Sequence[T] (like list, tuple, ...) but will filter objects based on the active map permissions.
+    If an item evaluates to None, it will be skipped.
+    Caches the last 16 configurations.
+    """
+    def __init__(self, data: Sequence[LazyMapPermissionFilteredTaggedValue[T, None]]):
+        self._data = data
+
+    def _get_for_permissions(self, full: bool, permissions: set[int]) -> tuple[T, ...]:
+        if full:
+            return tuple(filter(None, (item.get() for item in self._data)))
+        return tuple(filter(None,
+            (item.get() for item in self._data if not (item.access_restrictions - permissions))
+        ))
+
+    @cached_property
+    def _all_restrictions(self) -> frozenset[int]:
+        # noinspection PyProtectedMember
+        return reduce(operator.or_, (item._all_restrictions for item in self._data), frozenset())
+
+    def __repr__(self):
+        return f"LazyMapPermissionFilteredTaggedValueSequence({self._data})"

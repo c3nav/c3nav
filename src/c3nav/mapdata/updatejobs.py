@@ -269,6 +269,16 @@ def recalculate_specificlocation_cached_from_parents(mapupdates: tuple[MapUpdate
     return True
 
 
+@register_mapupdate_job("level bounds")
+def recalculate_level_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Level.recalculate_bounds()
+    return True
+
+
 @register_mapupdate_job("Space effective geometries")
 def recalculate_space_effective_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
@@ -276,6 +286,16 @@ def recalculate_space_effective_geometries(mapupdates: tuple[MapUpdate, ...]) ->
         return False
 
     Space.recalculate_effective_geometries()
+    return True
+
+
+@register_mapupdate_job("Space simplified geometries", dependencies=(recalculate_space_effective_geometries, ))
+def recalculate_space_simplified_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    Space.recalculate_simplified_geometries()
     return True
 
 
@@ -319,7 +339,8 @@ def recalculate_space_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
     return True
 
 
-@register_mapupdate_job("Area bounds", dependencies=(recalculate_area_effective_geometries, ))
+@register_mapupdate_job("Area bounds",
+                        dependencies=(recalculate_area_effective_geometries, ))
 def recalculate_area_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')
@@ -329,9 +350,43 @@ def recalculate_area_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
     return True
 
 
-@register_mapupdate_job("geometries", dependencies=(recalculate_space_effective_geometries,
-                                                         recalculate_area_effective_geometries,
-                                                         recalculate_specificlocation_cached_from_parents, ))  # todo: depend on colors
+@register_mapupdate_job("Specific location geometries",
+                        dependencies=(recalculate_space_effective_geometries, recalculate_area_effective_geometries))
+def recalculate_specificlocation_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    SpecificLocation.recalculate_geometries()
+    return True
+
+
+@register_mapupdate_job("Specific location bounds",
+                        dependencies=(recalculate_level_bounds, recalculate_space_bounds, recalculate_area_bounds))
+def recalculate_specificlocation_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    SpecificLocation.recalculate_bounds()
+    return True
+
+
+@register_mapupdate_job("Specific location points",
+                        dependencies=(recalculate_space_points, recalculate_area_points))
+def recalculate_specificlocation_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    if not any(update.geometries_changed for update in mapupdates):
+        logger.info('No geometries affected.')
+        return False
+
+    SpecificLocation.recalculate_points()
+    return True
+
+
+@register_mapupdate_job("geometries",
+                        dependencies=(recalculate_space_effective_geometries,
+                                      recalculate_area_effective_geometries,
+                                      recalculate_specificlocation_cached_from_parents, ))  # todo: depend on colors
 def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')
@@ -368,16 +423,5 @@ def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     logger.info('Rebuilding level render data...')
 
     LevelRenderData.rebuild(geometry_update_folder_name)
-
-    return True
-
-
-@register_mapupdate_job("level bounds", dependencies=(recalculate_geometries, ))
-def recalculate_level_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    if not any(update.geometries_changed for update in mapupdates):
-        logger.info('No geometries affected.')
-        return False
-
-    Level.recalculate_bounds()
 
     return True
