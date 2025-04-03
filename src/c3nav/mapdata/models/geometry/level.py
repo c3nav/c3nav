@@ -31,8 +31,7 @@ from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
 
-if TYPE_CHECKING:
-    from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
+from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
 
 
 class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
@@ -92,7 +91,7 @@ class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Mode
         self.register_change()
 
     @cached_property
-    def main_level_id(self):
+    def primary_level_id(self):
         try:
             return self.level.on_top_of_id or self.level_id
         except ObjectDoesNotExist:
@@ -143,7 +142,8 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGe
     # todo: convert internal room number to alternative locationtag
     internal_room_number = models.CharField(null=True, blank=True, verbose_name=_("Internal Room Number"))
 
-    cached_simplified_geometries: CachedSimplifiedGeometries = SchemaField(schema=CachedSimplifiedGeometries, default=list)
+    cached_simplified_geometries: CachedSimplifiedGeometries = SchemaField(schema=CachedSimplifiedGeometries,
+                                                                           default=list)
 
     class Meta:
         verbose_name = _('Space')
@@ -230,7 +230,7 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGe
             space.save()
 
     @classmethod
-    def recalculate_simplified_geometiies(cls):
+    def recalculate_simplified_geometries(cls):
         for space in cls.objects.all():
             results: list[MapPermissionTaggedItem[Polygon]] = []
             # we are caching resulting polygons by their area to find duplicates

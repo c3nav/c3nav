@@ -18,7 +18,8 @@ from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestriction, UseQForPermissionsManager, \
     AccessRestrictionLogicMixin
 from c3nav.mapdata.models.base import TitledMixin
-from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin
+from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin, CachedEffectiveGeometries, \
+    CachedPoints, CachedBounds
 from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationGeometryTargetMixin
 from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -43,9 +44,9 @@ class SpaceGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Mode
         return None
 
     @cached_property
-    def main_level_id(self):
+    def primary_level_id(self):
         if "space" in self._state.fields_cache:
-            return self.space.main_level_id
+            return self.space.primary_level_id
         return None
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
@@ -362,6 +363,27 @@ class POI(SpaceGeometryMixin, SpecificLocationGeometryTargetMixin, AccessRestric
     @property
     def effective_geometry(self) -> Point:
         return self.geometry
+
+    @property
+    def cached_effective_geometries(self) -> list[MapPermissionTaggedItem[Point]]:
+        return [MapPermissionTaggedItem(
+            value=self.geometry,
+            access_restrictions=frozenset(self.effective_access_restrictions),
+        )]
+
+    @property
+    def cached_points(self) -> CachedPoints:
+        return [MapPermissionTaggedItem(
+            value=self.geometry.coords[0],
+            access_restrictions=frozenset(self.effective_access_restrictions),
+        )]
+
+    @property
+    def cached_bounds(self) -> CachedBounds:
+        return CachedBounds(*(
+            (MapPermissionTaggedItem(value=round(value, 2), access_restrictions=frozenset(self.effective_access_restrictions)), )
+            for value in self.geometry.bounds
+        ))
 
 
 class Hole(SpaceGeometryMixin, models.Model):
