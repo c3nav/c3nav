@@ -37,11 +37,11 @@ class LevelSchema(WithAccessRestrictionSchema, DjangoModelSchema):
         )],
         Annotated[None, APIField(
             title="null",
-            description="this is a main level, not on top of any other"
+            description="this is a primary level, not on top of any other"
         )]
     ] = APIField(
         title="on top of level ID",
-        description="if set, this is not a main level, but it's on top of this other level"
+        description="if set, this is not a primary level, but it's on top of this other level"
     )
     base_altitude: float = APIField(
         title="base/default altitude",

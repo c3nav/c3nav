@@ -149,10 +149,10 @@ class RouteSpaceSchema(BaseRouterDatabaseTargetSchema):
 class RouteLevelSchema(BaseRouterDatabaseTargetSchema):
     on_top_of: Union[
         Annotated[PositiveInt, APIField(title="level ID", description="level this level is on top of", example=1)],
-        Annotated[None, APIField(title="null", description="this is a main level, not on top of any other")]
+        Annotated[None, APIField(title="null", description="this is a primary level, not on top of any other")]
     ] = APIField(
         title="on top of level ID",
-        description="if set, this is not a main level, but it's on top of this other level"
+        description="if set, this is not a primary level, but it's on top of this other level"
     )
 
     @classmethod

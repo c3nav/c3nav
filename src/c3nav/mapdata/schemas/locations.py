@@ -229,8 +229,7 @@ class LocationProtocol(Protocol):
     dynamic_state: DynamicLocationState | None
     sublocations: []
 
-    geometries_by_level: GeometriesByLevelSchema  # geometries of with this location, without point geometries
-    geometries_or_points_by_level: GeometriesByLevelSchema  # geometries of with this location, points as fallback
+    geometries_by_level: GeometriesByLevelSchema  # geometries of with this location
 
     def details_display(self, editor_url: bool) -> LocationDisplay:
         """
