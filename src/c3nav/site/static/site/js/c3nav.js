@@ -2179,7 +2179,7 @@ c3nav = {
         if (!no_geometry && c3nav._visible_map_locations.indexOf(location.id) === -1) {
             c3nav._visible_map_locations.push(location.id);
             // todo: sometimes, at least for links to moving positions, this gets called twice… fix that
-            c3nav_api.get(`map/locations/${location.id}/geometries/`).then(c3nav._location_geometry_loaded);
+            c3nav_api.get(`map/locations/${location.id}/geometries/`).then(data => c3nav._location_geometry_loaded(location.id, data));
         }
 
         c3nav._merge_bounds(bounds,
@@ -2243,10 +2243,10 @@ c3nav = {
         return true;
     },
 
-    _location_geometry_loaded: function (data) {
-        if (c3nav._visible_map_locations.indexOf(data.id) === -1) return;
-        for (const level_id in data.geometries) {
-            for (const geometry of data.geometries[level_id]) {
+    _location_geometry_loaded: function (id, data) {
+        if (c3nav._visible_map_locations.indexOf(id) === -1) return;
+        for (const level_id in data) {
+            for (const geometry of data[level_id]) {
                 if (geometry.type === "Point") continue;
                 L.geoJSON(geometry, {
                     style: {
