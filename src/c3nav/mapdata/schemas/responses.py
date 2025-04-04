@@ -39,12 +39,3 @@ class WithBoundsSchema(BaseSchema):
         title="boundaries",
         description="(left, bottom) to (top, right)",
     )
-
-
-class LocationGeometries(BaseSchema):
-    identifier: LocationIdentifier = APIField(
-        description="ID of the location that the geometry is being queried for",
-    )
-    geometries: GeometriesByLevelSchema = APIField(
-        description="geometry by level"
-    )
