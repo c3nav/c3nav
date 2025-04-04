@@ -149,7 +149,7 @@ def location_display(request, identifier: LocationIdentifier):
 
 @map_api_router.get('/locations/{identifier}/geometries/', summary="location geometries",
                     description="Get location geometries (if available)",
-                    response={200: LocationGeometries, **API404.dict(), **auth_responses})
+                    response={200: GeometriesByLevelSchema, **API404.dict(), **auth_responses})
 @api_stats('location_geometries')
 @api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_specificlocation_cached_from_parents", ))  # todo: finer job_types
 def location_geometries(request, identifier: LocationIdentifier):
@@ -163,10 +163,7 @@ def location_geometries(request, identifier: LocationIdentifier):
             "identifier": location.target.effective_slug,
         }))
 
-    return LocationGeometries(
-        identifier=identifier,
-        geometries=location.geometries_by_level
-    )
+    return location.geometries_by_level
 
 
 @map_api_router.get('/positions/my/', summary="all moving position coordinates",
