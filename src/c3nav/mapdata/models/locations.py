@@ -8,7 +8,7 @@ from decimal import Decimal
 from functools import reduce
 from itertools import chain, batched
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterator, Sequence
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterator, Sequence, NamedTuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -27,14 +27,15 @@ from django.utils.translation import gettext_lazy as _, get_language, get_langua
 from django.utils.translation import ngettext_lazy
 from django_pydantic_field import SchemaField
 
-from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel
+from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel, PointSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions, \
-    MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue, LazyMapPermissionFilteredTaggedValueSequence
+    MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue, LazyMapPermissionFilteredTaggedValueSequence, \
+    LazySpacePermissionMaskedValue
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
@@ -190,8 +191,19 @@ class FillAndBorderColor:
 ColorByTheme: TypeAlias = dict[int, FillAndBorderColor]
 CachedTitles: TypeAlias = list[MapPermissionTaggedItem[dict[str, str]]]
 
+TaggedLocationGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema | PointSchema]]
+TaggedMaskedLocationGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema]]
+
+
+@dataclass(frozen=True)
+class MaskedLocationGeometry:
+    geometry: TaggedLocationGeometries
+    masked_geometry: TaggedMaskedLocationGeometries
+    space_id: int
+
+
 CachedBoundsByLevel: TypeAlias = dict[int, CachedBounds]
-CachedGeometriesByLevel: TypeAlias = dict[int, list[list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]]]
+CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationGeometry | TaggedLocationGeometries]]
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
@@ -296,27 +308,26 @@ class SpecificLocation(Location, models.Model):
 
     @classmethod
     def recalculate_effective_order(cls):
-        with active_map_permissions.disable_access_checks():
-            min_group_effective_order_ids = {}
-            for pk, min_group_effective_order in cls._default_manager.annotate(
-                min_group_effective_order=Min("groups__effective_order"),
-            ).values_list('pk', 'min_group_effective_order'):
-                min_group_effective_order_ids.setdefault(min_group_effective_order, set()).add(pk)
+        min_group_effective_order_ids = {}
+        for pk, min_group_effective_order in cls._default_manager.annotate(
+            min_group_effective_order=Min("groups__effective_order"),
+        ).values_list('pk', 'min_group_effective_order'):
+            min_group_effective_order_ids.setdefault(min_group_effective_order, set()).add(pk)
 
-            cls.objects.update(effective_order=Subquery(
-                cls.objects.filter(pk=OuterRef('pk')).annotate(
-                    min_group_effective_order=Case(
-                        *(When(pk__in=pks, then=Value(min_group_effective_order))
-                          for min_group_effective_order, pks in min_group_effective_order_ids.items()),
-                        default=Value(0),
-                    ),
-                    row_num=Window(
-                        expression=RowNumber(),
-                        order_by=("min_group_effective_order", "pk"),
-                    ),
-                    new_effective_order=F("row_num") + LocationGroup.objects.count()
-                ).values('new_effective_order')[:1]
-            ))
+        cls.objects.update(effective_order=Subquery(
+            cls.objects.filter(pk=OuterRef('pk')).annotate(
+                min_group_effective_order=Case(
+                    *(When(pk__in=pks, then=Value(min_group_effective_order))
+                      for min_group_effective_order, pks in min_group_effective_order_ids.items()),
+                    default=Value(0),
+                ),
+                row_num=Window(
+                    expression=RowNumber(),
+                    order_by=("min_group_effective_order", "pk"),
+                ),
+                new_effective_order=F("row_num") + LocationGroup.objects.count()
+            ).values('new_effective_order')[:1]
+        ))
 
     @classmethod
     def calculate_effective_x(cls, name: str, default=...):
@@ -401,13 +412,12 @@ class SpecificLocation(Location, models.Model):
 
     @classmethod
     def recalculate_cached_from_parents(cls):
-        with active_map_permissions.disable_access_checks():
-            cls.calculate_effective_x("icon")
-            cls.calculate_effective_x("external_url_labels", "{}")
-            cls.calculate_effective_x("label_settings")
+        cls.calculate_effective_x("icon")
+        cls.calculate_effective_x("external_url_labels", "{}")
+        cls.calculate_effective_x("label_settings")
 
-            cls.calculate_cached_effective_color()
-            cls.calculate_cached_describing_titles()
+        cls.calculate_cached_effective_color()
+        cls.calculate_cached_describing_titles()
 
     @cached_property
     def describing_title(self) -> str:
@@ -516,25 +526,51 @@ class SpecificLocation(Location, models.Model):
 
     @classmethod
     def recalculate_geometries(cls):
+        # todo: pre filter more based on location permissions
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
             result: CachedGeometriesByLevel = {}
-            for target in chain(obj.levels.all(), obj.spaces.all(),  obj.areas.all(), obj.pois.all()):
-                result.setdefault(target.primary_level_id, []).append(target.cached_effective_geometries)
+            for target in chain(obj.levels.all(), obj.spaces.all(), obj.areas.all(), obj.pois.all()):
+                try:
+                    mask = not target.base_mapdata_accessible
+                except AttributeError:
+                    mask = False
+                if mask:
+                    result.setdefault(target.primary_level_id, []).append(MaskedLocationGeometry(
+                        geometry=target.cached_effective_geometries,
+                        masked_geometry=target.cached_simplified_geometries,
+                        space_id=target.id,
+                    ))
+                else:
+                    result.setdefault(target.primary_level_id, []).append(target.cached_effective_geometries)
             obj.cached_geometries = result
             obj.save()
 
     @cached_property
-    def geometries_by_level(self) -> GeometriesByLevel:
+    def _geometries_by_level(self) -> GeometriesByLevel:
         # todo: eventually include dynamic targets in here?
         if not self.cached_geometries:
             return {}
         return {
             level_id: LazyMapPermissionFilteredTaggedValueSequence([
-                LazyMapPermissionFilteredTaggedValue(geometries, default=None)
+                (
+                    LazySpacePermissionMaskedValue[
+                        LazyMapPermissionFilteredTaggedValue[PolygonSchema | MultiPolygonSchema | PointSchema, None],
+                    ](
+                        value=LazyMapPermissionFilteredTaggedValue(geometries.geometry, default=None),
+                        masked_value=LazyMapPermissionFilteredTaggedValue(geometries.masked_geometry, default=None),
+                        space_id=geometries.space_id
+                    )
+                    if isinstance(geometries, MaskedLocationGeometry)
+                    else LazySpacePermissionMaskedValue(LazyMapPermissionFilteredTaggedValue(geometries, default=None))
+                )
                 for geometries in level_geometries
             ])
             for level_id, level_geometries in self.cached_geometries.items()
         }
+
+    @property
+    def geometries_by_level(self) -> GeometriesByLevelSchema:
+        return {level_id: list(level_geometries) for level_id, level_geometries in self._geometries_by_level.items()}
 
     """ Subtitle """
 
@@ -889,15 +925,14 @@ class LocationGroup(Location, models.Model):
 
     @classmethod
     def recalculate_effective_order(cls):
-        with active_map_permissions.disable_access_checks():
-            cls.objects.update(effective_order=Subquery(
-                cls.objects.filter(pk=OuterRef('pk')).annotate(
-                    new_effective_order=Window(
-                        expression=RowNumber(),
-                        order_by=('-category__priority', '-priority')
-                    )
-                ).values('new_effective_order')[:1]
-            ))
+        cls.objects.update(effective_order=Subquery(
+            cls.objects.filter(pk=OuterRef('pk')).annotate(
+                new_effective_order=Window(
+                    expression=RowNumber(),
+                    order_by=('-category__priority', '-priority')
+                )
+            ).values('new_effective_order')[:1]
+        ))
 
     def pre_save_changed_geometries(self):
         if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):

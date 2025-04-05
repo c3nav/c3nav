@@ -3,6 +3,8 @@ import subprocess
 from contextlib import suppress
 from pathlib import Path
 
+import c3nav.djangofixes  # noqa
+
 
 def _get_version():
     # first check for the environment variable that is set inside docker containers we build

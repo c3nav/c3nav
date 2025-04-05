@@ -18,7 +18,7 @@ from pydantic import PositiveInt
 from c3nav import settings
 from c3nav.api.auth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
-from c3nav.api.schema import BaseSchema
+from c3nav.api.schema import BaseSchema, GeometriesByLevelSchema
 from c3nav.mapdata.api.base import api_etag, api_stats
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.locations import LocationRedirect, LocationManager
@@ -30,7 +30,7 @@ from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationIdentifier, PositionIdentifier
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
-from c3nav.mapdata.schemas.responses import LocationGeometries, WithBoundsSchema, MapSettingsSchema
+from c3nav.mapdata.schemas.responses import WithBoundsSchema, MapSettingsSchema
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 

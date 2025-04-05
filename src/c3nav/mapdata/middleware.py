@@ -82,5 +82,13 @@ class MapPermissionsMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        with active_map_permissions.override(MapPermissionsFromRequest(request)):
-            return self.get_response(request)
+        from_request = MapPermissionsFromRequest(request)
+        active_map_permissions.set_value(from_request)
+        response = self.get_response(request)
+        if from_request is not active_map_permissions.get_value():
+            # Apparently asgiref.local cannot be trusted to actually keep the data local per-request?
+            # See: https://github.com/django/asgiref/issues/473
+            # If this is still an issue, we need to be alerted if it happens during development.
+            raise ValueError(f'SOMETHING IS VERY WRONG, SECURITY ISSUE '
+                             f'{from_request} {active_map_permissions.get_value()}')
+        return response
