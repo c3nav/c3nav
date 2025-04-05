@@ -354,7 +354,7 @@ class ListedLocationItemSchema(BaseLocationItemSchema):
 
     sublocations: Annotated[
         list[PositiveInt],
-        APIField(  # todo: this should be a set… but json serialization?
+        APIField(  # todo: this should be a set… but ninja json serialization doesn't like it
             description="IDs of all locations that directly belong to this grouo",
             examples=[(1, 2, 3)],
         )

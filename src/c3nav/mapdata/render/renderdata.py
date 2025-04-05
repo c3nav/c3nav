@@ -59,11 +59,6 @@ class LevelRenderData:
 
     @staticmethod
     def rebuild(update_folder_name):
-        with active_map_permissions.disable_access_checks():
-            return LevelRenderData._rebuild(update_folder_name)
-
-    @staticmethod
-    def _rebuild(update_folder_name):
         # Levels are automatically sorted by base_altitude, ascending
         levels = tuple(Level.objects.prefetch_related(
             'altitudeareas', 'buildings', 'doors',
