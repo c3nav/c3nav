@@ -72,11 +72,6 @@ class Router:
 
     @classmethod
     def rebuild(cls, update: MapUpdateTuple):
-        with active_map_permissions.disable_access_checks():
-            return cls._rebuild(update)
-
-    @classmethod
-    def _rebuild(cls, update: MapUpdateTuple):
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'locations__groups',
                                                       'spaces__holes', 'spaces__columns', 'spaces__locations__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
