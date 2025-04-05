@@ -433,12 +433,13 @@ class SpecificLocation(Location, models.Model):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
             obj: SpecificLocation
             obj.cached_points = [
-                [
+                # we are filtering out versions of this targets points for users who lack certain permissions,
+                list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
                     MapPermissionTaggedItem( # add primary level to turn the xy coordinates into a location point
                         value=(target.primary_level_id, *item.value),
                         access_restrictions=item.access_restrictions
                     ) for item in target.cached_points
-                ] for target in chain(obj.levels.all(), obj.spaces.all(), obj.areas.all(), obj.pois.all())
+                )) for target in chain(obj.levels.all(), obj.spaces.all(), obj.areas.all(), obj.pois.all())
             ]
             obj.save()
 
@@ -526,7 +527,6 @@ class SpecificLocation(Location, models.Model):
 
     @classmethod
     def recalculate_geometries(cls):
-        # todo: pre filter more based on location permissions
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
             result: CachedGeometriesByLevel = {}
             for target in chain(obj.levels.all(), obj.spaces.all(), obj.areas.all(), obj.pois.all()):
@@ -534,14 +534,24 @@ class SpecificLocation(Location, models.Model):
                     mask = not target.base_mapdata_accessible
                 except AttributeError:
                     mask = False
+                # we are filtering out versions of this target's geometries for users who lack certain permissions,
+                # because being able to see this location implies certain permissions
                 if mask:
                     result.setdefault(target.primary_level_id, []).append(MaskedLocationGeometry(
-                        geometry=target.cached_effective_geometries,
-                        masked_geometry=target.cached_simplified_geometries,
+                        geometry=list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
+                            target.cached_effective_geometries, obj.effective_access_restrictions
+                        )),
+                        masked_geometry=list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
+                            target.cached_simplified_geometries, obj.effective_access_restrictions
+                        )),
                         space_id=target.id,
                     ))
                 else:
-                    result.setdefault(target.primary_level_id, []).append(target.cached_effective_geometries)
+                    result.setdefault(target.primary_level_id, []).append(
+                        list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
+                            target.cached_effective_geometries, obj.effective_access_restrictions
+                        ))
+                    )
             obj.cached_geometries = result
             obj.save()
 
