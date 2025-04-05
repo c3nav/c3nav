@@ -302,6 +302,18 @@ class BaseMapPermissionFiltered[T](ABC):
     @property
     @abstractmethod
     def _relevant_permissions(self) -> PermissionsAsSet:
+        """
+        All permissions that may affect the result here.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        """
+        Possible minimum permissions to get any result.
+        If the user doesn't have all of at least one of these, the result will be empty.
+        """
         pass
 
     @cached_property
@@ -311,7 +323,6 @@ class BaseMapPermissionFiltered[T](ABC):
 
     def _get(self) -> T:
         # todo: this probably is still slower than it needs to be, because of the set operation?
-        # todo: pre-filter based on least common denominator of permissions
         return self._cached_get(active_map_permissions.as_set if active_map_permissions.full
                                 else (active_map_permissions.as_set & self._relevant_permissions))
 
@@ -335,6 +346,8 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
         return len(self._get())
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> dict[KT, VT]:
+        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+            return {}
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return self._data.copy()
         return {key: value for key, value in self._data.items()
@@ -342,7 +355,19 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
 
     @cached_property
     def _relevant_permissions(self) -> PermissionsAsSet:
-        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data.values()), frozenset())
+        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data.values()),
+                      frozenset((FullAccessTo.RESTRICTIONS, )))
+
+    @cached_property
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        """
+        Possible minimum permissions to get any result.
+        If the user doesn't have all of at least one of these, the result will be empty.
+        """
+        return (
+            frozenset((FullAccessTo.RESTRICTIONS,)),
+            reduce(operator.or_, (item.effective_access_restrictions for item in self._data.values()), frozenset()),
+        )
 
     def __iter__(self) -> Iterator[KT]:
         return iter(self._get())
@@ -412,6 +437,8 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazy
         self._data = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
+        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+            return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(self._data)
         return tuple(item for item in self._data
@@ -420,6 +447,18 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazy
     @cached_property
     def _relevant_permissions(self) -> PermissionsAsSet:
         return reduce(operator.or_, (item.effective_access_restrictions for item in self._data), frozenset())
+
+    @cached_property
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        common_permissions: PermissionsAsSet = reduce(
+            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
+        )
+        if not common_permissions:
+            return ()
+        return (
+            frozenset((FullAccessTo.RESTRICTIONS,)),
+            common_permissions,
+        )
 
     def __repr__(self):
         return f"LazyMapPermissionFilteredSequence({self._data})"
@@ -433,7 +472,7 @@ class MapPermissionTaggedItem[T](NamedTuple):
     def skip_redundant_presorted[T](values: Iterable["MapPermissionTaggedItem[T]"]) -> Generator["MapPermissionTaggedItem[T]"]:
         """
         Yield every item unless it was preceeded by one with the same value and a subset of access restrictions.
-        Only works if idential values are all next to each other. Use skip_redundant() otherwise.
+        Only works if identical values are all next to each other. Use skip_redundant() otherwise.
         """
         last_value = None
         done = []
@@ -483,6 +522,8 @@ class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSe
         self._data = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
+        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+            return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(item.value for item in self._data)
         return tuple(item.value for item in self._data
@@ -492,6 +533,18 @@ class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSe
     def _relevant_permissions(self) -> PermissionsAsSet:
         return reduce(operator.or_, (item.access_restrictions for item in self._data),
                       frozenset((FullAccessTo.RESTRICTIONS, )))
+
+    @cached_property
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        common_permissions: PermissionsAsSet = reduce(  # noqa
+            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
+        )
+        if not common_permissions:
+            return ()
+        return (
+            frozenset((FullAccessTo.RESTRICTIONS,)),
+            common_permissions,
+        )
 
     def __repr__(self):
         return f"LazyMapPermissionFilteredTaggedSequence({self._data})"
@@ -505,6 +558,18 @@ class LazyPermissionValue[T](ABC):
     @property
     @abstractmethod
     def _relevant_permissions(self) -> PermissionsAsSet:
+        """
+        All permissions that may affect the result here.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        """
+        Possible minimum permissions to get any result.
+        If the user doesn't have all of at least one of these, the result will be empty.
+        """
         pass
 
 
@@ -519,7 +584,8 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](LazyPermissionValue[T | DT], B
         self._default = default
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> T | DT:
-        # todo: cache based least common permission denominator, so an empty value is fast
+        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+            return self._default
         try:
             if FullAccessTo.RESTRICTIONS in permissions_as_set:
                 return next(iter(item.value for item in self._data))
@@ -530,8 +596,21 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](LazyPermissionValue[T | DT], B
 
     @cached_property
     def _relevant_permissions(self) -> PermissionsAsSet:
+        """ All permissions that may affect the result here. """
         return reduce(operator.or_, (item.access_restrictions for item in self._data),
                       frozenset((FullAccessTo.RESTRICTIONS, )))
+
+    @cached_property
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        common_permissions: PermissionsAsSet = reduce(  # noqa
+            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
+        )
+        if not common_permissions:
+            return ()
+        return (
+            frozenset((FullAccessTo.RESTRICTIONS,)),
+            common_permissions,
+        )
 
     def get(self) -> T | DT:
         return self._get()
@@ -571,6 +650,13 @@ class LazySpacePermissionMaskedValue[T, MT = T](LazyPermissionValue[T | MT], Bas
                else {FullAccessTo.SPACES, SpacePermission(self._space_id), *self._masked_value._relevant_permissions})
         )
 
+    @cached_property
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        return tuple(filter(None, (
+            *self._value._minimum_permissions,
+            *(() if self._masked_value is None else self._masked_value._minimum_permissions),
+        )))
+
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> T | MT:
         if self._masked_value is None or {FullAccessTo.SPACES, SpacePermission(self._space_id)} & permissions_as_set:
             return self._value.get()
@@ -598,6 +684,8 @@ class LazyMapPermissionFilteredTaggedValueSequence[T](BaseLazyMapPermissionFilte
         self._data: Sequence[LazyPermissionValue[T | None]] = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
+        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+            return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(filter(None, (item.get() for item in self._data)))
         return tuple(filter(None, (item.get() for item in self._data)))
@@ -606,6 +694,21 @@ class LazyMapPermissionFilteredTaggedValueSequence[T](BaseLazyMapPermissionFilte
     def _relevant_permissions(self) -> PermissionsAsSet:
         # noinspection PyProtectedMember
         return reduce(operator.or_, (item._relevant_permissions for item in self._data), frozenset())
+
+    @cached_property
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        common_permissions: PermissionsAsSet = reduce(  # noqa
+            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
+        )
+        if not common_permissions:
+            return ()
+        return (
+            # we don't know if it's filtered by restrictions or spaces but if you don't have the
+            # common relevant permissions, you'll need one of these to see anything, that's for sure
+            frozenset((FullAccessTo.RESTRICTIONS,)),
+            frozenset((FullAccessTo.SPACES,)),
+            common_permissions,
+        )
 
     def __repr__(self):
         return f"LazyMapPermissionFilteredTaggedValueSequence({self._data})"
