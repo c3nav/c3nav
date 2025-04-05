@@ -368,12 +368,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
     @classmethod
     def recalculate(cls):
-        from c3nav.mapdata.permissions import active_map_permissions
-        with active_map_permissions.disable_access_checks():
-            return cls._recalculate()
-
-    @classmethod
-    def _recalculate(cls):
         # collect location areas
         all_areas: list[AltitudeArea] = []  # all non-ramp altitude areas of the entire map
         all_ramps: list[AltitudeArea] = []  # all ramp altitude areas of the entire map
