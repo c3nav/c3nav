@@ -457,6 +457,21 @@ class MapPermissionTaggedItem[T](NamedTuple):
         values = sorted(values, key=lambda item: (item.value * (-1 if reverse else 1), len(item.access_restrictions)))
         yield from MapPermissionTaggedItem.skip_redundant_presorted(values)
 
+    @staticmethod
+    def add_restrictions_and_skip_redundant[T](
+            values: Iterable["MapPermissionTaggedItem[T]"],
+            access_restrictions: frozenset[int]) -> Generator["MapPermissionTaggedItem[T]"]:
+        """
+        Expecting the items to presorted, add access restrictions to each one.
+        Then, yield all items that unless there is one with the same value and a subset of access restrictions.
+        """
+        yield from MapPermissionTaggedItem.skip_redundant_presorted((
+            MapPermissionTaggedItem(
+                value=item.value,
+                access_restrictions=item.access_restrictions | access_restrictions,
+            ) for item in values
+        ))
+
 
 class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSequence[T]):
     """
