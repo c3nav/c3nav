@@ -307,6 +307,12 @@ class BaseMapPermissionFiltered[T](ABC):
         """
         pass
 
+    def _has_minimum_permissions(self, permissions_as_set: PermissionsAsSet) -> bool:
+        if FullAccessTo.RESTRICTIONS in permissions_as_set:
+            # necessary, otherwise we have massive queries during cache buildup
+            return True
+        return not self._minimum_permissions or any((item <= permissions_as_set) for item in self._minimum_permissions)
+
     @property
     @abstractmethod
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
@@ -321,14 +327,24 @@ class BaseMapPermissionFiltered[T](ABC):
         # this is a hack to have one lru_cache per instance
         return lru_cache(maxsize=16)(self._get_for_permissions)
 
+    def _get_only_relevant_permissions(self, permissions_as_set: PermissionsAsSet) -> PermissionsAsSet:
+        if FullAccessTo.RESTRICTIONS in permissions_as_set:
+            # necessary, otherwise we have massive queries during cache buildup
+            return permissions_as_set
+        return self._relevant_permissions & permissions_as_set
+
+    @cached_property
+    def _cached_get_only_relevant_permissions(self) -> Callable[[PermissionsAsSet], PermissionsAsSet]:
+        # this is a hack to have one lru_cache per instance
+        return lru_cache(maxsize=16)(self._get_only_relevant_permissions)
+
     def _get(self) -> T:
-        # todo: this probably is still slower than it needs to be, because of the set operation?
-        return self._cached_get(active_map_permissions.as_set if active_map_permissions.full
-                                else (active_map_permissions.as_set & self._relevant_permissions))
+        return self._cached_get(self._cached_get_only_relevant_permissions(active_map_permissions.as_set))
 
     def __getstate__(self):
         result = self.__dict__.copy()
         result.pop('_cached_get', None)
+        result.pop('_cached_get_only_relevant_permissions', None)
         return result
 
 
@@ -346,10 +362,10 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
         return len(self._get())
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> dict[KT, VT]:
-        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
-            return {}
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return self._data.copy()
+        if self._has_minimum_permissions(permissions_as_set):
+            return {}
         return {key: value for key, value in self._data.items()
                 if not (value.effective_access_restrictions - permissions_as_set)}
 
@@ -364,9 +380,14 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
         Possible minimum permissions to get any result.
         If the user doesn't have all of at least one of these, the result will be empty.
         """
+        common_permissions: PermissionsAsSet = reduce(  # noqa
+            operator.and_, (item.effective_access_restrictions for item in self._data.values()), frozenset()
+        )
+        if not common_permissions:
+            return ()
         return (
             frozenset((FullAccessTo.RESTRICTIONS,)),
-            reduce(operator.or_, (item.effective_access_restrictions for item in self._data.values()), frozenset()),
+            common_permissions,
         )
 
     def __iter__(self) -> Iterator[KT]:
@@ -437,7 +458,7 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazy
         self._data = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
-        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+        if self._has_minimum_permissions(permissions_as_set):
             return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(self._data)
@@ -451,7 +472,7 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazy
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(
-            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
+            operator.and_, (item.effective_access_restrictions for item in self._data), frozenset()
         )
         if not common_permissions:
             return ()
@@ -522,7 +543,7 @@ class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSe
         self._data = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
-        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+        if self._has_minimum_permissions(permissions_as_set):
             return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(item.value for item in self._data)
@@ -563,6 +584,12 @@ class LazyPermissionValue[T](ABC):
         """
         pass
 
+    def _has_minimum_permissions(self, permissions_as_set: PermissionsAsSet) -> bool:
+        if FullAccessTo.RESTRICTIONS in permissions_as_set:
+            # necessary, otherwise we have massive queries during cache buildup
+            return True
+        return not self._minimum_permissions or any((item <= permissions_as_set) for item in self._minimum_permissions)
+
     @property
     @abstractmethod
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
@@ -584,7 +611,7 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](LazyPermissionValue[T | DT], B
         self._default = default
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> T | DT:
-        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+        if self._has_minimum_permissions(permissions_as_set):
             return self._default
         try:
             if FullAccessTo.RESTRICTIONS in permissions_as_set:
@@ -652,6 +679,9 @@ class LazySpacePermissionMaskedValue[T, MT = T](LazyPermissionValue[T | MT], Bas
 
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        if not self._value._minimum_permissions:
+            if self._masked_value is None or not self._masked_value._minimum_permissions:
+                return ()
         return tuple(filter(None, (
             *self._value._minimum_permissions,
             *(() if self._masked_value is None else self._masked_value._minimum_permissions),
@@ -684,7 +714,7 @@ class LazyMapPermissionFilteredTaggedValueSequence[T](BaseLazyMapPermissionFilte
         self._data: Sequence[LazyPermissionValue[T | None]] = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
-        if not any((item <= permissions_as_set) for item in self._minimum_permissions):
+        if not self._has_minimum_permissions(permissions_as_set):
             return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(filter(None, (item.get() for item in self._data)))
