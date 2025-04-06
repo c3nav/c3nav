@@ -11,7 +11,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema
-from c3nav.mapdata.permissions import MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
+from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
@@ -136,10 +136,10 @@ class CachedBounds(NamedTuple):
 
 
 class LazyMapPermissionFilteredBounds(NamedTuple):
-    minx: LazyMapPermissionFilteredTaggedValue[float, None]
-    miny: LazyMapPermissionFilteredTaggedValue[float, None]
-    maxx: LazyMapPermissionFilteredTaggedValue[float, None]
-    maxy: LazyMapPermissionFilteredTaggedValue[float, None]
+    minx: MapPermissionGuardedTaggedValue[float, None]
+    miny: MapPermissionGuardedTaggedValue[float, None]
+    maxx: MapPermissionGuardedTaggedValue[float, None]
+    maxy: MapPermissionGuardedTaggedValue[float, None]
 
 
 class CachedEffectiveGeometryMixin(models.Model):
@@ -151,8 +151,8 @@ class CachedEffectiveGeometryMixin(models.Model):
         abstract = True
 
     @cached_property
-    def _effective_geometries(self) -> LazyMapPermissionFilteredTaggedValue[Polygon | MultiPolygon, GeometryCollection]:
-        return LazyMapPermissionFilteredTaggedValue(tuple(
+    def _effective_geometries(self) -> MapPermissionGuardedTaggedValue[Polygon | MultiPolygon, GeometryCollection]:
+        return MapPermissionGuardedTaggedValue(tuple(
             MapPermissionTaggedItem(
                 value=shape(item.value.model_dump()),
                 access_restrictions=item.access_restrictions
@@ -173,8 +173,8 @@ class CachedEffectiveGeometryMixin(models.Model):
         }
 
     @cached_property
-    def _points(self) -> LazyMapPermissionFilteredTaggedValue[tuple[float, float], None]:
-        return LazyMapPermissionFilteredTaggedValue(self.cached_points, default=None)
+    def _points(self) -> MapPermissionGuardedTaggedValue[tuple[float, float], None]:
+        return MapPermissionGuardedTaggedValue(self.cached_points, default=None)
 
     @property
     def point(self) -> LocationPoint | None:
@@ -215,7 +215,7 @@ class CachedEffectiveGeometryMixin(models.Model):
     @cached_property
     def _bounds(self) -> LazyMapPermissionFilteredBounds:
         return LazyMapPermissionFilteredBounds(
-            *(LazyMapPermissionFilteredTaggedValue(item, default=None) for item in self.cached_bounds)
+            *(MapPermissionGuardedTaggedValue(item, default=None) for item in self.cached_bounds)
         )
 
     @property

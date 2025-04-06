@@ -34,8 +34,8 @@ from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissio
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions, \
-    MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue, LazyMapPermissionFilteredTaggedValueSequence, \
-    LazySpacePermissionMaskedValue
+    MapPermissionTaggedItem, MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
+    MapPermissionsMaskedTaggedValue
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
@@ -422,7 +422,7 @@ class SpecificLocation(Location, models.Model):
     @cached_property
     def describing_title(self) -> str:
         return lazy_get_i18n_value(
-            lazy(LazyMapPermissionFilteredTaggedValue(self.cached_describing_titles, default={}).get, dict)(),
+            lazy(MapPermissionGuardedTaggedValue(self.cached_describing_titles, default={}).get, dict)(),
             fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value=""
         )
 
@@ -444,11 +444,11 @@ class SpecificLocation(Location, models.Model):
             obj.save()
 
     @cached_property
-    def _points(self) -> LazyMapPermissionFilteredTaggedValueSequence[LocationPoint]:
+    def _points(self) -> MapPermissionGuardedTaggedValueSequence[LocationPoint]:
         if not self.cached_points:
-            return LazyMapPermissionFilteredTaggedValueSequence([])
-        return LazyMapPermissionFilteredTaggedValueSequence([
-            LazyMapPermissionFilteredTaggedValue(points, default=None)
+            return MapPermissionGuardedTaggedValueSequence([])
+        return MapPermissionGuardedTaggedValueSequence([
+            MapPermissionGuardedTaggedValue(points, default=None)
             for points in self.cached_points
         ])
 
@@ -483,7 +483,7 @@ class SpecificLocation(Location, models.Model):
     def _bounds(self) -> dict[int, LazyMapPermissionFilteredBounds]:
         return {
             level_id: LazyMapPermissionFilteredBounds(
-                *(LazyMapPermissionFilteredTaggedValue(item, default=None) for item in level_bounds)
+                *(MapPermissionGuardedTaggedValue(item, default=None) for item in level_bounds)
             )
             for level_id, level_bounds in self.cached_bounds.items()
         }
@@ -561,17 +561,17 @@ class SpecificLocation(Location, models.Model):
         if not self.cached_geometries:
             return {}
         return {
-            level_id: LazyMapPermissionFilteredTaggedValueSequence([
+            level_id: MapPermissionGuardedTaggedValueSequence([
                 (
-                    LazySpacePermissionMaskedValue[
-                        LazyMapPermissionFilteredTaggedValue[PolygonSchema | MultiPolygonSchema | PointSchema, None],
+                    MapPermissionsMaskedTaggedValue[
+                        MapPermissionGuardedTaggedValue[PolygonSchema | MultiPolygonSchema | PointSchema, None],
                     ](
-                        value=LazyMapPermissionFilteredTaggedValue(geometries.geometry, default=None),
-                        masked_value=LazyMapPermissionFilteredTaggedValue(geometries.masked_geometry, default=None),
+                        value=MapPermissionGuardedTaggedValue(geometries.geometry, default=None),
+                        masked_value=MapPermissionGuardedTaggedValue(geometries.masked_geometry, default=None),
                         space_id=geometries.space_id
                     )
                     if isinstance(geometries, MaskedLocationGeometry)
-                    else LazySpacePermissionMaskedValue(LazyMapPermissionFilteredTaggedValue(geometries, default=None))
+                    else MapPermissionsMaskedTaggedValue(MapPermissionGuardedTaggedValue(geometries, default=None))
                 )
                 for geometries in level_geometries
             ])
