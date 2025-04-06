@@ -1,9 +1,8 @@
 import operator
 import sys
-import time
 import warnings
 from abc import abstractmethod, ABC
-from contextlib import contextmanager, AbstractContextManager
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property, lru_cache, reduce
@@ -11,7 +10,6 @@ from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTu
     overload, TypeAlias
 
 from django.apps.registry import apps
-from django.conf import settings
 from django.contrib.auth.models import User
 
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
@@ -294,10 +292,18 @@ class MapPermissionContext(MapPermissions):
 active_map_permissions = MapPermissionContext()
 
 
-class BaseMapPermissionFiltered[T](ABC):
+class BaseMapPermissionGuarded[T](ABC):
+    """
+    Base class for a wrapper that guards data based on map permissions.
+    """
     @abstractmethod
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> T:
         pass
+
+    @cached_property
+    def _cached_get(self) -> Callable[[PermissionsAsSet], T]:
+        # this is a hack to have one lru_cache per instance
+        return lru_cache(maxsize=16)(self._get_for_permissions)
 
     @property
     @abstractmethod
@@ -306,26 +312,6 @@ class BaseMapPermissionFiltered[T](ABC):
         All permissions that may affect the result here.
         """
         pass
-
-    def _has_minimum_permissions(self, permissions_as_set: PermissionsAsSet) -> bool:
-        if FullAccessTo.RESTRICTIONS in permissions_as_set:
-            # necessary, otherwise we have massive queries during cache buildup
-            return True
-        return not self._minimum_permissions or any((item <= permissions_as_set) for item in self._minimum_permissions)
-
-    @property
-    @abstractmethod
-    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
-        """
-        Possible minimum permissions to get any result.
-        If the user doesn't have all of at least one of these, the result will be empty.
-        """
-        pass
-
-    @cached_property
-    def _cached_get(self) -> Callable[[PermissionsAsSet], T]:
-        # this is a hack to have one lru_cache per instance
-        return lru_cache(maxsize=16)(self._get_for_permissions)
 
     def _get_only_relevant_permissions(self, permissions_as_set: PermissionsAsSet) -> PermissionsAsSet:
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
@@ -338,6 +324,21 @@ class BaseMapPermissionFiltered[T](ABC):
         # this is a hack to have one lru_cache per instance
         return lru_cache(maxsize=16)(self._get_only_relevant_permissions)
 
+    @property
+    @abstractmethod
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        """
+        Possible minimum permissions to get any result.
+        If the user doesn't have all of at least one of these, the result will be empty.
+        """
+        pass
+
+    def _has_minimum_permissions(self, permissions_as_set: PermissionsAsSet) -> bool:
+        if FullAccessTo.RESTRICTIONS in permissions_as_set:
+            # necessary, otherwise we have massive queries during cache buildup
+            return True
+        return not self._minimum_permissions or any((item <= permissions_as_set) for item in self._minimum_permissions)
+
     def _get(self) -> T:
         return self._cached_get(self._cached_get_only_relevant_permissions(active_map_permissions.as_set))
 
@@ -348,8 +349,8 @@ class BaseMapPermissionFiltered[T](ABC):
         return result
 
 
-class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[KT, VT],
-                                                                            BaseMapPermissionFiltered[dict[KT, VT]]):
+class MapPermissionGuardedMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[KT, VT],
+                                                                       BaseMapPermissionGuarded[dict[KT, VT]]):
     """
     Wraps a mapping of AccessRestrictionLogicMixin objects.
     Acts like a mapping (like dict) but will filter objects based on the active map permissions.
@@ -418,7 +419,10 @@ class LazyMapPermissionFilteredMapping[KT, VT: AccessRestrictionLogicMixin](Mapp
         return item in self._get()
 
 
-class BaseLazyMapPermissionFilteredSequence[T](Sequence[T], BaseMapPermissionFiltered[tuple[T, ...]], ABC):
+class BaseMapPermissionGuardedSequence[T](Sequence[T], BaseMapPermissionGuarded[tuple[T, ...]], ABC):
+    """
+    Base class for a wrapper that guards a sequence based on map permissions.
+    """
     _data: Sequence
 
     def __len__(self) -> int:
@@ -448,7 +452,7 @@ class BaseLazyMapPermissionFilteredSequence[T](Sequence[T], BaseMapPermissionFil
         return iter(reversed(self._get()))
 
 
-class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazyMapPermissionFilteredSequence[T]):
+class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseMapPermissionGuardedSequence[T]):
     """
     Wraps a sequence of AccessRestrictionLogicMixin objects.
     Acts like a sequence (like list, tuple, ...) but will filter objects based on the active map permissions.
@@ -486,6 +490,9 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseLazy
 
 
 class MapPermissionTaggedItem[T](NamedTuple):
+    """
+    Tags a value with access permissions
+    """
     value: T
     access_restrictions: frozenset[int]
 
@@ -533,7 +540,7 @@ class MapPermissionTaggedItem[T](NamedTuple):
         ))
 
 
-class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSequence[T]):
+class MapPermissionGuardedTaggedSequence[T](BaseMapPermissionGuardedSequence[T]):
     """
     Wraps a sequence of MapPermissionTaggedItem[T] objects.
     Acts like a Sequence[T] (like list, tuple, ...) but will filter objects based on the active map permissions.
@@ -571,36 +578,16 @@ class LazyMapPermissionFilteredTaggedSequence[T](BaseLazyMapPermissionFilteredSe
         return f"LazyMapPermissionFilteredTaggedSequence({self._data})"
 
 
-class LazyPermissionValue[T](ABC):
+class BaseMapPermissionGuardedValue[T](BaseMapPermissionGuarded[T], ABC):
+    """
+    Base class for a wrapper that guards a single value based on map permissions.
+    """
     @abstractmethod
     def get(self) -> T:
         pass
 
-    @property
-    @abstractmethod
-    def _relevant_permissions(self) -> PermissionsAsSet:
-        """
-        All permissions that may affect the result here.
-        """
-        pass
 
-    def _has_minimum_permissions(self, permissions_as_set: PermissionsAsSet) -> bool:
-        if FullAccessTo.RESTRICTIONS in permissions_as_set:
-            # necessary, otherwise we have massive queries during cache buildup
-            return True
-        return not self._minimum_permissions or any((item <= permissions_as_set) for item in self._minimum_permissions)
-
-    @property
-    @abstractmethod
-    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
-        """
-        Possible minimum permissions to get any result.
-        If the user doesn't have all of at least one of these, the result will be empty.
-        """
-        pass
-
-
-class LazyMapPermissionFilteredTaggedValue[T, DT](LazyPermissionValue[T | DT], BaseMapPermissionFiltered[T | DT]):
+class MapPermissionGuardedTaggedValue[T, DT](BaseMapPermissionGuardedValue[T | DT]):
     """
     Wraps a sequence of MapPermissionTaggedItem[T] objects.
     Allows you to get the first visible item based on the active map permissions.
@@ -651,19 +638,19 @@ class LazyMapPermissionFilteredTaggedValue[T, DT](LazyPermissionValue[T | DT], B
         return f"LazyMapPermissionFilteredTaggedValue({self._data}, default={self._default})"
 
 
-class LazySpacePermissionMaskedValue[T, MT = T](LazyPermissionValue[T | MT], BaseMapPermissionFiltered[T | MT]):
+class MapPermissionsMaskedTaggedValue[T, MT = T](BaseMapPermissionGuardedValue[T | MT]):
     """
     Wraps two LazyPermissionValue instances, deliver them the private or masked one based on the user's space permissions.
     """
     @overload
-    def __init__(self, *, value: LazyPermissionValue[T], masked_value: LazyPermissionValue[MT], space_id: int):
+    def __init__(self, *, value: BaseMapPermissionGuardedValue[T], masked_value: BaseMapPermissionGuardedValue[MT], space_id: int):
         pass
 
     @overload
-    def __init__(self, value: LazyPermissionValue[T]):
+    def __init__(self, value: BaseMapPermissionGuardedValue[T]):
         pass
 
-    def __init__(self, value: LazyPermissionValue[T], *, masked_value: LazyPermissionValue[MT] | None = None,
+    def __init__(self, value: BaseMapPermissionGuardedValue[T], *, masked_value: BaseMapPermissionGuardedValue[MT] | None = None,
                  space_id: int | None = None):
         self._value = value
         self._masked_value = masked_value
@@ -703,15 +690,15 @@ class LazySpacePermissionMaskedValue[T, MT = T](LazyPermissionValue[T | MT], Bas
                     f"space_id={self._space_id})")
 
 
-class LazyMapPermissionFilteredTaggedValueSequence[T](BaseLazyMapPermissionFilteredSequence[T]):
+class MapPermissionGuardedTaggedValueSequence[T](BaseMapPermissionGuardedSequence[T]):
     """
     Wraps a sequence of LazyPermissionValue[T] objects.
     Acts like a Sequence[T] (like list, tuple, ...) but will filter objects based on the active map permissions.
     If an item evaluates to None, it will be skipped.
     Caches the last 16 configurations.
     """
-    def __init__(self, data: Sequence[LazyPermissionValue[T | None]]):
-        self._data: Sequence[LazyPermissionValue[T | None]] = data
+    def __init__(self, data: Sequence[BaseMapPermissionGuardedValue[T | None]]):
+        self._data: Sequence[BaseMapPermissionGuardedValue[T | None]] = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
         if not self._has_minimum_permissions(permissions_as_set):

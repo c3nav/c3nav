@@ -19,7 +19,7 @@ from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
-from c3nav.mapdata.permissions import active_map_permissions, LazyMapPermissionFilteredMapping
+from c3nav.mapdata.permissions import active_map_permissions, MapPermissionGuardedMapping
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
@@ -36,7 +36,7 @@ class LocationRedirect:
     target: Location
 
 
-LazyDatabaseLocationById: TypeAlias = LazyMapPermissionFilteredMapping[int, SpecificLocation | LocationGroup]
+LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, SpecificLocation | LocationGroup]
 
 
 class SlugTarget(NamedTuple):
@@ -46,14 +46,14 @@ class SlugTarget(NamedTuple):
 
 class LocationManager:
     _cache_key = None
-    _all_locations: LazyDatabaseLocationById = LazyMapPermissionFilteredMapping({})
-    _visible_locations: LazyDatabaseLocationById = LazyMapPermissionFilteredMapping({})
-    _searchable_locations: LazyDatabaseLocationById = LazyMapPermissionFilteredMapping({})
+    _all_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
+    _visible_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
+    _searchable_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
     _locations_by_slug: dict[NonEmptyStr, SlugTarget] = {}
-    _levels_by_level_index: LazyMapPermissionFilteredMapping[str, Level] = LazyMapPermissionFilteredMapping({})
+    _levels_by_level_index: MapPermissionGuardedMapping[str, Level] = MapPermissionGuardedMapping({})
 
     @classmethod
-    def levels_by_level_index(cls) -> LazyMapPermissionFilteredMapping[str, Level]:
+    def levels_by_level_index(cls) -> MapPermissionGuardedMapping[str, Level]:
         """
         Get mapping of level index to level
         """
@@ -180,12 +180,12 @@ class LocationManager:
                 if all_locations is None:
                     all_locations = cls.generate_locations_by_id()
                     cache.set(cache_key, all_locations, 1800)
-                cls._all_locations = LazyMapPermissionFilteredMapping(all_locations)
-                cls._visible_locations = LazyMapPermissionFilteredMapping({
+                cls._all_locations = MapPermissionGuardedMapping(all_locations)
+                cls._visible_locations = MapPermissionGuardedMapping({
                     pk: location for pk, location in all_locations.items()
                     if location.can_search or location.can_describe
                 })
-                cls._searchable_locations = LazyMapPermissionFilteredMapping({
+                cls._searchable_locations = MapPermissionGuardedMapping({
                     pk: location for pk, location in all_locations.items()
                     if location.can_describe
                 })
@@ -193,7 +193,7 @@ class LocationManager:
                     location_slug.slug: SlugTarget(target_id=location_slug.target_id, redirect=location_slug.redirect)
                     for location_slug in LocationSlug.objects.all()
                 }
-                cls._levels_by_level_index = LazyMapPermissionFilteredMapping({
+                cls._levels_by_level_index = MapPermissionGuardedMapping({
                     level.level_index: level
                     for level in Level.objects.filter(on_top_of_id__isnull=True).order_by('base_altitude')
                 })
