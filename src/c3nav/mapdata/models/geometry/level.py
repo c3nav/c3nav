@@ -31,7 +31,7 @@ from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
 
-from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, LazyMapPermissionFilteredTaggedValue
+from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 
 
 class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
@@ -256,8 +256,8 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGe
             space.save()
 
     @cached_property
-    def _simplified_geometries(self) -> LazyMapPermissionFilteredTaggedValue[Polygon, GeometryCollection]:
-        return LazyMapPermissionFilteredTaggedValue(tuple(
+    def _simplified_geometries(self) -> MapPermissionGuardedTaggedValue[Polygon, GeometryCollection]:
+        return MapPermissionGuardedTaggedValue(tuple(
             MapPermissionTaggedItem(
                 value=shape(item.value.model_dump()),
                 access_restrictions=item.access_restrictions
