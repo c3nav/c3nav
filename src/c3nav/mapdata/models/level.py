@@ -101,6 +101,10 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     def primary_level_id(self):
         return self.pk if self.on_top_of_id is None else self.on_top_of_id
 
+    @property
+    def subtitle(self):
+        return self.title
+
     def for_details_display(self):
         location = self.get_location()
         if location:

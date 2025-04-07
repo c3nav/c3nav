@@ -118,6 +118,5 @@ def register_signals():
     from c3nav.mapdata.models import Space
     from c3nav.mapdata.models import Area
     from c3nav.mapdata.models import POI
-    from c3nav.mapdata.models.locations import DynamicLocation
-    for target_type in (Level, Space, Area, POI, DynamicLocation):
+    for target_type in (Level, Space, Area, POI):
         m2m_changed.connect(specificlocation_changed, sender=target_type.locations.through)
