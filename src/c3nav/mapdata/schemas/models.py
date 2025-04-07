@@ -414,7 +414,7 @@ class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
     priority: int = APIField()  # todo: ???
 
 
-class DynamicLocationSchema(WithAccessRestrictionSchema, DjangoModelSchema):
+class DynamicLocationTargetSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
     Represents a moving object. Its position has to be separately queried through the position API.
     """

@@ -269,6 +269,25 @@ def recalculate_specificlocation_cached_from_parents(mapupdates: tuple[MapUpdate
     return True
 
 
+@register_mapupdate_job("SpecificLocation static targets", eager=True)
+def recalculate_specificlocation_static_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    SpecificLocation.recalculate_all_static_targets()
+    return True
+
+
+@register_mapupdate_job("SpecificLocation dynamic targets", eager=True)
+def recalculate_specificlocation_dynamic_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    SpecificLocation.recalculate_all_position_secrets()
+    return True
+
+
+@register_mapupdate_job("SpecificLocation target subtitles",
+                        eager=True, dependencies=(recalculate_specificlocation_cached_from_parents, ))
+def recalculate_specificlocation_target_subtitles(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    SpecificLocation.recalculate_target_subtitles()
+    return True
+
+
 @register_mapupdate_job("level bounds")
 def recalculate_level_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):

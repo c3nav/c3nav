@@ -204,45 +204,13 @@ class LocationManager:
 
         # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
         locations = {location.pk: location for location in sorted((
-            *SpecificLocation.objects.prefetch_related(
-               "levels", "spaces", "areas", "pois", "dynamiclocations",
-            ).select_related("effective_label_settings").prefetch_related("slug_set"),
+            *SpecificLocation.objects.select_related("effective_label_settings").prefetch_related("slug_set"),
             *LocationGroup.objects.select_related(
                 'category', 'label_settings'
             ).prefetch_related("slug_set", "specific_locations"),
         ), key=operator.attrgetter('effective_order'))}
 
-        # add locations to groups
-        levels = {level.pk: level for level in Level.objects.all()}
-        spaces = {space.pk: space for space in Space.objects.select_related('level').prefetch_related(
-            "locations__groups", "locations__slug_set"
-        )}
-
-        # trigger some cached properties, then empty prefetch_related cache
-        for obj in chain(levels.values(), spaces.values()):
-            for location in obj.sorted_locations:
-                # noinspection PyStatementEffect
-                location.slug
-                # noinspection PyStatementEffect
-                location.redirect_slugs
-                location._prefetched_objects_cache = {}
-
-            obj._prefetched_objects_cache = {}
-
-        # add levels to spaces: todo: hide locations etc bluh… what if a location has only on target and it's invisible?
-        for pk, obj in locations.items():
-            if not isinstance(obj, SpecificLocation):
-                continue
-            for target in obj.all_targets:
-                if isinstance(target, LevelGeometryMixin):
-                    level = levels.get(target.level_id, None)
-                    if level is not None:
-                        target.level = level
-                elif isinstance(target, SpaceGeometryMixin):
-                    space = spaces.get(target.space_id, None)
-                    if space is not None:
-                        target.space = space
-            # todo: we want to hide locations that only have targets in an invisible level… probably
+        # todo: hide locations etc bluh… what if a location has only on target and it's invisible?
 
         # apply better space geometries TODO: do this again?
         #for pk, geometry in get_better_space_geometries().items():
@@ -255,15 +223,6 @@ class LocationManager:
             obj.slug
             # noinspection PyStatementEffect
             obj.redirect_slugs
-
-            if isinstance(obj, SpecificLocation):
-                # noinspection PyStatementEffect
-                obj.dynamic_targets
-
-                for target in obj.static_targets:
-                    target._prefetched_objects_cache = {}
-
-            obj._prefetched_objects_cache = {}
 
         return locations
 
