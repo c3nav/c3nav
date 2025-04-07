@@ -3,6 +3,7 @@ import sys
 import warnings
 from abc import abstractmethod, ABC
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property, lru_cache, reduce
@@ -209,17 +210,14 @@ class MapPermissionContext(MapPermissions):
     - The only exception is code that is mainly used to serialize objects. We use a lot of properties there.
     """
     def __init__(self):
-        self._active = LocalContext()
+        self._active: ContextVar[MapPermissions | None] = ContextVar("active_map_permission", default=None)
 
-    def set_value(self, value: MapPermissions):
-        self._active.value = value
-
-    def unset_value(self):
-        if hasattr(self._active, "value"):
-            del self._active.value
+    def set_value(self, value: MapPermissions | None):
+        self._active.set(value)
 
     def get_value(self) -> MapPermissions:
-        if not hasattr(self._active, "value"):
+        value = self._active.get()
+        if value is None:
             if not apps.ready:
                 return ManualMapPermissions.get_full_access()
 
@@ -230,7 +228,7 @@ class MapPermissionContext(MapPermissions):
 
             warnings.warn('No map permission context set, defaulting to public context.', DeprecationWarning)
             return ManualMapPermissions.get_public_access()
-        return self._active.value
+        return value
 
     @cached_property
     def disable_access_checks(self) -> FullAccessContextManager:
@@ -240,17 +238,15 @@ class MapPermissionContext(MapPermissions):
     def override(self, value: MapPermissions):
         # Apparently asgiref.local cannot be trusted to actually keep the data local per-request?
         # See: https://github.com/django/asgiref/issues/473
-        # TODO: If we can't trust it, we want to get rid of it.
-        # However, the problem remains that the main issue, needing request isolation, remains.
-        prev_value = getattr(self._active, "value", None)
-        self.set_value(value)
+        # This is why we use contextvars directly. However, still feeling paranoid. So lets double check for now.
+        prev_value = self._active.get()
+        token = self._active.set(value)
         yield
-        if self.get_value() != value:
+        if self._active.get() != value:
             raise ValueError(f'SOMETHING IS VERY WRONG, SECURITY ISSUE {self.get_value()} {value}')
-        if prev_value is None:
-            self.unset_value()
-        else:
-            self.set_value(prev_value)
+        self._active.reset(token)
+        if self._active.get() != prev_value:
+            raise ValueError(f'SOMETHING IS VERY WRONG, SECURITY ISSUE {self.get_value()} {value}')
 
     @property
     def access_restrictions(self) -> set[int]:
