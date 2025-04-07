@@ -89,6 +89,6 @@ class MapPermissionsMiddleware:
             # Apparently asgiref.local cannot be trusted to actually keep the data local per-request?
             # See: https://github.com/django/asgiref/issues/473
             # If this is still an issue, we need to be alerted if it happens during development.
-            raise ValueError(f'SOMETHING IS VERY WRONG, SECURITY ISSUE '
-                             f'{from_request} {active_map_permissions.get_value()}')
+            raise ValueError(f'SOMETHING IS VERY WRONG (3), SECURITY ISSUE '
+                             f'got {active_map_permissions.get_value()}, expected {from_request}')
         return response

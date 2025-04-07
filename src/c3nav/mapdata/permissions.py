@@ -243,10 +243,12 @@ class MapPermissionContext(MapPermissions):
         token = self._active.set(value)
         yield
         if self._active.get() != value:
-            raise ValueError(f'SOMETHING IS VERY WRONG, SECURITY ISSUE {self.get_value()} {value}')
+            raise ValueError(f'SOMETHING IS VERY WRONG (1), SECURITY ISSUE '
+                             f'got {self.get_value()}, expected {value}')
         self._active.reset(token)
         if self._active.get() != prev_value:
-            raise ValueError(f'SOMETHING IS VERY WRONG, SECURITY ISSUE {self.get_value()} {value}')
+            raise ValueError(f'SOMETHING IS VERY WRONG (2), SECURITY ISSUE '
+                             f'got {self.get_value()}, expected {prev_value}')
 
     @property
     def access_restrictions(self) -> set[int]:
