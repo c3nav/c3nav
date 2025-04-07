@@ -1,5 +1,6 @@
 import operator
 import sys
+import traceback
 import warnings
 from abc import abstractmethod, ABC
 from contextlib import contextmanager
@@ -239,14 +240,18 @@ class MapPermissionContext(MapPermissions):
         # Apparently asgiref.local cannot be trusted to actually keep the data local per-request?
         # See: https://github.com/django/asgiref/issues/473
         # This is why we use contextvars directly. However, still feeling paranoid. So lets double check for now.
+        stack = traceback.format_stack()
         prev_value = self._active.get()
         token = self._active.set(value)
         yield
         if self._active.get() != value:
+            print(stack)
             raise ValueError(f'SOMETHING IS VERY WRONG (1), SECURITY ISSUE '
                              f'got {self.get_value()}, expected {value}')
+
         self._active.reset(token)
         if self._active.get() != prev_value:
+            print(stack)
             raise ValueError(f'SOMETHING IS VERY WRONG (2), SECURITY ISSUE '
                              f'got {self.get_value()}, expected {prev_value}')
 
