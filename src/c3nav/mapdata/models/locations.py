@@ -8,7 +8,7 @@ from decimal import Decimal
 from functools import reduce
 from itertools import chain, batched
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterator, Sequence, NamedTuple
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence
 
 from django.conf import settings
 from django.core.cache import cache
@@ -20,6 +20,7 @@ from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Ca
 from django.db.models.functions.window import RowNumber
 from django.urls import reverse
 from django.utils import timezone
+from django.utils import translation
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property, lazy
 from django.utils.text import format_lazy
@@ -33,9 +34,9 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
-from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, active_map_permissions, \
-    MapPermissionTaggedItem, MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
-    MapPermissionsMaskedTaggedValue
+from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, MapPermissionTaggedItem, \
+    MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
+    MapPermissionsMaskedTaggedValue, MapPermissionGuardedTaggedSequence
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
@@ -178,8 +179,7 @@ possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation
 
 
 StaticLocationTarget: TypeAlias = Union["Level", "Space", "Area", "POI"]
-DynamicLocationTarget: TypeAlias = Union["DynamicLocation"]
-LocationTarget = StaticLocationTarget | DynamicLocationTarget
+LocationTarget: TypeAlias = Union["DynamicLocationTarget", "StaticLocationTarget"]
 
 
 @dataclass(frozen=True)
@@ -190,6 +190,7 @@ class FillAndBorderColor:
 
 ColorByTheme: TypeAlias = dict[int, FillAndBorderColor]
 CachedTitles: TypeAlias = list[MapPermissionTaggedItem[dict[str, str]]]
+CachedLocationTargetIDs: TypeAlias = list[MapPermissionTaggedItem[tuple[str, int]]]
 
 TaggedLocationGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema | PointSchema]]
 TaggedMaskedLocationGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema]]
@@ -228,7 +229,6 @@ class SpecificLocation(Location, models.Model):
     spaces = models.ManyToManyField('Space', related_name='locations')
     areas = models.ManyToManyField('Area', related_name='locations')
     pois = models.ManyToManyField('POI', related_name='locations')
-    dynamiclocations = models.ManyToManyField('DynamicLocation', related_name='locations')
 
     effective_order = models.PositiveIntegerField(default=2**31-1, editable=False)
     effective_icon = models.CharField(_('icon'), max_length=32, null=True, editable=False)
@@ -243,6 +243,9 @@ class SpecificLocation(Location, models.Model):
     cached_geometries: CachedGeometriesByLevel = SchemaField(schema=CachedGeometriesByLevel, null=True)
     cached_points: CachedLocationPoints = SchemaField(schema=CachedLocationPoints, null=True)
     cached_bounds: CachedBoundsByLevel = SchemaField(schema=CachedBoundsByLevel, null=True)
+    cached_target_subtitles: CachedTitles = SchemaField(schema=CachedTitles, default=list)
+    cached_all_static_targets: CachedLocationTargetIDs = SchemaField(schema=CachedLocationTargetIDs, default=list)
+    cached_all_position_secrets: list[str] = SchemaField(schema=list[str], default=list)
 
     sublocations = []
 
@@ -269,30 +272,11 @@ class SpecificLocation(Location, models.Model):
             *self.pois.all(),
         ))
 
-    @cached_property
-    def dynamic_targets(self) -> LazyMapPermissionFilteredSequence[DynamicLocationTarget]:
-        """
-        Get all dynamic location targets
-        """
-        # noinspection PyTypeChecker
-        return LazyMapPermissionFilteredSequence(tuple(self.dynamiclocations.all()))
-
-    @property  # do not cache! this is an iterator!
-    def all_targets(self) -> Iterator[LocationTarget]:
-        """
-        Get an iterator over all location targets
-        """
-        # noinspection PyTypeChecker
-        return chain(
-            self.static_targets,
-            self.dynamic_targets,
-        )
-
     """ Main Properties """
 
     @cached_property
     def dynamic(self) -> int:
-        return len(self.dynamic_targets)
+        return len(self.cached_all_position_secrets)
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
         # don't filter in the query here so prefetch_related works
@@ -426,6 +410,47 @@ class SpecificLocation(Location, models.Model):
             fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value=""
         )
 
+    @classmethod
+    def recalculate_all_static_targets(cls):
+        all_static_target_ids: dict[tuple[tuple[tuple[str, int], frozenset[int]], ...], set[int]] = {}
+        for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
+            all_static_target_ids.setdefault(tuple(sorted(
+                ((target._meta.model_name, target.pk), target.effective_access_restrictions)
+                for target in obj.static_targets
+            )), set()).add(obj.pk)
+
+        cls._bulk_cached_update(
+            name="all_static_targets",
+            values=tuple(
+                (pks, [
+                    MapPermissionTaggedItem(value=value, access_restrictions=restrictions)
+                    for value, restrictions in entries
+                ]) for entries, pks in all_static_target_ids.items()
+            ),
+            default=[]
+        )
+
+    @cached_property
+    def _all_static_target_ids(self) -> MapPermissionGuardedTaggedSequence[tuple[str, int]]:
+        if not self.cached_all_static_targets:
+            return MapPermissionGuardedTaggedSequence([])
+        return MapPermissionGuardedTaggedSequence(self.cached_all_static_targets)
+
+    @classmethod
+    def recalculate_all_position_secrets(cls):
+        all_position_secrets: dict[tuple[str, ...], set[int]] = {}
+
+        for obj in cls.objects.prefetch_related("dynamic_location_targets"):
+            all_position_secrets.setdefault(tuple(sorted(
+                target.position_secret for target in obj.dynamic_location_targets.all()
+            )), set()).add(obj.pk)
+
+        cls._bulk_cached_update(
+            name="all_position_secrets",
+            values=tuple((pks, list(secrets)) for secrets, pks in all_position_secrets.items()),
+            default=[]
+        )
+
     """ Points / Bounds / Grid """
 
     @classmethod
@@ -435,11 +460,12 @@ class SpecificLocation(Location, models.Model):
             obj.cached_points = [
                 # we are filtering out versions of this targets points for users who lack certain permissions,
                 list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
-                    MapPermissionTaggedItem( # add primary level to turn the xy coordinates into a location point
+                    (MapPermissionTaggedItem( # add primary level to turn the xy coordinates into a location point
                         value=(target.primary_level_id, *item.value),
                         access_restrictions=item.access_restrictions
-                    ) for item in target.cached_points
-                )) for target in chain(obj.levels.all(), obj.spaces.all(), obj.areas.all(), obj.pois.all())
+                    ) for item in target.cached_points),
+                    access_restrictions=obj.effective_access_restrictions,
+                )) for target in obj.static_targets
             ]
             obj.save()
 
@@ -458,7 +484,12 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def dynamic_points(self) -> list[LocationPoint]:
-        return list(filter(None, (target.dynamic_point for target in self.dynamic_targets)))
+        return list(filter(None,
+            # todo: this needs to be cached
+            (position.dynamic_point for position in Position.objects.filter(
+                secret__in=self.cached_all_position_secrets
+            ))
+        ))
 
     @classmethod
     def recalculate_bounds(cls):
@@ -466,7 +497,7 @@ class SpecificLocation(Location, models.Model):
             obj: SpecificLocation
             # collect the cached bounds of all static targets, grouped by level
             collected_bounds: dict[int, deque[CachedBounds]] = defaultdict(deque)
-            for target in chain(obj.levels.all(), obj.spaces.all(),  obj.areas.all(), obj.pois.all()):
+            for target in obj.static_targets:
                 collected_bounds[target.primary_level_id].append(target.cached_bounds)
 
             result: CachedBoundsByLevel = {}
@@ -505,7 +536,10 @@ class SpecificLocation(Location, models.Model):
     def dynamic_bounds(self) -> BoundsByLevelSchema:
         return merge_bounds(
             self.bounds,
-            *filter(None, (target.bounds for target in self.dynamic_targets))
+            # todo: this needs to be cached
+            *filter(None, (position.bounds for position in Position.objects.filter(
+                secret__in=self.cached_all_position_secrets
+            )))
         )
 
     @staticmethod
@@ -529,7 +563,7 @@ class SpecificLocation(Location, models.Model):
     def recalculate_geometries(cls):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
             result: CachedGeometriesByLevel = {}
-            for target in chain(obj.levels.all(), obj.spaces.all(), obj.areas.all(), obj.pois.all()):
+            for target in obj.static_targets:
                 try:
                     mask = not target.base_mapdata_accessible
                 except AttributeError:
@@ -584,18 +618,59 @@ class SpecificLocation(Location, models.Model):
 
     """ Subtitle """
 
-    def get_target_subtitle(self, *, dynamic: bool) -> Optional[str]:
-        static_targets = self.static_targets
-        dynamic_targets = self.dynamic_targets
-        if len(static_targets) + len(dynamic_targets) == 1:
-            if static_targets:
-                return static_targets[0].subtitle
-            elif dynamic:
-                return dynamic_targets[0].coordinates.subtitle
+    @classmethod
+    def recalculate_target_subtitles(cls):
+        # todo: make this work better for multiple targets
+        all_target_subtitles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
+        for obj in cls.objects.prefetch_related("levels",
+                                                "spaces__level", "spaces__locations", "spaces__level__locations",
+                                                "areas__space__locations", "areas__space__level__locations",
+                                                "pois__space__locations", "pois__space__level",
+                                                "dynamic_location_targets"):
+            location_target_subtitles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
+            static_targets = tuple(obj.static_targets)
+            if len(static_targets) + len(obj.dynamic_location_targets.all()) == 1:
+                main_static_target = static_targets[0]
+                target_subtitle: list[tuple[str, str]] = []
+                for language_code, language_name in settings.LANGUAGES:
+                    with translation.override(language_code):
+                        target_subtitle.append((language_code, str(main_static_target.subtitle)))
+                location_target_subtitles.append(
+                    (tuple(target_subtitle), main_static_target.effective_access_restrictions)
+                )
+            all_target_subtitles.setdefault(tuple(location_target_subtitles), set()).add(obj.pk)
+
+        cls._bulk_cached_update(
+            name="target_subtitles",
+            values=tuple(
+                (pks, [
+                    MapPermissionTaggedItem(value=dict(titles), access_restrictions=restrictions)
+                    for titles, restrictions in entries
+                ]) for entries, pks in all_target_subtitles.items()
+            ),
+            default=[]
+        )
+
+    @cached_property
+    def static_target_subtitle(self) -> str:
+        return lazy_get_i18n_value(
+            lazy(MapPermissionGuardedTaggedValue(self.cached_target_subtitles, default={}).get, dict)(),
+            fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value=""
+        )
+
+    @cached_property
+    def dynamic_target_subtitle(self) -> str | None:
+        static_target_subtitle = str(self.static_target_subtitle)
+        if static_target_subtitle:
+            return static_target_subtitle
+        if not static_target_subtitle:
+            # todo: this needs to be cached
+            if len(self.cached_all_position_secrets) == 1:
+                return Position.objects.filter(secret=self.cached_all_position_secrets[0]).dynamic_subtitle
         # todo: make this work better for multiple targets
         return None
 
-    def get_subtitle(self, *, target_subtitle: Optional[str], grid_square: GridSquare) -> str:
+    def _build_subtitle(self, *, target_subtitle: Optional[str], grid_square: GridSquare) -> str:
         # get subtitle from highest ranked describing group
         subtitle = str(self.describing_title) or None
 
@@ -618,24 +693,28 @@ class SpecificLocation(Location, models.Model):
         # fallback if there is no subtitle  # todo: this could probably be better?
         if subtitle is not None:
             return subtitle
-        return _('Location') if len(tuple(self.all_targets)) == 1 else _('Locations')
+        return (
+            _('Location')
+            if len(self._all_static_target_ids) + len(self.cached_all_position_secrets) == 1
+            else _('Locations')
+        )
 
     @property
-    def subtitle(self):
+    def subtitle(self) -> str:
         try:
-            return self.get_subtitle(
-                target_subtitle=self.get_target_subtitle(dynamic=False),
+            return self._build_subtitle(
+                target_subtitle=str(self.static_target_subtitle),
                 grid_square=self.grid_square,
             )
         except:
             import traceback
             traceback.print_exc()
-            return 'abc'
+            raise
 
     @property
-    def dynamic_subtitle(self):
-        return self.get_subtitle(
-            target_subtitle=self.get_target_subtitle(dynamic=True),
+    def dynamic_subtitle(self) -> str:
+        return self._build_subtitle(
+            target_subtitle=self.dynamic_target_subtitle,
             grid_square=self.dynamic_grid_square,
         )
 
@@ -688,7 +767,8 @@ class SpecificLocation(Location, models.Model):
     def register_changed_geometries(self, force=False):
         # todo: maybe not just if force but also if some property changed?
         if force:
-            for target in self.all_targets:
+            # todo: targets need to be read correctly
+            for target in self.static_targets:
                 target.register_change(force=True)
 
     def pre_save_changed_geometries(self):
@@ -744,7 +824,7 @@ class SpecificLocationTargetMixin(models.Model):
 
     @property
     def subtitle(self):
-        return None
+        raise NotImplementedError
 
     @cached_property
     def point(self) -> LocationPoint | None:
@@ -993,35 +1073,14 @@ class LoadGroup(models.Model):
         default_related_name = 'labelgroup'
 
 
-class DynamicLocation(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
-    position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
+class DynamicLocationTarget(SpecificLocationTargetMixin, models.Model):
+    location = models.ForeignKey("SpecificLocation", null=True, on_delete=models.CASCADE)
+    position_secret = models.CharField(_('position secret'), max_length=32)
 
     class Meta:
-        verbose_name = _('Dynamic location')
-        verbose_name_plural = _('Dynamic locations')
-        default_related_name = 'dynamiclocations'
-
-    def register_change(self, force=False):
-        pass
-
-    @property
-    def coordinates(self) -> Optional["CustomLocation"]:
-        # todo: this needs to be cached
-        if not self.position_secret:
-            return None
-        try:
-            return Position.objects.get(secret=self.position_secret).coordinates
-        except Position.DoesNotExist:
-            return None
-
-    @property
-    def dynamic_point(self) -> Optional[LocationPoint]:
-        if not self.position_secret:
-            return None
-        try:
-            return Position.objects.get(secret=self.position_secret).coordinates.point
-        except Position.DoesNotExist:
-            return None
+        verbose_name = _("Dynamic location target")
+        verbose_name_plural = _("Dynamic locations target")
+        default_related_name = "dynamic_location_targets"
 
 
 def get_position_secret():
@@ -1106,7 +1165,14 @@ class Position(models.Model):
         custom_location = self.coordinates
         if not custom_location:
             return None
-        return custom_location.grid_square
+        return custom_location.bounds
+
+    @property
+    def dynamic_point(self) -> Optional[LocationPoint]:
+        custom_location = self.coordinates
+        if not custom_location:
+            return None
+        return custom_location.point
 
     @property
     def dynamic_state(self) -> DynamicLocationState:
@@ -1126,7 +1192,7 @@ class Position(models.Model):
                 custom_location.subtitle,
             ),
             grid_square=custom_location.grid_square,
-            dynamic_points=custom_location.points,
+            dynamic_points=[self.dynamic_point],
             bounds=custom_location.bounds,
             nearby=custom_location.nearby,
         )

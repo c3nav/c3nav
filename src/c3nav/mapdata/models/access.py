@@ -431,8 +431,8 @@ class AccessRestrictionLogicMixin(models.Model):
         return Q()
 
     @cached_property
-    def effective_access_restrictions(self) -> set[int]:
-        return set()
+    def effective_access_restrictions(self) -> frozenset[int]:
+        return frozenset()
 
 
 class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):
@@ -451,7 +451,7 @@ class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):
         )
 
     @cached_property
-    def effective_access_restrictions(self) -> set[int]:
+    def effective_access_restrictions(self) -> frozenset[int]:
         return (
             super().effective_access_restrictions |
             ({self.access_restriction_id} if self.access_restriction_id else set())
