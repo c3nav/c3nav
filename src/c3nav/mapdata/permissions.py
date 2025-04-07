@@ -361,7 +361,7 @@ class MapPermissionGuardedMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[K
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> dict[KT, VT]:
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return self._data.copy()
-        if self._has_minimum_permissions(permissions_as_set):
+        if not self._has_minimum_permissions(permissions_as_set):
             return {}
         return {key: value for key, value in self._data.items()
                 if not (value.effective_access_restrictions - permissions_as_set)}
@@ -458,7 +458,7 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseMapP
         self._data = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
-        if self._has_minimum_permissions(permissions_as_set):
+        if not self._has_minimum_permissions(permissions_as_set):
             return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(self._data)
@@ -546,7 +546,7 @@ class MapPermissionGuardedTaggedSequence[T](BaseMapPermissionGuardedSequence[T])
         self._data = data
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
-        if self._has_minimum_permissions(permissions_as_set):
+        if not self._has_minimum_permissions(permissions_as_set):
             return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(item.value for item in self._data)
@@ -594,7 +594,7 @@ class MapPermissionGuardedTaggedValue[T, DT](BaseMapPermissionGuardedValue[T | D
         self._default = default
 
     def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> T | DT:
-        if self._has_minimum_permissions(permissions_as_set):
+        if not self._has_minimum_permissions(permissions_as_set):
             return self._default
         try:
             if FullAccessTo.RESTRICTIONS in permissions_as_set:
@@ -613,7 +613,7 @@ class MapPermissionGuardedTaggedValue[T, DT](BaseMapPermissionGuardedValue[T | D
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
+            operator.and_, (item.access_restrictions for item in self._data), frozenset()
         )
         if not common_permissions:
             return ()
