@@ -561,7 +561,7 @@ class MapPermissionGuardedTaggedSequence[T](BaseMapPermissionGuardedSequence[T])
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
+            operator.and_, (item.access_restrictions for item in self._data), frozenset()
         )
         if not common_permissions:
             return ()

@@ -18,14 +18,14 @@ from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGro
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup, AccessPermission
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
-from c3nav.mapdata.models.locations import DynamicLocation, LabelSettings
+from c3nav.mapdata.models.locations import DynamicLocationTarget, LabelSettings
 from c3nav.mapdata.permissions import MapPermissionsFromRequest
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter, ByOverlayFilter)
 from c3nav.mapdata.schemas.model_base import schema_description, LabelSettingsSchema
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
                                           BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
-                                          DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
+                                          DynamicLocationTargetSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
                                           LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
                                           ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
                                           DataOverlaySchema, DataOverlayFeatureSchema, WayTypeSchema,
@@ -227,8 +227,8 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
             schema=AccessRestrictionGroupSchema,
         ),
         MapdataEndpoint(
-            model=DynamicLocation,
-            schema=DynamicLocationSchema,
+            model=DynamicLocationTarget,
+            schema=DynamicLocationTargetSchema,
         ),
         MapdataEndpoint(
             model=LabelSettings,

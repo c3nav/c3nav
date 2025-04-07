@@ -77,7 +77,7 @@ class SpaceGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Mode
         )
 
     @cached_property
-    def effective_access_restrictions(self) -> set[int]:
+    def effective_access_restrictions(self) -> frozenset[int]:
         return (
             super().effective_access_restrictions |
             self.space.effective_access_restrictions
