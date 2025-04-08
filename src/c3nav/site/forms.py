@@ -30,6 +30,7 @@ class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
     def __init__(self, *args, group=None, request=None, **kwargs):
         initial = {"created_groups": [group] if group else []}
         if group and group.can_report_missing == LocationGroup.CanReportMissing.SINGLE_IMAGE:
+            # todo: reimplement this, we don't have groups any more
             initial["title"] = _("Image for %s") % group.title
             initial["description"] = _('(feel free to add more description if it makes sense)')
 

@@ -81,6 +81,7 @@ class GeometryChangeTracker:
 changed_geometries = GeometryChangeTracker()  # todo: no longer needed if we use the overlay stuff
 
 
+# todo: implement this anew, we don't have groups any more
 def locationgroup_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
     if action not in ('post_add', 'post_remove', 'post_clear'):
         return

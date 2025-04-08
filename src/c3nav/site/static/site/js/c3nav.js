@@ -1507,11 +1507,13 @@ c3nav = {
         }, 300, 'swing').queue(function (d) {
             d();
             const possible_locations_set = new Set();
+            // todo: reimplement this without refering to groups
             for (const id of c3nav.random_location_groups) {
                 const group = c3nav.locations_by_id[id];
                 if (!group) continue;
                 if (!group.locationtype || group.locationtype !== 'locationgroup') continue;
                 group.locations.forEach(subid => {
+                    // todo: this needs to be recursive now i guess?
                     if (subid in c3nav.locations_by_id) possible_locations_set.add(subid)
                 });
             }

@@ -5,7 +5,8 @@ from django.db.models import Model, QuerySet
 from pydantic import Field as APIField, AfterValidator
 
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space, DataOverlay
+from c3nav.mapdata.models import Level, MapUpdate, Space, DataOverlay
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.proxied import versioned_cache
 
@@ -66,20 +67,9 @@ class BySpaceFilter(FilterSchema):
         return super().filter_qs(request, qs)
 
 
-class ByCategoryFilter(FilterSchema):
-    category: Annotated[Optional[int], AfterValidator(ValidateID(LocationGroupCategory)), APIField(
-        title="filter by location group category",
-        description="if set, only groups belonging to the location group category with this ID will be shown"
-    )] = None
-
-    def filter_qs(self, request, qs: QuerySet) -> QuerySet:
-        if self.category is not None:
-            qs = qs.filter(category=self.category)
-        return super().filter_qs(request, qs)
-
-
 class ByGroupFilter(FilterSchema):
-    group: Annotated[Optional[int], AfterValidator(ValidateID(LocationGroup)), APIField(
+    # todo: this used to be ByGroup, reimplement this to work with parents
+    group: Annotated[Optional[int], AfterValidator(ValidateID(SpecificLocation)), APIField(
         title="filter by location group",
         description="if set, only items belonging to the location group with this ID will be shown"
     )] = None

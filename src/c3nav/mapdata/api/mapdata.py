@@ -13,23 +13,22 @@ from c3nav.api.auth import auth_responses, validate_responses, auth_permission_r
 from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.api.base import api_etag, optimize_query
-from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
+from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, Source,
                                   Space, Stair, DataOverlay, DataOverlayFeature, WayType)
-from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup, AccessPermission
+from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
 from c3nav.mapdata.models.locations import DynamicLocationTarget, LabelSettings
 from c3nav.mapdata.permissions import MapPermissionsFromRequest
-from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
+from c3nav.mapdata.schemas.filters import (ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter, ByOverlayFilter)
 from c3nav.mapdata.schemas.model_base import schema_description, LabelSettingsSchema
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
                                           BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
                                           DynamicLocationTargetSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
-                                          LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
-                                          ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
-                                          DataOverlaySchema, DataOverlayFeatureSchema, WayTypeSchema,
-                                          DataOverlayFeatureGeometrySchema,
+                                          LineObstacleSchema, ObstacleSchema, POISchema, RampSchema, SourceSchema,
+                                          SpaceSchema, StairSchema, DataOverlaySchema, DataOverlayFeatureSchema,
+                                          WayTypeSchema, DataOverlayFeatureGeometrySchema,
                                           DataOverlayFeatureUpdateSchema, DataOverlayFeatureBulkUpdateSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
@@ -207,15 +206,6 @@ mapdata_endpoints: dict[str, list[MapdataEndpoint]] = {
             model=Level,
             schema=LevelSchema,
             filters=LevelFilters
-        ),
-        MapdataEndpoint(
-            model=LocationGroup,
-            schema=LocationGroupSchema,
-            filters=ByCategoryFilter,
-        ),
-        MapdataEndpoint(
-            model=LocationGroupCategory,
-            schema=LocationGroupCategorySchema,
         ),
         MapdataEndpoint(
             model=Source,

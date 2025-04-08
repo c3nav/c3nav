@@ -1,8 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from c3nav import settings
-from c3nav.mapdata.models import LocationGroup
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
 
@@ -90,7 +88,8 @@ class ThemeLocationGroupBackgroundColor(models.Model):
     A background color for a LocationGroup in a theme
     """
     theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="location_groups")
-    location_group = models.ForeignKey(LocationGroup, on_delete=models.SET_NULL, null=True, blank=True,
+    # todo: this should no longer refer to locationgroup
+    location_group = models.ForeignKey("LocationGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                        related_name="theme_colors")
     fill_color = models.CharField(max_length=32, null=True, blank=True)
     border_color = models.CharField(max_length=32, null=True, blank=True)
