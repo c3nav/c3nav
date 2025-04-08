@@ -17,7 +17,10 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.aggregates import Min
 from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value
+from django.db.models.functions.comparison import Cast
+from django.db.models.functions.text import Concat
 from django.db.models.functions.window import RowNumber
+from django.db.models.lookups import EndsWith
 from django.urls import reverse
 from django.utils import timezone
 from django.utils import translation
@@ -208,12 +211,74 @@ CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationGeometry | Tag
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
+class StrForeignKey(models.ForeignKey):
+    pass
+
+
+StrForeignKey.register_lookup(EndsWith)
+
+
+"""
+class LocationHierarchyNode(models.Model):
+    location = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="hierarchy_nodes")
+    parent = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="child_hierarchy_nodes",
+                               null=True)
+
+    path = models.CharField(unique=True, max_length=256)
+    parent_path = StrForeignKey("LocationHierarchyNode", on_delete=models.CASCADE, null=True, to_field="path",
+                                related_name="+")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="path_is_location_and_no_parent",
+                check=Q(parent__isnull=False) | Q(parent__isnull=True, path=Concat(
+                    Value("/"), Cast("location_id", output_field=models.CharField())
+                ))
+            ),
+            models.CheckConstraint(
+                name="path_ends_with_parent_and_location",
+                check=Q(parent__isnull=True) | Q(parent__isnull=False, path__startswith="/", path__endswith=Concat(
+                    Value("/"), Cast("parent_id", output_field=models.CharField()),
+                    Value("/"), Cast("location_id", output_field=models.CharField()),
+                    Value("/"),
+                ))
+            ),
+            models.CheckConstraint(
+                name="parent_path_matches_parent",
+                check=(
+                    Q(parent__isnull=True, parent_path__isnull=True) |
+                    Q(parent__isnull=False, parent_path__isnull=False, parent_path_id__endswith=Concat(
+                        Value("/"), Cast("parent_id", output_field=models.CharField()),
+                        Value("/"),
+                    )
+                ))
+            ),
+            models.CheckConstraint(
+                name="path_starts_with_parent_path",
+                check=Q(parent_path__isnull=True) | Q(path__startswith=F("parent_path"))
+            ),
+        ]
+"""
+
+
 class SpecificLocation(Location, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
     """
     locationtype = "specificlocation"
     slug_as_id = False
+
+    class CanReportMissing(models.TextChoices):
+        DONT_OFFER = "dont_offer", _("don't offer")
+        REJECT = "reject", _("offer in first step, then reject")
+        SINGLE = "single", _("offer in first step, exclusive choice")
+        MULTIPLE = "multiple", _("offer if nothing in the first step matches, multiple choice")
+
+    class CanReportMistake(models.TextChoices):
+        # todo: give inheritance options to this :)
+        ALLOW = "allow", _("allow")
+        REJECT = "reject", _("reject for all locations and sublocations")
 
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
@@ -224,6 +289,36 @@ class SpecificLocation(Location, models.Model):
 
     load_group_display = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                            related_name='+', verbose_name=_('display load group'))
+
+    # imported from locationgroup start
+
+    priority = models.IntegerField(default=0, db_index=True)
+    hierarchy = models.IntegerField(default=0, db_index=True, verbose_name=_('hierarchy'))
+
+    can_report_missing = models.CharField(_('report missing location'), choices=CanReportMissing.choices,
+                                          default=CanReportMissing.DONT_OFFER, max_length=16)
+    can_report_mistake = models.CharField(_('report mistakes'), choices=CanReportMistake.choices,
+                                          default=CanReportMistake.ALLOW, max_length=16)
+
+    description = I18nField(_('description'), plural_name='descriptions', blank=True, fallback_any=True,
+                            fallback_value="", help_text=_('to aid with selection in the report form'))
+    report_help_text = I18nField(_('report help text'), plural_name='report_help_texts', blank=True, fallback_any=True,
+                                 fallback_value="", help_text=_('to explain the report form or rejection'))
+
+    color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
+    in_legend = models.BooleanField(default=False, verbose_name=_('show in legend (if color set)'))
+    hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,
+                                       unique=True,
+                                       help_text=_('import hub locations of this type as children of this location'))
+    external_url_label = I18nField(_('external URL label'), plural_name='external_url_labels', blank=True,
+                                   fallback_any=True, fallback_value="")
+
+    load_group_contribute = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
+                                              verbose_name=_('contribute to load group'))
+
+    # imported from locationgroup end
+
+    parents = models.ManyToManyField('SpecificLocation', related_name='children')
 
     levels = models.ManyToManyField('Level', related_name='locations')
     spaces = models.ManyToManyField('Space', related_name='locations')
