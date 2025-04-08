@@ -200,8 +200,6 @@ class LocationManager:
 
     @classmethod
     def generate_locations_by_id(cls) -> dict[int, SpecificLocation | LocationGroup]:
-        # todo this takes a long time because it's a lot of data, we might want to change that
-
         # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
         locations = {location.pk: location for location in sorted((
             *SpecificLocation.objects.select_related("effective_label_settings").prefetch_related("slug_set"),
@@ -211,11 +209,6 @@ class LocationManager:
         ), key=operator.attrgetter('effective_order'))}
 
         # todo: hide locations etc bluh… what if a location has only on target and it's invisible?
-
-        # apply better space geometries TODO: do this again?
-        #for pk, geometry in get_better_space_geometries().items():
-        #    if pk in locations:
-        #        locations[pk].geometry = geometry
 
         # trigger some cached properties, then empty prefetch_related cache
         for obj in locations.values():
