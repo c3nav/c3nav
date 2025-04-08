@@ -69,6 +69,7 @@ class Command(BaseCommand):
             **{area.import_tag: area for area in Area.objects.filter(import_tag__startswith="hub:")},
         }
 
+        # todo: implement groups newly here
         groups_for_types = {
             group.hub_import_type: group
             for group in LocationGroup.objects.filter(hub_import_type__isnull=False)

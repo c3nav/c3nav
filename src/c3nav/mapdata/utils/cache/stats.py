@@ -7,7 +7,7 @@ from kombu.utils import cached_property
 
 from c3nav.control.models import UserPermissions
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models import Level, LocationGroup, LocationSlug, Space
+from c3nav.mapdata.models import Level, LocationSlug, Space
 from c3nav.mapdata.models.geometry.space import POI, Area, BeaconMeasurement
 from c3nav.mapdata.locations import CustomLocation, LocationManager
 
@@ -115,6 +115,7 @@ def convert_locate(data):
 
 
 def convert_location(data):
+    # todo: this still needs to be reimplemented with groups and all
     result = {
         'total': 0,
         'invalid': 0,

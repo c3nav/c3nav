@@ -1,12 +1,10 @@
 import math
-import operator
 import re
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional, ClassVar, NamedTuple, overload, Literal, TypeAlias
 
 from django.core.cache import cache
-from django.db.models import Prefetch
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from pydantic import PositiveInt
@@ -15,9 +13,7 @@ from shapely import Point
 from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
-from c3nav.mapdata.models.geometry.level import Space, LevelGeometryMixin
-from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
+from c3nav.mapdata.models import Level, Location, MapUpdate
 from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
 from c3nav.mapdata.permissions import active_map_permissions, MapPermissionGuardedMapping
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
@@ -36,7 +32,7 @@ class LocationRedirect:
     target: Location
 
 
-LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, SpecificLocation | LocationGroup]
+LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, SpecificLocation]
 
 
 class SlugTarget(NamedTuple):
@@ -175,7 +171,7 @@ class LocationManager:
             cls._cache_key = cache_key
             with active_map_permissions.disable_access_checks():
                 cache_key = f'mapdata:all_locations:{cache_key}'
-                all_locations: dict[int, SpecificLocation | LocationGroup] | None
+                all_locations: dict[int, SpecificLocation] | None
                 all_locations = cache.get(cache_key, None)
                 if all_locations is None:
                     all_locations = cls.generate_locations_by_id()
@@ -199,14 +195,16 @@ class LocationManager:
                 })
 
     @classmethod
-    def generate_locations_by_id(cls) -> dict[int, SpecificLocation | LocationGroup]:
+    def generate_locations_by_id(cls) -> dict[int, SpecificLocation]:
         # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
-        locations = {location.pk: location for location in sorted((
-            *SpecificLocation.objects.select_related("effective_label_settings").prefetch_related("slug_set"),
-            *LocationGroup.objects.select_related(
-                'category', 'label_settings'
-            ).prefetch_related("slug_set", "specific_locations"),
-        ), key=operator.attrgetter('effective_order'))}
+        locations = {
+            location.pk: location for location in SpecificLocation.objects.select_related(
+                "effective_label_settings",
+                "load_group_display"
+            ).prefetch_related(
+                "slug_set"
+            ).order_by("effective_order")
+        }
 
         # todo: hide locations etc bluh… what if a location has only on target and it's invisible?
 

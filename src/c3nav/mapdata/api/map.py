@@ -26,7 +26,7 @@ from c3nav.mapdata.models import Theme, Area, Space, Level
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, \
     BeaconMeasurement
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import Position, LocationGroup, LoadGroup
+from c3nav.mapdata.models.locations import Position, LoadGroup, SpecificLocation
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
@@ -248,17 +248,18 @@ def legend_for_theme(request, theme_id: int):
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    locationgroups = LocationGroup.objects.filter(in_legend=True).prefetch_related('specific_locations')
+    # todo: determine former group children correctly
+    legend_locations = SpecificLocation.objects.filter(in_legend=True).prefetch_related("children")
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
         pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),
     )
     return LegendSchema(
         base=[],
-        groups=[item for item in (LegendItemSchema(title=group.title,
-                                                   fill=manager.locationgroup_fill_color(group),
-                                                   border=manager.locationgroup_border_color(group))
-                                  for group in locationgroups if group.specific_locations.all())
+        groups=[item for item in (LegendItemSchema(title=location.title,
+                                                   fill=manager.locationgroup_fill_color(location),
+                                                   border=manager.locationgroup_border_color(location))
+                                  for location in legend_locations if location.children.all())
                 if item.fill or item.border],
         obstacles=[item for item in (LegendItemSchema(title=group.title,
                                                       fill=manager.obstaclegroup_fill_color(group),
@@ -322,11 +323,12 @@ def get_load(request):
     for beacon in RangingBeacon.objects.filter(max_observed_num_clients__gt=0):
         beacons_by_space.setdefault(beacon.space_id, {})[beacon.pk] = beacon
 
-    locationgroups_contribute_to = dict(
-        LocationGroup.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
+    locations_contribute_to = dict(
+        # todo: determine contribute from former location groups to correctly
+        SpecificLocation.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
     )
     for area in Area.objects.filter((Q(load_group_contribute__isnull=False)
-                                     | Q(groups__in=locationgroups_contribute_to.keys()))).prefetch_related("groups"):
+                                     | Q(parents__in=locations_contribute_to.keys()))).prefetch_related("parents"):
         contribute_to = set()
         if area.load_group_contribute_id:
             contribute_to.add(area.load_group_contribute_id)

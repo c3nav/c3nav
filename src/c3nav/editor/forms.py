@@ -24,9 +24,8 @@ from shapely.geometry.geo import mapping
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models import GraphEdge, LocationGroup, Source, LocationGroupCategory, GraphNode, Space, \
-    LocationSlug, WayType
-from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
+from c3nav.mapdata.models import GraphEdge, Source, GraphNode, Space, LocationSlug, WayType
+from c3nav.mapdata.models.access import AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
 from c3nav.mapdata.models.locations import SpecificLocation, Location
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
@@ -39,6 +38,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
 
+        # todo: reimplement this without refering to groups
         if self._meta.model.__name__ == 'Theme':
             if creating:
                 locationgroup_theme_colors = {}
@@ -54,6 +54,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 }
 
             # TODO: can we get the model class via relationships?
+            # todo: remove this old locationgroup code, just set the parents
             for locationgroup in LocationGroup.objects.prefetch_related(
                     Prefetch('theme_colors', ThemeLocationGroupBackgroundColor.objects.only('fill_color'))).all():
                 related = locationgroup_theme_colors.get(locationgroup.pk, None)
@@ -178,39 +179,12 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if self._meta.model.__name__ == 'AccessRestrictionGroup':
             self.fields['members'].label_from_instance = lambda obj: obj.title
 
-        elif 'groups' in self.fields:
-            categories = LocationGroupCategory.objects.prefetch_related('groups')
-            if self.instance.pk:
-                instance_groups = tuple(self.instance.groups.values_list('pk', flat=True))
-            else:
-                instance_groups = ()
+        if 'label_settings' in self.fields:
+            self.fields.move_to_end('label_settings')
 
-            self.fields.pop('groups')
-
-            for category in categories:
-                choices = tuple((str(group.pk), group.title)
-                                for group in sorted(category.groups.all(), key=self.sort_group))
-                category_groups = set(group.pk for group in category.groups.all())
-                initial = tuple(str(pk) for pk in instance_groups if pk in category_groups)
-                if category.single:
-                    name = 'group_'+category.name
-                    initial = initial[0] if initial else ''
-                    choices = (('', '---'), )+choices
-                    field = ChoiceField(label=category.title, required=False, initial=initial, choices=choices,
-                                        help_text=category.help_text)
-                else:
-                    name = 'groups_'+category.name
-                    field = MultipleChoiceField(label=category.title_plural, required=False,
-                                                initial=initial, choices=choices,
-                                                help_text=category.help_text)
-                self.fields[name] = field
-
-            if 'label_settings' in self.fields:
-                self.fields.move_to_end('label_settings')
-
-            for field in tuple(self.fields.keys()):
-                if field.startswith('label_override'):
-                    self.fields.move_to_end(field)
+        for field in tuple(self.fields.keys()):
+            if field.startswith('label_override'):
+                self.fields.move_to_end(field)
 
         if 'groundaltitude' in self.fields:
             self.fields['groundaltitude'].label_from_instance = attrgetter('choice_label')
@@ -375,6 +349,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             for slug, r in self.add_slugs.items():
                 self.instance.slug_set.create(slug=slug, redirect=r)
 
+        # todo: reimplement this without refering to groups
         if self._meta.model.__name__ == 'Theme':
             locationgroup_colors = {theme_location_group.location_group_id: theme_location_group
                                     for theme_location_group in self.instance.location_groups.all()}

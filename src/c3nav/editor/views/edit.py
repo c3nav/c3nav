@@ -23,7 +23,7 @@ from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get
     LinkSpecificLocationForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
-from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
+from c3nav.mapdata.models import Level, Space, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
 from c3nav.mapdata.permissions import MapPermissionsFromRequest, active_map_permissions
@@ -52,8 +52,6 @@ def main_index(request):
                              request.changeset.can_edit(request)),
         'child_models': [
             child_model(request, 'SpecificLocation'),
-            child_model(request, 'LocationGroupCategory'),
-            child_model(request, 'LocationGroup'),
             child_model(request, 'ObstacleGroup'),
             child_model(request, 'GroundAltitude'),
             child_model(request, 'DynamicLocation'),
@@ -597,6 +595,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         obj.add_cols = tuple(getattr(obj, col) for col in add_cols)
     reverse_kwargs.pop('pk', None)
 
+    # todo: get rid of grouped_objects code completely
     if model.__name__ == 'LocationGroup':
         grouped_objects = tuple(
             {
