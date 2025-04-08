@@ -402,10 +402,22 @@ def recalculate_specificlocation_points(mapupdates: tuple[MapUpdate, ...]) -> bo
     return True
 
 
+@register_mapupdate_job("SpecificLocation finalize",
+                        eager=True, dependencies=(recalculate_specificlocation_geometries,
+                                                  recalculate_specificlocation_bounds,
+                                                  recalculate_specificlocation_points,
+                                                  recalculate_specificlocation_target_subtitles,
+                                                  recalculate_specificlocation_static_targets,
+                                                  recalculate_specificlocation_dynamic_targets,))
+def recalculate_specificlocation_final(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    return True
+
+
 @register_mapupdate_job("geometries",
                         dependencies=(recalculate_space_effective_geometries,
                                       recalculate_area_effective_geometries,
-                                      recalculate_specificlocation_cached_from_parents, ))  # todo: depend on colors
+                                      recalculate_specificlocation_cached_from_parents,
+                                      recalculate_specificlocation_final,))
 def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')

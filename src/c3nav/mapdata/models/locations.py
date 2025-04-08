@@ -7,7 +7,7 @@ from datetime import timedelta
 from decimal import Decimal
 from functools import reduce
 from itertools import chain, batched
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence
 
 from django.conf import settings
@@ -279,7 +279,6 @@ class SpecificLocation(Location, models.Model):
         return len(self.cached_all_position_secrets)
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        # don't filter in the query here so prefetch_related works
         self.cached_effective_colors.get(color_manager.theme_id, None)
 
     def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
@@ -532,7 +531,7 @@ class SpecificLocation(Location, models.Model):
             ) if not any((v is None) for v in level_bounds)
         }
 
-    @cached_property
+    @property
     def dynamic_bounds(self) -> BoundsByLevelSchema:
         return merge_bounds(
             self.bounds,
@@ -834,7 +833,8 @@ class SpecificLocationTargetMixin(models.Model):
         # todo: cache this in db?
         try:
             return next(iter(filter(None,
-                (location.get_color_sorted(color_manager) for location in self.sorted_locations)
+                sorted((location.get_color_sorted(color_manager) for location in self.sorted_locations),
+                       key=itemgetter(0), reverse=True)
             )))
         except StopIteration:
             return None
@@ -899,7 +899,7 @@ class LocationGroupCategory(models.Model):
 
 class LocationGroupManager(UseQForPermissionsManager):
     def get_queryset(self):
-        return super().get_queryset().select_related('category')  # .prefetch_related('slug_set')  # todo: put this back in?
+        return super().get_queryset().select_related('category')
 
 
 class LocationGroup(Location, models.Model):
@@ -1092,7 +1092,7 @@ class Position(models.Model):
     """
     objects = None
     locationtype = "position"
-    slug_as_id = True  # todo: implement this!!
+    slug_as_id = True
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)
@@ -1142,7 +1142,6 @@ class Position(models.Model):
 
     @property
     def dynamic_subtitle(self):
-        # todo: implement request permissions/visibility for description
         custom_location = self.coordinates
         if not custom_location:
             return _('currently unavailable')
