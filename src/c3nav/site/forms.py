@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.api.models import Secret
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models.locations import Position, LocationGroup
+from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.site.compliance import ComplianceCheckboxFormMixin
 
@@ -29,6 +29,7 @@ class DeleteAccountForm(Form):
 class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
     def __init__(self, *args, group=None, request=None, **kwargs):
         super().__init__(*args, initial={"created_groups": [group] if group else []}, **kwargs)
+        # todo: reimplement this, we don't have groups any more
         if group:
             self.fields['created_groups'].disabled = True
             self.fields['created_groups'].queryset = LocationGroup.objects.filter(pk=group.pk)

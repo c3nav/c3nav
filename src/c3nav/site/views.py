@@ -34,7 +34,7 @@ from c3nav.mapdata.grid import grid, GridSchema
 from c3nav.mapdata.locations import LocationRedirect, LocationManager
 from c3nav.mapdata.models import Source, Level
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
-from c3nav.mapdata.models.locations import LocationGroup, Position, SpecificLocation, get_position_secret
+from c3nav.mapdata.models.locations import Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
 from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
@@ -594,6 +594,7 @@ def report_select_location(request, coordinates):
 
 @never_cache
 def report_missing_choose(request, coordinates):
+    # todo: reimplement this, we don't have groups any more
     groups = LocationGroup.objects.filter(can_report_missing__in=(
         LocationGroup.CanReportMissing.SINGLE,
         LocationGroup.CanReportMissing.REJECT,
