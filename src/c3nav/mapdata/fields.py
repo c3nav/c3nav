@@ -154,6 +154,7 @@ class GeometryField(models.JSONField):
 
 
 class JSONField(models.TextField):
+    # todo: get rid of this
     # Deprecated
     def from_db_value(self, value, expression, connection):
         if value is None:
