@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction, DatabaseError
 from django.utils import timezone
 
-from c3nav.mapdata.models import MapUpdate, LocationGroup, AltitudeArea, Level, Space, Area
+from c3nav.mapdata.models import MapUpdate, AltitudeArea, Level, Space, Area
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions
@@ -247,13 +247,6 @@ def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
         run_mapupdate_job.delay(job_type=job_type)
 
 
-@register_mapupdate_job("LocationGroup order",
-                        eager=True, dependencies=set())
-def recalculate_locationgroup_order(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationGroup.recalculate_effective_order()
-    return True
-
-
 @register_mapupdate_job("SpecificLocation order",
                         eager=True, dependencies=set())
 def recalculate_specificlocation_order(mapupdates: tuple[MapUpdate, ...]) -> bool:
@@ -262,8 +255,7 @@ def recalculate_specificlocation_order(mapupdates: tuple[MapUpdate, ...]) -> boo
 
 
 @register_mapupdate_job("SpecificLocation cached from parents",
-                        eager=True, dependencies=(recalculate_locationgroup_order,
-                                                  recalculate_specificlocation_order))
+                        eager=True, dependencies=(recalculate_specificlocation_order, ))
 def recalculate_specificlocation_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
     SpecificLocation.recalculate_cached_from_parents()
     return True

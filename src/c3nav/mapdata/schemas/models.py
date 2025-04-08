@@ -5,8 +5,8 @@ from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
 from c3nav.api.schema import BaseSchema, AnyGeometrySchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.models import LocationGroup
 from c3nav.mapdata.models.geometry.base import GeometryMixin
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
@@ -301,21 +301,7 @@ class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
     points: list[LocationPoint]
     bounds: BoundsByLevelSchema
 
-    @classmethod
-    def get_overrides(cls, value):
-        return {
-            "locationtype": "specificlocation",
-            "label_settings": value.label_settings_id,
-            "load_group_display": value.load_group_display_id
-        }
-
-
-class LocationGroupSchema(BaseLocationSchema, DjangoModelSchema):
-    """
-    A location group, always belonging to a location group category.
-
-    A location group is a (non-specific) location, which means it can be routed to and from.
-    """
+    # imported from group
     category: PositiveInt = APIField(
         title="category",
         description="location group category that this location group belongs to",
@@ -330,7 +316,7 @@ class LocationGroupSchema(BaseLocationSchema, DjangoModelSchema):
                 "\n\nlocations can override this setting"
         )
     )
-    can_report_missing: LocationGroup.CanReportMissing = APIField(
+    can_report_missing: SpecificLocation.CanReportMissing = APIField(
         title="report missing locations",
         description="whether this location group can be used to report missing locations",
     )
@@ -341,6 +327,14 @@ class LocationGroupSchema(BaseLocationSchema, DjangoModelSchema):
         title="color",
         description="an optional color for spaces and areas with this group"
     )
+
+    @classmethod
+    def get_overrides(cls, value):
+        return {
+            "locationtype": "specificlocation",
+            "label_settings": value.label_settings_id,
+            "load_group_display": value.load_group_display_id
+        }
 
 
 class LocationRedirectSchema(LocationSlugSchema, DjangoModelSchema):
@@ -362,56 +356,6 @@ class LocationRedirectSchema(LocationSlugSchema, DjangoModelSchema):
         description="effective slug of the target location",
         examples=["lobby"],
     )
-
-
-class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
-    """
-    A location group category can hold either one or multiple location groups.
-
-    It is used to allow for having different kind of groups for different means.
-    """
-    name: NonEmptyStr = APIField(
-        title="name/slug",
-        description="name/slug of this location group category",
-    )
-    single: bool = APIField(
-        title="single choice",
-        description="if true, every location can only have one group from this category, not a list"
-    )
-    titles_plural: dict[NonEmptyStr, NonEmptyStr] = APIField(
-        title="plural title (all languages)",
-        description="property names are the ISO-language code. languages may be missing.",
-        examples=[{"en": "Title", "de": "Titel"}]
-    )
-    title_plural: NonEmptyStr = APIField(
-        title="plural title (preferred language)",
-        description="preferred language based on the Accept-Language header."
-    )
-    help_texts: dict[NonEmptyStr, NonEmptyStr] = APIField(
-        title="help text (all languages)",
-        description="property names are the ISO-language code. languages may be missing.",
-        examples=[{"en": "Title", "de": "Titel"}]
-    )
-    help_text: str = APIField(
-        title="help text (preferred language)",
-        description="preferred language based on the Accept-Language header."
-    )
-    allow_levels: bool = APIField(
-        description="whether groups with this category can be assigned to levels"
-    )
-    allow_spaces: bool = APIField(
-        description="whether groups with this category can be assigned to spaces"
-    )
-    allow_areas: bool = APIField(
-        description="whether groups with this category can be assigned to areas"
-    )
-    allow_pois: bool = APIField(
-        description="whether groups with this category can be assigned to POIs"
-    )
-    allow_dynamic_locations: bool = APIField(
-        description="whether groups with this category can be assigned to dynamic locations"
-    )
-    priority: int = APIField()  # todo: ???
 
 
 class DynamicLocationTargetSchema(WithAccessRestrictionSchema, DjangoModelSchema):

@@ -8,7 +8,7 @@ from shapely.ops import unary_union
 
 from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
-from c3nav.mapdata.models import Level, Space, GraphNode, Door, LocationGroup, Building, GraphEdge, DataOverlayFeature
+from c3nav.mapdata.models import Level, Space, GraphNode, Door, Building, GraphEdge, DataOverlayFeature
 from c3nav.mapdata.models.geometry.space import Column, Hole, AltitudeMarker, BeaconMeasurement, RangingBeacon, Area, \
     POI
 from c3nav.mapdata.utils.geometry import unwrap_geom
@@ -138,6 +138,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
     levels = Level.objects.filter(pk__in=levels_for_level.levels)
     graphnodes_qs = GraphNode.objects.all()
+    # todo: reimplement this without groups
     levels = levels.prefetch_related(
         Prefetch('spaces', Space.objects.only('geometry', 'level', 'outside')),
         Prefetch('doors', Door.objects.only('geometry', 'level')),

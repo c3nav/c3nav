@@ -12,7 +12,7 @@ from django.utils.http import quote_etag
 from django.utils.translation import get_language
 from ninja.decorators import decorate_view
 
-from c3nav.mapdata.models import AccessRestriction, LocationGroup, MapUpdate
+from c3nav.mapdata.models import AccessRestriction, MapUpdate
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.permissions import active_map_permissions
@@ -128,9 +128,7 @@ def api_stats(stat_name):
 
 
 def optimize_query(qs):
-    if issubclass(qs.model, SpecificLocation):
-        base_qs = LocationGroup.objects.select_related('category')
-        qs = qs.prefetch_related(Prefetch('groups', queryset=base_qs))
+    # todo: get rid of this?
     if issubclass(qs.model, AccessRestriction):
         qs = qs.prefetch_related('groups')
     return qs

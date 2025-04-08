@@ -17,7 +17,7 @@ from shapely.ops import unary_union
 from twisted.protocols.amp import Decimal
 
 from c3nav.mapdata.locations import CustomLocation, LocationManager
-from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, LocationGroup, Space, WayType
+from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
 from c3nav.mapdata.models.locations import SpecificLocation
@@ -369,6 +369,7 @@ class Router:
     def get_locations(self, location: LocationProtocol, restrictions: "RouterRestrictionSet") -> "RouterLocationSet":
         locations: tuple[RouterLocation, ...] = ()
 
+        # todo: reimplement this, we don't have groups any more
         if isinstance(location, LocationGroup):
             # locationgroups get expanded into their respective locations
             if location.pk not in self.groups:

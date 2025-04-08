@@ -35,6 +35,7 @@ class UserPermissions(models.Model):
     grant_space_access = models.BooleanField(default=False, verbose_name=_('can grant space access'))
 
     review_all_reports = models.BooleanField(default=False, verbose_name=_('can review all reports'))
+    # todo: need to remove this, we don't have locationgroups any more
     review_group_reports = models.ManyToManyField('mapdata.LocationGroup', blank=True,
                                                   limit_choices_to={'access_restriction': None},
                                                   verbose_name=_('can review reports belonging to'))

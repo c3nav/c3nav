@@ -72,6 +72,7 @@ class LocationSlug(models.Model):
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
 
+    # todo: get rid of group foreign key and target code etc
     group = models.ForeignKey('LocationGroup', null=True, on_delete=models.CASCADE, related_name='slug_set')
     specific = models.ForeignKey('SpecificLocation', null=True, on_delete=models.CASCADE, related_name='slug_set')
 
@@ -280,6 +281,7 @@ class SpecificLocation(Location, models.Model):
         ALLOW = "allow", _("allow")
         REJECT = "reject", _("reject for all locations and sublocations")
 
+    # todo: get rid of this
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
@@ -403,12 +405,14 @@ class SpecificLocation(Location, models.Model):
                     expression=RowNumber(),
                     order_by=("min_group_effective_order", "pk"),
                 ),
-                new_effective_order=F("row_num") + LocationGroup.objects.count()
+                # todo: calculate effective order in two ways
+                new_effective_order=F("row_num")
             ).values('new_effective_order')[:1]
         ))
 
     @classmethod
     def calculate_effective_x(cls, name: str, default=...):
+        # todo: calculate these new, we don't have groups any more
         output_field = cls._meta.get_field(f"effective_{name}")
         cls.objects.annotate(**{
             f"group_effective_{name}": LocationGroup.objects.filter(**{
@@ -997,6 +1001,7 @@ class LocationGroupManager(UseQForPermissionsManager):
         return super().get_queryset().select_related('category')
 
 
+# todo: remove locationgroup model and everything related to it
 class LocationGroup(Location, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
