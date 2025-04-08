@@ -63,8 +63,6 @@ urlpatterns = [
 ]
 urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('SpecificLocation'))
-urlpatterns.extend(add_editor_urls('LocationGroupCategory'))
-urlpatterns.extend(add_editor_urls('LocationGroup'))
 urlpatterns.extend(add_editor_urls('ObstacleGroup'))
 urlpatterns.extend(add_editor_urls('DynamicLocationTarget'))
 urlpatterns.extend(add_editor_urls('WayType'))
