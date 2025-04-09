@@ -12,7 +12,7 @@
         <form method="POST" class="user-permissions-form">
             {% csrf_token %}
             {% for field in user_permissions_form %}
-                {% if field.name == 'review_group_reports' %}
+                {% if field.name == 'review_child_reports' %}
                     {{ field.label_tag }} {{ field }}
                 {% else %}
                     <label>{{ field }} {{ field.label }}</label><br>

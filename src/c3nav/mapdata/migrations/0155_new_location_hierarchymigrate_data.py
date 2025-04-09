@@ -8,6 +8,7 @@ from django.utils import translation
 
 import c3nav.mapdata.models.locations
 import c3nav.mapdata.fields
+from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor
 
 
 def migrate_location_hierarchy(apps, model_name):
@@ -15,6 +16,9 @@ def migrate_location_hierarchy(apps, model_name):
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationGroupCategory = apps.get_model('mapdata', 'LocationGroupCategory')
+
+    Report = apps.get_model('mapdata', 'Report')
+    ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
 
     # convert locationgroups into specific locations
     fields = {f.attname for f in LocationGroup._meta.get_fields()
@@ -59,6 +63,12 @@ def migrate_location_hierarchy(apps, model_name):
     for category, specific_location in zip(categories, new_categories):
         specific_location.children.set([group.id for group in category.groups.all()])
 
+    # migrate report created_groups to created_parents
+    for report in Report.objects.prefetch_related("created_groups"):
+        report.created_parents.set([group.id for group in report.created_groups.all()])
+
+    # migrate theme location group back ground color
+    ThemeLocationGroupBackgroundColor.objects.update(location_id=F("location_group_id"))
 
 
 def unmigrate_location_hierarchy(apps, model_name):
@@ -66,6 +76,9 @@ def unmigrate_location_hierarchy(apps, model_name):
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationGroupCategory = apps.get_model('mapdata', 'LocationGroupCategory')
+
+    Report = apps.get_model('mapdata', 'Report')
+    ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
 
     # locations with no parents / top level
     # these are either former categories or specificlocation without a group
@@ -103,6 +116,13 @@ def unmigrate_location_hierarchy(apps, model_name):
                         for former_category, category in zip(former_categories, categories)}
     available_category_ids = set(new_category_ids)"""
 
+    # migrate report created_groups to created_parents
+    for report in Report.objects.prefetch_related("created_parents"):
+        report.created_groups.set([group.id for group in report.created_parents.all()])
+
+    # migrate theme location group back ground color
+    ThemeLocationGroupBackgroundColor.objects.update(location_group_id=F("location_id"))
+
     # delete specificlocations that are location group categories
     SpecificLocation.objects.filter(pk__in=LocationGroupCategory.objects.values_list("pk", flat=True)).delete()
 
@@ -120,7 +140,9 @@ def unmigrate_location_hierarchy(apps, model_name):
     ])"""
 
     # move locationgroup slugs back
-    LocationSlug.objects.filter(specific_id__isnull=False).update(group_id=F("specific_id"), specific_id=None)
+    LocationSlug.objects.filter(
+        specific_id__in=LocationGroup.objects.values_list("pk", flat=True)
+    ).update(group_id=F("specific_id"), specific_id=None)
 
     # add specific_locations to their location groups again
     for specific_location in SpecificLocation.objects.prefetch_related("parents"):

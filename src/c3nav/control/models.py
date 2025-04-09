@@ -39,6 +39,9 @@ class UserPermissions(models.Model):
     review_group_reports = models.ManyToManyField('mapdata.LocationGroup', blank=True,
                                                   limit_choices_to={'access_restriction': None},
                                                   verbose_name=_('can review reports belonging to'))
+    review_child_reports = models.ManyToManyField('mapdata.SpecificLocation', blank=True,
+                                                  limit_choices_to={'access_restriction': None},  # todo
+                                                  verbose_name=_('can review reports belonging to'))
 
     mesh_control = models.BooleanField(default=False, verbose_name=_('can access mesh control'))
 
@@ -77,14 +80,14 @@ class UserPermissions(models.Model):
         return 'control:permissions:%d' % pk
 
     @cached_property
-    def review_group_ids(self):
+    def review_parent_ids(self):
         if self.pk is None:
             return ()
-        return tuple(self.review_group_reports.values_list('pk', flat=True))
+        return tuple(self.review_child_reports.values_list('pk', flat=True))
 
     @cached_property
     def can_review_reports(self):
-        return self.review_all_reports or self.review_group_ids
+        return self.review_all_reports or self.review_parent_ids
 
     @classmethod
     @contextmanager
@@ -113,7 +116,7 @@ class UserPermissions(models.Model):
                 result = cls(user=user, initial=True)
             cache.set(cache_key, result, 900)
             # noinspection PyStatementEffect
-            result.review_group_ids
+            result.review_parent_ids
             cache.set(cache_key, result, 900)
         return result
 
