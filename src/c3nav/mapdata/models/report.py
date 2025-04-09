@@ -53,8 +53,6 @@ class Report(models.Model):
 
     created_title = I18nField(_('new location title'), plural_name='titles', blank=False, fallback_any=True,
                               help_text=_('you have to supply a title in at least one language'))
-    created_groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('location groups'), blank=True,
-                                            help_text=_('select all groups that apply, if any'), related_name='+')
     created_parents = models.ManyToManyField('mapdata.SpecificLocation', verbose_name=_('location type'), blank=True,
                                              help_text=_('select all that apply, if any'), related_name='+')
     secret = models.CharField(_('secret'), max_length=32, default=get_report_secret)

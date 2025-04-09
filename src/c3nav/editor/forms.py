@@ -13,7 +13,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Prefetch, Q
 from django.db.models.fields.reverse_related import ManyToManyRel
 from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, JSONField, ModelChoiceField,
-                          ModelForm, MultipleChoiceField, Select, ValidationError)
+                          ModelForm, Select, ValidationError)
 from django.forms.widgets import HiddenInput, TextInput
 from django.urls import reverse
 from django.utils.html import format_html
@@ -28,7 +28,7 @@ from c3nav.mapdata.models import GraphEdge, Source, GraphNode, Space, LocationSl
 from c3nav.mapdata.models.access import AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
 from c3nav.mapdata.models.locations import SpecificLocation, Location
-from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
+from c3nav.mapdata.models.theme import ThemeLocationBackgroundColor, ThemeObstacleGroupBackgroundColor
 from c3nav.mapdata.permissions import active_map_permissions
 
 
@@ -54,7 +54,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 }
 
             for location in SpecificLocation.objects.filter(color__isnull=False).prefetch_related(
-                    Prefetch('theme_colors', ThemeLocationGroupBackgroundColor.objects.only('fill_color'))).all():
+                    Prefetch('theme_colors', ThemeLocationBackgroundColor.objects.only('fill_color'))
+            ).all():
                 related = location_theme_colors.get(location.pk, None)
                 value = related.fill_color if related is not None else None
                 other_themes_colors = {
@@ -356,8 +357,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             for location in SpecificLocation.objects.filter(color__isnull=False):
                 value = self.cleaned_data.get(f'location_{location.pk}', None)
                 if value:
-                    color = location_colors.get(location.pk, ThemeLocationGroupBackgroundColor(theme=self.instance,
-                                                                                               location=location))
+                    color = location_colors.get(location.pk, ThemeLocationBackgroundColor(theme=self.instance,
+                                                                                          location=location))
                     color.fill_color = value
                     color.save()
                 else:

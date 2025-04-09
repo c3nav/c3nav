@@ -35,4 +35,8 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(blank=True, limit_choices_to={'access_restriction': None}, to='mapdata.specificlocation', verbose_name='can review reports belonging to'),
         ),
         migrations.RunPython(migrate_location_hierarchy, unmigrate_location_hierarchy),
+        migrations.RemoveField(
+            model_name='userpermissions',
+            name='review_group_reports',
+        ),
     ]
