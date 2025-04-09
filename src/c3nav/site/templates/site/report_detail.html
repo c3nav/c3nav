@@ -36,9 +36,9 @@
             <strong>{{ field.label }}:</strong><br>
             {% if field.name == 'description' %}
                 {{ report.description | linebreaksbr }}
-            {% elif field.name == 'created_groups' %}
-                {% for group in report.created_groups.all %}
-                    {{ group.title }}<br>
+            {% elif field.name == 'created_parents' %}
+                {% for parent in report.created_parents.all %}
+                    {{ parent.title }}<br>
                 {% empty %}
                     <em>{% trans '(none)' %}</em>
                 {% endfor %}
