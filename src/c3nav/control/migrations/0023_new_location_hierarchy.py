@@ -8,16 +8,16 @@ def migrate_location_hierarchy(apps, model_name):
 
     # migrate userpermissions locationgroup reference
     for user_permissions in UserPermissions.objects.prefetch_related("review_group_reports"):
-        user_permissions.review_location_reports.set([group.id for group in user_permissions.review_group_reports.all()])
+        user_permissions.review_child_reports.set([group.id for group in user_permissions.review_group_reports.all()])
 
 
 def unmigrate_location_hierarchy(apps, model_name):
     UserPermissions = apps.get_model('control', 'UserPermissions')
 
     # migrate userpermissions locationgroup reference
-    for user_permissions in UserPermissions.objects.prefetch_related("review_location_reports"):
+    for user_permissions in UserPermissions.objects.prefetch_related("review_child_reports"):
         user_permissions.review_group_reports.set(
-            [group.id for group in user_permissions.review_location_reports.all()]
+            [group.id for group in user_permissions.review_child_reports.all()]
         )
 
 

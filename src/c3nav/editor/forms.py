@@ -38,31 +38,29 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
 
-        # todo: reimplement this without refering to groups
+        # todo: why access model __name__ here, further down as well
         if self._meta.model.__name__ == 'Theme':
             if creating:
-                locationgroup_theme_colors = {}
+                location_theme_colors = {}
                 obstaclegroup_theme_colors = {}
             else:
-                locationgroup_theme_colors = {
-                    theme_location_group.location_group_id: theme_location_group
-                    for theme_location_group in self.instance.location_groups.filter(theme_id=self.instance.pk)
+                location_theme_colors = {
+                    theme_location.location_group_id: theme_location
+                    for theme_location in self.instance.locations.filter(theme_id=self.instance.pk)
                 }
                 obstaclegroup_theme_colors = {
                     theme_obstacle.obstacle_group_id: theme_obstacle
-                    for theme_obstacle in self.instance.obstacle_groups.filter(theme_id=self.instance.pk)
+                    for theme_obstacle in self.instance.obstacles.filter(theme_id=self.instance.pk)
                 }
 
-            # TODO: can we get the model class via relationships?
-            # todo: remove this old locationgroup code, just set the parents
-            for locationgroup in LocationGroup.objects.prefetch_related(
+            for location in SpecificLocation.objects.filter(color__isnull=False).prefetch_related(
                     Prefetch('theme_colors', ThemeLocationGroupBackgroundColor.objects.only('fill_color'))).all():
-                related = locationgroup_theme_colors.get(locationgroup.pk, None)
+                related = location_theme_colors.get(location.pk, None)
                 value = related.fill_color if related is not None else None
                 other_themes_colors = {
-                    str(theme_location_group.theme.title): theme_location_group.fill_color
-                    for theme_location_group in locationgroup.theme_colors.all()
-                    if related is None or theme_location_group.pk != related.pk
+                    str(theme_location.theme.title): theme_location.fill_color
+                    for theme_location in location.theme_colors.all()
+                    if related is None or theme_location.pk != related.pk
                 }
                 if len(other_themes_colors) > 0:
                     other_themes_colors = json.dumps(other_themes_colors)
@@ -70,15 +68,15 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     other_themes_colors = False
                 field = CharField(
                     max_length=32,
-                    label=locationgroup.title,
+                    label=location.title,
                     required=False,
                     initial=value,
                     widget=TextInput(attrs={
                         'data-themed-color': True,
-                        'data-color-base-theme': locationgroup.color if locationgroup.color else False,
+                        'data-color-base-theme': location.color if location.color else False,
                         'data-colors-other-themes': other_themes_colors,
                     }))
-                self.fields[f'locationgroup_{locationgroup.pk}'] = field
+                self.fields[f'location_{location.pk}'] = field
 
             for obstaclegroup in ObstacleGroup.objects.prefetch_related(
                     Prefetch('theme_colors', ThemeObstacleGroupBackgroundColor.objects.only('fill_color'))).all():
@@ -320,6 +318,9 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
     def _save_m2m(self):
         super()._save_m2m()
         if self._meta.model.__name__ != 'AccessRestriction':
+            # todo: reimplement this groups code to make it parents
+            # todo: get rid of this code alltogether, since we no longer have groups
+            # todo: bring groups back to editor
             try:
                 field = self._meta.model._meta.get_field('groups')
             except FieldDoesNotExist:
@@ -349,20 +350,18 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             for slug, r in self.add_slugs.items():
                 self.instance.slug_set.create(slug=slug, redirect=r)
 
-        # todo: reimplement this without refering to groups
         if self._meta.model.__name__ == 'Theme':
-            locationgroup_colors = {theme_location_group.location_group_id: theme_location_group
-                                    for theme_location_group in self.instance.location_groups.all()}
-            for locationgroup in LocationGroup.objects.all():
-                value = self.cleaned_data[f'locationgroup_{locationgroup.pk}']
+            location_colors = {theme_location.location_group_id: theme_location
+                                    for theme_location in self.instance.locations.all()}
+            for location in SpecificLocation.objects.filter(color__isnull=False):
+                value = self.cleaned_data.get(f'location_{location.pk}', None)
                 if value:
-                    color = locationgroup_colors.get(locationgroup.pk,
-                                                     ThemeLocationGroupBackgroundColor(theme=self.instance,
-                                                                                       location_group=locationgroup))
+                    color = location_colors.get(location.pk, ThemeLocationGroupBackgroundColor(theme=self.instance,
+                                                                                               location=location))
                     color.fill_color = value
                     color.save()
                 else:
-                    color = locationgroup_colors.get(locationgroup.pk, None)
+                    color = location_colors.get(location.pk, None)
                     if color is not None:
                         color.delete()
 

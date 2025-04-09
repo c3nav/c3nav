@@ -88,4 +88,9 @@ class Migration(migrations.Migration):
             name='location',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='theme_colors', to='mapdata.specificlocation'),
         ),
+        migrations.AlterField(
+            model_name='themelocationgroupbackgroundcolor',
+            name='theme',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='locations', to='mapdata.theme'),
+        ),
     ]

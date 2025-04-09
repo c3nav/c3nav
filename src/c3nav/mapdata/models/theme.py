@@ -87,8 +87,8 @@ class ThemeLocationGroupBackgroundColor(models.Model):
     """
     A background color for a LocationGroup in a theme
     """
-    theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="location_groups")
-    # todo: this should no longer refer to locationgroup
+    # todo: rename this model
+    theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="locations")
     location_group = models.ForeignKey("LocationGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                        related_name="theme_colors")
     location = models.ForeignKey("SpecificLocation", on_delete=models.SET_NULL, null=True, blank=True,
@@ -97,14 +97,14 @@ class ThemeLocationGroupBackgroundColor(models.Model):
     border_color = models.CharField(max_length=32, null=True, blank=True)
 
     def pre_save_changed_geometries(self):
-        self.location_group.register_changed_geometries()
+        self.location.register_changed_geometries()
 
     def save(self, *args, **kwargs):
         self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
 
     def pre_delete_changed_geometries(self):
-        self.location_group.register_changed_geometries()
+        self.location.register_changed_geometries()
 
     def delete(self, *args, **kwargs):
         self.pre_delete_changed_geometries()
