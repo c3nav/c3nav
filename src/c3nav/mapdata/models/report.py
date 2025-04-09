@@ -7,16 +7,13 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
-from django.urls.exceptions import NoReverseMatch
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
-from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation, LocationRedirect
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
 from c3nav.site.tasks import send_report_notification
@@ -58,6 +55,8 @@ class Report(models.Model):
                               help_text=_('you have to supply a title in at least one language'))
     created_groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('location groups'), blank=True,
                                             help_text=_('select all groups that apply, if any'), related_name='+')
+    created_parents = models.ManyToManyField('mapdata.SpecificLocation', verbose_name=_('location type'), blank=True,
+                                             help_text=_('select all that apply, if any'), related_name='+')
     secret = models.CharField(_('secret'), max_length=32, default=get_report_secret)
 
     image = models.ImageField(_('image'), null=True, upload_to=report_image_upload_path)
@@ -84,7 +83,7 @@ class Report(models.Model):
             return cls.objects.all()
         elif request.user.is_authenticated:
             location_ids = set()
-            review_group_ids = request.user_permissions.review_group_ids
+            review_group_ids = request.user_permissions.review_parent_ids
             for model in get_submodels(SpecificLocation):
                 location_ids.update(set(
                     model.objects.filter(groups__in=review_group_ids).values_list('pk', flat=True)
@@ -97,26 +96,24 @@ class Report(models.Model):
         else:
             return cls.objects.none()
 
-    def get_affected_group_ids(self):
+    def get_affected_parent_ids(self):
         if self.category == 'missing-location':
-            return tuple(self.created_groups.values_list('pk', flat=True))
+            return tuple(self.created_parents.values_list('pk', flat=True))
         elif self.category == 'location-issue':
-            child = self.location_specific
-            if child is None:
-                return ()
-            return tuple(child.groups.values_list('pk', flat=True))
+            # todo: reimplement this from groups to parents
+            return tuple(self.location.get_child().groups.values_list('pk', flat=True))
         return ()
 
     def get_reviewers_qs(self):
         return get_user_model().objects.filter(
             Q(permissions__review_all_reports=True) |
-            Q(permissions__review_group_reports__in=self.get_affected_group_ids())
+            Q(permissions__review_child_reports__in=self.get_affected_parent_ids())
         )
 
     def request_can_review(self, request):
         return (
             request.user_permissions.review_all_reports or
-            set(request.user_permissions.review_group_ids) & set(self.get_affected_group_ids())
+            set(request.user_permissions.review_parent_ids) & set(self.get_affected_parent_ids())
         )
 
     def notify_reviewers(self):

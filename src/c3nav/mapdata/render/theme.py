@@ -27,10 +27,10 @@ class ThemeColorManager:
             self.obstacles_default_border = settings.BASE_THEME['map']['obstacles_default_border']
             self.highlight = settings.BASE_THEME['map']['highlight']
             # todo: implement this anew, we don't have groups any more
-            self.location_group_border_colors = {}
-            self.location_group_fill_colors = {
-                location_group.pk: location_group.color
-                for location_group in LocationGroup.objects.filter(color__isnull=False).all()
+            self.location_border_colors = {}
+            self.location_fill_colors = {
+                location.pk: location.color
+                for location in SpecificLocation.objects.filter(color__isnull=False).all()
             }
             self.obstacle_group_border_colors = {}
             self.obstacle_group_fill_colors = {
@@ -47,11 +47,11 @@ class ThemeColorManager:
             self.obstacles_default_border = theme.color_obstacles_default_border or settings.BASE_THEME['map']['obstacles_default_border']
             self.highlight = theme.color_css_primary or settings.BASE_THEME['map']['highlight']
             # todo: rename, we don't have groups any more
-            self.location_group_border_colors = {
+            self.location_border_colors = {
                 theme_location_group.location_group_id: theme_location_group.border_color
                 for theme_location_group in theme.location_groups.all()
             }
-            self.location_group_fill_colors = {
+            self.location_fill_colors = {
                 theme_location_group.location_group_id: theme_location_group.fill_color
                 for theme_location_group in theme.location_groups.all()
             }
@@ -66,11 +66,11 @@ class ThemeColorManager:
 
     def locationgroup_border_color(self, location: SpecificLocation):
         # todo: rename, no longer have locationgroups
-        return self.location_group_border_colors.get(location.pk, None)
+        return self.location_border_colors.get(location.pk, None)
 
     def locationgroup_fill_color(self, location: SpecificLocation):
         # todo: rename, no longer have locationgroups
-        return self.location_group_fill_colors.get(location.pk, None)
+        return self.location_fill_colors.get(location.pk, None)
 
     def obstaclegroup_border_color(self, obstacle_group: ObstacleGroup):
         return self.obstacle_group_border_colors.get(obstacle_group.pk, self.obstacles_default_border)

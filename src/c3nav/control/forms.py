@@ -30,7 +30,7 @@ from c3nav.site.models import Announcement
 class UserPermissionsForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['review_group_reports'].label_from_instance = lambda obj: obj.title
+        self.fields['review_child_reports'].label_from_instance = lambda obj: obj.title
         self.fields['allowed_quests'] = MultipleChoiceField(
             label=_('Available quests'),
             choices=[(key, quest.quest_type_label) for key, quest in quest_types.items()],

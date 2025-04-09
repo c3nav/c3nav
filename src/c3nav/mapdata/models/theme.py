@@ -91,6 +91,8 @@ class ThemeLocationGroupBackgroundColor(models.Model):
     # todo: this should no longer refer to locationgroup
     location_group = models.ForeignKey("LocationGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                        related_name="theme_colors")
+    location = models.ForeignKey("SpecificLocation", on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="theme_colors")
     fill_color = models.CharField(max_length=32, null=True, blank=True)
     border_color = models.CharField(max_length=32, null=True, blank=True)
 

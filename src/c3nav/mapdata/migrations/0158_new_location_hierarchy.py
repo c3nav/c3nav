@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='mapupdatejob',
             name='job_type',
-            field=models.CharField(choices=(('mapdata.recalculate_locationgroup_order', 'LocationGroup order'), ('mapdata.recalculate_specificlocation_order', 'SpecificLocation order'), ('mapdata.recalculate_specificlocation_cached_from_parents', 'SpecificLocation cached from parents'), ('mapdata.recalculate_specificlocation_static_targets', 'SpecificLocation static targets'), ('mapdata.recalculate_specificlocation_dynamic_targets', 'SpecificLocation dynamic targets'), ('mapdata.recalculate_specificlocation_target_subtitles', 'SpecificLocation target subtitles'), ('mapdata.recalculate_level_bounds', 'level bounds'), ('mapdata.recalculate_space_effective_geometries', 'Space effective geometries'), ('mapdata.recalculate_space_simplified_geometries', 'Space simplified geometries'), ('mapdata.recalculate_area_effective_geometries', 'Area effective geometries'), ('mapdata.recalculate_space_points', 'Space points'), ('mapdata.recalculate_area_points', 'Area points'), ('mapdata.recalculate_space_bounds', 'Space bounds'), ('mapdata.recalculate_area_bounds', 'Area bounds'), ('mapdata.recalculate_specificlocation_geometries', 'Specific location geometries'), ('mapdata.recalculate_specificlocation_bounds', 'Specific location bounds'), ('mapdata.recalculate_specificlocation_points', 'Specific location points'), ('mapdata.recalculate_specificlocation_final', 'SpecificLocation finalize'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64),
+            field=models.CharField(choices=(('mapdata.recalculate_specificlocation_order', 'SpecificLocation order'), ('mapdata.recalculate_specificlocation_cached_from_parents', 'SpecificLocation cached from parents'), ('mapdata.recalculate_specificlocation_static_targets', 'SpecificLocation static targets'), ('mapdata.recalculate_specificlocation_dynamic_targets', 'SpecificLocation dynamic targets'), ('mapdata.recalculate_specificlocation_target_subtitles', 'SpecificLocation target subtitles'), ('mapdata.recalculate_level_bounds', 'level bounds'), ('mapdata.recalculate_space_effective_geometries', 'Space effective geometries'), ('mapdata.recalculate_space_simplified_geometries', 'Space simplified geometries'), ('mapdata.recalculate_area_effective_geometries', 'Area effective geometries'), ('mapdata.recalculate_space_points', 'Space points'), ('mapdata.recalculate_area_points', 'Area points'), ('mapdata.recalculate_space_bounds', 'Space bounds'), ('mapdata.recalculate_area_bounds', 'Area bounds'), ('mapdata.recalculate_specificlocation_geometries', 'Specific location geometries'), ('mapdata.recalculate_specificlocation_bounds', 'Specific location bounds'), ('mapdata.recalculate_specificlocation_points', 'Specific location points'), ('mapdata.recalculate_specificlocation_final', 'SpecificLocation finalize'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64),
         ),
         migrations.AddField(
             model_name='specificlocation',
@@ -78,5 +78,14 @@ class Migration(migrations.Migration):
             name='parents',
             field=models.ManyToManyField(related_name='children', to='mapdata.specificlocation'),
         ),
-        #migrations.RunPython(migrate_location_hierarchy, unmigrate_location_hierarchy),
+        migrations.AddField(
+            model_name='report',
+            name='created_parents',
+            field=models.ManyToManyField(blank=True, help_text='select all that apply, if any', related_name='+', to='mapdata.specificlocation', verbose_name='location type'),
+        ),
+        migrations.AddField(
+            model_name='themelocationgroupbackgroundcolor',
+            name='location',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='theme_colors', to='mapdata.specificlocation'),
+        ),
     ]
