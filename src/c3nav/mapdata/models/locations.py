@@ -53,11 +53,6 @@ if TYPE_CHECKING:
     from c3nav.mapdata.locations import CustomLocation
 
 
-class LocationSlugManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().select_related('group', 'specific')
-
-
 validate_slug = RegexValidator(
     r'^[a-z0-9-]*[a-z]+[a-z0-9-]*\Z',
     # Translators: "letters" means latin letters: a-z and A-Z.
@@ -65,25 +60,11 @@ validate_slug = RegexValidator(
     'invalid'
 )
 
-possible_slug_targets = ('group', 'specific')  # todo: can we generate this?
-
 
 class LocationSlug(models.Model):
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
-
-    # todo: get rid of group foreign key and target code etc
-    group = models.ForeignKey('LocationGroup', null=True, on_delete=models.CASCADE, related_name='slug_set')
-    specific = models.ForeignKey('SpecificLocation', null=True, on_delete=models.CASCADE, related_name='slug_set')
-
-    objects = LocationSlugManager()
-
-    def get_target(self) -> Union['LocationGroup', 'SpecificLocation']:
-        return self.group if self.group_id is not None else self.specific
-
-    @property
-    def target_id(self):
-        return self.group_id or self.specific_id
+    target = models.ForeignKey('SpecificLocation', on_delete=models.CASCADE, related_name='slug_set')
 
     class Meta:
         verbose_name = _('Location Slug')
@@ -91,11 +72,7 @@ class LocationSlug(models.Model):
         default_related_name = 'locationslugs'
 
         constraints = [
-            models.CheckConstraint(condition=reduce(operator.or_, (
-                Q(**{f'{name}__isnull': (name != set_name) for name in possible_slug_targets})
-                for set_name in possible_slug_targets
-            )), name="only_one_slug_target"),
-            models.UniqueConstraint(fields=["group", "specific"], condition=Q(redirect=False),
+            models.UniqueConstraint(fields=["target"], condition=Q(redirect=False),
                                     name="unique_non_redirect_slugs")
         ]
 
