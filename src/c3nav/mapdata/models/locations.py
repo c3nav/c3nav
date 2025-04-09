@@ -101,6 +101,7 @@ class LocationSlug(models.Model):
 
 
 class Location(AccessRestrictionMixin, TitledMixin, models.Model):
+    # todo: merge this into SpecificLocation
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can describe'))
     icon = models.CharField(_('icon'), max_length=32, null=True, blank=True, help_text=_('any material icons name'))

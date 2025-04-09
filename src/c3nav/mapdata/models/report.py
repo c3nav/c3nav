@@ -74,16 +74,14 @@ class Report(models.Model):
         if request.user_permissions.review_all_reports:
             return cls.objects.all()
         elif request.user.is_authenticated:
-            location_ids = set()
-            review_group_ids = request.user_permissions.review_parent_ids
-            for model in get_submodels(SpecificLocation):
-                location_ids.update(set(
-                    model.objects.filter(groups__in=review_group_ids).values_list('pk', flat=True)
-                ))
+            # todo: update this to use all the parent groups… or don't?
+            location_ids = set(SpecificLocation.objects.filter(
+                parents__in=request.user_permissions.review_parent_ids
+            ).values_list('pk', flat=True))
             return cls.objects.filter(
                 Q(author=request.user) |
                 Q(location_id__in=location_ids) |
-                Q(created_groups__in=review_group_ids)
+                Q(created_parents__in=request.user_permissions.review_parent_ids)
             )
         else:
             return cls.objects.none()

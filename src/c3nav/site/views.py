@@ -206,6 +206,8 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'initial_bounds': json.dumps(initial_bounds, separators=(',', ':')) if initial_bounds else None,
         'last_site_update': json.dumps(SiteUpdate.last_update()),
         'ssids': json.dumps(settings.WIFI_SSIDS, separators=(',', ':')) if settings.WIFI_SSIDS else None,
+        # todo: move away from groups here
+        # todo: move this out of the settings and into the database
         'random_location_groups': (
             ','.join(str(i) for i in settings.RANDOM_LOCATION_GROUPS) if settings.RANDOM_LOCATION_GROUPS else None
         ),
@@ -595,22 +597,22 @@ def report_select_location(request, coordinates):
 @never_cache
 def report_missing_choose(request, coordinates):
     # todo: reimplement this, we don't have groups any more
-    groups = LocationGroup.objects.filter(can_report_missing__in=(
-        LocationGroup.CanReportMissing.SINGLE,
-        LocationGroup.CanReportMissing.REJECT,
+    parents = SpecificLocation.objects.filter(can_report_missing__in=(
+        SpecificLocation.CanReportMissing.SINGLE,
+        SpecificLocation.CanReportMissing.REJECT,
     ))
-    if not groups.exists():
+    if not parents.exists():
         return redirect(reverse('site.report_create', kwargs={"coordinates": coordinates}))
     return render(request, 'site/report_question.html', {
         'question': _('Does one of these describe your missing location?'),
         'locations': [
             {
                 "url": reverse('site.report_create',
-                               kwargs={"coordinates": coordinates, "group": group.effective_slug}),
-                "location": group,
-                "replace_subtitle": group.description
+                               kwargs={"coordinates": coordinates, "parent": parent.effective_slug}),
+                "location": parent,
+                "replace_subtitle": parent.description
             }
-            for group in groups
+            for parent in parents
         ],
         'before_answers': _('Please carefully check if one of the options above applies to the missing location!'),
         'answers': [
@@ -624,8 +626,7 @@ def report_missing_choose(request, coordinates):
 
 @never_cache
 def report_start_location(request, location):
-    return redirect(reverse('site.report_create',
-                            kwargs={"location": location}))
+    return redirect(reverse('site.report_create', kwargs={"location": location}))
 
 
 @never_cache
@@ -636,7 +637,8 @@ def report_start_route(request, origin, destination, options):
 
 @never_cache
 @login_required(login_url='site.login')
-def report_create(request, coordinates=None, location=None, origin=None, destination=None, options=None, group=None):
+def report_create(request, coordinates=None, location=None, origin=None, destination=None, options=None, parent=None):
+    # todo: specificlocation isntead of group
     report = Report()
     report.request = request
 
@@ -646,22 +648,21 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
     if coordinates:
         report.category = 'missing-location'
         report.coordinates_id = coordinates
-        form_kwargs["request"] = request
-        if group:
-            group = LocationManager.get(group)
-            if not isinstance(group, LocationGroup):
+        if parent:
+            parent = LocationManager.get(parent)
+            if not isinstance(parent, SpecificLocation):
                 raise Http404
-            if group.can_report_missing == LocationGroup.CanReportMissing.REJECT:
+            if parent.can_report_missing == SpecificLocation.CanReportMissing.REJECT:
                 messages.error(request, format_html(
                     '{}<br><br>{}',
                     _('We do not accept reports for this type of location.'),
-                    group.report_help_text,
+                    parent.report_help_text,
                 ))
                 return render(request, 'site/report_question.html', {})
-            if group.can_report_missing != LocationGroup.CanReportMissing.SINGLE:
+            if parent.can_report_missing != SpecificLocation.CanReportMissing.SINGLE:
                 raise Http404
-            help_text = group.report_help_text
-            form_kwargs["group"] = group
+            help_text = parent.report_help_text
+            form_kwargs["parent"] = parent
         try:
             report.coordinates
         except ObjectDoesNotExist:
@@ -669,12 +670,13 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
     elif location:
         report.category = 'location-issue'
         report.location = get_report_location_for_request(location)
-        for group in report.location.groups.all():
-            if group.can_report_mistake == LocationGroup.CanReportMistake.REJECT:
+        # todo: migrate this to not use groups but use ALL parents / ancestors
+        for parent in report.location.parents.all():
+            if parent.can_report_mistake == SpecificLocation.CanReportMistake.REJECT:
                 messages.error(request, format_html(
                     '{}<br><br>{}',
                     _('We do not accept reports for this location.'),
-                    group.report_help_text,
+                    parent.report_help_text,
                 ))
                 return render(request, 'site/report_question.html', {})
         if report.location is None:

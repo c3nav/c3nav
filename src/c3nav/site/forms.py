@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.api.models import Secret
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models.locations import Position
+from c3nav.mapdata.models.locations import Position, SpecificLocation
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.site.compliance import ComplianceCheckboxFormMixin
 
@@ -27,28 +27,28 @@ class DeleteAccountForm(Form):
 
 
 class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
-    def __init__(self, *args, group=None, request=None, **kwargs):
-        super().__init__(*args, initial={"created_groups": [group] if group else []}, **kwargs)
-        # todo: reimplement this, we don't have groups any more
-        if group:
-            self.fields['created_groups'].disabled = True
-            self.fields['created_groups'].queryset = LocationGroup.objects.filter(pk=group.pk)
+    def __init__(self, *args, parent=None, **kwargs):
+        super().__init__(*args, initial={"created_parents": [parent] if parent else []}, **kwargs)
+        if parent:
+            self.fields['created_parents'].disabled = True
+            # todo: in other places we don't set the queryset explicitly and the filter gets on django init. fix that.
+            self.fields['created_parents'].queryset = SpecificLocation.objects.filter(pk=parent.pk)
         else:
-            exists = LocationGroup.objects.filter(
-                can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
+            exists = SpecificLocation.objects.filter(
+                can_report_missing=SpecificLocation.CanReportMissing.MULTIPLE
             ).exists()
             if exists:
-                self.fields['created_groups'].queryset = LocationGroup.objects.filter(
-                    can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
+                self.fields['created_parents'].queryset = SpecificLocation.objects.filter(
+                    can_report_missing=SpecificLocation.CanReportMissing.MULTIPLE
                 )
             else:
-                self.fields['created_groups'].queryset = LocationGroup.objects.none()
-                self.fields['created_groups'].widget = self.fields['created_groups'].hidden_widget()
-        self.fields['created_groups'].label_from_instance = lambda obj: obj.title
+                self.fields['created_parents'].queryset = SpecificLocation.objects.none()
+                self.fields['created_parents'].widget = self.fields['created_parents'].hidden_widget()
+        self.fields['created_parents'].label_from_instance = lambda obj: obj.title
 
     class Meta:
         model = Report
-        fields = ['title', 'description', 'created_title', 'created_groups']
+        fields = ['title', 'description', 'created_title', 'created_parents']
 
 
 class ReportUpdateForm(ModelForm):
