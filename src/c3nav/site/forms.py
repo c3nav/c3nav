@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.api.models import Secret
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models.locations import Position, LocationGroup
+from c3nav.mapdata.models.locations import Position, LocationGroup, SpecificLocation
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.site.compliance import ComplianceCheckboxFormMixin
 
@@ -27,39 +27,39 @@ class DeleteAccountForm(Form):
 
 
 class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
-    def __init__(self, *args, group=None, request=None, **kwargs):
-        initial = {"created_groups": [group] if group else []}
-        if group and group.can_report_missing == LocationGroup.CanReportMissing.SINGLE_IMAGE:
-            # todo: reimplement this, we don't have groups any more
-            initial["title"] = _("Image for %s") % group.title
+    def __init__(self, *args, parent=None, request=None, **kwargs):
+        initial = {"created_parents": [parent] if parent else []}
+        if parent and parent.can_report_missing == SpecificLocation.CanReportMissing.SINGLE_IMAGE:
+            initial["title"] = _("Image for %s") % parent.title
             initial["description"] = _('(feel free to add more description if it makes sense)')
 
         super().__init__(*args, initial=initial, **kwargs)
-        if group:
-            self.fields['created_groups'].disabled = True
-            self.fields['created_groups'].queryset = LocationGroup.objects.filter(pk=group.pk)
+        if parent:
+            self.fields['created_parents'].disabled = True
+            # todo: in other places we don't set the queryset explicitly and the filter gets on django init. fix that.
+            self.fields['created_parents'].queryset = SpecificLocation.objects.filter(pk=parent.pk)
 
-            if group.can_report_missing == LocationGroup.CanReportMissing.SINGLE_IMAGE:
-                self.fields['created_title__en'].initial = group.title
+            if parent.can_report_missing == SpecificLocation.CanReportMissing.SINGLE_IMAGE:
+                self.fields['created_title__en'].initial = parent.title
             else:
                 self.fields.pop('image')
         else:
             self.fields.pop('image')
-            exists = LocationGroup.objects.filter(
-                can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
+            exists = SpecificLocation.objects.filter(
+                can_report_missing=SpecificLocation.CanReportMissing.MULTIPLE
             ).exists()
             if exists:
-                self.fields['created_groups'].queryset = LocationGroup.objects.filter(
-                    can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
+                self.fields['created_parents'].queryset = SpecificLocation.objects.filter(
+                    can_report_missing=SpecificLocation.CanReportMissing.MULTIPLE
                 )
             else:
-                self.fields['created_groups'].queryset = LocationGroup.objects.none()
-                self.fields['created_groups'].widget = self.fields['created_groups'].hidden_widget()
-        self.fields['created_groups'].label_from_instance = lambda obj: obj.title
+                self.fields['created_parents'].queryset = SpecificLocation.objects.none()
+                self.fields['created_parents'].widget = self.fields['created_parents'].hidden_widget()
+        self.fields['created_parents'].label_from_instance = lambda obj: obj.title
 
     class Meta:
         model = Report
-        fields = ['title', 'description', 'created_title', 'created_groups', 'image']
+        fields = ['title', 'description', 'created_title', 'created_parents', 'image']
 
 
 class ReportUpdateForm(ModelForm):
