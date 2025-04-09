@@ -255,8 +255,8 @@ def legend_for_theme(request, theme_id: int):
     return LegendSchema(
         base=[],
         groups=[item for item in (LegendItemSchema(title=location.title,
-                                                   fill=manager.locationgroup_fill_color(location),
-                                                   border=manager.locationgroup_border_color(location))
+                                                   fill=manager.location_fill_color(location),
+                                                   border=manager.location_border_color(location))
                                   for location in legend_locations if location.children.all())
                 if item.fill or item.border],
         obstacles=[item for item in (LegendItemSchema(title=group.title,
