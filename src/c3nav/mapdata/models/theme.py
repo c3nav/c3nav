@@ -83,14 +83,11 @@ class Theme(TitledMixin, models.Model):
         default_related_name = 'themes'
 
 
-class ThemeLocationGroupBackgroundColor(models.Model):
+class ThemeLocationBackgroundColor(models.Model):
     """
-    A background color for a LocationGroup in a theme
+    A background color for a SpecificLocation in a theme
     """
-    # todo: rename this model
     theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="locations")
-    location_group = models.ForeignKey("LocationGroup", on_delete=models.SET_NULL, null=True, blank=True,
-                                       related_name="theme_colors")
     location = models.ForeignKey("SpecificLocation", on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name="theme_colors")
     fill_color = models.CharField(max_length=32, null=True, blank=True)

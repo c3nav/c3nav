@@ -1,5 +1,6 @@
 import base64
 import os
+import time
 from collections import Counter
 from itertools import chain
 from shutil import rmtree
@@ -12,6 +13,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseNotModified, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
+from django.utils.translation import get_language
 from django.views.decorators.http import etag
 from shapely import LineString, Point, box, unary_union
 
@@ -490,3 +492,8 @@ def prometheus_exporter(request):
     response = ExportToDjangoView(request)
     response.content += metrics_page
     return response
+
+
+def waittest(request, sleep: int):
+    time.sleep(sleep)
+    return HttpResponse(get_language().encode()+b"\n")
