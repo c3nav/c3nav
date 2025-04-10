@@ -13,7 +13,7 @@ from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.aggregates import Min
+from django.db.models.aggregates import Min, Count
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value
 from django.db.models.functions.window import RowNumber
@@ -931,6 +931,10 @@ def location_hierarchy_changed(sender, instance: SpecificLocation, pk_set: set[i
             location_hierarchy_parents_added(instance=instance, pk_set=pk_set)
         case ("post_add", True):
             location_hierarchy_children_added(instance=instance, pk_set=pk_set)
+        case ("post_remove" | "post_clear", False):
+            location_hierarchy_parents_removed(instance=instance, pk_set=pk_set)
+        case ("post_add" | "post_clear", True):
+            location_hierarchy_children_removed(instance=instance, pk_set=pk_set)
 
 
 def location_hierarchy_parents_added(instance: SpecificLocation, pk_set: set[int]):
@@ -1086,6 +1090,32 @@ def location_hierarchy_children_added(instance: SpecificLocation, pk_set: set[in
             )
         )
     ))
+
+    # notify changed geometries… todo: this should definitely use the descendants thing
+    for obj in SpecificLocation.objects.filter(pk__in=pk_set):
+        obj.register_changed_geometries(force=True)
+
+
+def location_hierarchy_parents_removed(instance: SpecificLocation, pk_set: set[int]):
+    """
+    parents were removed from the location
+    """
+    # get removed parentages, this is why we do this before
+    LocationAncestry.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
+
+    # notify changed geometries… todo: this should definitely use the descendants thing
+    instance.register_changed_geometries(force=True)
+
+
+def location_hierarchy_children_removed(instance: SpecificLocation, pk_set: set[int] = None):
+    """
+    children were removed from the location
+    """
+    if pk_set is None:
+        # todo: this is a hack, can be done nicer
+        pk_set = set(LocationAncestry.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
+
+    LocationAncestry.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
     for obj in SpecificLocation.objects.filter(pk__in=pk_set):
