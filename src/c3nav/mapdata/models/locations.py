@@ -1140,10 +1140,10 @@ def locations_targets_changed(sender, instance, action, reverse, model, pk_set, 
         if issubclass(model, SpaceGeometryMixin):
             query = query.select_related('space')  # todo… ??? needed?
         for obj in query:
-            obj.register_change(force=True)  # todo: is this using the hierarchy correctly=
+            obj.register_change(force=True)  # todo: is this using the hierarchy correctly?
     else:
         # the locations of a specific location target were changed
-        instance.register_change(force=True)  # todo: is this using the hierarchy correctly=
+        instance.register_change(force=True)  # todo: is this using the hierarchy correctly?
 
 
 class SpecificLocationTargetMixin(models.Model):

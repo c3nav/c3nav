@@ -88,8 +88,7 @@ def migrate_location_hierarchy(apps, model_name):
             for ancestor, descendant in ancestry_to_create
         ))
     }
-    print(category_lookup)
-    print(parentage_id_lookup)
+
     direct_ancestry_path_id_lookup = {
         path.ancestry_id: path.id
         for path in LocationAncestryPath.objects.bulk_create((
