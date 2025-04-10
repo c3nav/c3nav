@@ -16,6 +16,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.aggregates import Min
+from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value
 from django.db.models.functions.comparison import Cast
 from django.db.models.functions.text import Concat
@@ -241,6 +242,48 @@ class LocationHierarchyNode(models.Model):
 """
 
 
+class LocationParentage(models.Model):
+    """
+    A direct parent-child-relationship between two locations.
+    """
+    parent = models.ForeignKey("SpecificLocation", on_delete=models.PROTECT, related_name="+")
+    child = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
+
+    class Meta:
+        constraints = (
+            UniqueConstraint(fields=("parent", "child"), name="unique_location_parent_child"),
+            CheckConstraint(check=~Q(parent=F("child")), name="location_parent_cant_be_child"),
+        )
+
+
+class LocationAncestry(models.Model):
+    """ Automatically populated. Indicating that there is (at least) one ancestry between two locations """
+    ancestor = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
+    descendant = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
+
+    class Meta:
+        constraints = (
+            UniqueConstraint(fields=("ancestor", "descendant"), name="unique_location_ancestry"),
+            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_ancestry"),
+        )
+
+
+class LocationAncestryPath(models.Model):
+    """ Automatically populated. One ancestry path for the given ancestry, ending with the given parentage. """
+    prev_path = models.ForeignKey("LocationAncestryPath", on_delete=models.CASCADE, related_name="+", null=True)
+    parentage = models.ForeignKey("LocationParentage", on_delete=models.CASCADE, related_name="+")
+    ancestry = models.ForeignKey("LocationAncestry", on_delete=models.PROTECT, related_name="paths")
+    num_hops = models.PositiveSmallIntegerField()
+
+    class Meta:
+        constraints = (
+            UniqueConstraint(fields=("prev_path", "parentage"), name="ancestry_path_unique_prev_path_parentage"),
+            UniqueConstraint(fields=("prev_path", "ancestry"), name="ancestry_path_unique_prev_path_ancestry"),
+            CheckConstraint(check=Q(prev_path__isnull=True, num_hops=0) |
+                                  Q(prev_path__isnull=False, num_hops__gt=0), name="ancestry_path_enforce_num_hops"),
+        )
+
+
 class SpecificLocation(Location, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
@@ -298,7 +341,12 @@ class SpecificLocation(Location, models.Model):
 
     # imported from locationgroup end
 
-    parents = models.ManyToManyField('SpecificLocation', related_name='children')
+    parents = models.ManyToManyField("self", related_name="children", symmetrical=False,
+                                     through="LocationParentage", through_fields=("child", "parent"),
+                                     editable=False)
+    calculated_ancestors = models.ManyToManyField("self", related_name="calculated_descendants", symmetrical=False,
+                                                  through="LocationAncestry", through_fields=("descendant", "ancestor"),
+                                                  editable=False)
 
     levels = models.ManyToManyField('Level', related_name='locations')
     spaces = models.ManyToManyField('Space', related_name='locations')
