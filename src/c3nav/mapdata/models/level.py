@@ -30,7 +30,7 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
     """
     A physical level of the map, containing building, spaces, doors…
 
-    A level is a specific location, and can therefore be routed to and from, as well as belong to location groups.
+    A level is a location target.
     """
     base_altitude = models.DecimalField(_('base altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
     default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0,

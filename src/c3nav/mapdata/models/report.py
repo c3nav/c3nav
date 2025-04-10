@@ -96,8 +96,8 @@ class Report(models.Model):
         if self.category == 'missing-location':
             return tuple(self.created_parents.values_list('pk', flat=True))
         elif self.category == 'location-issue':
-            # todo: reimplement this from groups to parents
-            return tuple(self.location.get_child().groups.values_list('pk', flat=True))
+            # todo: reimplement this from groups/parents to ancestors
+            return tuple(self.location.parents.values_list('pk', flat=True))
         return ()
 
     def get_reviewers_qs(self):
