@@ -189,57 +189,6 @@ CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationGeometry | Tag
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
-class StrForeignKey(models.ForeignKey):
-    pass
-
-
-StrForeignKey.register_lookup(EndsWith)
-
-
-"""
-class LocationHierarchyNode(models.Model):
-    location = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="hierarchy_nodes")
-    parent = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="child_hierarchy_nodes",
-                               null=True)
-
-    path = models.CharField(unique=True, max_length=256)
-    parent_path = StrForeignKey("LocationHierarchyNode", on_delete=models.CASCADE, null=True, to_field="path",
-                                related_name="+")
-
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                name="path_is_location_and_no_parent",
-                check=Q(parent__isnull=False) | Q(parent__isnull=True, path=Concat(
-                    Value("/"), Cast("location_id", output_field=models.CharField())
-                ))
-            ),
-            models.CheckConstraint(
-                name="path_ends_with_parent_and_location",
-                check=Q(parent__isnull=True) | Q(parent__isnull=False, path__startswith="/", path__endswith=Concat(
-                    Value("/"), Cast("parent_id", output_field=models.CharField()),
-                    Value("/"), Cast("location_id", output_field=models.CharField()),
-                    Value("/"),
-                ))
-            ),
-            models.CheckConstraint(
-                name="parent_path_matches_parent",
-                check=(
-                    Q(parent__isnull=True, parent_path__isnull=True) |
-                    Q(parent__isnull=False, parent_path__isnull=False, parent_path_id__endswith=Concat(
-                        Value("/"), Cast("parent_id", output_field=models.CharField()),
-                        Value("/"),
-                    )
-                ))
-            ),
-            models.CheckConstraint(
-                name="path_starts_with_parent_path",
-                check=Q(parent_path__isnull=True) | Q(path__startswith=F("parent_path"))
-            ),
-        ]
-"""
-
-
 class LocationParentage(models.Model):
     """
     A direct parent-child-relationship between two locations.
