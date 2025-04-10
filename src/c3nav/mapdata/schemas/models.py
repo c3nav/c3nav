@@ -241,7 +241,8 @@ class CrossDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
 
 class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
     """
-    A location refering to a level, space, area, point of interest, or dynamic location. It can belong to groups.
+    A location refering to a level, space, area, point of interest, or dynamic location.
+    It can have other locations as parents (and thus, also, children).
     """
     groups: list[PositiveInt] = APIField(
         title="location groups",
@@ -308,14 +309,6 @@ class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
     )
     priority: int = APIField()  # todo: ???
     hierarchy: int = APIField()  # todo: ???
-    label_settings: Optional[PositiveInt] = APIField(
-        default=None,
-        title="label settings",
-        description=(
-                schema_description(LabelSettingsSchema) +
-                "\n\nlocations can override this setting"
-        )
-    )
     can_report_missing: SpecificLocation.CanReportMissing = APIField(
         title="report missing locations",
         description="whether this location group can be used to report missing locations",

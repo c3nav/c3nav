@@ -595,7 +595,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         obj.add_cols = tuple(getattr(obj, col) for col in add_cols)
     reverse_kwargs.pop('pk', None)
 
-    # todo: get rid of grouped_objects code completely
+    # todo: get rid of grouped_objects code completely – instead, lets implement a hierarchy
     if model.__name__ == 'LocationGroup':
         grouped_objects = tuple(
             {
