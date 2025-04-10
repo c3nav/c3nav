@@ -186,14 +186,17 @@ class MapdataAPIBuilder:
 
 
 class LevelFilters(ByGroupFilter, ByOnTopOfFilter):
+    # todo: replace ByGroupFilter with by location filter
     pass
 
 
 class SpaceFilters(ByGroupFilter, LevelGeometryFilter):
+    # todo: replace ByGroupFilter with by location filter
     pass
 
 
 class AreaFilters(ByGroupFilter, SpaceGeometryFilter):
+    # todo: replace ByGroupFilter with by location filter
     pass
 
 
