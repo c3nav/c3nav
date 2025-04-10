@@ -1,14 +1,12 @@
-import operator
 import string
 import warnings
 from collections import deque, defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from functools import reduce
-from itertools import chain, batched
+from itertools import chain, batched, product
 from operator import attrgetter, itemgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType
 
 from django.conf import settings
 from django.core.cache import cache
@@ -18,10 +16,10 @@ from django.db.models import Q
 from django.db.models.aggregates import Min
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value
-from django.db.models.functions.comparison import Cast
-from django.db.models.functions.text import Concat
 from django.db.models.functions.window import RowNumber
 from django.db.models.lookups import EndsWith
+from django.db.models.signals import m2m_changed
+from django.dispatch.dispatcher import receiver
 from django.urls import reverse
 from django.utils import timezone
 from django.utils import translation
@@ -261,8 +259,13 @@ class LocationAncestry(models.Model):
     ancestor = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
     descendant = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
 
+    # look, this field is genuinely just for fun, cause we can, probably not useful
+    first_parentages = models.ManyToManyField("LocationParentage", related_name="provides_ancestries",
+                                              through="LocationAncestryPath")
+
     class Meta:
         constraints = (
+            # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
             UniqueConstraint(fields=("ancestor", "descendant"), name="unique_location_ancestry"),
             CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_ancestry"),
         )
@@ -277,6 +280,7 @@ class LocationAncestryPath(models.Model):
 
     class Meta:
         constraints = (
+            # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
             UniqueConstraint(fields=("prev_path", "parentage"), name="ancestry_path_unique_prev_path_parentage"),
             UniqueConstraint(fields=("prev_path", "ancestry"), name="ancestry_path_unique_prev_path_ancestry"),
             CheckConstraint(check=Q(prev_path__isnull=True, num_hops=0) |
@@ -342,8 +346,7 @@ class SpecificLocation(Location, models.Model):
     # imported from locationgroup end
 
     parents = models.ManyToManyField("self", related_name="children", symmetrical=False,
-                                     through="LocationParentage", through_fields=("child", "parent"),
-                                     editable=False)
+                                     through="LocationParentage", through_fields=("child", "parent"))
     calculated_ancestors = models.ManyToManyField("self", related_name="calculated_descendants", symmetrical=False,
                                                   through="LocationAncestry", through_fields=("descendant", "ancestor"),
                                                   editable=False)
@@ -908,6 +911,209 @@ class SpecificLocation(Location, models.Model):
     def delete(self, *args, **kwargs):
         self.pre_delete_changed_geometries()
         super().delete(*args, **kwargs)
+
+
+# …eh… this should just work without the int | ? but pycharm doesn't like it then… maybe it's pointless
+type LocationID = int | NewType("LocationID", int)
+type ParentageID = int | NewType("ParentageID", int)
+type AncestryID = int | NewType("AncestryID", int)
+type AncestryPathID = int | NewType("AncestryPathID", int)
+
+type AffectedParentages = tuple[tuple[LocationID, ParentageID], ...]
+type AffectedParentagesLookup = dict[LocationID, ParentageID]
+
+
+@receiver(m2m_changed, sender=SpecificLocation.parents.through)
+def location_hierarchy_changed(sender, instance: SpecificLocation, pk_set: set[int], action: str, reverse: bool,
+                               **kwargs):
+    match (action, reverse):
+        case ("post_add", False):
+            location_hierarchy_parents_added(instance=instance, pk_set=pk_set)
+        case ("post_add", True):
+            location_hierarchy_children_added(instance=instance, pk_set=pk_set)
+
+
+def location_hierarchy_parents_added(instance: SpecificLocation, pk_set: set[int]):
+    """
+    new parents were added to the location
+    """
+    # get added parentages, this is why we do this after
+    added_parentages: AffectedParentages = tuple(LocationParentage.objects.filter(  # noqa
+        parent_id__in=pk_set, child=instance,
+    ).values_list("parent_id", "pk"))
+
+    # map IDs of parents to IDs of parentages
+    added_parentages_lookup: AffectedParentagesLookup = dict(added_parentages)
+
+    # get ancestries of added parents
+    parent_ancestries: tuple[tuple[AncestryID, LocationID, LocationID], ...] = tuple(  # noqa
+        LocationAncestry.objects.filter(descendant_id__in=pk_set).values_list(
+            "pk", "ancestor_id", "descendant_id"
+        )
+    )
+
+    # create ancestries from this new parentage
+    created_ancestries: tuple[tuple[tuple[LocationID, LocationID], AncestryID], ...] = tuple(
+        ((created_ancestry.ancestor_id, created_ancestry.descendant_id), created_ancestry.id)
+        for created_ancestry in LocationAncestry.objects.bulk_create((
+            # new ancestry from parent (might be duplicates, thus ignore_conflicts)
+            *(LocationAncestry(ancestor_id=parent_id, descendant_id=instance.pk)
+              for parent_id, parentage_id in added_parentages),
+            # copy ancestries of parent (might be duplicates, thus ignore_conflicts)
+            *(LocationAncestry(ancestor_id=ancestor_id, descendant_id=instance.pk)
+              for ancestry_id, ancestor_id, descendant_id in parent_ancestries),
+        ), ignore_conflicts=True)
+    )
+
+    # check that we really got as many ancestries back as wew put into bulk_create()
+    if len(created_ancestries) == len(added_parentages) + len(parent_ancestries):
+        raise ValueError("location_hierarchy_changed post_add handler bulk_insert len() mismatch")
+
+    # map IDs of parents' ancestries to IDs of their copies
+    copied_ancestries_id_lookup: dict[AncestryID, AncestryID] = dict(zip(
+        (parent_ancestry_id for parent_ancestry_id, *fields in parent_ancestries),
+        (created_ancestry_id for fields, created_ancestry_id in created_ancestries[len(added_parentages):]),
+    ))
+
+    # add hops to new ancestries
+    LocationAncestryPath.objects.bulk_create((
+        *(  # add path continuations for parent ancestries
+            LocationAncestryPath(
+                prev_path_id=path_id,
+                parentage_id=added_parentages_lookup[parent_id],
+                ancestry_id=copied_ancestries_id_lookup[ancestry_id],
+                num_hops=num_hops+1,
+            ) for path_id, parent_id, ancestry_id, num_hops in LocationAncestryPath.objects.filter(
+                # Select all paths belonging to the parent ancestries
+                ancestry_id__in=(ancestry_id for ancestry_id, *fields in parent_ancestries),
+            ).values_list("pk", "ancestry__descendant_id", "ancestry_id", "num_hops")
+        ),
+        *(  # add path for new ancestries
+            LocationAncestryPath(
+                prev_path_id=None,
+                parentage_id=added_parentages_lookup[parent_id],
+                ancestry_id=ancestry_id,
+                num_hops=0,
+            ) for parent_id, ancestry_id in zip(
+                # map parent ids to IDs of created direct ancestries
+                (parent_ancestry_id for parent_ancestry_id, *fields in parent_ancestries),
+                (created_ancestry_id for fields, created_ancestry_id in created_ancestries[len(added_parentages):]),
+            )
+        ),
+    ))
+
+    # notify changed geometries… todo: this should definitely use the descendants thing
+    instance.register_changed_geometries(force=True)
+
+
+def location_hierarchy_children_added(instance: SpecificLocation, pk_set: set[int]):
+    """
+    new children were added to the location
+    """
+    # get added parentages, this is why we do this after
+    added_parentages: AffectedParentages = tuple(LocationParentage.objects.filter(  # noqa
+        parent=instance, child_id__in=pk_set,
+    ).values_list("child_id", "pk"))
+
+    # map IDs of parents to IDs of parentages
+    added_parentages_lookup: AffectedParentagesLookup = dict(added_parentages)
+
+    # get this parent's ancestries
+    parent_ancestries: tuple[tuple[AncestryID, LocationID], ...] = tuple(LocationAncestry.objects.filter(  # noqa
+        descendant_id__in=pk_set
+    ).values_list("pk", "ancestor_id"))
+
+    # compute the product (all combintations of) parents ancestries and added children
+    ancestries_to_copy: tuple[tuple[tuple[AncestryID, LocationID], LocationID], ...] = tuple(
+        product(parent_ancestries, pk_set)
+    )
+
+    # create ancestries from this new parentage
+    created_ancestries: tuple[tuple[LocationID, LocationID, AncestryID], ...] = tuple(
+        (created_ancestry.ancestor_id, created_ancestry.descendant_id, created_ancestry.pk)
+        for created_ancestry in LocationAncestry.objects.bulk_create((
+            # new ancestry from parent (might be duplicates, thus ignore_conflicts)
+            *((LocationAncestry(ancestor_id=instance.pk, descendant_id=child_id)
+               for child_id, parentage_id in added_parentages)),
+            # copy ancestries of parent (might be duplicates, thus ignore_conflicts)
+            *((LocationAncestry(ancestor_id=ancestor_id, descendant_id=child_id)
+               for (parent_ancestry_id, ancestor_id), child_id in ancestries_to_copy)),
+        ), ignore_conflicts=True)
+    )
+
+    # check that we really got as many ancestries back as wew put into bulk_create()
+    if len(created_ancestries) == len(added_parentages) + len(added_parentages) * len(parent_ancestries):
+        raise ValueError("location_hierarchy_changed reverse post_add handler bulk_insert len() mismatch")
+
+    # get a list of ancestries to copy and the resulting (potential) copy
+    copied_ancestries = zip(ancestries_to_copy,
+                            (ancestry_id for a, d, ancestry_id in created_ancestries[len(added_parentages):]))
+
+    # map IDs of parents' ancestries and the child id that it was copied for to the IDs of the copy
+    created_ancestries_id_mapping: dict[tuple[AncestryID, LocationID], AncestryID] = dict(
+        ((parent_ancestry_id, child_id), created_ancestry_id)
+        for ((parent_ancestry_id, ancestor_id), child_id), created_ancestry_id in copied_ancestries
+    )
+
+    # create paths for ancestries
+    LocationAncestryPath.objects.bulk_create((
+        *(  # copy hops from parent ancestries
+            LocationAncestryPath(
+                prev_path_id=path_id,
+                parentage_id=added_parentages_lookup[child_id],
+                ancestry_id=created_ancestries_id_mapping[(ancestry_id, child_id)],
+                num_hops=num_hops + 1,
+            ) for (path_id, ancestry_id, num_hops), (child_id, parentage_id) in product(
+                # compute the product of the parent's ancestries' paths and the IDs of the added children and parentages
+                # because we want continue each path on each per-child ancestry copy
+                LocationAncestryPath.objects.filter(
+                    ancestry_id__in=(pk for pk, ancestor_id in parent_ancestries),
+                ).values_list("pk", "ancestry_id", "num_hops"),
+                added_parentages,
+            )
+        ),
+        *(  # add new parentage to new ancestries
+            LocationAncestryPath(
+                prev_path_id=None,
+                parentage_id=parentage_id,
+                ancestry_id=ancestry_id,
+                num_hops=0,
+            ) for ancestry_id, parentage_id in zip(
+                # get the created direct ancestries (for the added parentages)
+                (ancestry_id for fields, ancestry_id in created_ancestries[:len(added_parentages)]),
+                # get the get the added parentages
+                (parentage_id for child_id, parentage_id in added_parentages),
+            )
+        )
+    ))
+
+    # notify changed geometries… todo: this should definitely use the descendants thing
+    for obj in SpecificLocation.objects.filter(pk__in=pk_set):
+        obj.register_changed_geometries(force=True)
+
+
+# todo: implement this anew, we don't have groups any more
+@receiver(m2m_changed, sender=SpecificLocation.levels.through)
+@receiver(m2m_changed, sender=SpecificLocation.spaces.through)
+@receiver(m2m_changed, sender=SpecificLocation.areas.through)
+@receiver(m2m_changed, sender=SpecificLocation.pois.through)
+def locations_targets_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+
+    if not reverse:
+        # the targets of a specific location were changed
+        if action not in ('post_clear',):
+            raise NotImplementedError
+        query = model.objects.filter(pk__in=pk_set)
+        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
+        if issubclass(model, SpaceGeometryMixin):
+            query = query.select_related('space')  # todo… ??? needed?
+        for obj in query:
+            obj.register_change(force=True)  # todo: is this using the hierarchy correctly=
+    else:
+        # the locations of a specific location target were changed
+        instance.register_change(force=True)  # todo: is this using the hierarchy correctly=
 
 
 class SpecificLocationTargetMixin(models.Model):

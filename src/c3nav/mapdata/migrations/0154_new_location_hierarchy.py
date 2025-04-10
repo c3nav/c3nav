@@ -92,7 +92,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='specificlocation',
             name='parents',
-            field=models.ManyToManyField(editable=False, related_name='children', through='mapdata.LocationParentage', to='mapdata.specificlocation', through_fields=("child", "parent")),
+            field=models.ManyToManyField(related_name='children', through='mapdata.LocationParentage', to='mapdata.specificlocation', through_fields=("child", "parent")),
         ),
         migrations.AddField(
             model_name='specificlocation',
@@ -142,5 +142,10 @@ class Migration(migrations.Migration):
             options={
                 'constraints': [models.UniqueConstraint(fields=('prev_path', 'parentage'), name='ancestry_path_unique_prev_path_parentage'), models.UniqueConstraint(fields=('prev_path', 'ancestry'), name='ancestry_path_unique_prev_path_ancestry'), models.CheckConstraint(condition=models.Q(models.Q(('num_hops', 0), ('prev_path__isnull', True)), models.Q(('num_hops__gt', 0), ('prev_path__isnull', False)), _connector='OR'), name='ancestry_path_enforce_num_hops')],
             },
+        ),
+        migrations.AddField(
+            model_name='locationancestry',
+            name='first_parentages',
+            field=models.ManyToManyField(related_name='provides_ancestries', through='mapdata.LocationAncestryPath', to='mapdata.locationparentage'),
         ),
     ]
