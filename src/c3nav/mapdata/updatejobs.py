@@ -1,14 +1,19 @@
 import logging
+from collections import deque, defaultdict
 from dataclasses import dataclass
 from functools import wraps
-from typing import Callable, Iterable
+from itertools import groupby, chain
+from operator import attrgetter
+from typing import Callable, Iterable, NamedTuple, Optional
 
 from django.conf import settings
 from django.db import IntegrityError, transaction, DatabaseError
+from django.db.models.expressions import F
+from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from c3nav.mapdata.models import MapUpdate, AltitudeArea, Level, Space, Area
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import SpecificLocation, LocationParentage, LocationAncestry, LocationAncestryPath
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.render.renderdata import LevelRenderData
@@ -247,8 +252,168 @@ def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
         run_mapupdate_job.delay(job_type=job_type)
 
 
+class LocationAncestryPathTuple(NamedTuple):
+    prev: Optional["LocationAncestryPathTuple"]
+    ancestor: int | None
+    parent: int
+    location: int
+    num_hops: int
+
+
+# todo: make this a transaction?? is it already?
+@register_mapupdate_job("SpecificLocation order", eager=True, dependencies=set())
+def verify_location_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    build_children_by_parent: dict[int | None, deque[int]] = defaultdict(deque)
+    parentage_ids: dict[tuple[int, int], int] = {}
+    for pk, parent_id, child_id in LocationParentage.objects.values_list("pk", "parent_id", "child_id"):
+        parentage_ids[(parent_id, child_id)] = pk
+        build_children_by_parent[parent_id].append(child_id)
+    children_by_parent: dict[int | None, frozenset[int]] = {
+        parent_id: frozenset(children_ids) for parent_id, children_ids in build_children_by_parent.items()
+    }
+
+    fail = False
+
+    # create ancestors
+    expected_paths: dict[int, tuple[LocationAncestryPathTuple, ...]] = {}
+    num_hops = 0
+    last_paths: tuple[LocationAncestryPathTuple, ...] = tuple(chain.from_iterable(
+        (
+            LocationAncestryPathTuple(ancestor=parent_id, parent=parent_id, location=child_id,
+                                      prev=None, num_hops=0)
+            for child_id in child_ids
+        ) for parent_id, child_ids in children_by_parent.items()
+    ))
+    while last_paths:
+        paths_by_cyclic = {cyclic: tuple(paths)
+                           for cyclic, paths in groupby(last_paths, key=lambda p: p.ancestor == p.location)}
+        for path in paths_by_cyclic.get(True, ()):
+            print(f"INCONSISTENCY! Circular hierarchy! Breaking parent→child {path.parent}→{path.location}")
+            fail = True
+        last_paths = paths_by_cyclic.get(False, ())
+        expected_paths[num_hops] = last_paths
+
+        num_hops += 1
+        last_paths = tuple(chain.from_iterable(
+            (
+                LocationAncestryPathTuple(ancestor=prev.ancestor, parent=prev.location, location=child_id,
+                                          prev=prev, num_hops=num_hops)
+                for child_id in child_ids
+            ) for prev, child_ids in zip(last_paths, (children_by_parent[path.location] for path in last_paths))
+        ))
+
+    expected_ancestries = {(path.ancestor, path.location) for path in chain.from_iterable(expected_paths.values)}
+    ancestry_ids = {
+        (ancestor_id, descendant_id): pk
+        for pk, ancestor_id, descendant_id in LocationAncestry.objects.values_list("pk", "ancestor_id", "descendant_id")
+    }
+    existing_ancestries = set(ancestry_ids.keys())
+
+    missing_ancestries = expected_ancestries - existing_ancestries
+    if missing_ancestries:
+        print("INCONSISTENCY: Missing ancestries, creating:", missing_ancestries)
+        fail = True
+        ancestry_ids.update({
+            ancestry.pk: (ancestry.ancestor_id, ancestry.descendant_id)
+            for ancestry in LocationAncestry.objects.bulk_create((
+                LocationAncestry(
+                    ancestor_id=ancestor_id,
+                    descendant_id=descendant_id,
+                ) for ancestor_id, descendant_id in missing_ancestries
+            ))
+        })
+
+    extra_ancestries = existing_ancestries - expected_ancestries
+    if extra_ancestries:
+        print("INCONSISTENCY: Extra ancestries, deleting:", missing_ancestries)
+        fail = True
+        LocationAncestry.objects.filter(
+            pk__in=(ancestry_ids[extra_ancestry] for extra_ancestry in extra_ancestries)
+        ).delete()
+        for extra_ancestry in missing_ancestries:
+            del ancestry_ids[extra_ancestry]
+
+    num_deleted, num_deleted_per_model = LocationAncestryPath.objects.exclude(
+        # exclude things where things make sense
+        Q(parentage__child=F("ancestry__descendant")) & (
+            (Q(prev_path__isnull=True) | (Q(parentage__parent=F("prev_path__parentage__child"))
+                                          & Q(ancestry__ancestor=F("prev_path__ancestry__ancestor"))
+                                          & Q(num_hops=F("prev_path__num_hops")+1)))
+            | (Q(prev_path__isnull=False) | Q(parentage__parent=F("ancestry__ancestor")))
+        )
+    ).delete()
+    if num_deleted:
+        print("INCONSISTENCY: Invalid paths that don't fit modeling constraints, deleting", num_deleted, "of them")
+        fail = True
+
+    existing_paths_by_id = {
+        pk: fields for pk, *fields in LocationAncestryPath.objects.values_list(
+            "pk", "prev_path_id", "ancestry___ancestor_id",
+            "parentage__parent_id", "parentage__child_id", "num_hops",
+        )
+    }
+    existing_paths_by_num_hops_and_id: dict[int, dict[int, LocationAncestryPathTuple]] = {}
+    existing_path_id_by_tuple = dict[LocationAncestryPathTuple | None, int | None] = {None: None}
+
+    for num_hops, paths in (
+        sorted(groupby(existing_paths_by_id.items(), key=lambda p: p[1][4]))
+    ):
+        # todo: walrus operator?
+        num_hops_paths = {}
+        existing_paths_by_num_hops_and_id[num_hops] = num_hops_paths
+
+        last_num_hops_paths = {} if num_hops == 0 else existing_paths_by_num_hops_and_id.get(num_hops - 1, {})
+
+        for pk, (prev_path_id, ancestor_id, parent_id, child_id, n) in paths:
+            t = LocationAncestryPathTuple(
+                prev=None if prev_path_id is None else last_num_hops_paths[prev_path_id],
+                ancestor=ancestor_id,
+                parent=parent_id,
+                location=child_id,
+                num_hops=num_hops,
+            )
+            num_hops_paths[pk] = t
+            existing_path_id_by_tuple[t] = pk
+
+    delete_ids: deque[int] = deque()
+
+    max_num_hops = max(chain(existing_paths_by_num_hops_and_id.keys(), expected_paths.keys()))
+    for num_hops in range(max_num_hops+1):
+        existing_paths_for_hops = frozenset(existing_paths_by_num_hops_and_id.get(num_hops, {}).values())
+        expected_paths_for_hops = frozenset(expected_paths.get(num_hops, ()))
+
+        missing_paths = tuple(expected_paths_for_hops - existing_paths_for_hops)
+        if missing_ancestries:
+            print("INCONSISTENCY: Missing paths, creating:", missing_paths)
+            fail = True
+            existing_path_id_by_tuple.update(
+                dict(zip(missing_paths, (created_path.pk for created_path in LocationAncestryPath.objects.bulk_create((
+                    LocationAncestryPath(
+                        prev_path=existing_path_id_by_tuple[missing_path.prev],
+                        parentage=parentage_ids[(missing_path.parent, missing_path.location)],
+                        ancestry=ancestry_ids[(missing_path.ancestor, missing_path.location)],
+                        num_hops=num_hops,
+                    ) for missing_path in missing_paths
+                )))))
+            )
+
+        extra_paths = existing_paths_for_hops - expected_paths_for_hops
+        if extra_ancestries:
+            print("INCONSISTENCY: Extra paths, deleting:", extra_paths)
+            delete_ids.extend(existing_path_id_by_tuple[extra_path] for extra_path in extra_paths)
+            fail = True
+
+    if delete_ids:
+        LocationAncestryPath.objects.filter(pk__in=delete_ids).delete()
+
+    if fail:
+        raise ValueError("verify_location_ancestry failed")
+
+    return True
+
+
 @register_mapupdate_job("SpecificLocation order",
-                        eager=True, dependencies=set())
+                        eager=True, dependencies=(verify_location_ancestry, ))
 def recalculate_specificlocation_order(mapupdates: tuple[MapUpdate, ...]) -> bool:
     SpecificLocation.recalculate_effective_order()
     return True
