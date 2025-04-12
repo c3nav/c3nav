@@ -873,20 +873,20 @@ type AffectedParentagesLookup = dict[LocationID, ParentageID]
 
 
 @receiver(m2m_changed, sender=SpecificLocation.parents.through)
-def location_hierarchy_changed(sender, instance: SpecificLocation, pk_set: set[int], action: str, reverse: bool,
+def location_parentage_changed(sender, instance: SpecificLocation, pk_set: set[int], action: str, reverse: bool,
                                **kwargs):
     match (action, reverse):
         case ("post_add", False):
-            location_hierarchy_parents_added(instance=instance, pk_set=pk_set)
+            location_parents_added(instance=instance, pk_set=pk_set)
         case ("post_add", True):
-            location_hierarchy_children_added(instance=instance, pk_set=pk_set)
+            location_children_added(instance=instance, pk_set=pk_set)
         case ("post_remove" | "post_clear", False):
-            location_hierarchy_parents_removed(instance=instance, pk_set=pk_set)
+            location_parents_removed(instance=instance, pk_set=pk_set)
         case ("post_add" | "post_clear", True):
-            location_hierarchy_children_removed(instance=instance, pk_set=pk_set)
+            location_children_removed(instance=instance, pk_set=pk_set)
 
 
-def location_hierarchy_parents_added(instance: SpecificLocation, pk_set: set[int]):
+def location_parents_added(instance: SpecificLocation, pk_set: set[int]):
     """
     new parents were added to the location
     """
@@ -959,7 +959,7 @@ def location_hierarchy_parents_added(instance: SpecificLocation, pk_set: set[int
     instance.register_changed_geometries(force=True)
 
 
-def location_hierarchy_children_added(instance: SpecificLocation, pk_set: set[int]):
+def location_children_added(instance: SpecificLocation, pk_set: set[int]):
     """
     new children were added to the location
     """
@@ -1045,7 +1045,7 @@ def location_hierarchy_children_added(instance: SpecificLocation, pk_set: set[in
         obj.register_changed_geometries(force=True)
 
 
-def location_hierarchy_parents_removed(instance: SpecificLocation, pk_set: set[int]):
+def location_parents_removed(instance: SpecificLocation, pk_set: set[int]):
     """
     parents were removed from the location
     """
@@ -1056,7 +1056,7 @@ def location_hierarchy_parents_removed(instance: SpecificLocation, pk_set: set[i
     instance.register_changed_geometries(force=True)
 
 
-def location_hierarchy_children_removed(instance: SpecificLocation, pk_set: set[int] = None):
+def location_children_removed(instance: SpecificLocation, pk_set: set[int] = None):
     """
     children were removed from the location
     """
