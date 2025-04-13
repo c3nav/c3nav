@@ -18,6 +18,7 @@ from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value, Exists
 from django.db.models.functions.window import RowNumber
 from django.db.models.lookups import EndsWith
+from django.db.models.query import Prefetch
 from django.db.models.signals import m2m_changed
 from django.dispatch.dispatcher import receiver
 from django.urls import reverse
@@ -582,15 +583,15 @@ class SpecificLocation(Location, models.Model):
 
     @classmethod
     def calculate_effective_x(cls, name: str, default=...):
-        # todo: calculate these new, we don't have groups any more
         output_field = cls._meta.get_field(f"effective_{name}")
         cls.objects.annotate(**{
-            f"group_effective_{name}": LocationGroup.objects.filter(**{
-                "specific_locations__in": OuterRef("pk"),
+            f"parent_effective_{name}": Subquery(SpecificLocation.objects.filter(**{
+                "calculated_descendants__in": OuterRef("pk"),
                 f"{name}__isnull": False,
-            }).order_by("effective_order").values(name)[:1],
+            }).order_by("effective_priority_order").values(name)[:1]),
             f"new_effective_{name}": (
-                Case(When(**{f"group_effective_{name}__isnull": False}, then=F(f"group_effective_{name}")),
+                Case(When(**{f"{name}__isnull": False}, then=F(name)),
+                     When(**{f"parent_effective_{name}__isnull": False}, then=F(f"parent_effective_{name}")),
                      default=F(f"{name}") if default is ... else Value(default, output_field=output_field),
                      output_field=output_field)
             )
@@ -610,16 +611,20 @@ class SpecificLocation(Location, models.Model):
     def calculate_cached_effective_color(cls):
         # collect ids for each value so we can later bulk-update
         colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
-        for specific_location in cls.objects.prefetch_related("groups__theme_colors"):
+        for specific_location in cls.objects.prefetch_related(
+                Prefetch("calculated_ancestors", SpecificLocation.objects.order_by(
+                    "effective_priority_order"
+                ).prefetch_related("theme_colors"))
+            ):
             location_colors: ColorByTheme = {}
-            for group in reversed(specific_location.groups.all()):
-                # add colors from this group
-                if group.color and 0 not in location_colors:
-                    location_colors[0] = FillAndBorderColor(fill=group.color, border=None)
+            for ancestor in chain((specific_location, ), specific_location.calculated_ancestors.all()):
+                # add colors from this ancestor
+                if ancestor.color and 0 not in location_colors:
+                    location_colors[0] = FillAndBorderColor(fill=ancestor.color, border=None)
                 location_colors.update({
                     theme_color.theme_id: FillAndBorderColor(fill=theme_color.fill_color,
                                                              border=theme_color.border_color)
-                    for theme_color in group.theme_colors.all()
+                    for theme_color in ancestor.theme_colors.all()
                     if (theme_color.theme_id not in location_colors
                         and theme_color.fill_color and theme_color.border_color)
                 })
@@ -634,7 +639,9 @@ class SpecificLocation(Location, models.Model):
     @classmethod
     def calculate_cached_describing_titles(cls):
         all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
-        for specific_location in cls.objects.prefetch_related("groups__theme_colors"):
+        for specific_location in cls.objects.prefetch_related(
+                Prefetch("calculated_ancestors", SpecificLocation.objects.order_by("effective_priority_order"))
+            ):
             location_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
             for group in reversed(specific_location.groups.all()):
                 if not (group.can_describe and group.titles):
