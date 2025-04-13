@@ -303,12 +303,7 @@ class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
     bounds: BoundsByLevelSchema
 
     # imported from group
-    category: PositiveInt = APIField(
-        title="category",
-        description="location group category that this location group belongs to",
-    )
-    priority: int = APIField()  # todo: ???
-    hierarchy: int = APIField()  # todo: ???
+    priority: int = APIField()
     can_report_missing: SpecificLocation.CanReportMissing = APIField(
         title="report missing locations",
         description="whether this location group can be used to report missing locations",
@@ -328,27 +323,6 @@ class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
             "label_settings": value.label_settings_id,
             "load_group_display": value.load_group_display_id
         }
-
-
-class LocationRedirectSchema(LocationSlugSchema, DjangoModelSchema):
-    """
-    A location group redirect describes a slug that, when used redirects to another location
-    """
-    slug: NonEmptyStr = APIField(  # todo: copy from somewhere?
-        title="location slug",
-        description="a slug is a unique way to refer to a location. while locations have a shared ID space, slugs"
-                    "are meants to be human-readable and easy to remember.",
-        examples=["entrance"],
-    )
-    target: PositiveInt = APIField(
-        title="target",
-        description="location to redirect to",
-    )
-    target_slug: NonEmptyStr = APIField(
-        title="effective target location slug",
-        description="effective slug of the target location",
-        examples=["lobby"],
-    )
 
 
 class DynamicLocationTargetSchema(WithAccessRestrictionSchema, DjangoModelSchema):
