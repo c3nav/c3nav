@@ -262,7 +262,7 @@ class LocationAncestryPathTuple(NamedTuple):
 
 
 # todo: make this a transaction?? is it already?
-@register_mapupdate_job("SpecificLocation order", eager=True, dependencies=set())
+@register_mapupdate_job("verify location ancestry", eager=True, dependencies=set())
 def verify_location_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
     build_children_by_parent: dict[int | None, deque[int]] = defaultdict(deque)
     parentage_ids: dict[tuple[int, int], int] = {}
@@ -300,10 +300,10 @@ def verify_location_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
                 LocationAncestryPathTuple(ancestor=prev.ancestor, parent=prev.location, location=child_id,
                                           prev=prev, num_hops=num_hops)
                 for child_id in child_ids
-            ) for prev, child_ids in zip(last_paths, (children_by_parent[path.location] for path in last_paths))
+            ) for prev, child_ids in zip(last_paths, (children_by_parent.get(path.location, frozenset()) for path in last_paths))
         ))
 
-    expected_ancestries = {(path.ancestor, path.location) for path in chain.from_iterable(expected_paths.values)}
+    expected_ancestries = {(path.ancestor, path.location) for path in chain.from_iterable(expected_paths.values())}
     ancestry_ids = {
         (ancestor_id, descendant_id): pk
         for pk, ancestor_id, descendant_id in LocationAncestry.objects.values_list("pk", "ancestor_id", "descendant_id")
@@ -349,12 +349,12 @@ def verify_location_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
 
     existing_paths_by_id = {
         pk: fields for pk, *fields in LocationAncestryPath.objects.values_list(
-            "pk", "prev_path_id", "ancestry___ancestor_id",
+            "pk", "prev_path_id", "ancestry__ancestor_id",
             "parentage__parent_id", "parentage__child_id", "num_hops",
         )
     }
     existing_paths_by_num_hops_and_id: dict[int, dict[int, LocationAncestryPathTuple]] = {}
-    existing_path_id_by_tuple = dict[LocationAncestryPathTuple | None, int | None] = {None: None}
+    existing_path_id_by_tuple: dict[LocationAncestryPathTuple | None, int | None] = {None: None}
 
     for num_hops, paths in (
         sorted(groupby(existing_paths_by_id.items(), key=lambda p: p[1][4]))
@@ -409,6 +409,8 @@ def verify_location_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
 
     if fail:
         raise ValueError("verify_location_ancestry failed")
+
+    print("location ancestry valid")
 
     return True
 
