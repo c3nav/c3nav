@@ -27,6 +27,7 @@ request_cache = VersionedCacheProxy(LocalCacheProxy(maxsize=settings.CACHE_SIZE_
 def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = (),
              base_etag_func: Optional[Callable] = None, base_mapdata=False,
              etag_add_key: Optional[tuple[str, str]] = None):
+    # todo: honestly everything should have to specify job types, cause now groups are different
 
     def outer_wrapper(func):
         @wraps(func)

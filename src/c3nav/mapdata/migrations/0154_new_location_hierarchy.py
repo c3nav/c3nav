@@ -6,6 +6,14 @@ import c3nav.mapdata.fields
 import c3nav.mapdata.models.locations
 
 
+def unmigrate_new_specific_locations(apps, model_name):
+    SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
+    LocationGroup = apps.get_model('mapdata', 'LocationGroup')
+
+    # this needs to be here because https://code.djangoproject.com/ticket/36161
+    SpecificLocation.objects.filter(pk__in=LocationGroup.objects.values_list("pk", flat=True)).delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -16,8 +24,9 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='mapupdatejob',
             name='job_type',
-            field=models.CharField(choices=(('mapdata.recalculate_specificlocation_order', 'SpecificLocation order'), ('mapdata.recalculate_specificlocation_cached_from_parents', 'SpecificLocation cached from parents'), ('mapdata.recalculate_specificlocation_static_targets', 'SpecificLocation static targets'), ('mapdata.recalculate_specificlocation_dynamic_targets', 'SpecificLocation dynamic targets'), ('mapdata.recalculate_specificlocation_target_subtitles', 'SpecificLocation target subtitles'), ('mapdata.recalculate_level_bounds', 'level bounds'), ('mapdata.recalculate_space_effective_geometries', 'Space effective geometries'), ('mapdata.recalculate_space_simplified_geometries', 'Space simplified geometries'), ('mapdata.recalculate_area_effective_geometries', 'Area effective geometries'), ('mapdata.recalculate_space_points', 'Space points'), ('mapdata.recalculate_area_points', 'Area points'), ('mapdata.recalculate_space_bounds', 'Space bounds'), ('mapdata.recalculate_area_bounds', 'Area bounds'), ('mapdata.recalculate_specificlocation_geometries', 'Specific location geometries'), ('mapdata.recalculate_specificlocation_bounds', 'Specific location bounds'), ('mapdata.recalculate_specificlocation_points', 'Specific location points'), ('mapdata.recalculate_specificlocation_final', 'SpecificLocation finalize'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64),
+            field=models.CharField(choices=(('mapdata.evaluate_location_ancestry', 'evaluate location ancestry'), ('mapdata.recalculate_specificlocation_cached_from_parents', 'SpecificLocation cached from parents'), ('mapdata.recalculate_specificlocation_static_targets', 'SpecificLocation static targets'), ('mapdata.recalculate_specificlocation_dynamic_targets', 'SpecificLocation dynamic targets'), ('mapdata.recalculate_specificlocation_target_subtitles', 'SpecificLocation target subtitles'), ('mapdata.recalculate_level_bounds', 'level bounds'), ('mapdata.recalculate_space_effective_geometries', 'Space effective geometries'), ('mapdata.recalculate_space_simplified_geometries', 'Space simplified geometries'), ('mapdata.recalculate_area_effective_geometries', 'Area effective geometries'), ('mapdata.recalculate_space_points', 'Space points'), ('mapdata.recalculate_area_points', 'Area points'), ('mapdata.recalculate_space_bounds', 'Space bounds'), ('mapdata.recalculate_area_bounds', 'Area bounds'), ('mapdata.recalculate_specificlocation_geometries', 'Specific location geometries'), ('mapdata.recalculate_specificlocation_bounds', 'Specific location bounds'), ('mapdata.recalculate_specificlocation_points', 'Specific location points'), ('mapdata.recalculate_specificlocation_final', 'SpecificLocation finalize'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64),
         ),
+        migrations.RunPython(migrations.RunPython.noop, unmigrate_new_specific_locations),
         migrations.CreateModel(
             name='LocationParentage',
             fields=[
@@ -137,15 +146,33 @@ class Migration(migrations.Migration):
                 ('num_hops', models.PositiveSmallIntegerField()),
                 ('ancestry', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='paths', to='mapdata.locationancestry')),
                 ('parentage', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.locationparentage')),
-                ('prev_path', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.locationancestrypath')),
+                ('prev_path', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='self')),
             ],
             options={
                 'constraints': [models.UniqueConstraint(fields=('prev_path', 'parentage'), name='ancestry_path_unique_prev_path_parentage'), models.UniqueConstraint(fields=('prev_path', 'ancestry'), name='ancestry_path_unique_prev_path_ancestry'), models.CheckConstraint(condition=models.Q(models.Q(('num_hops', 0), ('prev_path__isnull', True)), models.Q(('num_hops__gt', 0), ('prev_path__isnull', False)), _connector='OR'), name='ancestry_path_enforce_num_hops')],
             },
         ),
+        migrations.AlterModelOptions(
+            name='specificlocation',
+            options={'default_related_name': 'specific_locations', 'verbose_name': 'Specific Location', 'verbose_name_plural': 'Specific Locations'},
+        ),
+        migrations.RemoveField(
+            model_name='specificlocation',
+            name='effective_order',
+        ),
         migrations.AddField(
-            model_name='locationancestry',
-            name='first_parentages',
-            field=models.ManyToManyField(related_name='provides_ancestries', through='mapdata.LocationAncestryPath', to='mapdata.locationparentage'),
+            model_name='specificlocation',
+            name='effective_depth_first_order',
+            field=models.PositiveIntegerField(default=2147483647, editable=False),
+        ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='effective_priority_order',
+            field=models.PositiveIntegerField(default=2147483647, editable=False),
+        ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='effective_traversal_order',
+            field=models.PositiveIntegerField(default=2147483647, editable=False),
         ),
     ]
