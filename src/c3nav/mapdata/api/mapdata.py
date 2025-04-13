@@ -20,7 +20,7 @@ from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, 
                                                  Obstacle, Ramp)
 from c3nav.mapdata.models.locations import DynamicLocationTarget, LabelSettings
 from c3nav.mapdata.permissions import MapPermissionsFromRequest
-from c3nav.mapdata.schemas.filters import (ByGroupFilter, ByOnTopOfFilter, FilterSchema,
+from c3nav.mapdata.schemas.filters import (TargetsByLocationFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter, BySpaceFilter, ByOverlayFilter)
 from c3nav.mapdata.schemas.model_base import schema_description, LabelSettingsSchema
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
@@ -188,18 +188,15 @@ class MapdataAPIBuilder:
         )
 
 
-class LevelFilters(ByGroupFilter, ByOnTopOfFilter):
-    # todo: replace ByGroupFilter with by location filter
+class LevelFilters(TargetsByLocationFilter, ByOnTopOfFilter):
     pass
 
 
-class SpaceFilters(ByGroupFilter, LevelGeometryFilter):
-    # todo: replace ByGroupFilter with by location filter
+class SpaceFilters(TargetsByLocationFilter, LevelGeometryFilter):
     pass
 
 
-class AreaFilters(ByGroupFilter, SpaceGeometryFilter):
-    # todo: replace ByGroupFilter with by location filter
+class AreaFilters(TargetsByLocationFilter, SpaceGeometryFilter):
     pass
 
 

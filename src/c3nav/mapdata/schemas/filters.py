@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Literal, Optional, Type, Annotated
 
 from django.db.models import Model, QuerySet
+from django.db.models.query_utils import Q
 from pydantic import Field as APIField, AfterValidator
 
 from c3nav.api.schema import BaseSchema
@@ -67,17 +68,22 @@ class BySpaceFilter(FilterSchema):
         return super().filter_qs(request, qs)
 
 
-class ByGroupFilter(FilterSchema):
-    # todo: this used to be ByGroup, reimplement this to work with parents
-    # todo: this should be part of the specificlocation endpoint
-    group: Annotated[Optional[int], AfterValidator(ValidateID(SpecificLocation)), APIField(
-        title="filter by location group",
-        description="if set, only items belonging to the location group with this ID will be shown"
+class TargetsByLocationFilter(FilterSchema):
+    # todo: this should be part of the specificlocation endpoint (to filter by parent (formerly groups))
+    location: Annotated[Optional[int], AfterValidator(ValidateID(SpecificLocation)), APIField(
+        title="filter by location",
+        description="if set, only items belonging to the location with this ID or one if its descendants will be shown"
+    )] = None
+    direct_location: Annotated[Optional[int], AfterValidator(ValidateID(SpecificLocation)), APIField(
+        title="filter by direct location",
+        description="if set, only items directly belonging to the location with this ID will be shown"
     )] = None
 
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
-        if self.group is not None:
-            qs = qs.filter(groups=self.group)
+        if self.direct_location:
+            qs = qs.filter(locations=self.direct_location)
+        if self.location:
+            qs = qs.filter(Q(locations=self.location) | Q(locations__calculated_ancestors=self.location))
         return super().filter_qs(request, qs)
 
 
