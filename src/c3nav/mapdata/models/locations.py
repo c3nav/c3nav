@@ -372,7 +372,7 @@ class SpecificLocation(Location, models.Model):
         color = self.get_color(color_manager)
         if color is None:
             return None
-        return self.effective_order, color
+        return self.effective_priority_order, color
 
     @classmethod
     def evaluate_location_ancestry(cls):
@@ -529,7 +529,7 @@ class SpecificLocation(Location, models.Model):
     @classmethod
     def recalculate_effective_order(cls):
         pks, priorities, num_parents = zip(
-            *LocationAncestry.objects.annotate(
+            *SpecificLocation.objects.annotate(
                 Count("parents")
             ).values_list("pk", "priority", "parents__count").order_by("-priority")
         )
@@ -538,7 +538,7 @@ class SpecificLocation(Location, models.Model):
         children_for_parent = {
             parent_id: tuple(child_id for p, child_id in children)
             for parent_id, children in groupby(
-                LocationParentage.objects.order_by("-priority").values_list("parent_id", "child_id"),
+                LocationParentage.objects.order_by("-child__priority").values_list("parent_id", "child_id"),
                 key=itemgetter(1)
             )
         }
@@ -569,7 +569,7 @@ class SpecificLocation(Location, models.Model):
                 locations_in_priority_order.append(id_)
 
         field = models.PositiveIntegerField()
-        for order_name, location_ids in (("depth", locations_in_depth_first_order),
+        for order_name, location_ids in (("depth_first", locations_in_depth_first_order),
                                          ("traversal", locations_in_traversal_order),
                                          ("priority", locations_in_priority_order)):
             SpecificLocation.objects.update(**{f"effective_{order_name}_order": Case(
@@ -1301,7 +1301,8 @@ class SpecificLocationTargetMixin(models.Model):
                           'Returning empty list.', RuntimeWarning)
             return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
-        return LazyMapPermissionFilteredSequence(sorted(self.locations.all(), key=attrgetter("effective_order")))
+        return LazyMapPermissionFilteredSequence(sorted(self.locations.all(),
+                                                        key=attrgetter("effective_priority_order")))
 
     @property
     def title(self) -> str:
