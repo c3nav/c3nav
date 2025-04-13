@@ -122,7 +122,7 @@ def migrate_location_hierarchy(apps, model_name):
         Space.objects.filter(load_group_contribute__isnull=False).prefetch_related("locations"),
     ):
         for location in target.locations.all():
-            location.load_group_contribute_id = target.load_group_continue_id
+            location.load_group_contribute_id = target.load_group_contribute_id
             location.save()
 
 
