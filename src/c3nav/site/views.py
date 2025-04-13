@@ -598,7 +598,6 @@ def report_select_location(request, coordinates):
 
 @never_cache
 def report_missing_choose(request, coordinates):
-    # todo: reimplement this, we don't have groups any more
     parents = SpecificLocation.objects.filter(can_report_missing__in=(
         SpecificLocation.CanReportMissing.SINGLE,
         SpecificLocation.CanReportMissing.SINGLE_IMAGE,
@@ -641,7 +640,6 @@ def report_start_route(request, origin, destination, options):
 @never_cache
 @login_required(login_url='site.login')
 def report_create(request, coordinates=None, location=None, origin=None, destination=None, options=None, parent=None):
-    # todo: specificlocation isntead of group
     report = Report()
     report.request = request
 
@@ -675,14 +673,15 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.category = 'location-issue'
         report.location = get_report_location_for_request(location)
         # todo: migrate this to not use groups but use ALL parents / ancestors
-        for parent in report.location.parents.all():
-            if parent.can_report_mistake == SpecificLocation.CanReportMistake.REJECT:
-                messages.error(request, format_html(
-                    '{}<br><br>{}',
-                    _('We do not accept reports for this location.'),
-                    parent.report_help_text,
-                ))
-                return render(request, 'site/report_question.html', {})
+        if isinstance(report.location, SpecificLocation):
+            for parent in report.location.calculated_ancestors.all():
+                if parent.can_report_mistake == SpecificLocation.CanReportMistake.REJECT:
+                    messages.error(request, format_html(
+                        '{}<br><br>{}',
+                        _('We do not accept reports for this location.'),
+                        parent.report_help_text,
+                    ))
+                    return render(request, 'site/report_question.html', {})
         if report.location is None:
             raise Http404
         if not isinstance(report.location, SpecificLocation):
