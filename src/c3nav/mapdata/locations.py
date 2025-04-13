@@ -203,7 +203,7 @@ class LocationManager:
                 "load_group_display"
             ).prefetch_related(
                 "slug_set"
-            ).order_by("effective_order")
+            ).order_by("effective_depth_first_order")
         }
 
         # todo: hide locations etc bluh… what if a location has only on target and it's invisible?
