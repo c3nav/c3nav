@@ -64,4 +64,8 @@ class Migration(migrations.Migration):
             model_name='space',
             name='load_group_contribute',
         ),
+        migrations.RemoveField(
+            model_name='specificlocation',
+            name='hierarchy',
+        ),
     ]

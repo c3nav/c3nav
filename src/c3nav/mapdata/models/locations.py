@@ -278,7 +278,6 @@ class SpecificLocation(Location, models.Model):
     # imported from locationgroup start
 
     priority = models.IntegerField(default=0, db_index=True)
-    hierarchy = models.IntegerField(default=0, db_index=True, verbose_name=_('hierarchy'))
 
     can_report_missing = models.CharField(_('report missing location'), choices=CanReportMissing.choices,
                                           default=CanReportMissing.DONT_OFFER, max_length=16)
