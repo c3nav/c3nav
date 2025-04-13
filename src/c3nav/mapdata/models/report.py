@@ -1,4 +1,5 @@
 import string
+from itertools import chain
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -72,24 +73,30 @@ class Report(models.Model):
         if request.user_permissions.review_all_reports:
             return cls.objects.all()
         elif request.user.is_authenticated:
-            # todo: update this to use all the parent groups… or don't?
-            location_ids = set(SpecificLocation.objects.filter(
-                parents__in=request.user_permissions.review_parent_ids
-            ).values_list('pk', flat=True))
+            child_location_ids = {
+                *request.user_permissions.review_parent_ids,
+                *SpecificLocation.objects.filter(
+                    calculated__ancestors__in=request.user_permissions.review_parent_ids
+                ).values_list('pk', flat=True)
+            }
             return cls.objects.filter(
                 Q(author=request.user) |
-                Q(location_id__in=location_ids) |
-                Q(created_parents__in=request.user_permissions.review_parent_ids)
+                Q(location_id__in=child_location_ids) |
+                Q(created_parents__in=child_location_ids)
             )
         else:
             return cls.objects.none()
 
     def get_affected_parent_ids(self):
         if self.category == 'missing-location':
-            return tuple(self.created_parents.values_list('pk', flat=True))
+            location_ids = self.created_parents.values_list('pk', flat=True)
+            return (*location_ids, SpecificLocation.objects.filter(
+                calculated__descendants__in=location_ids
+            ).values_list('pk', flat=True))
         elif self.category == 'location-issue':
-            # todo: reimplement this from groups/parents to ancestors
-            return tuple(self.location.parents.values_list('pk', flat=True))
+            return (
+                self.location.pk, *self.location.calculated_ancestors.values_list('pk', flat=True)
+            )
         return ()
 
     def get_reviewers_qs(self):
