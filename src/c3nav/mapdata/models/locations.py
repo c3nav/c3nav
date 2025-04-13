@@ -1270,7 +1270,6 @@ def location_children_removed(instance: SpecificLocation, pk_set: set[int] = Non
         obj.register_changed_geometries(force=True)
 
 
-# todo: implement this anew, we don't have groups any more
 @receiver(m2m_changed, sender=SpecificLocation.levels.through)
 @receiver(m2m_changed, sender=SpecificLocation.spaces.through)
 @receiver(m2m_changed, sender=SpecificLocation.areas.through)
@@ -1288,10 +1287,10 @@ def locations_targets_changed(sender, instance, action, reverse, model, pk_set, 
         if issubclass(model, SpaceGeometryMixin):
             query = query.select_related('space')  # todo… ??? needed?
         for obj in query:
-            obj.register_change(force=True)  # todo: is this using the hierarchy correctly?
+            obj.register_change(force=True)
     else:
         # the locations of a specific location target were changed
-        instance.register_change(force=True)  # todo: is this using the hierarchy correctly?
+        instance.register_change(force=True)
 
 
 class SpecificLocationTargetMixin(models.Model):
