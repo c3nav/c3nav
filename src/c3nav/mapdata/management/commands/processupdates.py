@@ -8,8 +8,14 @@ from c3nav.mapdata.updatejobs import run_mapupdate_jobs
 class Command(BaseCommand):
     help = 'process unprocessed map updates'
 
+    def add_arguments(self, parser):
+        from c3nav.mapdata.models.update import MAPUPDATE_JOB_TYPE_CHOICES
+        parser.add_argument("jobs", type=str, nargs="*",
+                            choices=[key for key, value in MAPUPDATE_JOB_TYPE_CHOICES],
+                            help=_("jobs to limit this call to"))
+
     def handle(self, *args, **options):
-        run_mapupdate_jobs()
+        run_mapupdate_jobs(options['jobs'] or None)
 
         if not settings.HAS_REAL_CACHE:
             print(_('You have no external cache configured, so don\'t forget to restart your c3nav instance!'))
