@@ -146,7 +146,7 @@ class Migration(migrations.Migration):
                 ('num_hops', models.PositiveSmallIntegerField()),
                 ('ancestry', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='paths', to='mapdata.locationancestry')),
                 ('parentage', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.locationparentage')),
-                ('prev_path', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='self')),
+                ('prev_path', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.locationancestrypath')),
             ],
             options={
                 'constraints': [models.UniqueConstraint(fields=('prev_path', 'parentage'), name='ancestry_path_unique_prev_path_parentage'), models.UniqueConstraint(fields=('prev_path', 'ancestry'), name='ancestry_path_unique_prev_path_ancestry'), models.CheckConstraint(condition=models.Q(models.Q(('num_hops', 0), ('prev_path__isnull', True)), models.Q(('num_hops__gt', 0), ('prev_path__isnull', False)), _connector='OR'), name='ancestry_path_enforce_num_hops')],

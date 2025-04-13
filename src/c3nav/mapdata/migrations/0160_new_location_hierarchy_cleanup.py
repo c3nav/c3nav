@@ -56,4 +56,12 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(related_name='provides_ancestries', through='mapdata.LocationAncestryPath',
                                          to='mapdata.locationparentage'),
         ),
+        migrations.RemoveField(
+            model_name='area',
+            name='load_group_contribute',
+        ),
+        migrations.RemoveField(
+            model_name='space',
+            name='load_group_contribute',
+        ),
     ]
