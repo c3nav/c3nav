@@ -69,7 +69,6 @@ class BySpaceFilter(FilterSchema):
 
 
 class TargetsByLocationFilter(FilterSchema):
-    # todo: this should be part of the specificlocation endpoint (to filter by parent (formerly groups))
     location: Annotated[Optional[int], AfterValidator(ValidateID(SpecificLocation)), APIField(
         title="filter by location",
         description="if set, only items belonging to the location with this ID or one if its descendants will be shown"
