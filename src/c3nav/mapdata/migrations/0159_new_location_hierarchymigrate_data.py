@@ -128,10 +128,6 @@ def unmigrate_location_hierarchy(apps, model_name):
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
 
-    LocationParentage.objects.all().delete()
-    LocationAncestryPath.objects.all().delete()
-    LocationAncestry.objects.all().delete()
-
     # locations with no parents / top level
     # these are either former categories or specificlocation without a group
     """top_level_location_ids = tuple(SpecificLocation.objects.annotate(
@@ -197,11 +193,12 @@ def unmigrate_location_hierarchy(apps, model_name):
     ).update(group_id=F("specific_id"), specific_id=None)
 
     # add specific_locations to their location groups again
+    location_group_ids = set(LocationGroup.objects.values_list("pk", flat=True))
     for specific_location in SpecificLocation.objects.prefetch_related("parents"):
-        specific_location.groups.set([group.id for group in specific_location.parents.all()])
+        specific_location.groups.set([group.id for group in specific_location.parents.all()
+                                      if group.id in location_group_ids])
 
-    # delete specificlocations that are locationgroups again
-    SpecificLocation.objects.filter(pk__in=LocationGroup.objects.values_list("pk", flat=True)).delete()
+    # last bit can be found in a separate data migration in 0154
 
 
 class Migration(migrations.Migration):

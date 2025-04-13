@@ -50,4 +50,10 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(condition=models.Q(('redirect', False)), fields=('target',),
                                                name='unique_non_redirect_slugs'),
         ),
+        migrations.AddField(
+            model_name='locationancestry',
+            name='first_parentages',
+            field=models.ManyToManyField(related_name='provides_ancestries', through='mapdata.LocationAncestryPath',
+                                         to='mapdata.locationparentage'),
+        ),
     ]

@@ -4,9 +4,9 @@ from collections import deque, defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from itertools import chain, batched, product
+from itertools import chain, batched, product, groupby
 from operator import attrgetter, itemgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -15,7 +15,7 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.aggregates import Min, Count
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
-from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value
+from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value, Exists
 from django.db.models.functions.window import RowNumber
 from django.db.models.lookups import EndsWith
 from django.db.models.signals import m2m_changed
@@ -222,7 +222,7 @@ class LocationAncestry(models.Model):
 
 class LocationAncestryPath(models.Model):
     """ Automatically populated. One ancestry path for the given ancestry, ending with the given parentage. """
-    prev_path = models.ForeignKey("LocationAncestryPath", on_delete=models.CASCADE, related_name="+", null=True)
+    prev_path = models.ForeignKey("self", on_delete=models.CASCADE, related_name="+", null=True)
     parentage = models.ForeignKey("LocationParentage", on_delete=models.CASCADE, related_name="+")
     ancestry = models.ForeignKey("LocationAncestry", on_delete=models.PROTECT, related_name="paths")
     num_hops = models.PositiveSmallIntegerField()
@@ -235,6 +235,14 @@ class LocationAncestryPath(models.Model):
             CheckConstraint(check=Q(prev_path__isnull=True, num_hops=0) |
                                   Q(prev_path__isnull=False, num_hops__gt=0), name="ancestry_path_enforce_num_hops"),
         )
+
+
+class LocationAncestryPathTuple(NamedTuple):
+    prev: Optional["LocationAncestryPathTuple"]
+    ancestor: int | None
+    parent: int
+    location: int
+    num_hops: int
 
 
 class SpecificLocation(Location, models.Model):
@@ -305,7 +313,10 @@ class SpecificLocation(Location, models.Model):
     areas = models.ManyToManyField('Area', related_name='locations')
     pois = models.ManyToManyField('POI', related_name='locations')
 
-    effective_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_depth_first_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_priority_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_traversal_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+
     effective_icon = models.CharField(_('icon'), max_length=32, null=True, editable=False)
     effective_label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, editable=False,
                                                  related_name='+', on_delete=models.CASCADE)
@@ -328,7 +339,6 @@ class SpecificLocation(Location, models.Model):
         verbose_name = _('Specific Location')
         verbose_name_plural = _('Specific Locations')
         default_related_name = 'specific_locations'
-        ordering = ('effective_order',)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -365,28 +375,210 @@ class SpecificLocation(Location, models.Model):
         return self.effective_order, color
 
     @classmethod
-    def recalculate_effective_order(cls):
-        min_group_effective_order_ids = {}
-        for pk, min_group_effective_order in cls._default_manager.annotate(
-            min_group_effective_order=Min("groups__effective_order"),
-        ).values_list('pk', 'min_group_effective_order'):
-            min_group_effective_order_ids.setdefault(min_group_effective_order, set()).add(pk)
+    def evaluate_location_ancestry(cls):
+        build_children_by_parent: dict[int | None, deque[int]] = defaultdict(deque)
+        parentage_ids: dict[tuple[int, int], int] = {}
+        for pk, parent_id, child_id in LocationParentage.objects.values_list("pk", "parent_id", "child_id"):
+            parentage_ids[(parent_id, child_id)] = pk
+            build_children_by_parent[parent_id].append(child_id)
+        children_by_parent: dict[int | None, frozenset[int]] = {
+            parent_id: frozenset(children_ids) for parent_id, children_ids in build_children_by_parent.items()
+        }
 
-        cls.objects.update(effective_order=Subquery(
-            cls.objects.filter(pk=OuterRef('pk')).annotate(
-                min_group_effective_order=Case(
-                    *(When(pk__in=pks, then=Value(min_group_effective_order))
-                      for min_group_effective_order, pks in min_group_effective_order_ids.items()),
-                    default=Value(0),
-                ),
-                row_num=Window(
-                    expression=RowNumber(),
-                    order_by=("min_group_effective_order", "pk"),
-                ),
-                # todo: calculate effective order in two ways
-                new_effective_order=F("row_num")
-            ).values('new_effective_order')[:1]
+        fail = False
+
+        # create ancestors
+        expected_paths: dict[int, tuple[LocationAncestryPathTuple, ...]] = {}
+        num_hops = 0
+        last_paths: tuple[LocationAncestryPathTuple, ...] = tuple(chain.from_iterable(
+            (
+                LocationAncestryPathTuple(ancestor=parent_id, parent=parent_id, location=child_id,
+                                          prev=None, num_hops=0)
+                for child_id in child_ids
+            ) for parent_id, child_ids in children_by_parent.items()
         ))
+        while last_paths:
+            paths_by_cyclic = {cyclic: tuple(paths)
+                               for cyclic, paths in groupby(last_paths, key=lambda p: p.ancestor == p.location)}
+            for path in paths_by_cyclic.get(True, ()):
+                print(f"INCONSISTENCY! Circular hierarchy! Breaking parent→child {path.parent}→{path.location}")
+                fail = True
+            last_paths = paths_by_cyclic.get(False, ())
+            expected_paths[num_hops] = last_paths
+
+            num_hops += 1
+            last_paths = tuple(chain.from_iterable(
+                (
+                    LocationAncestryPathTuple(ancestor=prev.ancestor, parent=prev.location, location=child_id,
+                                              prev=prev, num_hops=num_hops)
+                    for child_id in child_ids
+                ) for prev, child_ids in zip(last_paths, (children_by_parent.get(path.location, frozenset()) for path in last_paths))
+            ))
+
+        expected_ancestries = {(path.ancestor, path.location) for path in chain.from_iterable(expected_paths.values())}
+        ancestry_ids = {
+            (ancestor_id, descendant_id): pk
+            for pk, ancestor_id, descendant_id in LocationAncestry.objects.values_list("pk", "ancestor_id", "descendant_id")
+        }
+        existing_ancestries = set(ancestry_ids.keys())
+
+        missing_ancestries = expected_ancestries - existing_ancestries
+        if missing_ancestries:
+            print("INCONSISTENCY: Missing ancestries, creating:", missing_ancestries)
+            fail = True
+            ancestry_ids.update({
+                ancestry.pk: (ancestry.ancestor_id, ancestry.descendant_id)
+                for ancestry in LocationAncestry.objects.bulk_create((
+                    LocationAncestry(
+                        ancestor_id=ancestor_id,
+                        descendant_id=descendant_id,
+                    ) for ancestor_id, descendant_id in missing_ancestries
+                ))
+            })
+
+        extra_ancestries = existing_ancestries - expected_ancestries
+        if extra_ancestries:
+            print("INCONSISTENCY: Extra ancestries, deleting:", missing_ancestries)
+            fail = True
+            LocationAncestry.objects.filter(
+                pk__in=(ancestry_ids[extra_ancestry] for extra_ancestry in extra_ancestries)
+            ).delete()
+            for extra_ancestry in missing_ancestries:
+                del ancestry_ids[extra_ancestry]
+
+        num_deleted, num_deleted_per_model = LocationAncestryPath.objects.exclude(
+            # exclude things where things make sense
+            Q(parentage__child=F("ancestry__descendant")) & (
+                (Q(prev_path__isnull=True) | (Q(parentage__parent=F("prev_path__parentage__child"))
+                                              & Q(ancestry__ancestor=F("prev_path__ancestry__ancestor"))
+                                              & Q(num_hops=F("prev_path__num_hops")+1)))
+                | (Q(prev_path__isnull=False) | Q(parentage__parent=F("ancestry__ancestor")))
+            )
+        ).delete()
+        if num_deleted:
+            print("INCONSISTENCY: Invalid paths that don't fit modeling constraints, deleting", num_deleted, "of them")
+            fail = True
+
+        existing_paths_by_id = {
+            pk: fields for pk, *fields in LocationAncestryPath.objects.values_list(
+                "pk", "prev_path_id", "ancestry__ancestor_id",
+                "parentage__parent_id", "parentage__child_id", "num_hops",
+            )
+        }
+        existing_paths_by_num_hops_and_id: dict[int, dict[int, LocationAncestryPathTuple]] = {}
+        existing_path_id_by_tuple: dict[LocationAncestryPathTuple | None, int | None] = {None: None}
+
+        for num_hops, paths in (
+            sorted(groupby(existing_paths_by_id.items(), key=lambda p: p[1][4]))
+        ):
+            # todo: walrus operator?
+            num_hops_paths = {}
+            existing_paths_by_num_hops_and_id[num_hops] = num_hops_paths
+
+            last_num_hops_paths = {} if num_hops == 0 else existing_paths_by_num_hops_and_id.get(num_hops - 1, {})
+
+            for pk, (prev_path_id, ancestor_id, parent_id, child_id, n) in paths:
+                t = LocationAncestryPathTuple(
+                    prev=None if prev_path_id is None else last_num_hops_paths[prev_path_id],
+                    ancestor=ancestor_id,
+                    parent=parent_id,
+                    location=child_id,
+                    num_hops=num_hops,
+                )
+                num_hops_paths[pk] = t
+                existing_path_id_by_tuple[t] = pk
+
+        delete_ids: deque[int] = deque()
+
+        max_num_hops = max(chain(existing_paths_by_num_hops_and_id.keys(), expected_paths.keys()))
+        for num_hops in range(max_num_hops+1):
+            existing_paths_for_hops = frozenset(existing_paths_by_num_hops_and_id.get(num_hops, {}).values())
+            expected_paths_for_hops = frozenset(expected_paths.get(num_hops, ()))
+
+            missing_paths = tuple(expected_paths_for_hops - existing_paths_for_hops)
+            if missing_ancestries:
+                print("INCONSISTENCY: Missing paths, creating:", missing_paths)
+                fail = True
+                existing_path_id_by_tuple.update(
+                    dict(zip(missing_paths, (created_path.pk for created_path in LocationAncestryPath.objects.bulk_create((
+                        LocationAncestryPath(
+                            prev_path=existing_path_id_by_tuple[missing_path.prev],
+                            parentage=parentage_ids[(missing_path.parent, missing_path.location)],
+                            ancestry=ancestry_ids[(missing_path.ancestor, missing_path.location)],
+                            num_hops=num_hops,
+                        ) for missing_path in missing_paths
+                    )))))
+                )
+
+            extra_paths = existing_paths_for_hops - expected_paths_for_hops
+            if extra_ancestries:
+                print("INCONSISTENCY: Extra paths, deleting:", extra_paths)
+                delete_ids.extend(existing_path_id_by_tuple[extra_path] for extra_path in extra_paths)
+                fail = True
+
+        if delete_ids:
+            LocationAncestryPath.objects.filter(pk__in=delete_ids).delete()
+
+        if fail:
+            raise ValueError("verify_location_ancestry failed")
+
+        print("location ancestry valid")
+
+        cls.recalculate_effective_order()
+
+    @classmethod
+    def recalculate_effective_order(cls):
+        pks, priorities, num_parents = zip(
+            *LocationAncestry.objects.annotate(
+                Count("parents")
+            ).values_list("pk", "priority", "parents__count").order_by("-priority")
+        )
+        root_location_ids = tuple(pk for pk, parents in zip(pks, num_parents) if parents == 0)
+
+        children_for_parent = {
+            parent_id: tuple(child_id for p, child_id in children)
+            for parent_id, children in groupby(
+                LocationParentage.objects.order_by("-priority").values_list("parent_id", "child_id"),
+                key=itemgetter(1)
+            )
+        }
+
+        # depth first
+        locations_in_depth_first_order: deque[int] = deque(root_location_ids)
+        done_locations: set[int] = set()
+        next_locations: deque[int] = deque(root_location_ids)
+        while next_locations:
+            location_id = next_locations.popleft()
+            new_children = tuple(child_id for child_id in children_for_parent.get(location_id, ())
+                                 if child_id not in done_locations)
+            done_locations.update(new_children)
+            next_locations.extend(new_children)
+            locations_in_depth_first_order.extend(new_children)
+
+        # priority first
+        locations_in_traversal_order: deque[int] = deque()
+        locations_in_priority_order: deque[int] = deque()
+        done_locations.clear()
+        def add_locations(ids: tuple[int, ...]):
+            for id_ in ids:
+                if id_ in done_locations:
+                    continue
+                done_locations.add(id_)
+                locations_in_traversal_order.append(id_)
+                add_locations(children_for_parent.get(id_, ()))
+                locations_in_priority_order.append(id_)
+
+        field = models.PositiveIntegerField()
+        for order_name, location_ids in (("depth", locations_in_depth_first_order),
+                                         ("traversal", locations_in_traversal_order),
+                                         ("priority", locations_in_priority_order)):
+            SpecificLocation.objects.update(**{f"effective_{order_name}_order": Case(
+         *(
+                    When(pk=location_id, then=Value(i, output_field=field))
+                    for i, location_id in enumerate(location_ids)
+                ),
+                default=Value(2**31-1, output_field=field),
+            )})
 
     @classmethod
     def calculate_effective_x(cls, name: str, default=...):
