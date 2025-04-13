@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import wraps
 
 from django.contrib.messages import get_messages
@@ -48,11 +48,6 @@ def within_changeset(changeset, user):
             locked_changeset.save()
 
 
-@contextmanager
-def noctx():
-    yield
-
-
 def accesses_mapdata(func):
     """
     Decorator for editor views that access map data, will honor changesets etc
@@ -65,7 +60,7 @@ def accesses_mapdata(func):
         if request.changeset.direct_editing:
             # For direct editing, a mapupdate is created if any changes are made
             # So, if this request may commit changes, lock the MapUpdate system, which also starts a transaction.
-            with (MapUpdate.creation_lock() if writable_method else noctx()):
+            with (MapUpdate.creation_lock() if writable_method else nullcontext()):
                 # Reset the changed geometries tracker, this will be read when a MapUpdate is created.
                 changed_geometries.reset()
 
