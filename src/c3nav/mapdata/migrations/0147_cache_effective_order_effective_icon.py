@@ -3,12 +3,6 @@
 from django.db import migrations, models
 
 
-def fill_effective_cache(apps, model_name):
-    from c3nav.mapdata.models.locations import LocationGroup, SpecificLocation
-    LocationGroup.recalculate_effective_order()
-    SpecificLocation.recalculate_effective_order()
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -39,5 +33,4 @@ class Migration(migrations.Migration):
             name='effective_icon',
             field=models.CharField(editable=False, max_length=32, null=True, verbose_name='icon'),
         ),
-        migrations.RunPython(fill_effective_cache, migrations.RunPython.noop),
     ]
