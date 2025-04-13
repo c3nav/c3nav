@@ -283,6 +283,7 @@ def recalculate_specificlocation_static_targets(mapupdates: tuple[MapUpdate, ...
 
 @register_mapupdate_job("SpecificLocation dynamic targets", eager=True)
 def recalculate_specificlocation_dynamic_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    # todo: migrate this from groups?
     SpecificLocation.recalculate_all_position_secrets()
     return True
 
