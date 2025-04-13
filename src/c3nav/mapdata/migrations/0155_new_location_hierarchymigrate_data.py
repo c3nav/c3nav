@@ -115,6 +115,16 @@ def migrate_location_hierarchy(apps, model_name):
         )
     )))
 
+    Area = apps.get_model('mapdata', 'Area')
+    Space = apps.get_model('mapdata', 'Space')
+    for target in chain(
+        Area.objects.filter(load_group_contribute__isnull=False).prefetch_related("locations"),
+        Space.objects.filter(load_group_contribute__isnull=False).prefetch_related("locations"),
+    ):
+        for location in target.locations.all():
+            location.load_group_contribute_id = target.load_group_continue_id
+            location.save()
+
 
 def unmigrate_location_hierarchy(apps, model_name):
     LocationSlug = apps.get_model('mapdata', 'LocationSlug')
@@ -199,6 +209,19 @@ def unmigrate_location_hierarchy(apps, model_name):
                                       if group.id in location_group_ids])
 
     # last bit can be found in a separate data migration in 0154
+
+    Area = apps.get_model('mapdata', 'Area')
+    Space = apps.get_model('mapdata', 'Space')
+    for target in chain(
+            Area.objects.prefetch_related("locations"),
+            Space.objects.prefetch_related("locations"),
+    ):
+        for location in target.locations.all():
+            if location.load_group_contribute_id is not None:
+                target.load_group_contribute_id = location.load_group_contribute_id
+                location.load_group_contribute_id = None
+            target.save()
+            location.save()
 
 
 class Migration(migrations.Migration):
