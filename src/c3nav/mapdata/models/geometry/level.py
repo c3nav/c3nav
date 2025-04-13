@@ -129,9 +129,6 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGe
     base_mapdata_accessible = models.BooleanField(default=False,
                                                   verbose_name=_('always accessible (overwrites base mapdata setting)'))
 
-    load_group_contribute = models.ForeignKey(LoadGroup, on_delete=models.SET_NULL, null=True, blank=True,
-                                              verbose_name=_('contribute to load group'))
-
     identifyable = models.BooleanField(null=True, default=None,
                                        verbose_name=_('easily identifyable/findable'),
                                        help_text=_('if unknown, this will be a quest. if yes, quests for enter, '

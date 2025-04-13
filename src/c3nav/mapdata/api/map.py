@@ -1,8 +1,8 @@
 import json
 import math
+from itertools import chain
 from typing import Annotated, Union, Optional, Sequence
 
-from celery import chain
 from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
@@ -324,32 +324,43 @@ def get_load(request):
     for beacon in RangingBeacon.objects.filter(max_observed_num_clients__gt=0):
         beacons_by_space.setdefault(beacon.space_id, {})[beacon.pk] = beacon
 
+    # todo: better caching?
+
     locations_contribute_to = dict(
-        # todo: determine contribute from former location groups to correctly
         SpecificLocation.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
     )
-    for area in Area.objects.filter((Q(load_group_contribute__isnull=False)
-                                     | Q(parents__in=locations_contribute_to.keys()))).prefetch_related("parents"):
+    for area in Area.objects.filter(
+        Q(locations__in=locations_contribute_to.keys())
+        | Q(locations__calculated_ancestors__in=locations_contribute_to.keys())
+    ).prefetch_related(
+        Prefetch("locations", SpecificLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
+            Prefetch("calculated_ancestors", SpecificLocation.objects.only("pk", "load_group_contribute_id")),
+        )),
+    ):
         contribute_to = set()
-        if area.load_group_contribute_id:
-            contribute_to.add(area.load_group_contribute_id)
-        for group in area.groups.all():
-            if group.load_group_contribute_id:
-                contribute_to.add(group.load_group_contribute_id)
+        for location in chain(area.locations.all(),
+                              *(location.calculated_ancestors.all() for location in area.locations_all())):
+            if location.load_group_contribute_id:
+                contribute_to.add(location.load_group_contribute_id)
         for beacon in beacons_by_space.get(area.space_id, {}).values():
             if area.geometry.intersects(unwrap_geom(beacon.geometry)):
                 for load_group_id in contribute_to:
                     max_values[load_group_id] += beacon.max_observed_num_clients
                     current_values[load_group_id] += beacon.num_clients
 
-    for space in Space.objects.filter((Q(load_group_contribute__isnull=False)
-                                      | Q(groups__in=locationgroups_contribute_to.keys()))).prefetch_related("groups"):
+    for space in Space.objects.filter(
+        Q(locations__in=locations_contribute_to.keys())
+        | Q(locations__calculated_ancestors__in=locations_contribute_to.keys())
+    ).prefetch_related(
+        Prefetch("locations", SpecificLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
+            Prefetch("calculated_ancestors", SpecificLocation.objects.only("pk", "load_group_contribute_id")),
+        )),
+    ):
         contribute_to = set()
-        if space.load_group_contribute_id:
-            contribute_to.add(space.load_group_contribute_id)
-        for group in space.groups.all():
-            if group.load_group_contribute_id:
-                contribute_to.add(group.load_group_contribute_id)
+        for location in chain(space.locations.all(),
+                              *(location.calculated_ancestors.all() for location in space.locations_all())):
+            if location.load_group_contribute_id:
+                contribute_to.add(location.load_group_contribute_id)
         for beacon in beacons_by_space.get(space.pk, {}).values():
             for load_group_id in contribute_to:
                 max_values[load_group_id] += beacon.max_observed_num_clients
