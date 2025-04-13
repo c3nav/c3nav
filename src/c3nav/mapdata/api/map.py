@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.query import Prefetch
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -248,8 +249,9 @@ def legend_for_theme(request, theme_id: int):
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    # todo: determine former group children correctly
-    legend_locations = SpecificLocation.objects.filter(in_legend=True).prefetch_related("children")
+    legend_locations = SpecificLocation.objects.filter(in_legend=True).prefetch_related(
+        Prefetch("calculated_descendants", SpecificLocation.objects.only("pk")),
+    )
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
         pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),
@@ -259,7 +261,8 @@ def legend_for_theme(request, theme_id: int):
         groups=[item for item in (LegendItemSchema(title=location.title,
                                                    fill=manager.location_fill_color(location),
                                                    border=manager.location_border_color(location))
-                                  for location in legend_locations if location.children.all())
+                                  for location in legend_locations
+                                  if location.calculated_descendants.all() or location.cached_all_static_targets)
                 if item.fill or item.border],
         obstacles=[item for item in (LegendItemSchema(title=group.title,
                                                       fill=manager.obstaclegroup_fill_color(group),
