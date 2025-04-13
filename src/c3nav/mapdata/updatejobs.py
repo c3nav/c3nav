@@ -130,7 +130,7 @@ def run_eager_mapupdate_jobs(mapupdate: MapUpdate):
         remaining_job_types.remove(next_job_type)
 
 
-def run_mapupdate_jobs():
+def run_mapupdate_jobs(jobs: Optional[Iterable[str]] = None):
     """
     Run all jobs, blocking, this is for manage.py processupdates
     """
@@ -146,14 +146,15 @@ def run_mapupdate_jobs():
                                       if not (update_job_configs[job_type].dependencies - done_jobs)))
         except StopIteration:
             break
-        running_job = running_jobs.get(next_job_type)
-        if running_job and check_running_job(running_job):
-            logger.info(f"Job already running, why are you using processupdates?: {next_job_type}")
-        else:
-            try:
-                run_job(next_job_type)
-            except CantStartMapUpdateJob:
-                logger.info(f"Couldn't start job, race condition?: {next_job_type}")
+        if jobs is None or next_job_type in jobs:
+            running_job = running_jobs.get(next_job_type)
+            if running_job and check_running_job(running_job):
+                logger.info(f"Job already running, why are you using processupdates?: {next_job_type}")
+            else:
+                try:
+                    run_job(next_job_type)
+                except CantStartMapUpdateJob:
+                    logger.info(f"Couldn't start job, race condition?: {next_job_type}")
         done_jobs.add(next_job_type)
         remaining_job_types.remove(next_job_type)
 
