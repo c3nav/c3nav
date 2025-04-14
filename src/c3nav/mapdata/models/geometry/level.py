@@ -3,7 +3,7 @@ from collections import deque, namedtuple
 from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
-from typing import Sequence, TYPE_CHECKING, TypeAlias
+from typing import Sequence, TypeAlias
 
 import numpy as np
 from django.core.exceptions import ObjectDoesNotExist
@@ -26,12 +26,11 @@ from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin
-from c3nav.mapdata.models.locations import LoadGroup, SpecificLocationGeometryTargetMixin
+from c3nav.mapdata.models.locations import DefinedLocationTargetMixin
+from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line, unwrap_geom)
-
-from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 
 
 class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
@@ -117,7 +116,7 @@ class Building(LevelGeometryMixin, models.Model):
 CachedSimplifiedGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema]]
 
 
-class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, SpecificLocationGeometryTargetMixin,
+class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, DefinedLocationTargetMixin,
             AccessRestrictionMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.

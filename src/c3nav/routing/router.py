@@ -25,7 +25,7 @@ from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, Space, WayType
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
@@ -402,7 +402,8 @@ class Router:
                 if specificlocation.can_see(restrictions)
             )
 
-        elif isinstance(location, SpecificLocation):
+        elif isinstance(location, DefinedLocation):
+            # todo: this still needs updating
             # specificlocations… we just check if we know them
             if location.pk not in self.specificlocations:
                 raise NotYetRoutable
@@ -669,13 +670,13 @@ class Router:
 
 class CustomLocationDescription(NamedTuple):
     # todo: space and space_geometry? this could clearly be much better
-    space: Optional[SpecificLocation]
+    space: Optional[DefinedLocation]
     space_geometry: Optional["RouterSpace"]
     altitude: Optional[float]
-    areas: Sequence[SpecificLocation]
-    near_area: Optional[SpecificLocation]
-    near_poi: Optional[SpecificLocation]
-    nearby: Sequence[SpecificLocation]
+    areas: Sequence[DefinedLocation]
+    near_area: Optional[DefinedLocation]
+    near_poi: Optional[DefinedLocation]
+    nearby: Sequence[DefinedLocation]
 
 
 @dataclass
@@ -708,7 +709,7 @@ class BaseRouterDatabaseTarget[TargetT: Model](BaseRouterTarget[TargetT]):
     def pk(self):
         return self.id
 
-    def get_location(self) -> SpecificLocation | None:
+    def get_location(self) -> DefinedLocation | None:
         # todo: do this nicer eventually
         visible_locations = LocationManager.get_visible()
         return next(iter(chain(
@@ -936,6 +937,7 @@ class RouterLocation:
 
 @dataclass
 class RouterGroup:
+    # todo: get rid of this
     specificlocations: set[int] = field(default_factory=set)
 
 
@@ -1081,6 +1083,7 @@ class RouterLocationSet:
     Describes a Location selected as an origin or destination for a route. This might match multiple locations,
     for example if we route to a group, in which case we select the nearest/best specific location.
     """
+    # todo: update this docstring
     locations: tuple[RouterLocation, ...]
 
     def get_nodes(self, restrictions: "RouterRestrictionSet") -> frozenset[int]:

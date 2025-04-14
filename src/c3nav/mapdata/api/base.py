@@ -14,7 +14,7 @@ from ninja.decorators import decorate_view
 
 from c3nav.mapdata.models import AccessRestriction, MapUpdate
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.proxied import LocalCacheProxy, VersionedCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key

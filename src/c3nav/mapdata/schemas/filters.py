@@ -7,7 +7,7 @@ from pydantic import Field as APIField, AfterValidator
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models import Level, MapUpdate, Space, DataOverlay
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.proxied import versioned_cache
 
@@ -69,11 +69,11 @@ class BySpaceFilter(FilterSchema):
 
 
 class TargetsByLocationFilter(FilterSchema):
-    location: Annotated[Optional[int], AfterValidator(ValidateID(SpecificLocation)), APIField(
+    location: Annotated[Optional[int], AfterValidator(ValidateID(DefinedLocation)), APIField(
         title="filter by location",
         description="if set, only items belonging to the location with this ID or one if its descendants will be shown"
     )] = None
-    direct_location: Annotated[Optional[int], AfterValidator(ValidateID(SpecificLocation)), APIField(
+    direct_location: Annotated[Optional[int], AfterValidator(ValidateID(DefinedLocation)), APIField(
         title="filter by direct location",
         description="if set, only items directly belonging to the location with this ID will be shown"
     )] = None
