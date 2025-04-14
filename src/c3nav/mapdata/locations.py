@@ -196,11 +196,10 @@ class LocationManager:
 
     @classmethod
     def generate_locations_by_id(cls) -> dict[int, DefinedLocation]:
-        # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
         locations = {
             location.pk: location for location in DefinedLocation.objects.select_related(
                 "effective_label_settings",
-                "load_group_display"
+                "load_group_display",
             ).prefetch_related(
                 "slug_set"
             ).order_by("effective_depth_first_order")
