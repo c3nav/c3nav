@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Optional, Union
 
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
@@ -6,13 +6,13 @@ from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 from c3nav.api.schema import BaseSchema, AnyGeometrySchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema, schema_description,
-                                              LocationSlugSchema, WithGeometrySchema, LocationPoint,
-                                              BoundsByLevelSchema, BaseLocationSchema)
+                                              WithGeometrySchema, LocationPoint, BoundsByLevelSchema,
+                                              OptionalLocationSlugField)
 from c3nav.mapdata.utils.geometry import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -239,45 +239,43 @@ class CrossDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
     )
 
 
-class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
+class DefinedLocationSchema(WithAccessRestrictionSchema, TitledSchema, DjangoModelSchema):
     """
     A location refering to a level, space, area, point of interest, or dynamic location.
     It can have other locations as parents (and thus, also, children).
     """
-    groups: list[PositiveInt] = APIField(
-        title="location groups",
-        description="location group(s) that this specific location belongs to.",
-        examples=[[5, 1, 3, 7]],
+    slug: OptionalLocationSlugField
+    subtitle: NonEmptyStr = APIField(
+        title="subtitle (preferred language)",
+        description="an automatically generated short description for this location in the "
+                    "preferred language based on the Accept-Language header.",
+        examples=["near Area 51"],
     )
-    groups_by_category: dict[
-        Annotated[NonEmptyStr, APIField(title="location group category name")],
-        Union[
-            Annotated[list[PositiveInt], APIField(
-                title="array of location IDs",
-                description="for categories that have `single` set to `false`. can be an empty array.",
-                examples=[[1, 4, 5]],
-            )],
-            Annotated[PositiveInt, APIField(
-                title="one location ID",
-                description="for categories that have `single` set to `true`.",
-                examples=[1],
-            )],
-            Annotated[None, APIField(
-                title="null",
-                description="for categories that have `single` set to `true`."
-            )],
-        ]
-    ] = APIField(
-        title="location groups by category",
-        description="location group(s) that this specific location belongs to, grouped by categories.\n\n"
-                    "keys are location group category names. see location group category endpoint for details.\n\n"
-                    "categories may be missing if no groups apply.",
-        examples=[{
-            "category_with_single_true": 5,
-            "other_category_with_single_true": None,
-            "category_with_single_false": [1, 3, 7],
-        }]
+    icon: Optional[NonEmptyStr] = APIField(
+        title="set icon name",
+        description="as set in the object specifically (any material design icon name)",
+        examples=["pin_drop"],
     )
+    effective_icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
+        title="icon name to use",
+        description="effective icon to use (any material design icon name)",
+        examples=["pin_drop"],
+    )
+    can_search: bool = APIField(
+        title="can be searched",
+        description="if `true`, this object can show up in search results",
+    )
+    can_describe: bool = APIField(
+        title="can describe locations",
+        description="if `true`, this object can be used to describe other locations (e.g. in their subtitle)",
+    )
+    add_search: str = APIField(
+        title="additional search terms",
+        description="more data for the search index separated by spaces",
+        examples=["more search terms"],
+    )
+
+    # add children or something here
     label_settings: Optional[PositiveInt] = APIField(
         default=None,
         title="label settings",
@@ -304,7 +302,7 @@ class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
 
     # imported from group
     priority: int = APIField()
-    can_report_missing: SpecificLocation.CanReportMissing = APIField(
+    can_report_missing: DefinedLocation.CanReportMissing = APIField(
         title="report missing locations",
         description="whether this location group can be used to report missing locations",
     )
@@ -319,7 +317,7 @@ class SpecificLocationSchema(BaseLocationSchema, DjangoModelSchema):
     @classmethod
     def get_overrides(cls, value):
         return {
-            "locationtype": "specificlocation",
+            "locationtype": "defined",
             "label_settings": value.label_settings_id,
             "load_group_display": value.load_group_display_id
         }

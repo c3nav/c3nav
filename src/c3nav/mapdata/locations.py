@@ -13,8 +13,8 @@ from shapely import Point
 from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models import Level, Location, MapUpdate
-from c3nav.mapdata.models.locations import LocationSlug, Position, SpecificLocation
+from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.models.locations import LocationSlug, Position, DefinedLocation
 from c3nav.mapdata.permissions import active_map_permissions, MapPermissionGuardedMapping
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
@@ -29,10 +29,10 @@ except ImportError:
 @dataclass
 class LocationRedirect:
     identifier: LocationIdentifier
-    target: Location
+    target: DefinedLocation
 
 
-LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, SpecificLocation]
+LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, DefinedLocation]
 
 
 class SlugTarget(NamedTuple):
@@ -166,12 +166,12 @@ class LocationManager:
     @classmethod
     def _maybe_update(cls):
         # todo: altitude of points could change later!!
-        cache_key = MapUpdate.last_update("mapdata.recalculate_specificlocation_cached_from_parents")
+        cache_key = MapUpdate.last_update("mapdata.recalculate_definedlocation_cached_from_parents")
         if cache_key != cls._cache_key:
             cls._cache_key = cache_key
             with active_map_permissions.disable_access_checks():
                 cache_key = f'mapdata:all_locations:{cache_key}'
-                all_locations: dict[int, SpecificLocation] | None
+                all_locations: dict[int, DefinedLocation] | None
                 all_locations = cache.get(cache_key, None)
                 if all_locations is None:
                     all_locations = cls.generate_locations_by_id()
@@ -195,10 +195,10 @@ class LocationManager:
                 })
 
     @classmethod
-    def generate_locations_by_id(cls) -> dict[int, SpecificLocation]:
+    def generate_locations_by_id(cls) -> dict[int, DefinedLocation]:
         # todo: BAD BAD BAD! IDs can collide (for now, but not for much longer)
         locations = {
-            location.pk: location for location in SpecificLocation.objects.select_related(
+            location.pk: location for location in DefinedLocation.objects.select_related(
                 "effective_label_settings",
                 "load_group_display"
             ).prefetch_related(
@@ -224,7 +224,7 @@ class CustomLocation:
     A custom location defined by coordinates.
     Implements :py:class:`c3nav.mapdata.schemas.locations.SingleLocationProtocol`.
     """
-    locationtype: ClassVar = "customlocation"
+    locationtype: ClassVar = "custom"
     slug_as_id = False
 
     can_search = True
@@ -267,6 +267,7 @@ class CustomLocation:
                                 (int(math.ceil(self.x)), int(math.ceil(self.y))))}
 
     def details_display(self, **kwargs):
+        # todo: this still needs adjustment for groups-less location hierarchy
         result = {
             'id': self.id,
             'display': [

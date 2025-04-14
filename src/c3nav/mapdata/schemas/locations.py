@@ -202,7 +202,7 @@ class LocationProtocol(Protocol):
     The only exception is the location list API, for which it needs to implement ListableLocationProtocol.
 
     Current implementations in the c3nav source base are:
-    - :py:class:`c3nav.mapdata.models.locations.SpecificLocation`
+    - :py:class:`c3nav.mapdata.models.locations.DefinedLocation`
     - :py:class:`c3nav.mapdata.models.locations.Position`
     - :py:class:`c3nav.mapdata.utils.locations.CustomLocation`
 
@@ -251,11 +251,11 @@ class ListedLocationProtocol(LocationProtocol):
 class BaseLocationItemSchema(BaseSchema):
     """
     A location is what c3nav can search for and route to and from.
-    A location can be a SpecificLocation, a CustomLocation or a Position.
+    A location can be a DefinedLocation, a CustomLocation or a Position.
     """
     locationtype: Union[
-        Literal["specificlocation"],
-        Literal["customlocation"],
+        Literal["defined"],
+        Literal["custom"],
         Literal["position"],
     ]
     id: Union[DjangoID, PositionIdentifier, CustomLocationIdentifier]
@@ -309,7 +309,7 @@ class SingleLocationItemSchema(BaseLocationItemSchema):
 
 
 class ListedLocationItemSchema(BaseLocationItemSchema):
-    locationtype: Literal["specificlocation"]
+    locationtype: Literal["defined"]
     id: DjangoID
     effective_label_settings: Annotated[
         Union[

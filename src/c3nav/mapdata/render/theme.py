@@ -1,6 +1,6 @@
 from c3nav import settings
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.models.theme import Theme
 
 RENDER_COLOR_BACKGROUND = "#DCDCDC"
@@ -29,7 +29,7 @@ class ThemeColorManager:
             self.location_border_colors = {}
             self.location_fill_colors = {
                 location.pk: location.color
-                for location in SpecificLocation.objects.filter(color__isnull=False).all()
+                for location in DefinedLocation.objects.filter(color__isnull=False).all()
             }
             self.obstacle_group_border_colors = {}
             self.obstacle_group_fill_colors = {
@@ -62,10 +62,10 @@ class ThemeColorManager:
                 for theme_obstacle in theme.obstacle_groups.all()
             }
 
-    def location_border_color(self, location: SpecificLocation):
+    def location_border_color(self, location: DefinedLocation):
         return self.location_border_colors.get(location.pk, None)
 
-    def location_fill_color(self, location: SpecificLocation):
+    def location_fill_color(self, location: DefinedLocation):
         return self.location_fill_colors.get(location.pk, None)
 
     def obstaclegroup_border_color(self, obstacle_group: ObstacleGroup):

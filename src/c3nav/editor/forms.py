@@ -27,7 +27,7 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge, Source, GraphNode, Space, LocationSlug, WayType
 from c3nav.mapdata.models.access import AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
-from c3nav.mapdata.models.locations import SpecificLocation, Location
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.models.theme import ThemeLocationBackgroundColor, ThemeObstacleGroupBackgroundColor
 from c3nav.mapdata.permissions import active_map_permissions
 
@@ -53,7 +53,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     for theme_obstacle in self.instance.obstacles.filter(theme_id=self.instance.pk)
                 }
 
-            for location in SpecificLocation.objects.filter(color__isnull=False).prefetch_related(
+            for location in DefinedLocation.objects.filter(color__isnull=False).prefetch_related(
                     Prefetch('theme_colors', ThemeLocationBackgroundColor.objects.only('fill_color'))
             ).all():
                 related = location_theme_colors.get(location.pk, None)
@@ -236,7 +236,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.make_redirect_slug: Optional[str] = None
         self.make_main_slug: Optional[str] = None
         self.add_slugs: Optional[dict[str, bool]] = None
-        if isinstance(self.instance, Location):
+        if isinstance(self.instance, DefinedLocation):
             self.slugs = {s.slug: s.redirect for s in self.instance.slug_set.all()} if self.instance.pk else {}
             slug = next(iter(chain((s for s, r in self.slugs.items() if not r), (None, ))))
             redirect_slugs = [s for s, r in self.slugs.items() if r]
@@ -354,7 +354,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if self._meta.model.__name__ == 'Theme':
             location_colors = {theme_location.location_group_id: theme_location
                                     for theme_location in self.instance.locations.all()}
-            for location in SpecificLocation.objects.filter(color__isnull=False):
+            for location in DefinedLocation.objects.filter(color__isnull=False):
                 value = self.cleaned_data.get(f'location_{location.pk}', None)
                 if value:
                     color = location_colors.get(location.pk, ThemeLocationBackgroundColor(theme=self.instance,
@@ -513,28 +513,28 @@ class DoorGraphForm(Form):
                     edge.save()
 
 
-class LinkSpecificLocationForm(Form):
+class LinkDefinedLocationForm(Form):
     # todo: jo, permissions and stuff!
     def __init__(self, *args, target, **kwargs):
         super().__init__(*args, **kwargs)
         self.target = target
 
-        specific_locations = tuple(target.locations.all())
-        for location in specific_locations:
+        defined_locations = tuple(target.locations.all())
+        for location in defined_locations:
             self.fields[f"unlink_{location.pk}"] = BooleanField(
                 required=False,
                 label=_('Unlink %(title)s') % {'title': format_html(
                 '<a href="{url}">{title}</a>',
-                    url=reverse('editor.specific_locations.edit', kwargs={"pk": location.pk}),
+                    url=reverse('editor.defined_locations.edit', kwargs={"pk": location.pk}),
                     title=location.title,
                 )},
             )
 
         self.fields["link"] = ModelChoiceField(
-            SpecificLocation.objects.all(),
+            DefinedLocation.objects.all(),
             required=False,
             widget=TextInput(),
-            label=_('Add specific location by ID'),
+            label=_('Add defined location by ID'),
         )
 
     def save(self):

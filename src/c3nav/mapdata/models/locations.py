@@ -64,7 +64,7 @@ validate_slug = RegexValidator(
 class LocationSlug(models.Model):
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
-    target = models.ForeignKey('SpecificLocation', on_delete=models.CASCADE, related_name='slug_set')
+    target = models.ForeignKey('DefinedLocation', on_delete=models.CASCADE, related_name='slug_set')
 
     class Meta:
         verbose_name = _('Location Slug')
@@ -75,89 +75,6 @@ class LocationSlug(models.Model):
             models.UniqueConstraint(fields=["target"], condition=Q(redirect=False),
                                     name="unique_non_redirect_slugs")
         ]
-
-
-class Location(AccessRestrictionMixin, TitledMixin, models.Model):
-    # todo: merge this into SpecificLocation
-    can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
-    can_describe = models.BooleanField(default=True, verbose_name=_('can describe'))
-    icon = models.CharField(_('icon'), max_length=32, null=True, blank=True, help_text=_('any material icons name'))
-    external_url = models.URLField(_('external URL'), null=True, blank=True)
-
-    class Meta:
-        abstract = True
-
-    @cached_property
-    def slug(self) -> str | None:
-        try:
-            return next(iter(locationslug.slug for locationslug in self.slug_set.all() if not locationslug.redirect))
-        except StopIteration:
-            return None
-
-    @cached_property
-    def redirect_slugs(self) -> set[str]:
-        return set(locationslug.slug for locationslug in self.slug_set.all() if locationslug.redirect)
-
-    @property
-    def add_search(self):
-        return ' '.join((
-            *self.redirect_slugs,
-            *self.other_titles,
-        ))
-
-    def details_display(self, **kwargs):
-        result = {
-            'id': self.pk,
-            'display': [
-                (_('Type'), str(self.__class__._meta.verbose_name)),
-                (_('ID'), str(self.pk)),
-                (_('Slug'), self.slug),
-                *(
-                    (_('Title ({lang})').format(lang=get_language_info(lang)['name_translated']), title)
-                    for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language())
-                ),
-                (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
-                (_('searchable'), _('Yes') if self.can_search else _('No')),
-                (_('can describe'), _('Yes') if self.can_describe else _('No')),
-                (_('icon'), self.effective_icon),
-            ]
-        }
-        if self.external_url:
-            result['external_url'] = {
-                'title': self.effective_external_url_label or _('Open external URL'),
-                'url': self.external_url,
-            }
-        return result
-
-    @property
-    def effective_slug(self):
-        return self.slug or str(self.pk)
-
-    @property
-    def subtitle(self):
-        return ''
-
-    @property
-    def grid_square(self):
-        return None
-
-    @property
-    def effective_icon(self):
-        return self.icon or None
-
-    @property
-    def external_url_label(self):
-        return None
-
-
-# class SpecificLocationManager(models.Manager):
-#     def get_queryset(self):
-#         return super().get_queryset().select_related(
-#             'level', 'space', 'area', 'poi', 'dynamiclocation'
-#         )  # .prefetch_related('slug_set')  # todo: put this back in?
-
-
-possible_specific_locations = ('level', 'space', 'area', 'poi', 'dynamiclocation')  # todo: can we generate this?
 
 
 StaticLocationTarget: TypeAlias = Union["Level", "Space", "Area", "POI"]
@@ -194,8 +111,8 @@ class LocationParentage(models.Model):
     """
     A direct parent-child-relationship between two locations.
     """
-    parent = models.ForeignKey("SpecificLocation", on_delete=models.PROTECT, related_name="+")
-    child = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
+    parent = models.ForeignKey("DefinedLocation", on_delete=models.PROTECT, related_name="+")
+    child = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE, related_name="+")
 
     class Meta:
         constraints = (
@@ -206,8 +123,8 @@ class LocationParentage(models.Model):
 
 class LocationAncestry(models.Model):
     """ Automatically populated. Indicating that there is (at least) one ancestry between two locations """
-    ancestor = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
-    descendant = models.ForeignKey("SpecificLocation", on_delete=models.CASCADE, related_name="+")
+    ancestor = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE, related_name="+")
+    descendant = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE, related_name="+")
 
     # look, this field is genuinely just for fun, cause we can, probably not useful
     first_parentages = models.ManyToManyField("LocationParentage", related_name="provides_ancestries",
@@ -246,11 +163,11 @@ class LocationAncestryPathTuple(NamedTuple):
     num_hops: int
 
 
-class SpecificLocation(Location, models.Model):
+class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
     """
-    locationtype = "specificlocation"
+    locationtype = "defined"
     slug_as_id = False
 
     class CanReportMissing(models.TextChoices):
@@ -263,6 +180,11 @@ class SpecificLocation(Location, models.Model):
         # todo: give inheritance options to this :)
         ALLOW = "allow", _("allow")
         REJECT = "reject", _("reject for all locations and sublocations")
+
+    can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
+    can_describe = models.BooleanField(default=True, verbose_name=_('can describe'))
+    icon = models.CharField(_('icon'), max_length=32, null=True, blank=True, help_text=_('any material icons name'))
+    external_url = models.URLField(_('external URL'), null=True, blank=True)
 
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
@@ -332,9 +254,9 @@ class SpecificLocation(Location, models.Model):
     cached_all_position_secrets: list[str] = SchemaField(schema=list[str], default=list)
 
     class Meta:
-        verbose_name = _('Specific Location')
-        verbose_name_plural = _('Specific Locations')
-        default_related_name = 'specific_locations'
+        verbose_name = _('Defined Location')
+        verbose_name_plural = _('Defined Locations')
+        default_related_name = 'defined_locations'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -360,6 +282,53 @@ class SpecificLocation(Location, models.Model):
         ))
 
     """ Main Properties """
+
+    @cached_property
+    def slug(self) -> str | None:
+        try:
+            return next(iter(locationslug.slug for locationslug in self.slug_set.all() if not locationslug.redirect))
+        except StopIteration:
+            return None
+
+    @cached_property
+    def redirect_slugs(self) -> set[str]:
+        return set(locationslug.slug for locationslug in self.slug_set.all() if locationslug.redirect)
+
+    @property
+    def effective_slug(self):
+        # todo: get rid of this
+        return self.slug or str(self.pk)
+
+    @property
+    def add_search(self):
+        return ' '.join((
+            *self.redirect_slugs,
+            *self.other_titles,
+        ))
+
+    def details_display(self, **kwargs):
+        result = {
+            'id': self.pk,
+            'display': [
+                (_('Type'), str(self.__class__._meta.verbose_name)),
+                (_('ID'), str(self.pk)),
+                (_('Slug'), self.slug),
+                *(
+                    (_('Title ({lang})').format(lang=get_language_info(lang)['name_translated']), title)
+                    for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language())
+                ),
+                (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
+                (_('searchable'), _('Yes') if self.can_search else _('No')),
+                (_('can describe'), _('Yes') if self.can_describe else _('No')),
+                (_('icon'), self.effective_icon),
+            ]
+        }
+        if self.external_url:
+            result['external_url'] = {
+                'title': self.effective_external_url_label or _('Open external URL'),
+                'url': self.external_url,
+            }
+        return result
 
     @cached_property
     def sublocations(self) -> list[int]:
@@ -536,7 +505,7 @@ class SpecificLocation(Location, models.Model):
     @classmethod
     def recalculate_effective_order(cls):
         pks, priorities, num_parents = zip(
-            *SpecificLocation.objects.annotate(
+            *DefinedLocation.objects.annotate(
                 Count("parents")
             ).values_list("pk", "priority", "parents__count").order_by("-priority")
         )
@@ -579,7 +548,7 @@ class SpecificLocation(Location, models.Model):
         for order_name, location_ids in (("depth_first", locations_in_depth_first_order),
                                          ("traversal", locations_in_traversal_order),
                                          ("priority", locations_in_priority_order)):
-            SpecificLocation.objects.update(**{f"effective_{order_name}_order": Case(
+            DefinedLocation.objects.update(**{f"effective_{order_name}_order": Case(
          *(
                     When(pk=location_id, then=Value(i, output_field=field))
                     for i, location_id in enumerate(location_ids)
@@ -591,7 +560,7 @@ class SpecificLocation(Location, models.Model):
     def calculate_effective_x(cls, name: str, default=...):
         output_field = cls._meta.get_field(f"effective_{name}")
         cls.objects.annotate(**{
-            f"parent_effective_{name}": Subquery(SpecificLocation.objects.filter(**{
+            f"parent_effective_{name}": Subquery(DefinedLocation.objects.filter(**{
                 "calculated_descendants": OuterRef("pk"),
                 f"{name}__isnull": False,
             }).order_by("effective_priority_order").values(name)[:1]),
@@ -617,13 +586,13 @@ class SpecificLocation(Location, models.Model):
     def calculate_cached_effective_color(cls):
         # collect ids for each value so we can later bulk-update
         colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
-        for specific_location in cls.objects.prefetch_related(
-                Prefetch("calculated_ancestors", SpecificLocation.objects.order_by(
+        for defined_location in cls.objects.prefetch_related(
+                Prefetch("calculated_ancestors", DefinedLocation.objects.order_by(
                     "effective_priority_order"
                 ).prefetch_related("theme_colors"))
             ):
             location_colors: ColorByTheme = {}
-            for ancestor in chain((specific_location, ), specific_location.calculated_ancestors.all()):
+            for ancestor in chain((defined_location, ), defined_location.calculated_ancestors.all()):
                 # add colors from this ancestor
                 if ancestor.color and 0 not in location_colors:
                     location_colors[0] = FillAndBorderColor(fill=ancestor.color, border=None)
@@ -634,7 +603,7 @@ class SpecificLocation(Location, models.Model):
                     if (theme_color.theme_id not in location_colors
                         and theme_color.fill_color and theme_color.border_color)
                 })
-            colors.setdefault(tuple(sorted(location_colors.items())), set()).add(specific_location.pk)
+            colors.setdefault(tuple(sorted(location_colors.items())), set()).add(defined_location.pk)
 
         cls._bulk_cached_update(
             name="effective_colors",
@@ -646,7 +615,7 @@ class SpecificLocation(Location, models.Model):
     def calculate_cached_describing_titles(cls):
         all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
         for specific_location in cls.objects.prefetch_related(
-                Prefetch("calculated_ancestors", SpecificLocation.objects.order_by("effective_priority_order"))
+                Prefetch("calculated_ancestors", DefinedLocation.objects.order_by("effective_priority_order"))
             ):
             location_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
             for ancestor in reversed(specific_location.calculated_ancestors.all()):
@@ -737,7 +706,7 @@ class SpecificLocation(Location, models.Model):
     @classmethod
     def recalculate_points(cls):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
-            obj: SpecificLocation
+            obj: DefinedLocation
             obj.cached_points = [
                 # we are filtering out versions of this targets points for users who lack certain permissions,
                 list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
@@ -775,7 +744,7 @@ class SpecificLocation(Location, models.Model):
     @classmethod
     def recalculate_bounds(cls):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
-            obj: SpecificLocation
+            obj: DefinedLocation
             # collect the cached bounds of all static targets, grouped by level
             collected_bounds: dict[int, deque[CachedBounds]] = defaultdict(deque)
             for target in obj.static_targets:
@@ -1042,7 +1011,7 @@ class SpecificLocation(Location, models.Model):
             ))
 
         if editor_url:
-            result['editor_url'] = reverse('editor.specific_locations.edit', kwargs={'pk': self.pk})
+            result['editor_url'] = reverse('editor.defined_locations.edit', kwargs={'pk': self.pk})
 
         return result
 
@@ -1081,8 +1050,8 @@ type AffectedParentages = tuple[tuple[LocationID, ParentageID], ...]
 type AffectedParentagesLookup = dict[LocationID, ParentageID]
 
 
-@receiver(m2m_changed, sender=SpecificLocation.parents.through)
-def location_parentage_changed(sender, instance: SpecificLocation, pk_set: set[int], action: str, reverse: bool,
+@receiver(m2m_changed, sender=DefinedLocation.parents.through)
+def location_parentage_changed(sender, instance: DefinedLocation, pk_set: set[int], action: str, reverse: bool,
                                **kwargs):
     match (action, reverse):
         case ("post_add", False):
@@ -1095,7 +1064,7 @@ def location_parentage_changed(sender, instance: SpecificLocation, pk_set: set[i
             location_children_removed(instance=instance, pk_set=pk_set)
 
 
-def location_parents_added(instance: SpecificLocation, pk_set: set[int]):
+def location_parents_added(instance: DefinedLocation, pk_set: set[int]):
     """
     new parents were added to the location
     """
@@ -1168,7 +1137,7 @@ def location_parents_added(instance: SpecificLocation, pk_set: set[int]):
     instance.register_changed_geometries(force=True)
 
 
-def location_children_added(instance: SpecificLocation, pk_set: set[int]):
+def location_children_added(instance: DefinedLocation, pk_set: set[int]):
     """
     new children were added to the location
     """
@@ -1250,11 +1219,11 @@ def location_children_added(instance: SpecificLocation, pk_set: set[int]):
     ))
 
     # notify changed geometries… todo: this should definitely use the descendants thing
-    for obj in SpecificLocation.objects.filter(pk__in=pk_set):
+    for obj in DefinedLocation.objects.filter(pk__in=pk_set):
         obj.register_changed_geometries(force=True)
 
 
-def location_parents_removed(instance: SpecificLocation, pk_set: set[int]):
+def location_parents_removed(instance: DefinedLocation, pk_set: set[int]):
     """
     parents were removed from the location
     """
@@ -1265,7 +1234,7 @@ def location_parents_removed(instance: SpecificLocation, pk_set: set[int]):
     instance.register_changed_geometries(force=True)
 
 
-def location_children_removed(instance: SpecificLocation, pk_set: set[int] = None):
+def location_children_removed(instance: DefinedLocation, pk_set: set[int] = None):
     """
     children were removed from the location
     """
@@ -1276,20 +1245,20 @@ def location_children_removed(instance: SpecificLocation, pk_set: set[int] = Non
     LocationAncestry.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
-    for obj in SpecificLocation.objects.filter(pk__in=pk_set):
+    for obj in DefinedLocation.objects.filter(pk__in=pk_set):
         obj.register_changed_geometries(force=True)
 
 
-@receiver(m2m_changed, sender=SpecificLocation.levels.through)
-@receiver(m2m_changed, sender=SpecificLocation.spaces.through)
-@receiver(m2m_changed, sender=SpecificLocation.areas.through)
-@receiver(m2m_changed, sender=SpecificLocation.pois.through)
+@receiver(m2m_changed, sender=DefinedLocation.levels.through)
+@receiver(m2m_changed, sender=DefinedLocation.spaces.through)
+@receiver(m2m_changed, sender=DefinedLocation.areas.through)
+@receiver(m2m_changed, sender=DefinedLocation.pois.through)
 def locations_targets_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
     if action not in ('post_add', 'post_remove', 'post_clear'):
         return
 
     if not reverse:
-        # the targets of a specific location were changed
+        # the targets of a defined location were changed
         if action not in ('post_clear',):
             raise NotImplementedError
         query = model.objects.filter(pk__in=pk_set)
@@ -1299,16 +1268,16 @@ def locations_targets_changed(sender, instance, action, reverse, model, pk_set, 
         for obj in query:
             obj.register_change(force=True)
     else:
-        # the locations of a specific location target were changed
+        # the locations of a defined location target were changed
         instance.register_change(force=True)
 
 
-class SpecificLocationTargetMixin(models.Model):
+class DefinedLocationTargetMixin(models.Model):
     class Meta:
         abstract = True
 
     @cached_property
-    def sorted_locations(self) -> LazyMapPermissionFilteredSequence[SpecificLocation]:
+    def sorted_locations(self) -> LazyMapPermissionFilteredSequence[DefinedLocation]:
         """
         highest priority first
         """
@@ -1342,19 +1311,12 @@ class SpecificLocationTargetMixin(models.Model):
         except StopIteration:
             return None
 
-    def get_location(self, can_describe=False) -> Optional[SpecificLocation]:
+    def get_location(self, can_describe=False) -> Optional[DefinedLocation]:
         # todo: do we want to get rid of this?
         return next(iter((*(location for location in self.sorted_locations if location.can_describe), None)))
 
 
 CachedEffectiveGeometries = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]
-
-
-class SpecificLocationGeometryTargetMixin(SpecificLocationTargetMixin):
-    geometry = None
-
-    class Meta:
-        abstract = True
 
 
 class LabelSettings(models.Model):
@@ -1389,8 +1351,8 @@ class LoadGroup(models.Model):
         default_related_name = 'labelgroup'
 
 
-class DynamicLocationTarget(SpecificLocationTargetMixin, models.Model):
-    location = models.ForeignKey("SpecificLocation", null=True, on_delete=models.CASCADE)
+class DynamicLocationTarget(DefinedLocationTargetMixin, models.Model):
+    location = models.ForeignKey("DefinedLocation", null=True, on_delete=models.CASCADE)
     position_secret = models.CharField(_('position secret'), max_length=32)
 
     class Meta:
