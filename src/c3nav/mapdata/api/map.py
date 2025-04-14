@@ -25,7 +25,7 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.locations import LocationRedirect, LocationManager
 from c3nav.mapdata.models import Theme, Area, Space, Level
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import Position, LoadGroup, SpecificLocation
+from c3nav.mapdata.models.locations import Position, LoadGroup, DefinedLocation
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
@@ -86,7 +86,7 @@ class LocationListFilters(BaseSchema):
 @map_api_router.get('/locations/', summary="list locations",
                     description="Get locations",
                     response={200: list[ListedLocationItemSchema], **validate_responses, **auth_responses})
-@api_etag(cache_job_types=("mapdata.recalculate_specificlocation_final", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
         return LocationManager.get_searchable().values()
@@ -105,7 +105,7 @@ class ShowRedirects(BaseSchema):
                     description="Retrieve location",
                     response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
-@api_etag(cache_job_types=("mapdata.recalculate_specificlocation_final", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
     location = LocationManager.get(identifier)
 
@@ -129,7 +129,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
                     description="Retrieve displayable information about a location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
-@api_etag(cache_job_types=("mapdata.recalculate_specificlocation_final", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
 def location_display(request, identifier: LocationIdentifier):
     location = get_location(identifier)
     if location is None:
@@ -150,7 +150,7 @@ def location_display(request, identifier: LocationIdentifier):
                     description="Get location geometries (if available)",
                     response={200: GeometriesByLevelSchema, **API404.dict(), **auth_responses})
 @api_stats('location_geometries')
-@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_specificlocation_final", ))  # todo: finer job_types
+@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
 def location_geometries(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
 
@@ -247,8 +247,8 @@ def legend_for_theme(request, theme_id: int):
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    legend_locations = SpecificLocation.objects.filter(in_legend=True).prefetch_related(
-        Prefetch("calculated_descendants", SpecificLocation.objects.only("pk")),
+    legend_locations = DefinedLocation.objects.filter(in_legend=True).prefetch_related(
+        Prefetch("calculated_descendants", DefinedLocation.objects.only("pk")),
     )
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
@@ -327,14 +327,14 @@ def get_load(request):
     # todo: better caching?
 
     locations_contribute_to = dict(
-        SpecificLocation.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
+        DefinedLocation.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
     )
     for area in Area.objects.filter(
         Q(locations__in=locations_contribute_to.keys())
         | Q(locations__calculated_ancestors__in=locations_contribute_to.keys())
     ).prefetch_related(
-        Prefetch("locations", SpecificLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
-            Prefetch("calculated_ancestors", SpecificLocation.objects.only("pk", "load_group_contribute_id")),
+        Prefetch("locations", DefinedLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
+            Prefetch("calculated_ancestors", DefinedLocation.objects.only("pk", "load_group_contribute_id")),
         )),
     ):
         contribute_to = set()
@@ -352,8 +352,8 @@ def get_load(request):
         Q(locations__in=locations_contribute_to.keys())
         | Q(locations__calculated_ancestors__in=locations_contribute_to.keys())
     ).prefetch_related(
-        Prefetch("locations", SpecificLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
-            Prefetch("calculated_ancestors", SpecificLocation.objects.only("pk", "load_group_contribute_id")),
+        Prefetch("locations", DefinedLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
+            Prefetch("calculated_ancestors", DefinedLocation.objects.only("pk", "load_group_contribute_id")),
         )),
     ):
         contribute_to = set()

@@ -13,7 +13,7 @@ from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from c3nav.mapdata.models import MapUpdate, AltitudeArea, Level, Space, Area
-from c3nav.mapdata.models.locations import SpecificLocation, LocationParentage, LocationAncestry, LocationAncestryPath
+from c3nav.mapdata.models.locations import DefinedLocation, LocationParentage, LocationAncestry, LocationAncestryPath
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.render.renderdata import LevelRenderData
@@ -263,35 +263,35 @@ class LocationAncestryPathTuple(NamedTuple):
 
 # todo: make this a transaction?? is it already?
 @register_mapupdate_job("evaluate location ancestry", eager=True, dependencies=set())
-def evaluate_location_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    SpecificLocation.evaluate_location_ancestry()
+def evaluate_definedlocation_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    DefinedLocation.evaluate_location_ancestry()
     return True
 
 
-@register_mapupdate_job("SpecificLocation cached from parents",
-                        eager=True, dependencies=(evaluate_location_ancestry, ))
-def recalculate_specificlocation_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    SpecificLocation.recalculate_cached_from_parents()
+@register_mapupdate_job("Defined location cached from parents",
+                        eager=True, dependencies=(evaluate_definedlocation_ancestry,))
+def recalculate_definedlocation_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    DefinedLocation.recalculate_cached_from_parents()
     return True
 
 
-@register_mapupdate_job("SpecificLocation static targets", eager=True)
-def recalculate_specificlocation_static_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    SpecificLocation.recalculate_all_static_targets()
+@register_mapupdate_job("Defined location static targets", eager=True)
+def recalculate_definedlocation_static_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    DefinedLocation.recalculate_all_static_targets()
     return True
 
 
-@register_mapupdate_job("SpecificLocation dynamic targets", eager=True)
-def recalculate_specificlocation_dynamic_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
+@register_mapupdate_job("Defined location dynamic targets", eager=True)
+def recalculate_definedlocation_dynamic_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
     # todo: migrate this from groups?
-    SpecificLocation.recalculate_all_position_secrets()
+    DefinedLocation.recalculate_all_position_secrets()
     return True
 
 
-@register_mapupdate_job("SpecificLocation target subtitles",
-                        eager=True, dependencies=(recalculate_specificlocation_cached_from_parents, ))
-def recalculate_specificlocation_target_subtitles(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    SpecificLocation.recalculate_target_subtitles()
+@register_mapupdate_job("Defined location target subtitles",
+                        eager=True, dependencies=(recalculate_definedlocation_cached_from_parents,))
+def recalculate_definedlocation_target_subtitles(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    DefinedLocation.recalculate_target_subtitles()
     return True
 
 
@@ -376,55 +376,55 @@ def recalculate_area_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
     return True
 
 
-@register_mapupdate_job("Specific location geometries",
+@register_mapupdate_job("Defined location geometries",
                         dependencies=(recalculate_space_effective_geometries, recalculate_area_effective_geometries))
-def recalculate_specificlocation_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
+def recalculate_definedlocation_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')
         return False
 
-    SpecificLocation.recalculate_geometries()
+    DefinedLocation.recalculate_geometries()
     return True
 
 
-@register_mapupdate_job("Specific location bounds",
+@register_mapupdate_job("Defined location bounds",
                         dependencies=(recalculate_level_bounds, recalculate_space_bounds, recalculate_area_bounds))
-def recalculate_specificlocation_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
+def recalculate_definedlocation_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')
         return False
 
-    SpecificLocation.recalculate_bounds()
+    DefinedLocation.recalculate_bounds()
     return True
 
 
-@register_mapupdate_job("Specific location points",
+@register_mapupdate_job("Defined location points",
                         dependencies=(recalculate_space_points, recalculate_area_points))
-def recalculate_specificlocation_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
+def recalculate_definedlocation_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')
         return False
 
-    SpecificLocation.recalculate_points()
+    DefinedLocation.recalculate_points()
     return True
 
 
-@register_mapupdate_job("SpecificLocation finalize",
-                        eager=True, dependencies=(recalculate_specificlocation_geometries,
-                                                  recalculate_specificlocation_bounds,
-                                                  recalculate_specificlocation_points,
-                                                  recalculate_specificlocation_target_subtitles,
-                                                  recalculate_specificlocation_static_targets,
-                                                  recalculate_specificlocation_dynamic_targets,))
-def recalculate_specificlocation_final(mapupdates: tuple[MapUpdate, ...]) -> bool:
+@register_mapupdate_job("Defined location finalize",
+                        eager=True, dependencies=(recalculate_definedlocation_geometries,
+                                                  recalculate_definedlocation_bounds,
+                                                  recalculate_definedlocation_points,
+                                                  recalculate_definedlocation_target_subtitles,
+                                                  recalculate_definedlocation_static_targets,
+                                                  recalculate_definedlocation_dynamic_targets,))
+def recalculate_definedlocation_final(mapupdates: tuple[MapUpdate, ...]) -> bool:
     return True
 
 
 @register_mapupdate_job("geometries",
                         dependencies=(recalculate_space_effective_geometries,
                                       recalculate_area_effective_geometries,
-                                      recalculate_specificlocation_cached_from_parents,
-                                      recalculate_specificlocation_final,))
+                                      recalculate_definedlocation_cached_from_parents,
+                                      recalculate_definedlocation_final,))
 def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')

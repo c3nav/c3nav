@@ -12,7 +12,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import CachedPoints, CachedBounds
-from c3nav.mapdata.models.locations import SpecificLocationTargetMixin
+from c3nav.mapdata.models.locations import DefinedLocationTargetMixin
 from c3nav.mapdata.permissions import MapPermissionTaggedItem
 from c3nav.mapdata.schemas.model_base import BoundsSchema
 from c3nav.mapdata.utils.cache.proxied import versioned_cache, versioned_per_request_cache
@@ -26,7 +26,7 @@ validate_level_index = RegexValidator(
 )
 
 
-class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
+class Level(DefinedLocationTargetMixin, AccessRestrictionMixin, models.Model):
     """
     A physical level of the map, containing building, spaces, doors…
 

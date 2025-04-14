@@ -85,10 +85,10 @@ class Theme(TitledMixin, models.Model):
 
 class ThemeLocationBackgroundColor(models.Model):
     """
-    A background color for a SpecificLocation in a theme
+    A background color for a DefinedLocation in a theme
     """
     theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="locations")
-    location = models.ForeignKey("SpecificLocation", on_delete=models.SET_NULL, null=True, blank=True,
+    location = models.ForeignKey("DefinedLocation", on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name="theme_colors")
     fill_color = models.CharField(max_length=32, null=True, blank=True)
     border_color = models.CharField(max_length=32, null=True, blank=True)
