@@ -967,6 +967,7 @@ class SpecificLocation(Location, models.Model):
         # fallback if there is no subtitle  # todo: this could probably be better?
         if subtitle is not None:
             return subtitle
+        # todo: make location invisible if all targets are invisible
         return (
             _('Location')
             if len(self._all_static_target_ids) + len(self.cached_all_position_secrets) <= 1
