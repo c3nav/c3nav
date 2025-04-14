@@ -385,7 +385,8 @@ def create_editor_form(editor_model):
     possible_fields = [
         'slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret', 'icon', 'join_edges', 'todo',
         'up_separate', 'bssid', 'main_point', 'external_url', 'external_url_label', 'hub_import_type', 'walk',
-        'ordering', 'category', 'width', 'groups', 'height', 'color', 'in_legend', 'priority', 'hierarchy', 'icon_name',
+        'ordering', 'category', 'width', 'groups', 'parents', 'height', 'color', 'in_legend', 'priority', 'hierarchy',
+        'icon_name',
         'base_altitude', 'intermediate', 'waytype', 'access_restriction', 'edit_access_restriction', 'default_height',
         'door_height', 'outside', 'identifyable', 'can_search', 'can_describe', 'geometry', 'single', 'altitude',
         "beacon_type", 'level_index', 'short_label', 'origin_space', 'target_space', 'data', "ap_name", 'comment',
