@@ -5,6 +5,7 @@ from itertools import chain
 from typing import Optional, ClassVar, NamedTuple, overload, Literal, TypeAlias
 
 from django.core.cache import cache
+from django.db.models.query import Prefetch
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from pydantic import PositiveInt
@@ -201,11 +202,10 @@ class LocationManager:
                 "effective_label_settings",
                 "load_group_display",
             ).prefetch_related(
-                "slug_set"
+                "slug_set",
+                Prefetch("calculated_descendants", DefinedLocation.objects.only("pk")),
             ).order_by("effective_depth_first_order")
         }
-
-        # todo: hide locations etc bluh… what if a location has only on target and it's invisible?
 
         # trigger some cached properties, then empty prefetch_related cache
         for obj in locations.values():
@@ -213,6 +213,8 @@ class LocationManager:
             obj.slug
             # noinspection PyStatementEffect
             obj.redirect_slugs
+            # noinspection PyStatementEffect
+            obj.sublocations
 
         return locations
 
