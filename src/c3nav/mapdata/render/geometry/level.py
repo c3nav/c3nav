@@ -170,6 +170,7 @@ class SingleLevelGeometries(BaseLevelGeometries):
                 area.geometry = area.geometry.intersection(unwrap_geom(space.walkable_geom))
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
+
                 colors.setdefault(
                     area.get_color_sorted(color_manager), {}
                 ).setdefault(access_restriction, []).append(area.geometry)

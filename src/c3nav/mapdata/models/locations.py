@@ -364,11 +364,10 @@ class SpecificLocation(Location, models.Model):
         return len(self.cached_all_position_secrets)
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        self.cached_effective_colors.get(color_manager.theme_id, None)
+        color = self.cached_effective_colors.get(color_manager.theme_id, None)
+        return None if color is None else color.fill
 
     def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
-        # don't filter in the query here so prefetch_related works
-        # todo: this still needs updating
         color = self.get_color(color_manager)
         if color is None:
             return None
@@ -835,7 +834,9 @@ class SpecificLocation(Location, models.Model):
 
     @classmethod
     def recalculate_geometries(cls):
-        for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
+        for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level",
+                                                "levels__locations", "spaces__locations", "areas__locations",
+                                                "pois__locations",):
             result: CachedGeometriesByLevel = {}
             for target in obj.static_targets:
                 try:
@@ -1314,37 +1315,21 @@ class SpecificLocationTargetMixin(models.Model):
     def title(self) -> str:
         return self.sorted_locations[0].title if self.sorted_locations else str(self)
 
-    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        # todo: enhance performance using generator
-        colors = list(filter(None, [location.get_color(color_manager) for location in self.sorted_locations]))
-        if not colors:
-            return None
-        return colors[0]
-
-    @property
-    def geometries_by_level(self) -> GeometriesByLevelSchema:
-        return {}
-
-    @property
-    def bounds(self) -> Optional[BoundsSchema]:
-        # todo: remove
-        return None
-
     @property
     def subtitle(self):
         raise NotImplementedError
 
-    @cached_property
-    def point(self) -> LocationPoint | None:
-        return None
+    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
+        try:
+            return next(iter(filter(None, (location.get_color(color_manager) for location in self.sorted_locations))))
+        except StopIteration:
+            return None
 
     def get_color_sorted(self, color_manager) -> tuple[int, str] | None:
-        # todo: cache this in db?
         try:
-            colors: Iterator[tuple[int, str]] = filter(None, (
+            return next(iter(filter(None, (
                 location.get_color_sorted(color_manager) for location in self.sorted_locations
-            ))
-            return next(iter(sorted(colors, key=itemgetter(0), reverse=True)))
+            ))))
         except StopIteration:
             return None
 
