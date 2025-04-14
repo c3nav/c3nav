@@ -6,7 +6,7 @@ from datetime import timedelta
 from decimal import Decimal
 from itertools import chain, batched, product, groupby
 from operator import attrgetter, itemgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Iterator
 
 from django.conf import settings
 from django.core.cache import cache
@@ -585,7 +585,7 @@ class SpecificLocation(Location, models.Model):
         output_field = cls._meta.get_field(f"effective_{name}")
         cls.objects.annotate(**{
             f"parent_effective_{name}": Subquery(SpecificLocation.objects.filter(**{
-                "calculated_descendants__in": OuterRef("pk"),
+                "calculated_descendants": OuterRef("pk"),
                 f"{name}__isnull": False,
             }).order_by("effective_priority_order").values(name)[:1]),
             f"new_effective_{name}": (
@@ -969,7 +969,7 @@ class SpecificLocation(Location, models.Model):
             return subtitle
         return (
             _('Location')
-            if len(self._all_static_target_ids) + len(self.cached_all_position_secrets) == 1
+            if len(self._all_static_target_ids) + len(self.cached_all_position_secrets) <= 1
             else _('Locations')
         )
 
@@ -1340,10 +1340,10 @@ class SpecificLocationTargetMixin(models.Model):
     def get_color_sorted(self, color_manager) -> tuple[int, str] | None:
         # todo: cache this in db?
         try:
-            return next(iter(filter(None,
-                sorted((location.get_color_sorted(color_manager) for location in self.sorted_locations),
-                       key=itemgetter(0), reverse=True)
-            )))
+            colors: Iterator[tuple[int, str]] = filter(None, (
+                location.get_color_sorted(color_manager) for location in self.sorted_locations
+            ))
+            return next(iter(sorted(colors, key=itemgetter(0), reverse=True)))
         except StopIteration:
             return None
 
