@@ -2,6 +2,7 @@
 from collections import defaultdict
 from itertools import chain
 
+from django.conf import settings
 from django.db import migrations
 from django.db.models.aggregates import Count
 from django.db.models.expressions import F
@@ -124,6 +125,11 @@ def migrate_location_hierarchy(apps, model_name):
         for location in target.locations.all():
             location.load_group_contribute_id = target.load_group_contribute_id
             location.save()
+
+    if settings.RANDOM_LOCATION_GROUPS:
+        SpecificLocation.filter(pk__in=settings.RANDOM_LOCATION_GROUPS).update(
+            include_in_random_location=True
+        )
 
 
 def unmigrate_location_hierarchy(apps, model_name):

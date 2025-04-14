@@ -183,4 +183,9 @@ class Migration(migrations.Migration):
             name='effective_traversal_order',
             field=models.PositiveIntegerField(default=2147483647, editable=False),
         ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='include_in_random_location',
+            field=models.BooleanField(default=False, verbose_name='include this and descendants with no children in random location feature'),
+        ),
     ]

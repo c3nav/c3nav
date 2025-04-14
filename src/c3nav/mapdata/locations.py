@@ -20,6 +20,7 @@ from c3nav.mapdata.permissions import active_map_permissions, MapPermissionGuard
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
+from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
 
 try:
     from asgiref.local import Local as LocalContext
@@ -381,3 +382,15 @@ class CustomLocation:
     @cached_property
     def slug(self):
         return self.id
+
+
+def get_random_location_parents() -> frozenset[int]:
+    cache_key = "mapdata:random_locations"
+    from c3nav.mapdata.models import MapUpdate
+    last_update = MapUpdate.last_update()
+    result = versioned_per_request_cache.get(last_update, cache_key, None)
+    if result is not None:
+        return result
+    result = frozenset(DefinedLocation.objects.filter(include_in_random_location=True).values_list("pk", flat=True))
+    versioned_per_request_cache.set(last_update, cache_key, result, 3600)
+    return result
