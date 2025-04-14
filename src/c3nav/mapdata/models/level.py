@@ -106,6 +106,7 @@ class Level(SpecificLocationTargetMixin, AccessRestrictionMixin, models.Model):
         return self.title
 
     def for_details_display(self):
+        # todo: can we make this simpler or get rid of this?
         location = self.get_location()
         if location:
             return {
