@@ -226,7 +226,7 @@ class LocationProtocol(Protocol):
 
     nearby: NearbySchema | None
     dynamic_state: DynamicLocationState | None
-    sublocations: []
+    sublocations: list[int]
 
     geometries_by_level: GeometriesByLevelSchema  # geometries of with this location
 
