@@ -94,4 +94,12 @@ class Migration(migrations.Migration):
         migrations.DeleteModel(
             name='LocationGroup',
         ),
+        migrations.RenameModel(
+            old_name='SpecificLocation',
+            new_name='DefinedLocation',
+        ),
+        migrations.AlterModelOptions(
+            name='definedlocation',
+            options={'default_related_name': 'defined_locations', 'verbose_name': 'Defined Location', 'verbose_name_plural': 'Defined Locations'},
+        ),
     ]
