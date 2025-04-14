@@ -235,7 +235,6 @@ c3nav = {
                 locations.push(location);
                 locations_by_id[location.id] = location;
                 if (location.points && location.points.length) {
-                    // todo: once we merge groups in, don't forget to adjust this as desired
                     if (location.effective_label_settings) {
                         for (const point of location.points) {
                             if (!(point[0] in labels)) labels[point[0]] = [];
