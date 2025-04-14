@@ -295,6 +295,12 @@ def recalculate_definedlocation_target_subtitles(mapupdates: tuple[MapUpdate, ..
     return True
 
 
+@register_mapupdate_job("Defined location minimum access restrictions", eager=True)
+def recalculate_definedlocation_minimum_access_restrictions(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    DefinedLocation.recalculate_minimum_access_restrictions()
+    return True
+
+
 @register_mapupdate_job("level bounds")
 def recalculate_level_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
