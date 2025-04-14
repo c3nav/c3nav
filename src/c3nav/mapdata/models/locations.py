@@ -1303,7 +1303,7 @@ class DefinedLocationTargetMixin(models.Model):
         highest priority first
         """
         if 'locations' not in getattr(self, '_prefetched_objects_cache', ()):
-            raise ValueError('Accessing sorted_locations despite no prefetch_related.')
+            raise ValueError(f'Accessing sorted_locations on {self} despite no prefetch_related.')
             # return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
         return LazyMapPermissionFilteredSequence(sorted(self.locations.all(),
