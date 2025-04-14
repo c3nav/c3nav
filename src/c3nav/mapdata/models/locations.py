@@ -193,6 +193,8 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
 
     load_group_display = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                            related_name='+', verbose_name=_('display load group'))
+    include_in_random_location = models.BooleanField(_('include this and descendants with no children in '
+                                                       'random location feature'), default=False)
 
     # imported from locationgroup start
 

@@ -31,8 +31,8 @@ from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid, GridSchema
-from c3nav.mapdata.locations import LocationRedirect, LocationManager
-from c3nav.mapdata.models import Source, Level
+from c3nav.mapdata.locations import LocationRedirect, LocationManager, get_random_location_parents
+from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import Position, DefinedLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
@@ -210,9 +210,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'ssids': json.dumps(settings.WIFI_SSIDS, separators=(',', ':')) if settings.WIFI_SSIDS else None,
         # todo: move away from groups here
         # todo: move this out of the settings and into the database
-        'random_location_groups': (
-            ','.join(str(i) for i in settings.RANDOM_LOCATION_GROUPS) if settings.RANDOM_LOCATION_GROUPS else None
-        ),
+        'random_location_parents': ",".join(get_random_location_parents()),
         'editor': can_access_editor(request),
         'embed': bool(embed),
         'imprint': settings.IMPRINT_LINK,

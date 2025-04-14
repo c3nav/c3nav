@@ -335,7 +335,7 @@ c3nav = {
 
         c3nav.ssids = $main.is('[data-ssids]') ? JSON.parse($main.attr('data-ssids')) : null;
 
-        c3nav.random_location_groups = $main.is('[data-random-location-groups]') ? $main.attr('data-random-location-groups').split(',').map(id => parseInt(id)) : null;
+        c3nav.random_location_parents = $main.is('[data-random-location-parents]') ? $main.attr('data-random-location-parents').split(',').map(id => parseInt(id)) : null;
 
         $(document).on('click', '.theme-selection>button', c3nav.select_theme);
 
@@ -1507,13 +1507,13 @@ c3nav = {
             d();
             const possible_locations_set = new Set();
             // todo: reimplement this without refering to groups
-            for (const id of c3nav.random_location_groups) {
-                const group = c3nav.locations_by_id[id];
-                if (!group) continue;
-                if (!group.locationtype || group.locationtype !== 'locationgroup') continue;
-                group.locations.forEach(subid => {
-                    // todo: this needs to be recursive now i guess?
-                    if (subid in c3nav.locations_by_id) possible_locations_set.add(subid)
+            for (const id of c3nav.random_location_parents) {
+                const location = c3nav.locations_by_id[id];
+                if (!location) continue;
+                location.sublocations.forEach(subid => {
+                    if (subid in c3nav.locations_by_id && !c3nav.locations_by_id[subid].sublocations.length) {
+                        possible_locations_set.add(subid);
+                    }
                 });
             }
             const possible_locations = Array.from(possible_locations_set);
