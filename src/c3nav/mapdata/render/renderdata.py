@@ -12,10 +12,8 @@ from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
 from shapely.prepared import PreparedGeometry
 
-from c3nav.mapdata.models import Level, MapUpdate, Source
+from c3nav.mapdata.models import Level, MapUpdate
 from c3nav.mapdata.models.theme import Theme
-from c3nav.mapdata.models.update import MapUpdateJob
-from c3nav.mapdata.permissions import ManualMapPermissions, active_map_permissions
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, SingleLevelGeometries, CompositeLevelGeometries
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 from c3nav.mapdata.utils.cache.package import CachePackage
