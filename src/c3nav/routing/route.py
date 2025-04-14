@@ -7,7 +7,7 @@ import numpy as np
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.mapdata.models import Location
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.locations import LocationManager
@@ -18,7 +18,8 @@ if TYPE_CHECKING:
 
 
 def describe_location(location: LocationProtocol) -> LocationProtocol:
-    if isinstance(location, Location) and hasattr(location, "can_describe") and location.can_describe:
+    # todo: can this be simpler? why the hasattr?
+    if isinstance(location, DefinedLocation) and hasattr(location, "can_describe") and location.can_describe:
         final_location = LocationManager.get_visible().get(location.pk)
         if final_location is not None:
             location = final_location

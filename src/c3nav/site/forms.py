@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.api.models import Secret
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models.locations import Position, SpecificLocation
+from c3nav.mapdata.models.locations import Position, DefinedLocation
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.site.compliance import ComplianceCheckboxFormMixin
 
@@ -32,17 +32,17 @@ class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
         if parent:
             self.fields['created_parents'].disabled = True
             # todo: in other places we don't set the queryset explicitly and the filter gets on django init. fix that.
-            self.fields['created_parents'].queryset = SpecificLocation.objects.filter(pk=parent.pk)
+            self.fields['created_parents'].queryset = DefinedLocation.objects.filter(pk=parent.pk)
         else:
-            exists = SpecificLocation.objects.filter(
-                can_report_missing=SpecificLocation.CanReportMissing.MULTIPLE
+            exists = DefinedLocation.objects.filter(
+                can_report_missing=DefinedLocation.CanReportMissing.MULTIPLE
             ).exists()
             if exists:
-                self.fields['created_parents'].queryset = SpecificLocation.objects.filter(
-                    can_report_missing=SpecificLocation.CanReportMissing.MULTIPLE
+                self.fields['created_parents'].queryset = DefinedLocation.objects.filter(
+                    can_report_missing=DefinedLocation.CanReportMissing.MULTIPLE
                 )
             else:
-                self.fields['created_parents'].queryset = SpecificLocation.objects.none()
+                self.fields['created_parents'].queryset = DefinedLocation.objects.none()
                 self.fields['created_parents'].widget = self.fields['created_parents'].hidden_widget()
         self.fields['created_parents'].label_from_instance = lambda obj: obj.title
 

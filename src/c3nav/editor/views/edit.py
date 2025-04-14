@@ -20,12 +20,12 @@ from django.views.decorators.http import etag
 from shapely import LineString
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm, \
-    LinkSpecificLocationForm
+    LinkDefinedLocationForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.mapdata.models import Level, Space, GraphNode, GraphEdge, Door
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
-from c3nav.mapdata.models.locations import SpecificLocation, SpecificLocationTargetMixin
+from c3nav.mapdata.models.locations import DefinedLocation, DefinedLocationTargetMixin
 from c3nav.mapdata.permissions import MapPermissionsFromRequest, active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
@@ -51,7 +51,7 @@ def main_index(request):
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
         'child_models': [
-            child_model(request, 'SpecificLocation'),
+            child_model(request, 'DefinedLocation'),
             child_model(request, 'ObstacleGroup'),
             child_model(request, 'GroundAltitude'),
             child_model(request, 'DynamicLocation'),
@@ -148,7 +148,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         kwargs = {'pk': pk}
         qs = model.objects.all()
 
-        if issubclass(model, SpecificLocationTargetMixin):
+        if issubclass(model, DefinedLocationTargetMixin):
             # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
             qs = qs.prefetch_related('locations__groups')
 
@@ -196,11 +196,11 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'geometry_url': geometry_url,
     }
 
-    if not new and isinstance(obj, SpecificLocation):
+    if not new and isinstance(obj, DefinedLocation):
         if not obj.all_targets:
             ctx["secondary"] = {
                 "title": _('Targets'),
-                "text": _('This specific location has no targets'),
+                "text": _('This defined location has no targets'),
             }
         else:
             target_links = []
@@ -280,14 +280,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'back_url': reverse('editor.spaces.list', kwargs={'level': level.pk}),
             'nozoom': True,
         })
-    elif hasattr(model, 'level') and 'Dynamic' not in model.__name__ and 'Specific' not in model.__name__:
+    elif hasattr(model, 'level') and 'Dynamic' not in model.__name__ and 'Defined' not in model.__name__:
         if not new:
             level = obj.level
         ctx.update({
             'level': level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'level': level.pk}),
         })
-    elif hasattr(model, 'space') and 'Specific' not in model.__name__:
+    elif hasattr(model, 'space') and 'Defined' not in model.__name__:
         if not new:
             space = obj.space
         space_id = space.pk
@@ -357,12 +357,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx["door"] = {"spaces": spaces}
         ctx["secondary"] = {"title": _('Connecting spaces')}
 
-    specific_location_form_cls = None
-    if not new and isinstance(obj, SpecificLocationTargetMixin):
-        specific_location_form_cls = LinkSpecificLocationForm
-        ctx["secondary"] = {"title": SpecificLocation._meta.verbose_name_plural}
+    defined_location_form_cls = None
+    if not new and isinstance(obj, DefinedLocationTargetMixin):
+        defined_location_form_cls = LinkDefinedLocationForm
+        ctx["secondary"] = {"title": DefinedLocation._meta.verbose_name_plural}
         if not obj.locations.all():
-            ctx["secondary"]["text"] = (_('There are no specific location associated with this %(target_type)s.')
+            ctx["secondary"]["text"] = (_('There are no defined location associated with this %(target_type)s.')
                                         % {"target_type": obj._meta.verbose_name})
 
     error = None
@@ -407,8 +407,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
         if "door" in ctx:
             secondary_form = DoorGraphForm(spaces=spaces, nodes=nodes, edges=edges, data=data)
-        elif specific_location_form_cls:
-            secondary_form = specific_location_form_cls(target=obj, data=data)
+        elif defined_location_form_cls:
+            secondary_form = defined_location_form_cls(target=obj, data=data)
 
         if secondary_form is not None:
             ctx["secondary"]["form"] = secondary_form
@@ -445,8 +445,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
         if "door" in ctx:
             secondary_form = DoorGraphForm(spaces=spaces, nodes=nodes, edges=edges)
-        elif specific_location_form_cls:
-            secondary_form = specific_location_form_cls(target=obj)
+        elif defined_location_form_cls:
+            secondary_form = defined_location_form_cls(target=obj)
 
         if secondary_form is not None:
             ctx["secondary"]["form"] = secondary_form
@@ -584,7 +584,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'back_title': _('back to overview'),
         })
 
-    if issubclass(model, SpecificLocationTargetMixin):
+    if issubclass(model, DefinedLocationTargetMixin):
         # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
         queryset = queryset.prefetch_related('locations__groups')
 

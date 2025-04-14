@@ -71,10 +71,6 @@ OptionalLocationSlugField = Annotated[
 ]
 
 
-class LocationSlugSchema(BaseSchema):
-    slug: OptionalLocationSlugField
-
-
 AccessRestrictionField = Annotated[
     Union[
         Annotated[PositiveInt, APIField(title="access restriction ID")],
@@ -116,38 +112,6 @@ TitleField = Annotated[
 class TitledSchema(BaseSchema):
     titles: TitlesField
     title: TitleField
-
-
-class BaseLocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSchema):
-    subtitle: NonEmptyStr = APIField(
-        title="subtitle (preferred language)",
-        description="an automatically generated short description for this location in the "
-                    "preferred language based on the Accept-Language header.",
-        examples=["near Area 51"],
-    )
-    icon: Optional[NonEmptyStr] = APIField(
-        title="set icon name",
-        description="as set in the object specifically (any material design icon name)",
-        examples=["pin_drop"],
-    )
-    effective_icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
-        title="icon name to use",
-        description="effective icon to use (any material design icon name)",
-        examples=["pin_drop"],
-    )
-    can_search: bool = APIField(
-        title="can be searched",
-        description="if `true`, this object can show up in search results",
-    )
-    can_describe: bool = APIField(
-        title="can describe locations",
-        description="if `true`, this object can be used to describe other locations (e.g. in their subtitle)",
-    )
-    add_search: str = APIField(
-        title="additional search terms",
-        description="more data for the search index separated by spaces",
-        examples=["more search terms"],
-    )
 
 
 class LabelSettingsSchema(TitledSchema, DjangoModelSchema):  # todo: add titles back in here

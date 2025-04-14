@@ -12,7 +12,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
 from c3nav.site.tasks import send_report_notification
@@ -39,7 +39,7 @@ class Report(models.Model):
                                    help_text=_('tell us precisely what\'s wrong'))
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_reports', verbose_name=_('assigned to'))
-    location = models.ForeignKey('mapdata.SpecificLocation', null=True, on_delete=models.SET_NULL,
+    location = models.ForeignKey('mapdata.DefinedLocation', null=True, on_delete=models.SET_NULL,
                                  related_name='reports', verbose_name=_('location'))
     coordinates_id = models.CharField(_('coordinates'), null=True, max_length=48)
     origin_id = models.CharField(_('origin'), null=True, max_length=48)
@@ -48,7 +48,7 @@ class Report(models.Model):
 
     created_title = I18nField(_('new location title'), plural_name='titles', blank=False, fallback_any=True,
                               help_text=_('you have to supply a title in at least one language'))
-    created_parents = models.ManyToManyField('mapdata.SpecificLocation', verbose_name=_('location type'), blank=True,
+    created_parents = models.ManyToManyField('mapdata.DefinedLocation', verbose_name=_('location type'), blank=True,
                                              help_text=_('select all that apply, if any'), related_name='+')
     secret = models.CharField(_('secret'), max_length=32, default=get_report_secret)
 
@@ -75,7 +75,7 @@ class Report(models.Model):
         elif request.user.is_authenticated:
             child_location_ids = {
                 *request.user_permissions.review_parent_ids,
-                *SpecificLocation.objects.filter(
+                *DefinedLocation.objects.filter(
                     calculated__ancestors__in=request.user_permissions.review_parent_ids
                 ).values_list('pk', flat=True)
             }
@@ -90,7 +90,7 @@ class Report(models.Model):
     def get_affected_parent_ids(self):
         if self.category == 'missing-location':
             location_ids = self.created_parents.values_list('pk', flat=True)
-            return (*location_ids, SpecificLocation.objects.filter(
+            return (*location_ids, DefinedLocation.objects.filter(
                 calculated__descendants__in=location_ids
             ).values_list('pk', flat=True))
         elif self.category == 'location-issue':
@@ -142,7 +142,7 @@ class Report(models.Model):
         elif self.category == 'location-issue':
             if self.location is None:
                 return None
-            return reverse('editor.specificlocation.edit', kwargs={
+            return reverse('editor.defined_location.edit', kwargs={
                 'pk': self.location.pk,
             })
 
