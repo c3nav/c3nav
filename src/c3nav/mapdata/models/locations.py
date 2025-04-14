@@ -1,23 +1,23 @@
+import operator
 import string
 import warnings
 from collections import deque, defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
+from functools import reduce
 from itertools import chain, batched, product, groupby
 from operator import attrgetter, itemgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Iterator
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.aggregates import Min, Count
+from django.db.models.aggregates import Count
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
-from django.db.models.expressions import Window, F, OuterRef, Subquery, When, Case, Value, Exists
-from django.db.models.functions.window import RowNumber
-from django.db.models.lookups import EndsWith
+from django.db.models.expressions import F, OuterRef, Subquery, When, Case, Value
 from django.db.models.query import Prefetch
 from django.db.models.signals import m2m_changed
 from django.dispatch.dispatcher import receiver
@@ -28,20 +28,19 @@ from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property, lazy
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _, get_language, get_language_info
-from django.utils.translation import ngettext_lazy
 from django_pydantic_field import SchemaField
 
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel, PointSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
+from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, MapPermissionTaggedItem, \
     MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
     MapPermissionsMaskedTaggedValue, MapPermissionGuardedTaggedSequence
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
-from c3nav.mapdata.schemas.model_base import BoundsSchema, LocationPoint, BoundsByLevelSchema, \
+from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
 from c3nav.mapdata.utils.cache.proxied import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
@@ -237,6 +236,8 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     effective_priority_order = models.PositiveIntegerField(default=2**31-1, editable=False)
     effective_traversal_order = models.PositiveIntegerField(default=2**31-1, editable=False)
 
+    effective_minimum_access_restrictions: frozenset[int] = SchemaField(schema=frozenset[int], default=frozenset)
+
     effective_icon = models.CharField(_('icon'), max_length=32, null=True, editable=False)
     effective_label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, editable=False,
                                                  related_name='+', on_delete=models.CASCADE)
@@ -262,9 +263,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         super().__init__(*args, **kwargs)
         deferred_fields = self.get_deferred_fields()
         self._orig = {
-            key: getattr(self, key)
-            for key in ("priority", "hierarchy", "category_id", "color")
-            if key not in deferred_fields
+            key: getattr(self, key) for key in ("priority", "color") if key not in deferred_fields
         }
 
     """ Targets """
@@ -574,13 +573,13 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @classmethod
     def _bulk_cached_update[T](cls, name: str, values: Sequence[tuple[set[int], T]], default: T):
-        output_field = cls._meta.get_field(f"cached_{name}")
+        output_field = cls._meta.get_field(name)
         cls.objects.annotate(
             **{f"new_{name}": Case(
                 *(When(pk__in=pks, then=Value(value, output_field=output_field)) for pks, value in values),
                 default=Value(default, output_field=output_field),
             )}
-        ).update(**{f"cached_{name}": F(f"new_{name}")})
+        ).update(**{name: F(f"new_{name}")})
 
     @classmethod
     def calculate_cached_effective_color(cls):
@@ -606,7 +605,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             colors.setdefault(tuple(sorted(location_colors.items())), set()).add(defined_location.pk)
 
         cls._bulk_cached_update(
-            name="effective_colors",
+            name="cached_effective_colors",
             values=tuple((pks, dict(colors)) for colors, pks in colors.items()),
             default={}
         )
@@ -634,7 +633,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                     break
             all_describing_titles.setdefault(tuple(location_describing_titles), set()).add(specific_location.pk)
         cls._bulk_cached_update(
-            name="describing_titles",
+            name="cached_describing_titles",
             values=tuple(
                 (pks, [
                     MapPermissionTaggedItem(value=dict(titles), access_restrictions=restrictions)
@@ -661,6 +660,29 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         )
 
     @classmethod
+    def recalculate_minimum_access_restrictions(cls):
+        all_minimum_access_restrictions: dict[tuple[int, ...], set[int]] = {}
+        for defined_location in cls.objects.prefetch_related("levels", "spaces", "areas", "pois"):
+            all_minimum_access_restrictions.setdefault(  # noqa
+                tuple(reduce(
+                    operator.and_,
+                    (target.effective_access_restrictions for target in defined_location.static_targets),
+                )) if defined_location.static_targets else (), set()
+            ).add(defined_location.pk)
+        cls._bulk_cached_update(
+            name="effective_minimum_access_restrictions",
+            values=tuple(
+                (pks, frozenset(minimum_access_restrictions))
+                for minimum_access_restrictions, pks in all_minimum_access_restrictions.items()
+            ),
+            default=frozenset()
+        )
+
+    @cached_property
+    def effective_access_restrictions(self) -> frozenset[int]:
+        return super().effective_access_restrictions | self.effective_minimum_access_restrictions
+
+    @classmethod
     def recalculate_all_static_targets(cls):
         all_static_target_ids: dict[tuple[tuple[tuple[str, int], frozenset[int]], ...], set[int]] = {}
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
@@ -670,7 +692,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             )), set()).add(obj.pk)
 
         cls._bulk_cached_update(
-            name="all_static_targets",
+            name="cached_all_static_targets",
             values=tuple(
                 (pks, [
                     MapPermissionTaggedItem(value=value, access_restrictions=restrictions)
@@ -696,7 +718,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             )), set()).add(obj.pk)
 
         cls._bulk_cached_update(
-            name="all_position_secrets",
+            name="cached_all_position_secrets",
             values=tuple((pks, list(secrets)) for secrets, pks in all_position_secrets.items()),
             default=[]
         )
@@ -893,7 +915,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             all_target_subtitles.setdefault(tuple(location_target_subtitles), set()).add(obj.pk)
 
         cls._bulk_cached_update(
-            name="target_subtitles",
+            name="cached_target_subtitles",
             values=tuple(
                 (pks, [
                     MapPermissionTaggedItem(value=dict(titles), access_restrictions=restrictions)
@@ -1282,9 +1304,8 @@ class DefinedLocationTargetMixin(models.Model):
         highest priority first
         """
         if 'locations' not in getattr(self, '_prefetched_objects_cache', ()):
-            warnings.warn('Accessing sorted_locations despite no prefetch_related. '
-                          'Returning empty list.', RuntimeWarning)
-            return LazyMapPermissionFilteredSequence(())
+            raise ValueError('Accessing sorted_locations despite no prefetch_related.')
+            # return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
         return LazyMapPermissionFilteredSequence(sorted(self.locations.all(),
                                                         key=attrgetter("effective_priority_order")))
