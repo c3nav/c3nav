@@ -177,6 +177,7 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
     }
     locations_to_check = [location]
     while locations_to_check:
+        # todo: migrate this to work with groups correctly?
         for location_id in locations_to_check.pop().locations:
             sublocation = LocationManager.get(location_id)
             if sublocation.effective_slug not in locations:
