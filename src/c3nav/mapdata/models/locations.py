@@ -332,8 +332,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     @cached_property
     def sublocations(self) -> list[int]:
         # noinspection PyUnresolvedReferences
-        # todo: migrate this to descendants
-        return [l.pk for l in self.children.all()]
+        return [l.pk for l in self.calculated_descendants.all()]
 
     @cached_property
     def dynamic(self) -> int:
