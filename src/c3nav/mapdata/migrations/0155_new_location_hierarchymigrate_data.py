@@ -103,16 +103,13 @@ def migrate_location_hierarchy(apps, model_name):
     LocationAncestryPath.objects.bulk_create(chain.from_iterable((
         (
             LocationAncestryPath(
-                prev_path=direct_ancestry_path_id_lookup[ancestry_id],
+                prev_path_id=direct_ancestry_path_id_lookup[ancestry_id_lookup[(intermediate_id, descendant_id)]],
                 parentage_id=parentage_id_lookup[(intermediate_id, descendant_id)],
-                ancestry_id=ancestry_id,
+                ancestry_id=ancestry_id_lookup[(ancestor_id, descendant_id)],
                 num_hops=1,
             ) for intermediate_id in intermediate_ids
         )
-        for (ancestor_id, descendant_id), intermediate_ids, ancestry_id in (
-            (key, intermediate_ids, ancestry_id_lookup[key])
-            for key, intermediate_ids in indirect_ancestry.items()
-        )
+        for (ancestor_id, descendant_id), intermediate_ids in indirect_ancestry.items()
     )))
 
     Area = apps.get_model('mapdata', 'Area')
