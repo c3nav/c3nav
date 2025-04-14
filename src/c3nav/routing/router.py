@@ -981,9 +981,8 @@ class RouterLocationWithTarget:
 class RouterLocationSet:
     """
     Describes a Location selected as an origin or destination for a route. This might match multiple locations,
-    for example if we route to a group, in which case we select the nearest/best specific location.
+    for example if we route to a location with descendants, we select the nearest/best descendant.
     """
-    # todo: update this docstring
     locations: tuple[RouterLocation, ...]
 
     def get_nodes(self, restrictions: "RouterRestrictionSet") -> frozenset[int]:
