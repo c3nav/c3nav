@@ -309,10 +309,7 @@ class SingleLocationItemSchema(BaseLocationItemSchema):
 
 
 class ListedLocationItemSchema(BaseLocationItemSchema):
-    locationtype: Union[
-        Literal["specificlocation"],
-        Literal["locationgroup"],
-    ]
+    locationtype: Literal["specificlocation"]
     id: DjangoID
     effective_label_settings: Annotated[
         Union[
