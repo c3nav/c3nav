@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from itertools import chain
+from operator import attrgetter
 from typing import Sequence
 
 from django.db.models import Prefetch, Q
@@ -9,19 +10,8 @@ from shapely.ops import unary_union
 from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.mapdata.models import Level, Space, GraphNode, Door, Building, GraphEdge, DataOverlayFeature
-from c3nav.mapdata.models.geometry.space import Column, Hole, AltitudeMarker, BeaconMeasurement, RangingBeacon, Area, \
-    POI
+from c3nav.mapdata.models.geometry.space import Column, Hole, AltitudeMarker, BeaconMeasurement, RangingBeacon
 from c3nav.mapdata.utils.geometry import unwrap_geom
-
-
-def space_sorting_func(space):
-    location = space.get_location()
-    if location is None:
-        return (0, 0, 0)
-    groups = tuple(location.groups.all())
-    if not groups:
-        return (0, 0, 0)
-    return (1, groups[0].category.priority, groups[0].hierarchy, groups[0].priority)
 
 
 def _get_geometries_for_one_level(level):
@@ -57,7 +47,7 @@ def _get_geometries_for_one_level(level):
     for door in level.doors.all():
         results.append(door)
 
-    results.extend(sorted(spaces.values(), key=space_sorting_func))
+    results.extend(spaces.values())
 
     results.extend(level.dataoverlayfeatures.all())
 
@@ -102,16 +92,6 @@ class LevelsForLevel:
         )
 
 
-def area_sorting_func(area):
-    location = area.get_location()
-    if location is None:
-        return (0, 0, 0)
-    groups = tuple(location.groups.all())
-    if not groups:
-        return (0, 0, 0)
-    return (1, groups[0].category.priority, groups[0].hierarchy, groups[0].priority)
-
-
 def conditional_geojson(obj, update_cache_key_match):
     if update_cache_key_match:
         # todo: do not hit this if the object was changed in the changeset
@@ -143,9 +123,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         Prefetch('spaces', Space.objects.only('geometry', 'level', 'outside')),
         Prefetch('doors', Door.objects.only('geometry', 'level')),
         Prefetch('spaces__columns', Column.objects.only('geometry', 'space')),
-        Prefetch('spaces__locations__groups', LocationGroup.objects.only(
-            'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
-        )),
+        'spaces__locations',
         Prefetch('buildings', Building.objects.only('geometry', 'level')),
         Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
         Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
@@ -220,11 +198,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         levels_for_level = LevelsForLevel.for_level(level.primary_level, special_if_on_top=True)
         other_spaces = Space.objects.filter(level__pk__in=levels_for_level.levels).only(
             'geometry', 'level',
-        ).prefetch_related(
-            Prefetch('locations__groups', LocationGroup.objects.only(
-                'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
-            ).filter(color__isnull=False))
-        )
+        ).prefetch_related("locations")
 
         space = next(s for s in other_spaces if s.pk == space.pk)
         other_spaces = [s for s in other_spaces
@@ -272,16 +246,9 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         graph_nodes = []
         graph_edges = []
 
-    areas = space.areas.only('geometry', 'space').prefetch_related(
-        Prefetch('locations__groups', LocationGroup.objects.order_by(
-            '-category__priority', '-hierarchy', '-priority'
-        ).only(
-            'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_areas'
-        ))
-    )
+    areas = space.areas.only('geometry', 'space').prefetch_related("locations")
     for area in areas:
         area.opacity = 0.5
-    areas = sorted(areas, key=area_sorting_func)
 
     results = chain(
         buildings,
@@ -299,11 +266,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         space.altitudemarkers.all().only('geometry', 'space'),
         space.beacon_measurements.all().only('geometry', 'space'),
         space.ranging_beacons.all().only('geometry', 'space'),
-        space.pois.only('geometry', 'space').prefetch_related(
-            Prefetch('locations__groups', LocationGroup.objects.only(
-                'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
-            ).filter(color__isnull=False))
-        ),
+        space.pois.only('geometry', 'space').prefetch_related("locations"),
         other_spaces_upper,
         graph_edges,
         graph_nodes
