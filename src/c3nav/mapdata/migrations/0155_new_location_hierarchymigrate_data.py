@@ -3,7 +3,10 @@ from collections import defaultdict
 from itertools import chain
 
 from django.db import migrations
+from django.db.models.aggregates import Count
 from django.db.models.expressions import F
+from django.utils import translation
+from django.utils.text import slugify
 
 
 def migrate_location_hierarchy(apps, model_name):
@@ -137,7 +140,7 @@ def unmigrate_location_hierarchy(apps, model_name):
 
     # locations with no parents / top level
     # these are either former categories or specificlocation without a group
-    """top_level_location_ids = tuple(SpecificLocation.objects.annotate(
+    top_level_location_ids = tuple(SpecificLocation.objects.annotate(
         num_parents=Count("parents"),
     ).filter(num_parents=0).values_list("pk", flat=True))
 
@@ -149,8 +152,10 @@ def unmigrate_location_hierarchy(apps, model_name):
     # anything that has a former group location as a child is a former location group category
     former_categories = list(
         SpecificLocation.objects.filter(
-            pk__in=top_level_location_ids, children_in=tuple(g.id for g in former_group_locationss)
-        ).prefetch_related("children")
+            pk__in=top_level_location_ids, children__in=tuple(g.id for g in former_group_locationss)
+        ).prefetch_related("children").annotate(
+            num_children=Count("children"),
+        )
     )
 
     # create location group categories again
@@ -161,15 +166,15 @@ def unmigrate_location_hierarchy(apps, model_name):
                 titles=former_category.titles,
                 titles_plural=former_category.titles,
                 help_texts=former_category.descriptions,
-                prioriy=former_category.priority,
+                priority=former_category.priority,
                 single=(former_category.num_children == 1),
             )
             for former_category in former_categories
         ]
-    categories = SpecificLocation.objects.bulk_create(categories)
+    categories = LocationGroupCategory.objects.bulk_create(categories)
     new_category_ids = {former_category.id: category.id
                         for former_category, category in zip(former_categories, categories)}
-    available_category_ids = set(new_category_ids)"""
+    available_category_ids = set(new_category_ids)
 
     # migrate report created_groups to created_parents
     for report in Report.objects.prefetch_related("created_parents"):
@@ -182,17 +187,18 @@ def unmigrate_location_hierarchy(apps, model_name):
     SpecificLocation.objects.filter(pk__in=LocationGroupCategory.objects.values_list("pk", flat=True)).delete()
 
     # create locationgroups again
-    """
     fields = {f.attname for f in LocationGroup._meta.get_fields()
               if (not f.is_relation and not f.name.startswith("cached_")
                   and not f.name.startswith("effective_") and not f.name == "category")}
     LocationGroup.objects.bulk_create([
         LocationGroup(
-            category_id=next(iter({p.id for p in former_group.parents.all()} & available_category_ids)),
+            category_id=new_category_ids[next(iter(
+                {p.id for p in former_group.parents.all()} & available_category_ids
+            ))],
             **{field_name: getattr(former_group, field_name) for field_name in fields}
         )
         for former_group in former_group_locationss
-    ])"""
+    ])
 
     # move locationgroup slugs back
     LocationSlug.objects.filter(
