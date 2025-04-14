@@ -2159,7 +2159,7 @@ c3nav = {
     // 1: the new point (new value)
     _location_point_overrides: {},
 
-    _add_location_to_map: function (location, icon, no_geometry, layers) {
+    _add_location_to_map: function (location, icon, no_geometry, layers, no_sublocations) {
         if (!layers) {
             layers = c3nav._locationLayers;
         }
@@ -2181,9 +2181,9 @@ c3nav = {
         const bounds = {};
 
         // add a location to the map as a marker
-        if (location.sublocations && location.sublocations.length) {
+        if (!no_sublocations && location.sublocations && location.sublocations.length) {
             for (let i = 0; i < location.sublocations.length; i++) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.sublocations[i]], icon, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.sublocations[i]], icon, true, null, true));
             }
         }
 
