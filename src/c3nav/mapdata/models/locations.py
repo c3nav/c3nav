@@ -264,8 +264,6 @@ class SpecificLocation(Location, models.Model):
         ALLOW = "allow", _("allow")
         REJECT = "reject", _("reject for all locations and sublocations")
 
-    # todo: get rid of this
-    groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
@@ -333,8 +331,6 @@ class SpecificLocation(Location, models.Model):
     cached_all_static_targets: CachedLocationTargetIDs = SchemaField(schema=CachedLocationTargetIDs, default=list)
     cached_all_position_secrets: list[str] = SchemaField(schema=list[str], default=list)
 
-    sublocations = []
-
     class Meta:
         verbose_name = _('Specific Location')
         verbose_name_plural = _('Specific Locations')
@@ -342,6 +338,12 @@ class SpecificLocation(Location, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        deferred_fields = self.get_deferred_fields()
+        self._orig = {
+            key: getattr(self, key)
+            for key in ("priority", "hierarchy", "category_id", "color")
+            if key not in deferred_fields
+        }
 
     """ Targets """
 
@@ -358,6 +360,12 @@ class SpecificLocation(Location, models.Model):
         ))
 
     """ Main Properties """
+
+    @cached_property
+    def sublocations(self) -> list[int]:
+        # noinspection PyUnresolvedReferences
+        # todo: migrate this to descendants
+        return [l.pk for l in self.children.all()]
 
     @cached_property
     def dynamic(self) -> int:
@@ -641,19 +649,19 @@ class SpecificLocation(Location, models.Model):
                 Prefetch("calculated_ancestors", SpecificLocation.objects.order_by("effective_priority_order"))
             ):
             location_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
-            for group in reversed(specific_location.groups.all()):
-                if not (group.can_describe and group.titles):
+            for ancestor in reversed(specific_location.calculated_ancestors.all()):
+                if not (ancestor.can_describe and ancestor.titles):
                     continue
                 restrictions: frozenset[int] = (
-                    frozenset((group.access_restriction_id,)) if group.access_restriction_id else frozenset()
+                    frozenset((ancestor.access_restriction_id,)) if ancestor.access_restriction_id else frozenset()
                 )
-                titles: tuple[tuple[str, str], ...] = tuple(group.titles.items())  # noqa
+                titles: tuple[tuple[str, str], ...] = tuple(ancestor.titles.items())  # noqa
                 if not restrictions or all((restrictions-other_restrictions)
                                            for titles, other_restrictions in location_describing_titles):
                     # new restriction set was not covered by previous ones
                     location_describing_titles.append((titles, restrictions))
                 if not restrictions:
-                    # no access restrictions? that's it, no more groups to evaluate
+                    # no access restrictions? that's it, no more ancestors to evaluate
                     break
             all_describing_titles.setdefault(tuple(location_describing_titles), set()).add(specific_location.pk)
         cls._bulk_cached_update(
@@ -1048,7 +1056,8 @@ class SpecificLocation(Location, models.Model):
                 target.register_change(force=True)
 
     def pre_save_changed_geometries(self):
-        self.register_changed_geometries()
+        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
+            self.register_changed_geometries()
 
     def save(self, *args, **kwargs):
         self.pre_save_changed_geometries()
@@ -1346,194 +1355,6 @@ class SpecificLocationGeometryTargetMixin(SpecificLocationTargetMixin):
 
     class Meta:
         abstract = True
-
-
-class LocationGroupCategory(models.Model):
-    name = models.SlugField(_('Name'), unique=True, max_length=50)
-    single = models.BooleanField(_('single selection'), default=False)
-    title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
-    title_plural = I18nField(_('Title (Plural)'), plural_name='titles_plural', fallback_any=True)
-    help_text = I18nField(_('Help text'), plural_name='help_texts', fallback_any=True, fallback_value='')
-    allow_levels = models.BooleanField(_('allow levels'), db_index=True, default=True)
-    allow_spaces = models.BooleanField(_('allow spaces'), db_index=True, default=True)
-    allow_areas = models.BooleanField(_('allow areas'), db_index=True, default=True)
-    allow_pois = models.BooleanField(_('allow pois'), db_index=True, default=True)
-    allow_dynamic_locations = models.BooleanField(_('allow dynamic locations'), db_index=True, default=True)
-    priority = models.IntegerField(default=0, db_index=True)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._orig = {"priority": self.priority}
-
-    class Meta:
-        verbose_name = _('Location Group Category')
-        verbose_name_plural = _('Location Group Categories')
-        default_related_name = 'locationgroupcategories'
-        ordering = ('-priority', )
-
-    def register_changed_geometries(self):
-        for group in  self.groups.prefetch_related('groups__specific_locations'):
-            group.register_changed_geometries()
-
-    def pre_save_changed_geometries(self):
-        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
-            self.register_changed_geometries()
-
-    def save(self, *args, **kwargs):
-        self.pre_save_changed_geometries()
-        super().save(*args, **kwargs)
-
-    def pre_delete_changed_geometries(self):
-        self.register_changed_geometries()
-
-    def delete(self, *args, **kwargs):
-        self.pre_delete_changed_geometries()
-        super().delete(*args, **kwargs)
-
-
-class LocationGroupManager(UseQForPermissionsManager):
-    def get_queryset(self):
-        return super().get_queryset().select_related('category')
-
-
-# todo: remove locationgroup model and everything related to it
-class LocationGroup(Location, models.Model):
-    """
-    Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
-    """
-    locationtype = "locationgroup"
-    slug_as_id = False
-
-    class CanReportMissing(models.TextChoices):
-        DONT_OFFER = "dont_offer", _("don't offer")
-        REJECT = "reject", _("offer in first step, then reject")
-        SINGLE = "single", _("offer in first step, exclusive choice")
-        SINGLE_IMAGE = "image", _("offer in first step, then only query image")
-        MULTIPLE = "multiple", _("offer if nothing in the first step matches, multiple choice")
-
-    class CanReportMistake(models.TextChoices):
-        ALLOW = "allow", _("allow")
-        REJECT = "reject", _("reject for all locations with this group")
-
-    category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
-                                 verbose_name=_('Category'))
-    priority = models.IntegerField(default=0, db_index=True)
-    hierarchy = models.IntegerField(default=0, db_index=True, verbose_name=_('hierarchy'))
-    label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
-                                       verbose_name=_('label settings'),
-                                       help_text=_('unless location specifies otherwise'))
-    can_report_missing = models.CharField(_('report missing location'), choices=CanReportMissing.choices,
-                                          default=CanReportMissing.DONT_OFFER, max_length=16)
-    can_report_mistake = models.CharField(_('report mistakes'), choices=CanReportMistake.choices,
-                                          default=CanReportMistake.ALLOW, max_length=16)
-
-    description = I18nField(_('description'), plural_name='descriptions', blank=True, fallback_any=True,
-                            fallback_value="", help_text=_('to aid with selection in the report form'))
-    report_help_text = I18nField(_('report help text'), plural_name='report_help_texts', blank=True, fallback_any=True,
-                                 fallback_value="", help_text=_('to explain the report form or rejection'))
-
-    color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
-    in_legend = models.BooleanField(default=False, verbose_name=_('show in legend (if color set)'))
-    hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,
-                                       unique=True,
-                                       help_text=_('assign this group to imported hub locations of this type'))
-    external_url_label = I18nField(_('external URL label'), plural_name='external_url_labels', blank=True,
-                                   fallback_any=True, fallback_value="")
-
-    load_group_contribute = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
-                                              verbose_name=_('contribute to load group'))
-
-    effective_order = models.PositiveIntegerField(default=2**31-1)
-
-    objects = LocationGroupManager()
-
-    class Meta:
-        verbose_name = _('Location Group')
-        verbose_name_plural = _('Location Groups')
-        default_related_name = 'locationgroups'
-        ordering = ('effective_order',)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        deferred_fields = self.get_deferred_fields()
-        self._orig = {
-            key: getattr(self, key)
-            for key in ("priority", "hierarchy", "category_id", "color")
-            if key not in deferred_fields
-        }
-
-    def details_display(self, *, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
-        result['display'].insert(3, (_('Category'), self.category.title))
-        result['display'].extend([
-            (_('color'), self.color),
-            (_('priority'), str(self.priority)),
-        ])
-        if editor_url:
-            result['editor_url'] = reverse('editor.locationgroups.edit', kwargs={'pk': self.pk})
-        return result
-
-    @property
-    def title_for_forms(self):
-        attributes = []
-        if self.can_search:
-            attributes.append(_('search'))
-        if self.can_describe:
-            attributes.append(_('describe'))
-        if self.color:
-            attributes.append(_('color'))
-        if not attributes:
-            attributes.append(_('internal'))
-        return self.title + ' ('+', '.join(str(s) for s in attributes)+')'
-
-    def register_changed_geometries(self):
-        for obj in self.specific_locations.all():
-            obj.register_change(force=True)
-
-    @property
-    def subtitle(self):
-        result = self.category.title
-        if hasattr(self, 'locations'):  # todo: improve?
-            return format_lazy(_('{category_title}, {num_locations}'),
-                               category_title=result,
-                               num_locations=(ngettext_lazy('%(num)d location', '%(num)d locations', 'num') %
-                                              {'num': len(self.locations)}))
-        return result
-
-    @cached_property
-    def sublocations(self) -> list[int]:
-        # noinspection PyUnresolvedReferences
-        return [l.pk for l in self.specific_locations.all()]
-
-    @property
-    def effective_external_url_label(self):
-        return self.external_url_label
-
-    @classmethod
-    def recalculate_effective_order(cls):
-        cls.objects.update(effective_order=Subquery(
-            cls.objects.filter(pk=OuterRef('pk')).annotate(
-                new_effective_order=Window(
-                    expression=RowNumber(),
-                    order_by=('-category__priority', '-priority')
-                )
-            ).values('new_effective_order')[:1]
-        ))
-
-    def pre_save_changed_geometries(self):
-        if not self._state.adding and any(getattr(self, attname) != value for attname, value in self._orig.items()):
-            self.register_changed_geometries()
-
-    def save(self, *args, **kwargs):
-        self.pre_save_changed_geometries()
-        super().save(*args, **kwargs)
-
-    def pre_delete_changed_geometries(self):
-        self.register_changed_geometries()
-
-    def delete(self, *args, **kwargs):
-        self.pre_delete_changed_geometries()
-        super().delete(*args, **kwargs)
 
 
 class LabelSettings(models.Model):
