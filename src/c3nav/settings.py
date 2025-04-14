@@ -101,6 +101,7 @@ AUTO_PROCESS_UPDATES = config.getboolean('c3nav', 'auto_process_updates', fallba
 
 RANDOM_LOCATION_GROUPS = config.getlist('c3nav', 'random_location_groups', fallback=None)
 if RANDOM_LOCATION_GROUPS:
+    # todo: no longer used, deprecated!
     RANDOM_LOCATION_GROUPS = tuple(int(i) for i in RANDOM_LOCATION_GROUPS)
 
 SECRET_KEY = config.get('django', 'secret', fallback=None)

@@ -32,7 +32,7 @@
 {% endblock %}
 
 {% block content %}
-    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %} {% if random_location_groups %} data-random-location-groups="{{ random_location_groups }}"{% endif %}>
+    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %} {% if random_location_parents %} data-random-location-parents="{{ random_location_groups }}"{% endif %}>
         <div class="loader"></div>
         {% if not request.mobileclient %}
         <section id="attributions">
