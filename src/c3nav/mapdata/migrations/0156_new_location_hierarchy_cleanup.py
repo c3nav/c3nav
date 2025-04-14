@@ -102,4 +102,5 @@ class Migration(migrations.Migration):
             name='definedlocation',
             options={'default_related_name': 'defined_locations', 'verbose_name': 'Defined Location', 'verbose_name_plural': 'Defined Locations'},
         ),
+
     ]
