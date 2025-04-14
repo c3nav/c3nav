@@ -68,4 +68,30 @@ class Migration(migrations.Migration):
             model_name='specificlocation',
             name='hierarchy',
         ),
+        migrations.RemoveField(
+            model_name='locationgroup',
+            name='access_restriction',
+        ),
+        migrations.RemoveField(
+            model_name='locationgroup',
+            name='category',
+        ),
+        migrations.RemoveField(
+            model_name='locationgroup',
+            name='label_settings',
+        ),
+        migrations.RemoveField(
+            model_name='locationgroup',
+            name='load_group_contribute',
+        ),
+        migrations.RemoveField(
+            model_name='specificlocation',
+            name='groups',
+        ),
+        migrations.DeleteModel(
+            name='LocationGroupCategory',
+        ),
+        migrations.DeleteModel(
+            name='LocationGroup',
+        ),
     ]
