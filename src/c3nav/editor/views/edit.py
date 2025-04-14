@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.db import IntegrityError, models
 from django.db.models import Q
+from django.db.models.query import Prefetch
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -23,7 +24,7 @@ from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get
     LinkDefinedLocationForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
-from c3nav.mapdata.models import Level, Space, GraphNode, GraphEdge, Door
+from c3nav.mapdata.models import Level, Space, GraphNode, GraphEdge, Door, Area, POI
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.locations import DefinedLocation, DefinedLocationTargetMixin
 from c3nav.mapdata.permissions import MapPermissionsFromRequest, active_map_permissions
@@ -54,7 +55,7 @@ def main_index(request):
             child_model(request, 'DefinedLocation'),
             child_model(request, 'ObstacleGroup'),
             child_model(request, 'GroundAltitude'),
-            child_model(request, 'DynamicLocation'),
+            child_model(request, 'DynamicLocationTarget'),
             child_model(request, 'WayType'),
             child_model(request, 'AccessRestriction'),
             child_model(request, 'AccessRestrictionGroup'),
@@ -71,7 +72,8 @@ def main_index(request):
 @accesses_mapdata
 @sidebar_view
 def level_detail(request, pk):
-    level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
+    level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top', "locations"),
+                              pk=pk)
 
     if request.user_permissions.can_access_base_mapdata:
         submodels = ('Building', 'Space', 'Door')
@@ -100,7 +102,8 @@ def level_detail(request, pk):
 @sidebar_view
 def space_detail(request, level, pk):
     # todo: HOW TO GET DATA
-    space = get_object_or_404(Space.objects.select_related('level'), level__pk=level, pk=pk)
+    space = get_object_or_404(Space.objects.select_related('level').prefetch_related("locations"),
+                              level__pk=level, pk=pk)
 
     edit_utils = SpaceChildEditUtils(space)
 
@@ -148,9 +151,17 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         kwargs = {'pk': pk}
         qs = model.objects.all()
 
-        if issubclass(model, DefinedLocationTargetMixin):
+        if issubclass(model, DefinedLocation):
+            qs = qs.prefetch_related(
+                Prefetch("levels", Level.objects.prefetch_related("locations")),
+                Prefetch("spaces", Space.objects.prefetch_related("locations").select_related("level")),
+                Prefetch("areas", Area.objects.prefetch_related("locations").select_related("space__level")),
+                Prefetch("pois", POI.objects.prefetch_related("locations").select_related("space__level")),
+            )
+
+        elif issubclass(model, DefinedLocationTargetMixin):
             # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
-            qs = qs.prefetch_related('locations__groups')
+            qs = qs.prefetch_related('locations')
 
         utils_cls = DefaultEditUtils
         if level is not None:
@@ -515,7 +526,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
     if level is not None:
         reverse_kwargs['level'] = level
-        level = get_object_or_404(Level, pk=level)
+        level = get_object_or_404(Level.objects.prefetch_related("locations"), pk=level)
         queryset = queryset.filter(level=level).defer('geometry')
         edit_utils = LevelChildEditUtils(level)
         ctx.update({
@@ -527,7 +538,9 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         })
     elif space is not None:
         reverse_kwargs['space'] = space
-        sub_qs = Space.objects.select_related('level').defer('geometry')
+        sub_qs = Space.objects.select_related('level').defer('geometry').prefetch_related(
+            "locations", "level__locations"
+        )
         space = get_object_or_404(sub_qs, pk=space)
         queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
         edit_utils = SpaceChildEditUtils(space)
@@ -585,8 +598,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         })
 
     if issubclass(model, DefinedLocationTargetMixin):
-        # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
-        queryset = queryset.prefetch_related('locations__groups')
+        queryset = queryset.prefetch_related('locations')
 
     edit_url_name = resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
     for obj in queryset:
