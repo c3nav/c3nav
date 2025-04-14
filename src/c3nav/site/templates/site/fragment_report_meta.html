@@ -1,9 +1,9 @@
 {% load i18n %}
 {% if report.category == 'location-issue' %}
     <p><strong>{% trans 'You are reporting an issue with the following location:' %}</strong></p>
-    {% include 'site/fragment_location.html' with form_value=1 location=report.location_specific %}
+    {% include 'site/fragment_location.html' with form_value=1 location=report.location %}
     <p>
-        <a href="/l/{{ report.location_specific.slug }}/">{% trans 'open in c3nav' %}</a>
+        <a href="/l/{{ report.location.slug }}/">{% trans 'open in c3nav' %}</a>
         {% if report.editor_url %}
             – <a href="{{ report.editor_url }}">{% trans 'open in editor' %}</a>
         {% endif %}
