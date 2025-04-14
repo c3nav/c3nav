@@ -613,11 +613,11 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     @classmethod
     def calculate_cached_describing_titles(cls):
         all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
-        for specific_location in cls.objects.prefetch_related(
+        for defined_location in cls.objects.prefetch_related(
                 Prefetch("calculated_ancestors", DefinedLocation.objects.order_by("effective_priority_order"))
             ):
             location_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
-            for ancestor in reversed(specific_location.calculated_ancestors.all()):
+            for ancestor in reversed(defined_location.calculated_ancestors.all()):
                 if not (ancestor.can_describe and ancestor.titles):
                     continue
                 restrictions: frozenset[int] = (
@@ -631,7 +631,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                 if not restrictions:
                     # no access restrictions? that's it, no more ancestors to evaluate
                     break
-            all_describing_titles.setdefault(tuple(location_describing_titles), set()).add(specific_location.pk)
+            all_describing_titles.setdefault(tuple(location_describing_titles), set()).add(defined_location.pk)
         cls._bulk_cached_update(
             name="cached_describing_titles",
             values=tuple(
