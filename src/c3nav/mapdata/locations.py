@@ -204,18 +204,18 @@ class LocationManager:
                 "load_group_display",
             ).prefetch_related(
                 "slug_set",
-                Prefetch("calculated_descendants", DefinedLocation.objects.only("pk")),
+                "calculated_descendants",
+                Prefetch("calculated_ancestors",
+                         DefinedLocation.objects.order_by("effective_traversal_order")),
             ).order_by("effective_depth_first_order")
         }
 
         # trigger some cached properties, then empty prefetch_related cache
         for obj in locations.values():
             # noinspection PyStatementEffect
-            obj.slug
-            # noinspection PyStatementEffect
-            obj.redirect_slugs
-            # noinspection PyStatementEffect
-            obj.sublocations
+            obj.slug, obj.redirect_slugs, obj.sublocations, obj.display_superlocations
+            # clear prefetch cache
+            obj._prefetched_objects_cache = {}
 
         return locations
 
