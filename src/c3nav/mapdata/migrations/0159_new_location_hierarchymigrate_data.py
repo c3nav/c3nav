@@ -22,6 +22,34 @@ def migrate_location_hierarchy(apps, model_name):
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
 
+    tmp_category = LocationGroupCategory.objects.create(
+        titles={"en": "Tmp Category"},
+        priority=-1000,
+    )
+
+    max_id = max(
+        max(LocationGroup.objects.values_list("pk", flat=True)),
+        max(SpecificLocation.objects.values_list("pk", flat=True)),
+    )
+    LocationGroup.objects.filter()
+    new_location_groups = tuple(group.pk for group in LocationGroup.objects.bulk_create((
+        LocationGroup(
+            id=max_id+i+1,
+            titles={"en": title},
+            can_search=False,
+            can_describe=True,
+            priority=-1000,
+            category=tmp_category,
+        )
+        for i, title in enumerate(("Level", "Space", "Area", "POI", "Dynamic Location"))
+    )))
+
+    for specific_location in SpecificLocation.objects.prefetch_related("levels", "spaces", "areas", "pois",
+                                                                       "dynamic_location_targets"):
+        for group, name in zip(new_location_groups, ("levels", "spaces", "areas", "pois", "dynamic_location_targets")):
+            if getattr(specific_location, name).all():
+                specific_location.groups.add(group)
+
     # convert locationgroups into specific locations
     fields = {f.attname for f in LocationGroup._meta.get_fields()
               if (not f.is_relation and not f.name.startswith("cached_")
@@ -137,6 +165,11 @@ def migrate_location_hierarchy(apps, model_name):
                             specific_location.areas.all(),
                             specific_location.pois.all()):
             target.import_block = specific_location.import_block_geom
+
+    to_delete = SpecificLocation.objects.get(pk=category_lookup[tmp_category.id])
+    to_delete.children.clear()
+    to_delete.calculated_descendants.clear()
+    to_delete.delete()
 
 
 
