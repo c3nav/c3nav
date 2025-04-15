@@ -141,7 +141,7 @@ class LocationAncestryPath(models.Model):
     """ Automatically populated. One ancestry path for the given ancestry, ending with the given parentage. """
     prev_path = models.ForeignKey("self", on_delete=models.CASCADE, related_name="+", null=True)
     parentage = models.ForeignKey("LocationParentage", on_delete=models.CASCADE, related_name="+")
-    ancestry = models.ForeignKey("LocationAncestry", on_delete=models.PROTECT, related_name="paths")
+    ancestry = models.ForeignKey("LocationAncestry", on_delete=models.CASCADE, related_name="paths")
     num_hops = models.PositiveSmallIntegerField()
 
     class Meta:
