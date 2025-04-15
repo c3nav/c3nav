@@ -36,9 +36,9 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
-from c3nav.mapdata.permissions import LazyMapPermissionFilteredSequence, MapPermissionTaggedItem, \
+from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
     MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
-    MapPermissionsMaskedTaggedValue, MapPermissionGuardedTaggedSequence
+    MapPermissionMaskedTaggedValue, MapPermissionGuardedTaggedSequence
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
@@ -272,11 +272,11 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     """ Targets """
 
     @cached_property
-    def static_targets(self) -> LazyMapPermissionFilteredSequence[StaticLocationTarget]:
+    def static_targets(self) -> MapPermissionGuardedSequence[StaticLocationTarget]:
         """
         Get all static location targets
         """
-        return LazyMapPermissionFilteredSequence((
+        return MapPermissionGuardedSequence((
             *self.levels.all(),
             *self.spaces.all(),
             *self.areas.all(),
@@ -319,6 +319,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                     (_('Title ({lang})').format(lang=get_language_info(lang)['name_translated']), title)
                     for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language())
                 ),
+                (_('Parent locations'), list(self.display_superlocations)),
                 (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
                 (_('searchable'), _('Yes') if self.can_search else _('No')),
                 (_('can describe'), _('Yes') if self.can_describe else _('No')),
@@ -345,9 +346,23 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         return result
 
     @cached_property
-    def sublocations(self) -> list[int]:
-        # noinspection PyUnresolvedReferences
-        return [l.pk for l in self.calculated_descendants.all()]
+    def sublocations(self) -> MapPermissionGuardedTaggedSequence[int]:
+        return MapPermissionGuardedTaggedSequence([
+            MapPermissionTaggedItem(l.pk, l.effective_access_restrictions)
+            for l in self.calculated_descendants.all()
+        ])
+
+    @cached_property
+    def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[dict]:
+        return MapPermissionGuardedTaggedSequence([
+            MapPermissionTaggedItem({
+                'id': l.pk,
+                'slug': l.effective_slug,
+                'title': l.title,  # todo: will translation be used here?
+                'can_search': l.can_search,
+            }, l.effective_access_restrictions)
+            for l in sorted(self.calculated_ancestors.all(), key=attrgetter("effective_traversal_order"))
+        ])
 
     @cached_property
     def dynamic(self) -> int:
@@ -885,7 +900,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         return {
             level_id: MapPermissionGuardedTaggedValueSequence([
                 (
-                    MapPermissionsMaskedTaggedValue[
+                    MapPermissionMaskedTaggedValue[
                         MapPermissionGuardedTaggedValue[PolygonSchema | MultiPolygonSchema | PointSchema, None],
                     ](
                         value=MapPermissionGuardedTaggedValue(geometries.geometry, default=None),
@@ -893,7 +908,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                         space_id=geometries.space_id
                     )
                     if isinstance(geometries, MaskedLocationGeometry)
-                    else MapPermissionsMaskedTaggedValue(MapPermissionGuardedTaggedValue(geometries, default=None))
+                    else MapPermissionMaskedTaggedValue(MapPermissionGuardedTaggedValue(geometries, default=None))
                 )
                 for geometries in level_geometries
             ])
@@ -1020,36 +1035,6 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             bounds=self.dynamic_bounds,
             nearby=None,  # todo: add nearby information
         )
-
-    def details_display(self, *, editor_url=True, **kwargs):
-        result = super().details_display(**kwargs)
-
-        if grid.enabled:
-            grid_square = self.grid_square
-            if grid_square is not None:
-                grid_square_title = (_('Grid Squares') if grid_square and '-' in grid_square else _('Grid Square'))
-                result['display'].insert(3, (grid_square_title, grid_square or None))
-
-        groupcategories = {}
-        # todo: add this again
-        #for group in self.sorted_groups:
-        #    groupcategories.setdefault(group.category, []).append(group)
-
-        for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
-            result['display'].insert(3, (
-                category.title if category.single else category.title_plural,
-                tuple({
-                    'id': group.pk,
-                    'slug': group.effective_slug,
-                    'title': group.title,
-                    'can_search': group.can_search,
-                } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
-            ))
-
-        if editor_url:
-            result['editor_url'] = reverse('editor.defined_locations.edit', kwargs={'pk': self.pk})
-
-        return result
 
     """ Changed Geometries """
 
@@ -1313,7 +1298,7 @@ class DefinedLocationTargetMixin(models.Model):
         abstract = True
 
     @cached_property
-    def sorted_locations(self) -> LazyMapPermissionFilteredSequence[DefinedLocation]:
+    def sorted_locations(self) -> MapPermissionGuardedSequence[DefinedLocation]:
         """
         highest priority first
         """
@@ -1321,8 +1306,8 @@ class DefinedLocationTargetMixin(models.Model):
             raise ValueError(f'Accessing sorted_locations on {self} despite no prefetch_related.')
             # return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
-        return LazyMapPermissionFilteredSequence(sorted(self.locations.all(),
-                                                        key=attrgetter("effective_priority_order")))
+        return MapPermissionGuardedSequence(sorted(self.locations.all(),
+                                                   key=attrgetter("effective_priority_order")))
 
     @property
     def title(self) -> str:
