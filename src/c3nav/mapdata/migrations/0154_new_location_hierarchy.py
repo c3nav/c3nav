@@ -14,7 +14,7 @@ def unmigrate_new_specific_locations(apps, model_name):
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
 
     # this needs to be here because https://code.djangoproject.com/ticket/36161
-    SpecificLocation.objects.filter(pk__in=LocationGroup.objects.values_list("pk", flat=True)).delete()
+    SpecificLocation.objects.filter(import_tag="DELETEDELETEDELETE").delete()
 
 
 class Migration(migrations.Migration):
@@ -223,11 +223,6 @@ class Migration(migrations.Migration):
             model_name='dataoverlayfeature',
             name='import_block',
             field=models.BooleanField(default=False, verbose_name="don't change on import"),
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='import_tag',
-            field=models.CharField(blank=True, max_length=64, null=True, verbose_name='import tag'),
         ),
         migrations.AddField(
             model_name='door',

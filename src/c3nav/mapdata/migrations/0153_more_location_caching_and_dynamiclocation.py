@@ -76,4 +76,9 @@ class Migration(migrations.Migration):
             name='position_secret',
             field=models.CharField(max_length=32, verbose_name='position secret'),
         ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='import_tag',
+            field=models.CharField(blank=True, max_length=64, null=True, verbose_name='import tag'),
+        ),
     ]
