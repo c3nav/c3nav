@@ -133,7 +133,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
 @api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
 def location_display(request, identifier: LocationIdentifier):
-    location = get_location(identifier)
+    location = LocationManager.get(identifier)
     if location is None:
         raise API404()
 
