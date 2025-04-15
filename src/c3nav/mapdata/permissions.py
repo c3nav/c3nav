@@ -457,7 +457,7 @@ class BaseMapPermissionGuardedSequence[T](Sequence[T], BaseMapPermissionGuarded[
         return iter(reversed(self._get()))
 
 
-class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseMapPermissionGuardedSequence[T]):
+class MapPermissionGuardedSequence[T: AccessRestrictionLogicMixin](BaseMapPermissionGuardedSequence[T]):
     """
     Wraps a sequence of AccessRestrictionLogicMixin objects.
     Acts like a sequence (like list, tuple, ...) but will filter objects based on the active map permissions.
@@ -491,7 +491,7 @@ class LazyMapPermissionFilteredSequence[T: AccessRestrictionLogicMixin](BaseMapP
         )
 
     def __repr__(self):
-        return f"LazyMapPermissionFilteredSequence({self._data})"
+        return f"MapPermissionGuardedSequence({self._data})"
 
 
 class MapPermissionTaggedItem[T](NamedTuple):
@@ -580,7 +580,7 @@ class MapPermissionGuardedTaggedSequence[T](BaseMapPermissionGuardedSequence[T])
         )
 
     def __repr__(self):
-        return f"LazyMapPermissionFilteredTaggedSequence({self._data})"
+        return f"MapPermissionGuardedTaggedSequence({self._data})"
 
 
 class BaseMapPermissionGuardedValue[T](BaseMapPermissionGuarded[T], ABC):
@@ -640,12 +640,13 @@ class MapPermissionGuardedTaggedValue[T, DT](BaseMapPermissionGuardedValue[T | D
         return result
 
     def __repr__(self):
-        return f"LazyMapPermissionFilteredTaggedValue({self._data}, default={self._default})"
+        return f"MapPermissionGuardedTaggedValue({self._data}, default={self._default})"
 
 
-class MapPermissionsMaskedTaggedValue[T, MT = T](BaseMapPermissionGuardedValue[T | MT]):
+class MapPermissionMaskedTaggedValue[T, MT = T](BaseMapPermissionGuardedValue[T | MT]):
     """
-    Wraps two LazyPermissionValue instances, deliver them the private or masked one based on the user's space permissions.
+    Wraps two BaseMapPermissionGuardedValue instances, 
+    deliver them the private or masked one based on the user's space permissions.
     """
     @overload
     def __init__(self, *, value: BaseMapPermissionGuardedValue[T], masked_value: BaseMapPermissionGuardedValue[MT], space_id: int):
@@ -689,10 +690,9 @@ class MapPermissionsMaskedTaggedValue[T, MT = T](BaseMapPermissionGuardedValue[T
 
     def __repr__(self):
         if self._space_id is None:
-            return f"LazySpacePermissionMaskedValue({self._value})"
+            return f"MapPermissionMaskedValue({self._value})"
         else:
-            return (f"LazySpacePermissionMaskedValue({self._value}, masked_value={self._value}, "
-                    f"space_id={self._space_id})")
+            return (f"MapPermissionMaskedValue({self._value}, masked_value={self._value}, space_id={self._space_id})")
 
 
 class MapPermissionGuardedTaggedValueSequence[T](BaseMapPermissionGuardedSequence[T]):
