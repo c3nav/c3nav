@@ -204,7 +204,7 @@ def unmigrate_location_hierarchy(apps, model_name):
     ThemeLocationGroupBackgroundColor.objects.update(location_group_id=F("location_id"))
 
     # delete specificlocations that are location group categories
-    SpecificLocation.objects.filter(pk__in=LocationGroupCategory.objects.values_list("pk", flat=True)).delete()
+    SpecificLocation.objects.filter(pk__in=new_category_ids.keys()).delete()
 
     # create locationgroups again
     fields = {f.attname for f in LocationGroup._meta.get_fields()
