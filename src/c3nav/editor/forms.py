@@ -1,14 +1,11 @@
 import json
-import operator
 import os
-from functools import reduce
 from itertools import chain
 from operator import attrgetter, itemgetter
 from typing import Optional
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Prefetch, Q
 from django.db.models.fields.reverse_related import ManyToManyRel
@@ -33,6 +30,8 @@ from c3nav.mapdata.permissions import active_map_permissions
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
+    uses_bootstrap3 = True
+
     def __init__(self, *args, space_id=None, request=None, geometry_editable=False, is_json=False, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
@@ -131,6 +130,16 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                         else None
                     )
 
+        for a, b in (("load_group_display", "load_group_contribute"),
+                     ("can_report_missing", "can_report_mistake"),
+                     ("can_search", "can_describe"),
+                     ("color", "in_legend"),
+                     ("priority", "icon"),
+                     ("import_tag", "import_block"),):
+            if a in self.fields or b in self.fields:
+                self.fields[a].widget.attrs["class"] = "half-width-a"
+                self.fields[b].widget.attrs["class"] = "half-width-b"
+
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
             sources = {s['name']: s for s in Source.objects.all().values('name', 'access_restriction_id',
                                                                          'left', 'bottom', 'right', 'top')}
@@ -177,13 +186,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
         if self._meta.model.__name__ == 'AccessRestrictionGroup':
             self.fields['members'].label_from_instance = lambda obj: obj.title
-
-        if 'label_settings' in self.fields:
-            self.fields.move_to_end('label_settings')
-
-        for field in tuple(self.fields.keys()):
-            if field.startswith('label_override'):
-                self.fields.move_to_end(field)
 
         if 'groundaltitude' in self.fields:
             self.fields['groundaltitude'].label_from_instance = attrgetter('choice_label')
@@ -367,19 +369,20 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
 def create_editor_form(editor_model):
     possible_fields = [
-        'slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret', 'icon', 'join_edges', 'todo',
-        'up_separate', 'bssid', 'main_point', 'external_url', 'external_url_label', 'hub_import_type', 'walk',
-        'ordering', 'category', 'width', 'groups', 'parents', 'height', 'color', 'in_legend', 'priority', 'icon_name',
-        'base_altitude', 'intermediate', 'waytype', 'access_restriction', 'edit_access_restriction', 'default_height',
-        'door_height', 'outside', 'identifyable', 'can_search', 'can_describe', 'geometry', 'single', 'altitude',
+        'slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret', 'priority', 'icon', 'join_edges',
+        'todo', 'up_separate', 'bssid', 'main_point', 'parents', 'color', 'in_legend', 'can_search', 'can_describe',
+        'access_restriction', 'edit_access_restriction', 'external_url_label', 'external_url', 'walk', 'ordering',
+        'width', 'groups', 'height', 'icon_name', 'base_altitude', 'intermediate', 'waytype', 'default_height',
+        'door_height', 'outside', 'identifyable', 'geometry', 'single', 'altitude',
         "beacon_type", 'level_index', 'short_label', 'origin_space', 'target_space', 'data', "ap_name", 'comment',
         'slow_down_factor', 'groundaltitude', 'node_number', 'addresses', 'bluetooth_address', 'group',
         'ibeacon_uuid', 'ibeacon_major', 'ibeacon_minor', 'uwb_address', 'extra_seconds', 'speed', 'can_report_missing',
         'can_report_mistake', 'description', 'speed_up', 'description_up', 'avoid_by_default', 'report_help_text',
         'enter_description', 'level_change_description', 'base_mapdata_accessible', 'label_settings', 'label_override',
-        'min_zoom', 'max_zoom', 'font_size', 'members', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
-        'allow_dynamic_locations', 'left', 'top', 'right', 'bottom', 'import_tag', 'import_block_data',
-        'import_block_geom', 'public', 'default', 'dark', 'high_contrast', 'funky', 'randomize_primary_color',
+        'load_group_display', 'load_group_contribute', 'min_zoom', 'max_zoom', 'font_size', 'members', 'allow_levels',
+        'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations', 'left', 'top', 'right', 'bottom',
+        'hub_import_type', 'import_tag', 'import_block', 'public', 'default', 'dark', 'high_contrast', 'funky',
+        'randomize_primary_color',
         'color_logo', 'color_css_initial', 'color_css_primary', 'color_css_secondary', 'color_css_tertiary',
         'color_css_quaternary', 'color_css_quinary', 'color_css_header_background', 'color_css_header_text',
         'color_css_header_text_hover', 'color_css_shadow', 'color_css_overlay_background', 'color_css_grid',
@@ -387,8 +390,7 @@ def create_editor_form(editor_model):
         'color_background', 'color_wall_fill', 'color_wall_border', 'color_door_fill', 'color_ground_fill',
         'color_obstacles_default_fill', 'color_obstacles_default_border', 'stroke_color', 'stroke_width',
         'stroke_opacity', 'fill_color', 'fill_opacity', 'interactive', 'point_icon', 'extra_data', 'show_label',
-        'show_geometry', 'show_label', 'show_geometry', 'default_geomtype', 'cluster_points', 'update_interval',
-        'load_group_display', 'load_group_contribute',
+        'show_geometry', 'show_geometry', 'default_geomtype', 'cluster_points', 'update_interval',
         'altitude_quest', 'fill_quest',
     ]
     field_names = [field.name for field in editor_model._meta.get_fields()

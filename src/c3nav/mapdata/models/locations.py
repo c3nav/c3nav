@@ -188,8 +188,9 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
-    import_block_data = models.BooleanField(_('don\'t change metadata on import'), default=False)
-    import_block_geom = models.BooleanField(_('don\'t change geometry on import'), default=False)
+
+    import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=64)
+    import_block = models.BooleanField(_('don\'t change on import'), default=False)
 
     load_group_display = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                            related_name='+', verbose_name=_('display load group'))
