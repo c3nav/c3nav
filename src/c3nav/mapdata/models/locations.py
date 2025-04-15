@@ -308,7 +308,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             *self.other_titles,
         ))
 
-    def details_display(self, **kwargs):
+    def details_display(self, *, editor_url=True, **kwargs):
         result = {
             'id': self.pk,
             'display': [
@@ -330,6 +330,18 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                 'title': self.effective_external_url_label or _('Open external URL'),
                 'url': self.external_url,
             }
+
+        if grid.enabled:
+            grid_square = self.grid_square
+            if grid_square is not None:
+                grid_square_title = (_('Grid Squares') if grid_square and '-' in grid_square else _('Grid Square'))
+                result['display'].insert(3, (grid_square_title, grid_square or None))
+
+        # todo: add groups again
+
+        if editor_url:
+            result['editor_url'] = reverse('editor.defined_locations.edit', kwargs={'pk': self.pk})
+
         return result
 
     @cached_property
