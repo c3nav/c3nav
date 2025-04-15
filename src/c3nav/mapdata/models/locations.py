@@ -1,6 +1,5 @@
 import operator
 import string
-import warnings
 from collections import deque, defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
@@ -29,6 +28,7 @@ from django.utils.functional import cached_property, lazy
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _, get_language, get_language_info
 from django_pydantic_field import SchemaField
+from shapely.geometry import shape
 
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel, PointSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
@@ -903,12 +903,22 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                     MapPermissionMaskedTaggedValue[
                         MapPermissionGuardedTaggedValue[PolygonSchema | MultiPolygonSchema | PointSchema, None],
                     ](
-                        value=MapPermissionGuardedTaggedValue(geometries.geometry, default=None),
-                        masked_value=MapPermissionGuardedTaggedValue(geometries.masked_geometry, default=None),
+                        value=MapPermissionGuardedTaggedValue(
+                            [MapPermissionTaggedItem(shape(g.value), g.access_restrictions)
+                             for g in geometries.geometry],
+                            default=None
+                        ),
+                        masked_value=MapPermissionGuardedTaggedValue(
+                            [MapPermissionTaggedItem(shape(g.value), g.access_restrictions)
+                             for g in geometries.masked_geometry],
+                            default=None),
                         space_id=geometries.space_id
                     )
                     if isinstance(geometries, MaskedLocationGeometry)
-                    else MapPermissionMaskedTaggedValue(MapPermissionGuardedTaggedValue(geometries, default=None))
+                    else MapPermissionMaskedTaggedValue(MapPermissionGuardedTaggedValue(
+                        [MapPermissionTaggedItem(shape(g.value), g.access_restrictions)
+                         for g in geometries],
+                        default=None))
                 )
                 for geometries in level_geometries
             ])

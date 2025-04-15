@@ -170,17 +170,7 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
 
     # collect all the sublocations
     # todo: handle dynamic locations
-    locations = {
-        location.effective_slug: location
-    }
-    locations_to_check = [location]
-    while locations_to_check:
-        # todo: migrate this to work with groups correctly?
-        for location_id in locations_to_check.pop().locations:
-            sublocation = LocationManager.get(location_id)
-            if sublocation.effective_slug not in locations:
-                locations[sublocation.effective_slug] = sublocation
-                locations_to_check.append(sublocation)
+    locations = [location, *filter(None, (LocationManager.get(location_id) for location_id in location.sublocations))]
 
     # are there any points?
     points: list[LocationPoint] = list(chain(
