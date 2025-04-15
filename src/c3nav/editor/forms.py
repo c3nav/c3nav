@@ -318,22 +318,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
     def _save_m2m(self):
         super()._save_m2m()
-        if self._meta.model.__name__ != 'AccessRestriction':
-            # todo: reimplement this groups code to make it parents
-            # todo: get rid of this code alltogether, since we no longer have groups
-            # todo: bring groups back to editor
-            try:
-                field = self._meta.model._meta.get_field('groups')
-            except FieldDoesNotExist:
-                pass
-            else:
-                if field.many_to_many:
-                    groups = reduce(operator.or_, (set(value) for name, value in self.cleaned_data.items()
-                                                   if name.startswith('groups_')), set())
-                    groups |= set(value for name, value in self.cleaned_data.items()
-                                  if name.startswith('group_') and value)
-                    groups = tuple((int(val) if val.isdigit() else val) for val in groups)
-                    self.instance.groups.set(groups)
 
         if 'slug' in self.fields:
             slug_to_make_main = None
@@ -385,8 +369,7 @@ def create_editor_form(editor_model):
     possible_fields = [
         'slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret', 'icon', 'join_edges', 'todo',
         'up_separate', 'bssid', 'main_point', 'external_url', 'external_url_label', 'hub_import_type', 'walk',
-        'ordering', 'category', 'width', 'groups', 'parents', 'height', 'color', 'in_legend', 'priority', 'hierarchy',
-        'icon_name',
+        'ordering', 'category', 'width', 'groups', 'parents', 'height', 'color', 'in_legend', 'priority', 'icon_name',
         'base_altitude', 'intermediate', 'waytype', 'access_restriction', 'edit_access_restriction', 'default_height',
         'door_height', 'outside', 'identifyable', 'can_search', 'can_describe', 'geometry', 'single', 'altitude',
         "beacon_type", 'level_index', 'short_label', 'origin_space', 'target_space', 'data', "ap_name", 'comment',

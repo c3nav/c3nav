@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.db import IntegrityError, models
 from django.db.models import Q
+from django.db.models.aggregates import Count
 from django.db.models.query import Prefetch
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -208,14 +209,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     }
 
     if not new and isinstance(obj, DefinedLocation):
-        if not obj.all_targets:
+        if not obj.static_targets:
             ctx["secondary"] = {
                 "title": _('Targets'),
                 "text": _('This defined location has no targets'),
             }
         else:
             target_links = []
-            for target_obj in obj.all_targets:
+            for target_obj in obj.static_targets:
                 reverse_kwargs = {'pk': target_obj.pk}
 
                 try:
@@ -501,11 +502,13 @@ def get_visible_spaces_kwargs(model, request):
 @etag(editor_etag_func)
 @accesses_mapdata
 @sidebar_view
-def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
+def list_objects(request, model=None, level=None, space=None, explicit_edit=False, pk=None):
     if isinstance(model, str):
         model = apps.get_model(app_label="mapdata", model_name=model)
 
     resolver_match = getattr(request, 'sub_resolver_match', request.resolver_match)
+    if pk is not None:
+        model = DefinedLocation
     if not resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
@@ -530,8 +533,10 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         queryset = queryset.filter(level=level).defer('geometry')
         edit_utils = LevelChildEditUtils(level)
         ctx.update({
-            'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
-            'back_title': _('back to level'),
+            "back": [{
+                'url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
+                'title': _('back to level'),
+            }],
             'levels': Level.objects.filter(on_top_of__isnull=True),
             'level': level,
             'level_url': resolver_match.url_name,
@@ -567,8 +572,10 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'level': space.level,
             'level_url': 'editor.spaces.list',
             'space': space,
-            'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
-            'back_title': _('back to space'),
+            "back": [{
+                'url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
+                'title': _('back to space'),
+            }],
         })
     else:
         edit_utils = DefaultEditUtils()
@@ -592,18 +599,46 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             queryset = queryset.select_related('groundaltitude')
             queryset = queryset.order_by('groundaltitude__altitude')
 
-        ctx.update({
-            'back_url': reverse('editor.index'),
-            'back_title': _('back to overview'),
-        })
+        if model == DefinedLocation:
+            queryset.annotate(num_children=Count("children"))
+            if pk is None:
+                queryset = queryset.annotate(num_parents=Count("parents")).filter(num_parents=0)
+            else:
+                parent_location = get_object_or_404(DefinedLocation.objects.prefetch_related("parents"), pk=pk)
+                queryset = queryset.filter(parents=parent_location)
+                ctx.update({
+                    "parent": parent_location,
+                    "can_edit": can_edit,
+                    "edit_url": reverse('editor.defined_locations.edit', kwargs={"pk": parent_location.pk}),
+                    "back": [
+                        {
+                            "url": reverse('editor.defined_locations.list', kwargs={"pk": p.pk}),
+                            "title": _('back to %(parent_location)s') % {"parent_location": p.title},
+                        } for p in parent_location.parents.all()
+                    ] if parent_location.parents.all() else [{
+                        "url": reverse('editor.defined_locations.list'),
+                        "title": _('back to location root'),
+                    }]
+                })
+        else:
+            ctx.update({
+                "back": [{
+                    "url": reverse('editor.index'),
+                    "title": _('back to overview'),
+                }],
+            })
+
 
     if issubclass(model, DefinedLocationTargetMixin):
         queryset = queryset.prefetch_related('locations')
 
-    edit_url_name = resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
+    edit_url_name = ".".join((*resolver_match.url_name.split(".")[:-1], ('detail' if explicit_edit else 'edit')))
     for obj in queryset:
         reverse_kwargs['pk'] = obj.pk
-        obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
+        if model == DefinedLocation:
+            obj.edit_url = reverse("editor.defined_locations.list", kwargs=reverse_kwargs)
+        else:
+            obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
         obj.add_cols = tuple(getattr(obj, col) for col in add_cols)
     reverse_kwargs.pop('pk', None)
 
@@ -627,7 +662,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         'can_create': edit_utils.can_create and can_edit,
         'geometry_url': edit_utils.geometry_url,
         'add_cols': add_cols,
-        'create_url': reverse(resolver_match.url_name[:-4] + 'create', kwargs=reverse_kwargs),
+        'create_url': reverse(".".join((*resolver_match.url_name.split(".")[:-1], "create")), kwargs=reverse_kwargs),
         'grouped_objects': grouped_objects,
     })
 
