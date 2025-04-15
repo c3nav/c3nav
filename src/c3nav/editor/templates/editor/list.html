@@ -13,12 +13,21 @@
         {% with level.title as level_title %}
             <small>{% blocktrans %}on level {{ level_title }}{% endblocktrans %}</small>
         {% endwith %}
+    {% elif parent %}
+        {% with parent.title as parent_title %}
+            <small>{% blocktrans %}under {{ parent_title }}{% endblocktrans %}</small>
+        {% endwith %}
     {% endif %}
 </h3>
 {% bootstrap_messages %}
 {% if can_create %}
     <a class="btn btn-default btn-xs" accesskey="n" href="{{ create_url }}">
         <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+    </a>
+{% endif %}
+{% if can_edit %}
+    <a class="btn btn-default btn-xs" href="{{ edit_url }}">
+        <i class="glyphicon glyphicon-edit"></i> {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
     </a>
 {% endif %}
 
@@ -40,11 +49,13 @@
             {% endif %}
             {% for item in objects.objects %}
                 {% if forloop.counter0|divisibleby:10 %}
+                    {% for b in back %}
                     <tr>
-                        <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
+                        <td><a href="{{ b.url }}" data-no-next-zoom>&laquo; {{ b.title }}</a></td>
                         {% for col in add_cols %}<td></td>{% endfor %}
                         <td></td>
                     </tr>
+                    {% endfor %}
                 {% endif %}
                 <tr data-pk="{{ item.pk }}">
                     <td>{{ item.title }}</td>
@@ -53,10 +64,12 @@
                 </tr>
             {% endfor %}
         {% endfor %}
+        {% for b in back %}
         <tr>
-            <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
+            <td><a href="{{ b.url }}" data-no-next-zoom>&laquo; {{ b.title }}</a></td>
             {% for col in add_cols %}<td></td>{% endfor %}
             <td></td>
         </tr>
+        {% endfor %}
     </tbody>
 </table>

@@ -1506,7 +1506,6 @@ c3nav = {
         }, 300, 'swing').queue(function (d) {
             d();
             const possible_locations_set = new Set();
-            // todo: reimplement this without refering to groups
             for (const id of c3nav.random_location_parents) {
                 const location = c3nav.locations_by_id[id];
                 if (!location) continue;
