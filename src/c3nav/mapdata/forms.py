@@ -11,6 +11,8 @@ from c3nav.mapdata.fields import I18nField
 
 
 class I18nModelFormMixin(ModelForm):
+    uses_bootstrap3 = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -28,21 +30,32 @@ class I18nModelFormMixin(ModelForm):
                 values.update(getattr(self.instance, model_field.attname))
 
             has_values = False
-            for language in values.keys():
+            max_i = len(values)-1
+            for i, language in enumerate(values.keys()):
                 sub_field_name = '%s__%s' % (name, language)
                 new_value = self.data.get(sub_field_name)
                 if new_value is not None:
                     has_values = True
                     values[language] = new_value
                 language_info = get_language_info(language)
-                field_title = format_lazy(_('{field_name} ({lang})'),
-                                          field_name=capfirst(model_field.verbose_name),
-                                          lang=language_info['name_translated'])
-                new_fields[sub_field_name] = CharField(label=field_title,
+                field_title = capfirst(model_field.verbose_name)
+                lang_field_title = format_lazy(_('{field_name} ({lang})'),
+                                                   field_name=field_title,
+                                                   lang=language_info['name_translated'])
+                new_fields[sub_field_name] = CharField(label=field_title if self.uses_bootstrap3 else lang_field_title,
                                                        required=False,
                                                        initial=values[language].strip(),
                                                        max_length=model_field.i18n_max_length,
                                                        help_text=form_field.help_text)
+                if self.uses_bootstrap3:
+                    new_fields[sub_field_name].widget.attrs.update({
+                        "addon_before": language,
+                        "placeholder": lang_field_title,
+                        "class": (
+                            ("lang-hide-label" if i > 0 else "")
+                            + ("lang-hide-help-text" if i != max_i else "")
+                        ).strip(),
+                    })
 
             if has_values:
                 self.i18n_fields.append((model_field, values))

@@ -125,6 +125,7 @@ body:not(.map-enabled) #sidebar {
     padding:0 0 12px;
     position:sticky;
     min-height:50px;
+    z-index: 1000;
     bottom:0;
     background-color: #ffffff;
     box-shadow: 0 0 10px 10px #ffffff;
@@ -561,4 +562,27 @@ label.theme-color-label {
     &.leaflet-control-overlays-expanded > .content {
         display: flex;
     }
+}
+
+.form-group:has(.input-group .lang-hide-label) {
+    label {
+        display: none;
+    }
+}
+.form-group:has(.input-group .lang-hide-help-text) {
+    .help-block {
+        display: none;
+    }
+}
+
+.form-group:has(.half-width-a, .half-width-b) {
+    width: calc(50% - 7px);
+    display: inline-block;
+    vertical-align: top;
+}
+.form-group:has(.half-width-a) {
+    margin-right: 5px;
+}
+.form-group:has(.half-width-b) {
+    margin-left: 5px;
 }
