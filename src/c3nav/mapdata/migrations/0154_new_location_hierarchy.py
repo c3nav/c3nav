@@ -188,4 +188,95 @@ class Migration(migrations.Migration):
             name='include_in_random_location',
             field=models.BooleanField(default=False, verbose_name='include this and descendants with no children in random location feature'),
         ),
+
+        migrations.AddField(
+            model_name='altitudearea',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='altitudemarker',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='area',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='beaconmeasurement',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='building',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='column',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='dataoverlayfeature',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='import_tag',
+            field=models.CharField(blank=True, max_length=64, null=True, verbose_name='import tag'),
+        ),
+        migrations.AddField(
+            model_name='door',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='graphnode',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='hole',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='lineobstacle',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='obstacle',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='poi',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='ramp',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='rangingbeacon',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='space',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.AddField(
+            model_name='stair',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
     ]

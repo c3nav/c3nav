@@ -28,7 +28,9 @@ class GeometryMixin(models.Model):
     geometry: BaseGeometry
     level_id: int
     subtitle: str
+
     import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=64)
+    import_block = models.BooleanField(_('don\'t change on import'), default=False)
 
     class Meta:
         abstract = True

@@ -131,6 +131,13 @@ def migrate_location_hierarchy(apps, model_name):
             include_in_random_location=True
         )
 
+    for specific_location in SpecificLocation.objects.prefetch_related("levels", "spaces", "areas", "pois"):
+        for target in chain(specific_location.levels.all(),
+                            specific_location.spaces.all(),
+                            specific_location.areas.all(),
+                            specific_location.pois.all()):
+            target.import_block = specific_location.import_block_geom
+
 
 def unmigrate_location_hierarchy(apps, model_name):
     LocationSlug = apps.get_model('mapdata', 'LocationSlug')
@@ -143,6 +150,13 @@ def unmigrate_location_hierarchy(apps, model_name):
 
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
+
+    for specific_location in SpecificLocation.objects.prefetch_related("levels", "spaces", "areas", "pois"):
+        for target in chain(specific_location.levels.all(),
+                            specific_location.spaces.all(),
+                            specific_location.areas.all(),
+                            specific_location.pois.all()):
+            specific_location.import_block_geom = target.import_block
 
     # locations with no parents / top level
     # these are either former categories or specificlocation without a group
