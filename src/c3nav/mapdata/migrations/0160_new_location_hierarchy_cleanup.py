@@ -102,5 +102,18 @@ class Migration(migrations.Migration):
             name='definedlocation',
             options={'default_related_name': 'defined_locations', 'verbose_name': 'Defined Location', 'verbose_name_plural': 'Defined Locations'},
         ),
-
+        migrations.RemoveField(
+            model_name='definedlocation',
+            name='import_block_geom',
+        ),
+        migrations.RenameField(
+            model_name='definedlocation',
+            old_name='import_block_data',
+            new_name='import_block',
+        ),
+        migrations.AlterField(
+            model_name='definedlocation',
+            name='import_block',
+            field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
     ]
