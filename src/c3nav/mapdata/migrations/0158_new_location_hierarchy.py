@@ -152,7 +152,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('num_hops', models.PositiveSmallIntegerField()),
-                ('ancestry', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='paths', to='mapdata.locationancestry')),
+                ('ancestry', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='paths', to='mapdata.locationancestry')),
                 ('parentage', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.locationparentage')),
                 ('prev_path', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.locationancestrypath')),
             ],
