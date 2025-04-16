@@ -1,5 +1,3 @@
-from django.urls import Resolver404, resolve
-from django.utils.translation import gettext_lazy as _
 from ninja import Router as APIRouter
 from shapely.geometry.geo import mapping
 
@@ -9,7 +7,7 @@ from c3nav.editor.api.base import api_etag_with_update_cache_key
 from c3nav.editor.api.geometries import get_level_geometries_result, get_space_geometries_result
 from c3nav.editor.api.schemas import EditorGeometriesElemSchema, EditorID, GeometryStylesSchema, UpdateCacheKey, \
     EditorBeaconsLookup
-from c3nav.editor.views.base import editor_etag_func, accesses_mapdata
+from c3nav.editor.views.base import accesses_mapdata
 from c3nav.mapdata.api.base import api_etag
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.schemas.responses import WithBoundsSchema

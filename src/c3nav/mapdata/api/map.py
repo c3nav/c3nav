@@ -62,7 +62,7 @@ def map_settings(request):
 @map_api_router.get('/bounds/', summary="get boundaries",
                     description="get maximum boundaries of everything on the map",
                     response={200: WithBoundsSchema, **auth_responses})
-@api_etag(permissions=False)
+@api_etag(cache_job_types=("mapdata.recalculate_geometries", ), permissions=False)
 def bounds(request):
     return {
         "bounds": Level.max_bounds(),
@@ -88,7 +88,7 @@ class LocationListFilters(BaseSchema):
 @map_api_router.get('/locations/', summary="list locations",
                     description="Get locations",
                     response={200: list[ListedLocationItemSchema], **validate_responses, **auth_responses})
-@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
         return LocationManager.get_searchable().values()
@@ -107,7 +107,7 @@ class ShowRedirects(BaseSchema):
                     description="Retrieve location",
                     response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
-@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: custom location changes later
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
     location = LocationManager.get(identifier)
 
@@ -131,7 +131,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
                     description="Retrieve displayable information about a location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
-@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
+@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: custom location changes later
 def location_display(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
     if location is None:
@@ -152,7 +152,7 @@ def location_display(request, identifier: LocationIdentifier):
                     description="Get location geometries (if available)",
                     response={200: GeometriesByLevelSchema, **API404.dict(), **auth_responses})
 @api_stats('location_geometries')
-@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: finer job_types
+@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_definedlocation_final", ))
 def location_geometries(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
 
@@ -241,9 +241,9 @@ Legend
 
 
 @map_api_router.get('/legend/{theme_id}/', summary="get legend",
-                        description="Get legend / color key fo theme",
+                        description="Get legend / color key for theme",
                         response={200: LegendSchema, **API404.dict(), **auth_responses})
-@api_etag(permissions=True)
+@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ), permissions=True)
 def legend_for_theme(request, theme_id: int):
     try:
         manager = ColorManager.for_theme(theme_id or None)
@@ -251,7 +251,7 @@ def legend_for_theme(request, theme_id: int):
         raise API404()
     legend_locations = DefinedLocation.objects.filter(in_legend=True).prefetch_related(
         Prefetch("calculated_descendants", DefinedLocation.objects.only("pk")),
-    )
+    ).order_by("effective_depth_first_order")
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
         pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),
