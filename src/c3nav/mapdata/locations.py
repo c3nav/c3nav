@@ -21,6 +21,7 @@ from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
 from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
+from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 
 try:
     from asgiref.local import Local as LocalContext
@@ -43,7 +44,7 @@ class SlugTarget(NamedTuple):
 
 
 class LocationManager:
-    _cache_key = None
+    _cache_key: MapUpdateTuple | None = None
     _all_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
     _visible_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
     _searchable_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
@@ -167,34 +168,39 @@ class LocationManager:
 
     @classmethod
     def _maybe_update(cls):
+        update = MapUpdate.last_update("recalculate_definedlocation_final")
+        update_id = None if update is None else update.update_id
+        if update_id != cls._cache_key:
+            cls.update(update_id)
+
+    @classmethod
+    def update(cls, update_id: int | None):
         # todo: altitude of points could change later!!
-        cache_key = MapUpdate.last_update("mapdata.recalculate_definedlocation_cached_from_parents")
-        if cache_key != cls._cache_key:
-            cls._cache_key = cache_key
-            with active_map_permissions.disable_access_checks():
-                cache_key = f'mapdata:all_locations:{cache_key}'
-                all_locations: dict[int, DefinedLocation] | None
-                all_locations = cache.get(cache_key, None)
-                if all_locations is None:
-                    all_locations = cls.generate_locations_by_id()
-                    cache.set(cache_key, all_locations, 1800)
-                cls._all_locations = MapPermissionGuardedMapping(all_locations)
-                cls._visible_locations = MapPermissionGuardedMapping({
-                    pk: location for pk, location in all_locations.items()
-                    if location.can_search or location.can_describe
-                })
-                cls._searchable_locations = MapPermissionGuardedMapping({
-                    pk: location for pk, location in all_locations.items()
-                    if location.can_describe
-                })
-                cls._locations_by_slug = {
-                    location_slug.slug: SlugTarget(target_id=location_slug.target_id, redirect=location_slug.redirect)
-                    for location_slug in LocationSlug.objects.all()
-                }
-                cls._levels_by_level_index = MapPermissionGuardedMapping({
-                    level.level_index: level
-                    for level in Level.objects.filter(on_top_of_id__isnull=True).order_by('base_altitude')
-                })
+        cls._cache_key = update_id
+        with active_map_permissions.disable_access_checks():
+            cache_key = f'mapdata:all_locations:{update_id}'
+            all_locations: dict[int, DefinedLocation] | None
+            all_locations = cache.get(cache_key, None)
+            if all_locations is None:
+                all_locations = cls.generate_locations_by_id()
+                cache.set(cache_key, all_locations, 1800)
+            cls._all_locations = MapPermissionGuardedMapping(all_locations)
+            cls._visible_locations = MapPermissionGuardedMapping({
+                pk: location for pk, location in all_locations.items()
+                if location.can_search or location.can_describe
+            })
+            cls._searchable_locations = MapPermissionGuardedMapping({
+                pk: location for pk, location in all_locations.items()
+                if location.can_describe
+            })
+            cls._locations_by_slug = {
+                location_slug.slug: SlugTarget(target_id=location_slug.target_id, redirect=location_slug.redirect)
+                for location_slug in LocationSlug.objects.all()
+            }
+            cls._levels_by_level_index = MapPermissionGuardedMapping({
+                level.level_index: level
+                for level in Level.objects.filter(on_top_of_id__isnull=True).order_by('base_altitude')
+            })
 
     @classmethod
     def generate_locations_by_id(cls) -> dict[int, DefinedLocation]:
