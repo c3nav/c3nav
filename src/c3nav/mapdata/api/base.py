@@ -6,7 +6,6 @@ from typing import Optional, Callable
 from django.conf import settings
 from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Prefetch
 from django.utils.cache import get_conditional_response
 from django.utils.http import quote_etag
 from django.utils.translation import get_language
@@ -14,11 +13,9 @@ from ninja.decorators import decorate_view
 
 from c3nav.mapdata.models import AccessRestriction, MapUpdate
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.proxied import LocalCacheProxy, VersionedCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
-
 
 # todo: this ignores expire… so… hm?
 request_cache = VersionedCacheProxy(LocalCacheProxy(maxsize=settings.CACHE_SIZE_API))

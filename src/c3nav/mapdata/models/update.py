@@ -174,7 +174,7 @@ class MapUpdate(models.Model):
     @classmethod
     def last_update(cls, *job_types: str, nocache: bool = False) -> MapUpdateTuple:
         """
-        Get oldest MapUpdateTuple for the given job types.
+        Get oldest MapUpdateTuple for the given job types. todo: why the oldest?
         The job needs to not have been skipped (needs to have returned True).
         If no job types are given, return MapUpdateTuple for latest map update.
         """

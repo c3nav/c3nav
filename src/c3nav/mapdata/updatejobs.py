@@ -1,19 +1,14 @@
 import logging
-from collections import deque, defaultdict
 from dataclasses import dataclass
 from functools import wraps
-from itertools import groupby, chain
-from operator import attrgetter
 from typing import Callable, Iterable, NamedTuple, Optional
 
 from django.conf import settings
 from django.db import IntegrityError, transaction, DatabaseError
-from django.db.models.expressions import F
-from django.db.models.query_utils import Q
 from django.utils import timezone
 
 from c3nav.mapdata.models import MapUpdate, AltitudeArea, Level, Space, Area
-from c3nav.mapdata.models.locations import DefinedLocation, LocationParentage, LocationAncestry, LocationAncestryPath
+from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.render.renderdata import LevelRenderData
