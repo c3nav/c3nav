@@ -21,11 +21,11 @@ from shapely.geometry.geo import mapping
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models import GraphEdge, Source, GraphNode, Space, LocationSlug, WayType
+from c3nav.mapdata.models import GraphEdge, Source, GraphNode, Space, LocationSlug, WayType, GroundAltitude
 from c3nav.mapdata.models.access import AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
 from c3nav.mapdata.models.locations import DefinedLocation
-from c3nav.mapdata.models.theme import ThemeLocationBackgroundColor, ThemeObstacleGroupBackgroundColor
+from c3nav.mapdata.models.theme import ThemeLocationBackgroundColor, ThemeObstacleGroupBackgroundColor, Theme
 from c3nav.mapdata.permissions import active_map_permissions
 
 
@@ -37,8 +37,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
 
-        # todo: why access model __name__ here, further down as well
-        if self._meta.model.__name__ == 'Theme':
+        if self._meta.model == Theme:
             if creating:
                 location_theme_colors = {}
                 obstaclegroup_theme_colors = {}
@@ -140,7 +139,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 self.fields[a].widget.attrs["class"] = "half-width-a"
                 self.fields[b].widget.attrs["class"] = "half-width-b"
 
-        if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
+        if self._meta.model == Source and self.request.user.is_superuser:
             sources = {s['name']: s for s in Source.objects.all().values('name', 'access_restriction_id',
                                                                          'left', 'bottom', 'right', 'top')}
             used_names = set(sources.keys())
@@ -184,21 +183,19 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 self.fields.move_to_end('copy_from', last=False)
             self.fields.move_to_end('name', last=False)
 
-        if self._meta.model.__name__ == 'AccessRestrictionGroup':
-            self.fields['members'].label_from_instance = lambda obj: obj.title
-
-        if 'groundaltitude' in self.fields:
-            self.fields['groundaltitude'].label_from_instance = attrgetter('choice_label')
-
-        for name in ('category', 'label_settings', 'load_group_contribute', 'load_group_display'):
-            if name in self.fields:
-                self.fields[name].label_from_instance = attrgetter('title')
-
-        if 'access_restriction' in self.fields:
-            self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
-            self.fields['access_restriction'].queryset = AccessRestriction.objects.order_by(
-                "titles__"+get_language(), "titles__en"
-            )
+        for name, field in self.fields.items():
+            if isinstance(field, ModelChoiceField):
+                # reevaluate to honor permissions
+                field.queryset = field.queryset.model.objects.all()
+                if field.queryset.model == GroundAltitude:
+                    field.label_from_instance = attrgetter("choice_label")
+                if hasattr(field.queryset.model, "title"):
+                    field.label_from_instance = attrgetter("title")
+                    if hasattr(field.queryset.model, "titles"):
+                        # oder by title for easier access
+                        field.queryset = field.queryset.order_by(
+                            "titles__" + get_language(), "titles__en"
+                        )
 
         if 'base_mapdata_accessible' in self.fields:
             if not request.user.is_superuser:
@@ -337,7 +334,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             for slug, r in self.add_slugs.items():
                 self.instance.slug_set.create(slug=slug, redirect=r)
 
-        if self._meta.model.__name__ == 'Theme':
+        if self._meta.model == Theme:
             location_colors = {theme_location.location_group_id: theme_location
                                     for theme_location in self.instance.locations.all()}
             for location in DefinedLocation.objects.filter(color__isnull=False):
