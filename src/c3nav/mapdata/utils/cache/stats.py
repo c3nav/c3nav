@@ -10,6 +10,7 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, LocationSlug, Space
 from c3nav.mapdata.models.geometry.space import POI, Area, BeaconMeasurement
 from c3nav.mapdata.locations import CustomLocation, LocationManager
+from c3nav.mapdata.models.locations import DefinedLocation
 
 
 def increment_cache_key(cache_key):
@@ -91,7 +92,7 @@ def convert_locate(data):
         space_slug = measurement.space.effective_slug
         level_label = measurement.space.level.level_index
         grid_square = pos.grid_square if grid.enabled else None
-        measurement_lookup[pos.pk] = (measurement.pk, grid_square, space_slug, level_label)
+        measurement_lookup[pos.rounded_pk] = (measurement.pk, grid_square, space_slug, level_label)
         result['by_measurement_id'][measurement.pk] = 0
         if grid_square:
             result['by_grid_square'][grid_square] = 0
@@ -115,7 +116,7 @@ def convert_locate(data):
 
 
 def convert_location(data):
-    # todo: this still needs to be reimplemented with groups and all
+    # todo: modernize this, this is just the pre location hierarchy code adapted to work again
     result = {
         'total': 0,
         'invalid': 0,
@@ -136,29 +137,36 @@ def convert_location(data):
     }
 
     # fill up lists with zeros
-    location_slugs = {}
     level_indices = {}
-    for location in LocationSlug.objects.all():
-        location = location.get_child()
-        if isinstance(location, LocationRedirect):
-            continue
-        result['locations']['by_type'].setdefault(location.__class__.__name__.lower(), {})[location.effective_slug] = 0
-        location_slugs[location.pk] = location.effective_slug
-        if isinstance(location, Level):
-            result['locations']['by_level'][location.level_index] = 0
-            result['coordinates']['by_level'][location.level_index] = 0
-            level_indices[location.pk] = location.short_label
-        if isinstance(location, Space):
-            result['locations']['by_space'][location.effective_slug] = 0
-            result['coordinates']['by_space'][location.effective_slug] = 0
-        if isinstance(location, Area):
-            if getattr(location, 'can_search', False) or getattr(location, 'can_describe', False):
-                result['coordinates']['by_area'][location.effective_slug] = 0
-        if isinstance(location, POI):
-            if getattr(location, 'can_search', False) or getattr(location, 'can_describe', False):
-                result['coordinates']['by_poi'][location.effective_slug] = 0
-        if isinstance(location, LocationGroup):
-            result['locations']['by_group'][location.effective_slug] = 0
+    space_slugs = {}
+    area_slugs = {}
+    poi_slugs = {}
+
+    for level_id, level_index in Level.objects.values_list("pk", "level_index"):
+        result['locations']['by_level'][level_index] = 0
+        result['coordinates']['by_level'][level_index] = 0
+        level_indices[level_id] = level_index
+
+    for space in Space.objects.prefetch_related("locations").only("id"):
+        location = space.get_location()
+        space_slugs[space.id] = location.effective_slug
+        result['locations']['by_space'][location.effective_slug] = 0
+        result['coordinates']['by_space'][location.effective_slug] = 0
+
+    for area in Area.objects.prefetch_related("locations").only("id"):
+        location = area.get_location()
+        area_slugs[area.id] = location.effective_slug
+        if getattr(location, 'can_search', False) or getattr(location, 'can_describe', False):
+            result['coordinates']['by_area'][location.effective_slug] = 0
+
+    for poi in POI.objects.prefetch_related("locations").only("id"):
+        location = poi.get_location()
+        poi_slugs[poi.id] = location.effective_slug
+        if getattr(location, 'can_search', False) or getattr(location, 'can_describe', False):
+            result['coordinates']['by_poi'][location.effective_slug] = 0
+
+    for group in DefinedLocation.objects.filter(children__isnull=False).only("id"):
+        result['locations']['by_group'][group.effective_slug] = 0
 
     for name, value in data:
         if name[0] != 'pk' or name[0] == 'c:anywhere':
@@ -172,28 +180,27 @@ def convert_location(data):
             location.x += 1.5
             location.y += 1.5
             result['coordinates']['total'] += value
-            result['coordinates']['by_level'][location_slugs[location.level.pk]] += value
-            if location.space is None:
+            result['coordinates']['by_level'][level_indices[location.nearby.level]] += value
+            if location.nearby.space is None:
                 continue
-            result['coordinates']['by_space'][location_slugs[location.space.pk]] += value
-            for area in location.areas:
-                result['coordinates']['by_area'][location_slugs[area.pk]] += value
-            if location.near_area:
-                result['coordinates']['by_area'][location_slugs[location.near_area.pk]] += value
-            if location.near_poi:
-                result['coordinates']['by_poi'][location_slugs[location.near_poi.pk]] += value
+            result['coordinates']['by_space'][space_slugs[location.nearby.space]] += value
+            for area in location.nearby.areas:
+                result['coordinates']['by_area'][area_slugs[area]] += value
+            if location.nearby.near_area:
+                result['coordinates']['by_area'][area_slugs[location.nearby.near_area]] += value
+            if location.nearby.near_poi:
+                result['coordinates']['by_poi'][poi_slugs[location.nearby.near_poi]] += value
         else:
             result['locations']['total'] += value
             location = getattr(location, 'target', location)
-            result['locations']['by_type'].setdefault(location.__class__.__name__.lower(),
-                                                      {})[location.effective_slug] += value
             if hasattr(location, 'space_id'):
-                result['locations']['by_space'][location_slugs[location.space_id]] += value
+                result['locations']['by_space'][space_slugs[location.space_id]] += value
             if hasattr(location, 'level_id'):
                 result['locations']['by_level'][level_indices[location.level_id]] += value
-            if hasattr(location, 'groups'):
-                for group in location.groups.all():
-                    result['locations']['by_group'][location_slugs[group.pk]] += value
+            # todo: improve this
+            if hasattr(location, "display_superlocations"):
+                for display in location.display_superlocations:
+                    result['locations']['by_group'][display["slug"]] += value
 
     _sort_count(result['locations']['by_type'], 'level')
     _sort_count(result['locations']['by_type'], 'space')
