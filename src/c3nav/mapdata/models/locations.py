@@ -1321,6 +1321,7 @@ class DefinedLocationTargetMixin(models.Model):
 
     @property
     def title(self) -> str:
+        # todo: precalculate
         return self.sorted_locations[0].title if self.sorted_locations else str(self)
 
     @property

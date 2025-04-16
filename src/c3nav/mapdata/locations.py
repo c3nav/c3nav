@@ -328,7 +328,7 @@ class CustomLocation:
     def nearby(self) -> NearbySchema:
         return NearbySchema(
             level=self.level.pk,
-            space=self._description.space.pk,
+            space=None if self._description.space is None else self._description.space.pk,
             areas=[pk for pk in self._description.areas],
             near_area=self._description.near_area.pk if self._description.near_area else None,
             near_poi=self._description.near_poi.pk if self._description.near_poi else None,
@@ -350,6 +350,7 @@ class CustomLocation:
             return title, level_subtitle
 
         subtitle = ()
+        # todo: this might be broken currently?
         if self._description.near_poi:
             title = _('Near %(poi)s') % {'poi': self._description.near_poi.title}
             if self._description.areas:
