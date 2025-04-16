@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction, DatabaseError
 from django.utils import timezone
 
+from c3nav.mapdata.locations import LocationManager
 from c3nav.mapdata.models import MapUpdate, AltitudeArea, Level, Space, Area
 from c3nav.mapdata.models.locations import DefinedLocation
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
@@ -418,6 +419,7 @@ def recalculate_definedlocation_points(mapupdates: tuple[MapUpdate, ...]) -> boo
                                                   recalculate_definedlocation_static_targets,
                                                   recalculate_definedlocation_dynamic_targets,))
 def recalculate_definedlocation_final(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    LocationManager.update(mapupdates[-1].pk)
     return True
 
 
