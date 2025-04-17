@@ -67,7 +67,8 @@ class GeometryChangeTracker:
             geometries = unary_union(geometries)
             if geometries.is_empty:
                 continue
-            history = MapHistory.open_level(level_id, mode='base', default_update=last_update)
+            # todo: is new_update really better here? we sure hope it is
+            history = MapHistory.open_level(level_id, mode='base', default_update=new_update)
             history.add_geometry(geometries.buffer(1), new_update)
             history.save()
         self.reset()
