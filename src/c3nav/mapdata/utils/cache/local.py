@@ -41,18 +41,27 @@ class LocalCacheProxy:
             self._items.pop(next(iter(self._items.keys())))
 
     def _check_mapupdate(self):
-        # todo: would be nice to not need this… why do we need this?
-
+        # todo: thanks to enable_globally() we shouldn't need this any more
         from c3nav.mapdata.models import MapUpdate
         mapupdate = MapUpdate.current_cache_key()
         if self._mapupdate != mapupdate:
             self._items = OrderedDict()
             self._mapupdate = mapupdate
 
+    enabled = False
+    @classmethod
+    def enable_globally(cls):
+        """
+        This gets called when the per request cache middleware is loaded.
+        We don't want local cache proxies to work outside of requests.
+        """
+        LocalCacheProxy.enabled = False
+
     def set(self, key, value, expire):
         self._check_mapupdate()
         cache.set(key, value, expire)
-        self._items[key] = value
+        if LocalCacheProxy.enabled:
+            self._items[key] = value
         self._prune()
 
     def clear(self):

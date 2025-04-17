@@ -1,7 +1,7 @@
 import re
 from functools import wraps
 
-from c3nav.mapdata.utils.cache.local import per_request_cache
+from c3nav.mapdata.utils.cache.local import per_request_cache, LocalCacheProxy
 from c3nav.mapdata.utils.user import get_user_data_lazy
 
 
@@ -64,6 +64,7 @@ class RequestCacheMiddleware:
     """
     def __init__(self, get_response):
         self.get_response = get_response
+        LocalCacheProxy.enable_globally()
 
     def __call__(self, request):
         per_request_cache.clear()
