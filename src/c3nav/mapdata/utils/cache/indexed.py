@@ -4,16 +4,17 @@ from os import PathLike
 from pathlib import Path
 from typing import Self, Optional, Union, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from numpy.typing import NDArray
-    from shapely import Polygon, MultiPolygon
-
 import numpy as np
+from numpy.typing import NDArray
 
 try:
     from asgiref.local import Local as LocalContext
 except ImportError:
     from threading import local as LocalContext
+
+
+if TYPE_CHECKING:
+    from shapely import Polygon, MultiPolygon
 
 
 class GeometryIndexed:
@@ -30,18 +31,18 @@ class GeometryIndexed:
     variant_id = 0
 
     def __init__(self, resolution: Optional[int] = None, x: int = 0, y: int = 0,
-                 data: 'NDArray' = None, filename: str | bytes | PathLike = None):
+                 data: NDArray = None, filename: str | bytes | PathLike = None):
         if resolution is None:
             from django.conf import settings
             resolution = settings.CACHE_RESOLUTION
         self.resolution: int = resolution
         self.x = x
         self.y = y
-        self.data: 'NDArray' = data if data is not None else self._get_empty_array()
+        self.data: NDArray = data if data is not None else self._get_empty_array()
         self.filename = filename
 
     @classmethod
-    def _get_empty_array(cls) -> 'NDArray':
+    def _get_empty_array(cls) -> NDArray:
         return np.empty((0, 0), dtype=cls.dtype)
 
     @classmethod
@@ -120,7 +121,7 @@ class GeometryIndexed:
         self.y = miny
 
     def get_geometry_cells(self, geometry: Union['Polygon','MultiPolygon'],
-                           bounds: Optional[tuple[int, int, int, int]] = None) -> 'NDArray':
+                           bounds: Optional[tuple[int, int, int, int]] = None) -> NDArray:
         if bounds is None:
             bounds = self.get_geometry_bounds(geometry)
         minx, miny, maxx, maxy = bounds
@@ -173,7 +174,7 @@ class GeometryIndexed:
 
         raise TypeError('GeometryIndexed index must be a shapely geometry or tuple, not %s' % type(key).__name__)
 
-    def __setitem__(self, key: Union['Polygon','MultiPolygon'], value: 'NDArray' | int):
+    def __setitem__(self, key: Union['Polygon','MultiPolygon'], value: NDArray | int):
         from shapely.geometry.base import BaseGeometry
         if isinstance(key, BaseGeometry):
             bounds = self.get_geometry_bounds(key)
