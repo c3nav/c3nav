@@ -4,7 +4,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Self, Optional
 
-from scipy.linalg._decomp_interpolative import NDArray
+from numpy.typing import NDArray
 from shapely import Polygon, MultiPolygon
 
 import numpy as np

@@ -5,7 +5,7 @@ from os import PathLike
 from typing import Self, Iterator
 
 import numpy as np
-from scipy.linalg._decomp_interpolative import NDArray
+from numpy.typing import NDArray
 from shapely import Polygon, MultiPolygon
 
 from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
