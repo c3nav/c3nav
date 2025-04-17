@@ -8,7 +8,15 @@ and potential backwards incompatibilities.
 
 # Easterhegg 2025 (development ongoing)
 
-- Fix bug that prevented the UI from working when no overlays were configured
+Behind the scenes, comfort, bug fixes:
+
+- fix bug that prevented the UI from working when no overlays were configured
+- add instance name to sentry bug reports
+- avoid excessive number of queries in the theme code during every request
+- rip out awful old Editor API that hopefully noone ever used
+- finally tracked down the bug locking the entire map while processupdates was running,
+  meaning you can not continue using the editor while processupdates is running.
+- better type hinting in some places
 
 # 38. Chaos Communication Congress ([38c3](https://github.com/c3nav/c3nav/tree/38c3))
 
