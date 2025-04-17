@@ -1,6 +1,5 @@
 import os
 import struct
-from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
 from tarfile import TarFile, TarInfo

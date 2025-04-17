@@ -5,9 +5,9 @@ from os import PathLike
 from typing import Self, Iterator, Union, TYPE_CHECKING
 
 import numpy as np
+from numpy.typing import NDArray
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
     from shapely import Polygon, MultiPolygon
 
 from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
@@ -75,10 +75,10 @@ class AccessRestrictionAffectedCells:
         self.selector = selector
         self.values = self._get_values()
 
-    def _get_values(self) -> 'NDArray':
+    def _get_values(self) -> NDArray:
         return LevelGeometryIndexed.__getitem__(self.parent, self.selector)
 
-    def _set(self, values: 'NDArray'):
+    def _set(self, values: NDArray):
         self.values = values
         LevelGeometryIndexed.__setitem__(self.parent, self.selector, values)
 

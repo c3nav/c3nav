@@ -12,7 +12,6 @@ try:
 except ImportError:
     from threading import local as LocalContext
 
-
 if TYPE_CHECKING:
     from shapely import Polygon, MultiPolygon
 

@@ -1,13 +1,15 @@
 import struct
 from itertools import chain
 from os import PathLike
-from typing import Optional, Self
-from shapely import Polygon, MultiPolygon
+from typing import Optional, Self, TYPE_CHECKING, Union
 
 import numpy as np
 
 from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
+
+if TYPE_CHECKING:
+    from shapely import Polygon, MultiPolygon
 
 
 class MapHistory(LevelGeometryIndexed):
@@ -48,7 +50,7 @@ class MapHistory(LevelGeometryIndexed):
             instance.save()
         return instance
 
-    def add_geometry(self, geometry: Polygon | MultiPolygon, update: MapUpdateTuple):
+    def add_geometry(self, geometry: Union["Polygon", "MultiPolygon"], update: MapUpdateTuple):
         if self.updates[-1] != update:
             self.updates.append(update)
 
@@ -67,7 +69,7 @@ class MapHistory(LevelGeometryIndexed):
         self.simplify()
         super().write(*args, **kwargs)
 
-    def composite(self, other: Self, mask_geometry: Optional[Polygon | MultiPolygon]):
+    def composite(self, other: Self, mask_geometry: Optional[Union["Polygon", "MultiPolygon"]]):
         if self.resolution != other.resolution:
             raise ValueError('Cannot composite with different resolutions.')
 
