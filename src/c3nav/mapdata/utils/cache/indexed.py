@@ -2,10 +2,11 @@ import math
 import struct
 from os import PathLike
 from pathlib import Path
-from typing import Self, Optional
+from typing import Self, Optional, Union, TYPE_CHECKING
 
-from numpy.typing import NDArray
-from shapely import Polygon, MultiPolygon
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+    from shapely import Polygon, MultiPolygon
 
 import numpy as np
 
@@ -29,18 +30,18 @@ class GeometryIndexed:
     variant_id = 0
 
     def __init__(self, resolution: Optional[int] = None, x: int = 0, y: int = 0,
-                 data: NDArray = None, filename: str | bytes | PathLike = None):
+                 data: 'NDArray' = None, filename: str | bytes | PathLike = None):
         if resolution is None:
             from django.conf import settings
             resolution = settings.CACHE_RESOLUTION
         self.resolution: int = resolution
         self.x = x
         self.y = y
-        self.data: NDArray = data if data is not None else self._get_empty_array()
+        self.data: 'NDArray' = data if data is not None else self._get_empty_array()
         self.filename = filename
 
     @classmethod
-    def _get_empty_array(cls) -> NDArray:
+    def _get_empty_array(cls) -> 'NDArray':
         return np.empty((0, 0), dtype=cls.dtype)
 
     @classmethod
@@ -64,7 +65,8 @@ class GeometryIndexed:
         cls._read_metadata(f, kwargs)
 
         # noinspection PyTypeChecker
-        kwargs['data'] = np.fromstring(f.read(width*height*cls.dtype().itemsize), cls.dtype).reshape((height, width))
+        kwargs['data'] = np.fromstring(f.read(width * height * cls.dtype().itemsize), cls.dtype).reshape(
+            (height, width))
         return cls(**kwargs)
 
     @classmethod
@@ -88,7 +90,7 @@ class GeometryIndexed:
     def _write_metadata(self, f):
         pass
 
-    def get_geometry_bounds(self, geometry: Polygon | MultiPolygon) -> tuple[int, int, int, int]:
+    def get_geometry_bounds(self, geometry: Union['Polygon', 'MultiPolygon']) -> tuple[int, int, int, int]:
         minx, miny, maxx, maxy = geometry.bounds
         return (
             int(math.floor(minx / self.resolution)),
@@ -117,8 +119,8 @@ class GeometryIndexed:
         self.x = minx
         self.y = miny
 
-    def get_geometry_cells(self, geometry: Polygon | MultiPolygon,
-                           bounds: Optional[tuple[int, int, int, int]] = None) -> NDArray:
+    def get_geometry_cells(self, geometry: Union['Polygon','MultiPolygon'],
+                           bounds: Optional[tuple[int, int, int, int]] = None) -> 'NDArray':
         if bounds is None:
             bounds = self.get_geometry_bounds(geometry)
         minx, miny, maxx, maxy = bounds
@@ -145,9 +147,9 @@ class GeometryIndexed:
     @property
     def bounds(self) -> tuple[int, int, int, int]:
         height, width = self.data.shape
-        return self.x, self.y, self.x+width, self.y+height
+        return self.x, self.y, self.x + width, self.y + height
 
-    def __getitem__(self, key: tuple[slice, slice] | Polygon | MultiPolygon) -> int:
+    def __getitem__(self, key: Union[tuple[slice, slice], 'Polygon','MultiPolygon']) -> int:
         if isinstance(key, tuple):
             xx, yy = key
 
@@ -171,7 +173,7 @@ class GeometryIndexed:
 
         raise TypeError('GeometryIndexed index must be a shapely geometry or tuple, not %s' % type(key).__name__)
 
-    def __setitem__(self, key: Polygon | MultiPolygon, value: NDArray | int):
+    def __setitem__(self, key: Union['Polygon','MultiPolygon'], value: 'NDArray' | int):
         from shapely.geometry.base import BaseGeometry
         if isinstance(key, BaseGeometry):
             bounds = self.get_geometry_bounds(key)
@@ -187,16 +189,16 @@ class GeometryIndexed:
         (minx, miny), (maxx, maxy) = Source.max_bounds()
 
         height, width = self.data.shape
-        image_data = np.zeros((int(math.ceil((maxy-miny)/self.resolution)),
-                               int(math.ceil((maxx-minx)/self.resolution))), dtype=np.uint8)
+        image_data = np.zeros((int(math.ceil((maxy - miny) / self.resolution)),
+                               int(math.ceil((maxx - minx) / self.resolution))), dtype=np.uint8)
 
         if self.data.size:
             # noinspection PyArgumentList
             minval = min(self.data.min(), 0)
             # noinspection PyArgumentList
-            maxval = max(self.data.max(), minval+0.01)
-            visible_data = ((self.data.astype(float)-minval)*255/(maxval-minval)).clip(0, 255).astype(np.uint8)
-            image_data[self.y:self.y+height, self.x:self.x+width] = visible_data
+            maxval = max(self.data.max(), minval + 0.01)
+            visible_data = ((self.data.astype(float) - minval) * 255 / (maxval - minval)).clip(0, 255).astype(np.uint8)
+            image_data[self.y:self.y + height, self.x:self.x + width] = visible_data
 
         from PIL import Image
         return Image.fromarray(np.flip(image_data, axis=0), 'L')

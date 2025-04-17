@@ -2,11 +2,13 @@ import operator
 import struct
 from functools import reduce
 from os import PathLike
-from typing import Self, Iterator
+from typing import Self, Iterator, Union, TYPE_CHECKING
 
 import numpy as np
-from numpy.typing import NDArray
-from shapely import Polygon, MultiPolygon
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+    from shapely import Polygon, MultiPolygon
 
 from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
 
@@ -59,7 +61,7 @@ class AccessRestrictionAffected(LevelGeometryIndexed):
             self.restrictions.append(restriction)
         return i
 
-    def __getitem__(self, selector: tuple[slice, slice] | Polygon | MultiPolygon) -> "AccessRestrictionAffectedCells":
+    def __getitem__(self, selector: Union[tuple[slice, slice], 'Polygon', 'MultiPolygon']) -> "AccessRestrictionAffectedCells":
         return AccessRestrictionAffectedCells(self, selector)
 
     def __setitem__(self, selector, value):
@@ -68,15 +70,15 @@ class AccessRestrictionAffected(LevelGeometryIndexed):
 
 class AccessRestrictionAffectedCells:
     def __init__(self, parent: AccessRestrictionAffected,
-                 selector: tuple[slice, slice] | Polygon | MultiPolygon):
+                 selector: Union[tuple[slice, slice], 'Polygon','MultiPolygon']):
         self.parent = parent
         self.selector = selector
         self.values = self._get_values()
 
-    def _get_values(self) -> NDArray:
+    def _get_values(self) -> 'NDArray':
         return LevelGeometryIndexed.__getitem__(self.parent, self.selector)
 
-    def _set(self, values: NDArray):
+    def _set(self, values: 'NDArray'):
         self.values = values
         LevelGeometryIndexed.__setitem__(self.parent, self.selector, values)
 
