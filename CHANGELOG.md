@@ -6,6 +6,58 @@ This file aims to give you an idea of what has changed between events where c3na
 development team. These lists do not aim to be complete but help you get an overview about the most iportant changes
 and potential backwards incompatibilities.
 
+# New Location Hierarchy branch
+
+Location Restructuring:
+
+- Previously, Locations were either Specific Locations, which would be Levels, Spaces, Areas, POIs or Dynamic Locations,
+  or a Location Group. This entire concept has been removed. Updating will migrate your data.
+- Now, there are only Locations and Location Targets. 
+- A location can be a Custom Location (coordinates), a (moving) Position or a Defined Location.
+- A location target can be a Level, Space, Area, POI or Dynamic Location Target (which links to a Position).
+- Defined Locations become a acyclic directed graph, meaning every defined location can have multiple parents.
+- A defined location can point to 0-* Location Targets
+- Specific Locations, Location Groups and Location Group Categories have all been converted to Defined Locations.
+- Inheritable attributes like color get inherited from the highest priority parent.
+- For search, defined locations are ranked by depth first, priority second.
+- Searching for a Location with children will match all of its descendant's targets,
+  which means you can now easily Group locations based on Purpose, Building Section, Building, Event, …
+- Location Targets can belong to more than one location. This makes it possible to have, for example,
+  two locations for one Space, one being the Room Number given by the building and another one being the Name
+  given to it by the event.
+- The next step after this restructuring is to restructure geometries/location targets.
+- Some improvements in the Editor to deal with this new model are still on the way.
+- A lot of things were changed to make this restructuring possible, overhauling, modernizing and improving a lot of
+  code on the way.
+
+Big stuff:
+
+- Processupdates is now divided into different jobs. This makes it possible for some parts
+  of its results to be used before all of it has run throguh, as well as paralelization of 
+  the work being done.
+- The API has changed in many places, the location API is much more unified,
+  and easier to use. We focused keeping changes in a level where it will not be hard
+  to adapt your code.
+- Map permissions are now tracked using a context manager, enhancing security and clearing
+  up the code base. In most places, we now cache special objects that can filter lists or
+  modify values efficiently on the fly for the correct permission set.
+- Many things are now cached in the databse or cached more efficiently and with less duplicates, 
+  which should improve response times and memory footprint. We plan to make cache keys / E-tags more
+  granular in the future to improve peformance and data usage.
+- Many things that used to be generated and cached on the first page load, are now generated and 
+  cached by processupdates.
+- Geometries will now be correctly cropped to spaces etc when highlighted on the map.
+- A lot more type hinting in the codebase, much code modernizatino.
+- A lof of old serialization code has been removed, we use pydantic more directly now. Thanks to multi-model 
+  inheritance being gone the entire code base and inheritance is now easier to understand. 
+
+Semi-big stuff:
+
+- Maximum bounds on the public front-end is now determined by the maximum bounds of
+  the rendered area, not the maximum Source bounds.
+- Fix some bugs in how routes were rendered in the front end (point overrides).
+
+
 # 39. Chaos Communication Congress ([39c3](https://github.com/c3nav/c3nav/tree/39c3))
 
 New features:
@@ -44,7 +96,7 @@ Bugfixes:
 - Fix language caching issue for custom locations
 - Fix editor getting unresponsive on mobile devices when clicking the map to select
 - Fix auth status API endpoint
- 
+
 
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
 
