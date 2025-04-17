@@ -243,6 +243,12 @@ class ChangeSet(models.Model):
 
             ids = [obj.obj.id for obj in objects.values()]
             space_ids = set(model.objects.filter(pk__in=ids).values_list('space_id', flat=True))
+            space_ids |= {filter(None, (object.get("space", object.fields.get("space_id", None))
+                                        for object in objects.values() if object.created))}
+
+            if not space_ids:
+                # this shouldn't happen
+                raise ValueError
 
             try:
                 model._meta.get_field('origin_space')
