@@ -55,7 +55,7 @@ class LocalCacheProxy:
         This gets called when the per request cache middleware is loaded.
         We don't want local cache proxies to work outside of requests.
         """
-        LocalCacheProxy.enabled = False
+        LocalCacheProxy.enabled = True
 
     def set(self, key, value, expire):
         self._check_mapupdate()
