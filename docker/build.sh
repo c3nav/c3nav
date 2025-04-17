@@ -12,7 +12,7 @@ if [[ "$1" == "git" ]]; then
     CONTEXT="https://github.com/c3nav/c3nav.git#${COMMIT}"
 fi
 
-podman buildx build -f docker/Dockerfile \
+docker buildx build -f docker/Dockerfile \
     --platform linux/arm64,linux/amd64 \
     --build-arg "COMMIT=${COMMIT}" \
     --label "org.opencontainers.image.version=${COMMIT}" \
@@ -25,7 +25,7 @@ podman buildx build -f docker/Dockerfile \
     --cache-to "type=registry,ref=ghcr.io/c3nav/c3nav_cache:main,mode=max" \
     --push "${CONTEXT}"
 
-podman buildx build -f docker/tileserver.dockerfile \
+docker buildx build -f docker/tileserver.dockerfile \
     --platform linux/arm64,linux/amd64 \
     --build-arg "COMMIT=${COMMIT}" \
     --label "org.opencontainers.image.version=${COMMIT}" \
