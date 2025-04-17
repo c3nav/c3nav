@@ -16,7 +16,7 @@ celery==5.4.0
 requests==2.32.3
 Pillow==11.1.0
 qrcode==8.0
-matplotlib==3.10.0
+matplotlib==3.10.1
 scipy==1.15.1
 django_libsass==0.9
 channels==4.2.0
