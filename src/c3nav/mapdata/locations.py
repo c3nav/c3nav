@@ -168,7 +168,7 @@ class LocationManager:
 
     @classmethod
     def _maybe_update(cls):
-        update = MapUpdate.last_update("recalculate_definedlocation_final")
+        update = MapUpdate.last_update("mapdata.recalculate_definedlocation_final")
         update_id = None if update is None else update.update_id
         if update_id != cls._cache_key:
             cls.update(update_id)
