@@ -17,6 +17,9 @@ Behind the scenes, comfort, bug fixes:
 - finally tracked down the bug locking the entire map while processupdates was running,
   meaning you can not continue using the editor while processupdates is running.
 - better type hinting in some places
+- fix bug introduced 4 months ago that allowed users with access to the editor to
+  self-review changesets so long if they only created objects within spaces
+- fix very persistent theme color caching issues  
 
 # 38. Chaos Communication Congress ([38c3](https://github.com/c3nav/c3nav/tree/38c3))
 
