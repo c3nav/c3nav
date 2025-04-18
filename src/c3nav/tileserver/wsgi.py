@@ -297,7 +297,7 @@ class TileServer:
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
-        tile_etag = build_tile_etag(base_cache_key, compressed_access_cache_key, self.tile_secret)
+        tile_etag = build_tile_etag(base_cache_key, compressed_access_cache_key)
         if if_none_match == tile_etag:
             start_response('304 Not Modified', [self.get_date_header(),
                                                 ('Content-Length', '0'),
