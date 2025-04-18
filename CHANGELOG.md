@@ -57,45 +57,10 @@ Semi-big stuff:
   the rendered area, not the maximum Source bounds.
 - Fix some bugs in how routes were rendered in the front end (point overrides).
 
+Behind the scenes, comfort, bug fixes:
 
-# 39. Chaos Communication Congress ([39c3](https://github.com/c3nav/c3nav/tree/39c3))
-
-New features:
-
-- Add option to purge entire cache through UI (previously `clearmapcache --include-history`), and fix total purge sometimes not working.
-- Added option to display the distance to a configured location
-- WEBP support (now used by default)
-- Keep track and collect information about internal room numbers
-- Make it possible to grant access to users directly by username, without access to the user list
-- Add option to retain Wifi trackigng requests of trusted users for later analysis
-- Suggest access points to range in locate requests, allowing ranging with no scanning
-
-Improvements:
-
-- Improved RTT-based wifi positioning
-- Added rtree to avoid expensive calculations performaed for custom location
-- Keep user location visible on map for up to 75 seconds, even if subsequent positioing attempt fail.
-- Tileserver now reloads cache packages at a deterministic time, so they should update around the same time
-- Implement some timeouts in tileserver in case tile renderer is unresponsive
-- Added and fixed CORS-Headers for API and Tileserver
-- Better preview rendering of multi-level location groups
-- Some more Theming options
-- Fix some caching bugs when editing objects
-- Change NOC import to not overwrite corrected positiong
-- Importhub: Ignore broken parent references
-- Added Debug output for tile cache
-
-Bugfixes:
-
-- Make altitude area generation deterministic again
-- Fixed locationredirects API
-- Fixed map breaking when zooming in too far
-- Don't hide locate button when it doesn't make sense to hide it
-- Lots of more caching fixes
-- Fix broken UI / unreachable UI elements on small screens like old iphones
-- Fix language caching issue for custom locations
-- Fix editor getting unresponsive on mobile devices when clicking the map to select
-- Fix auth status API endpoint
+- Storing lists of access permissions in a compressed binary format for cache keys, meaning no more need
+  for hashing cause the values are short and reducing the likeliness of already unlikely collisions.
 
 
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
