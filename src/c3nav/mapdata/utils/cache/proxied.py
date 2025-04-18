@@ -36,12 +36,14 @@ class LocalCacheProxy:
             self._check_mapupdate()
         try:
             # first check out cache
-            result = self._get_items()[key]
-        except KeyError:
+            result = self._items.get()[key]
+        except (KeyError, LookupError) as e:
             # not in our cache
             result = cache.get(key, default=NoneFromCache)
             if result is not NoneFromCache:
-                self._get_items()[key] = result
+                if not isinstance(e, LookupError):
+                    # if there was a lookup error from contextvar… cool. we never calld clear(), so that's a nope.
+                    self._items.get()[key] = result
                 self._prune()
             else:
                 result = default
@@ -51,8 +53,12 @@ class LocalCacheProxy:
 
     def _prune(self):
         # remove old items
-        while len(self._get_items()) > self._maxsize:
-            self._get_items().pop(next(iter(self._get_items().keys())))
+        try:
+            while len(self._items.get()) > self._maxsize:
+                self._items.get().pop(next(iter(self._items.get().keys())))
+        except LookupError:
+            # nothing to prune if we have no contextvar
+            pass
 
     def _check_mapupdate(self):
         # todo: thanks to enable_globally() we shouldn't need this any more
@@ -75,7 +81,11 @@ class LocalCacheProxy:
         self._check_mapupdate()
         cache.set(key, value, expire)
         if LocalCacheProxy.enabled:
-            self._get_items()[key] = value
+            try:
+                self._items.get()[key] = value
+            except LookupError:
+                # if there was a lookup error from contextvar… cool. we never calld clear(), so that's a nope.
+                pass
         self._prune()
 
     def clear(self):
@@ -83,7 +93,11 @@ class LocalCacheProxy:
 
     def delete(self, key: str):
         cache.delete(key)
-        self._items.pop(key, None)
+        try:
+            self._items.get().pop(key, None)
+        except LookupError:
+            # if there was a lookup error from contextvar… cool. we never calld clear(), so that's a nope.
+            pass
 
 
 class RequestLocalCacheProxy(LocalCacheProxy):
