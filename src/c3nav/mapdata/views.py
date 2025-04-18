@@ -377,7 +377,7 @@ def tile(request, level, zoom, x, y, theme, ext: Union[Literal["png"], Literal["
     access_cache_key, compressed_access_cache_key = build_access_cache_key(access_permissions)
 
     # check browser cache
-    tile_etag = build_tile_etag(base_cache_key, compressed_access_cache_key, settings.SECRET_TILE_KEY)
+    tile_etag = build_tile_etag(base_cache_key, compressed_access_cache_key)
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match == tile_etag:
         return HttpResponseNotModified()
