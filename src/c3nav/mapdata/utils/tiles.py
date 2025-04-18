@@ -59,5 +59,5 @@ def build_access_cache_key(access_permissions: set) -> tuple[str, str]:
 
 
 
-def build_tile_etag(base_cache_key, access_cache_key, tile_secret):
+def build_tile_etag(base_cache_key, access_cache_key):
     return '"' + base64.z85encode((f"{base_cache_key}:{access_cache_key}").encode()).decode() + '"'
