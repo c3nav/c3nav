@@ -57,6 +57,11 @@ Semi-big stuff:
   the rendered area, not the maximum Source bounds.
 - Fix some bugs in how routes were rendered in the front end (point overrides).
 
+Behind the scenes, comfort, bug fixes:
+
+- Storing lists of access permissions in a compressed binary format for cache keys, meaning no more need
+  for hashing cause the values are short and reducing the likeliness of already unlikely collisions.
+
 # 39. Chaos Communication Congress (development ongoing)
 
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
