@@ -318,6 +318,7 @@ class TileServer:
         # decode access permissions
         access_permissions = set()
         access_cache_key = '0'
+        compressed_access_cache_key = '0'
 
         cookie = env.get('HTTP_COOKIE', None)
         if cookie:
@@ -328,7 +329,7 @@ class TileServer:
                     parse_tile_access_cookie(cookie, self.tile_secret) &
                     (set(level_data.restrictions[minx:maxx, miny:maxy]) | level_data.global_restrictions)
                 )
-                access_cache_key = build_access_cache_key(access_permissions)
+                access_cache_key, compressed_access_cache_key = build_access_cache_key(access_permissions)
 
         if not all((r in access_permissions) for r in level_data.global_restrictions):
             return self.not_found(start_response, b'invalid level or theme.', headers=cors_headers)
@@ -340,7 +341,8 @@ class TileServer:
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
-        tile_etag = build_tile_etag(level, zoom, x, y, theme_id, base_cache_key, access_cache_key, self.tile_secret)
+        tile_etag = build_tile_etag(level, zoom, x, y, theme_id, base_cache_key, compressed_access_cache_key,
+                                    self.tile_secret)
         if if_none_match == tile_etag:
             return self.not_modified(start_response, tile_etag, headers=cors_headers)
 
