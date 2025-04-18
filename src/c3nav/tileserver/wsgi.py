@@ -341,8 +341,7 @@ class TileServer:
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
-        tile_etag = build_tile_etag(level, zoom, x, y, theme_id, base_cache_key, compressed_access_cache_key,
-                                    self.tile_secret)
+        tile_etag = build_tile_etag(base_cache_key, compressed_access_cache_key, self.tile_secret)
         if if_none_match == tile_etag:
             return self.not_modified(start_response, tile_etag, headers=cors_headers)
 
