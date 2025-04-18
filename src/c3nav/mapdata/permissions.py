@@ -284,7 +284,6 @@ class MapPermissionContext(MapPermissions):
 
     @property
     def permissions_cache_key(self) -> str:
-        # todo: we definitely want to find a way to shorten this
         return (
             compress_sorted_list_of_int(sorted(self.access_restrictions)).decode()
             + f":{self.view_sources:d}"  # todo: get rid of view_sources
