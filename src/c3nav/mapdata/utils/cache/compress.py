@@ -1,7 +1,6 @@
 import base64
 import struct
 from collections import deque
-from math import ceil
 from typing import Sequence
 
 
@@ -18,21 +17,24 @@ def compress_sorted_list_of_int(values: Sequence[int]) -> bytes:
     if not values:
         return b""
     value = next(iter_values := iter(values))
-    encoded = deque()
+    last_value = value
+    encoded = deque((value, ))
     span = 0
     try:
         while True:
             # add current value
-            encoded.append(value)
             span = 0
             # see if next values are just increments of the last one, if so increase span
-            while (value := next(iter_values)) == value + 1:
+            while (value := next(iter_values)) == last_value + 1:
                 span -= 1
+                last_value = value
             # no longer in a span, but was there one?
             if span:
                 # if there was one, add the span to the encoded values
                 encoded.append(span)
             # then add the new value to the encoded list at the start of the next loop
+            encoded.append(value-last_value)
+            last_value = value
     except StopIteration:
         pass
     if span:
