@@ -15,6 +15,7 @@ from django.apps.registry import apps
 from django.contrib.auth.models import User
 
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
+from c3nav.mapdata.utils.cache.compress import compress_sorted_list_of_int
 
 try:
     from asgiref.local import Local as LocalContext
@@ -285,13 +286,13 @@ class MapPermissionContext(MapPermissions):
     def permissions_cache_key(self) -> str:
         # todo: we definitely want to find a way to shorten this
         return (
-            '-'.join(str(i) for i in sorted(self.access_restrictions) or '0')
+            compress_sorted_list_of_int(sorted(self.access_restrictions)).decode()
             + f":{self.view_sources:d}"  # todo: get rid of view_sources
         )
 
     @property
     def base_mapdata_cache_key(self) -> str:
-        return 'a' if self.all_base_mapdata else ('-'.join(str(i) for i in sorted(self.spaces) or '0'))
+        return 'a' if self.all_base_mapdata else (compress_sorted_list_of_int(sorted(self.spaces)).decode())
 
 
 active_map_permissions = MapPermissionContext()
