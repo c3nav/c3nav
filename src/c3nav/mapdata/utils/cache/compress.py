@@ -14,6 +14,7 @@ def get_type_for_size(num_bits) -> int:
 
 
 def compress_sorted_list_of_int(values: Sequence[int]) -> bytes:
+    # todo: compress? speedup, optimize?
     if not values:
         return b""
     value = next(iter_values := iter(values))
