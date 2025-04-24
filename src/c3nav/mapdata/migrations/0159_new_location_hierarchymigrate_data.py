@@ -15,9 +15,9 @@ def migrate_location_hierarchy(apps, model_name):
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationGroupCategory = apps.get_model('mapdata', 'LocationGroupCategory')
-    LocationParentage = apps.get_model('mapdata', 'LocationParentage')
-    LocationAncestry = apps.get_model('mapdata', 'LocationAncestry')
-    LocationAncestryPath = apps.get_model('mapdata', 'LocationAncestryPath')
+    LocationAdjacency = apps.get_model('mapdata', 'LocationAdjacency')
+    LocationRelation = apps.get_model('mapdata', 'LocationRelation')
+    LocationRelationPath = apps.get_model('mapdata', 'LocationRelationPath')
 
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
@@ -100,48 +100,48 @@ def migrate_location_hierarchy(apps, model_name):
     # migrate theme location group back ground color
     ThemeLocationGroupBackgroundColor.objects.update(location_id=F("location_group_id"))
 
-    # create ancestry
+    # create relation
     category_lookup = {category.id: new_category.id for category, new_category in zip(categories, new_categories)}
-    direct_ancestry: set[tuple[int, int]] = set()
-    indirect_ancestry: dict[tuple[int, int], set[int]] = defaultdict(set)
+    direct_relations: set[tuple[int, int]] = set()
+    indirect_relations: dict[tuple[int, int], set[int]] = defaultdict(set)
     for group in LocationGroup.objects.prefetch_related("specific_locations"):
         new_category_id = category_lookup[group.category_id]
-        direct_ancestry.add((new_category_id, group.id))
+        direct_relations.add((new_category_id, group.id))
         for specific_location in group.specific_locations.all():
-            indirect_ancestry[(new_category_id, specific_location.id)].add(group.id)
-            direct_ancestry.add((group.id, specific_location.id))
-    parentage_id_lookup = {(parent, child): pk
-                           for pk, parent, child in LocationParentage.objects.values_list("pk", "parent_id", "child_id")}
-    ancestry_to_create = (*direct_ancestry, *indirect_ancestry.keys())
-    ancestry_id_lookup = {
-        (ancestry.ancestor_id, ancestry.descendant_id): ancestry.id
-        for ancestry in LocationAncestry.objects.bulk_create((
-            LocationAncestry(ancestor_id=ancestor, descendant_id=descendant)
-            for ancestor, descendant in ancestry_to_create
+            indirect_relations[(new_category_id, specific_location.id)].add(group.id)
+            direct_relations.add((group.id, specific_location.id))
+    adjacency_id_lookup = {(parent, child): pk
+                           for pk, parent, child in LocationAdjacency.objects.values_list("pk", "parent_id", "child_id")}
+    relations_to_create = (*direct_relations, *indirect_relations.keys())
+    relation_id_lookup = {
+        (relation.ancestor_id, relation.descendant_id): relation.id
+        for relation in LocationRelation.objects.bulk_create((
+            LocationRelation(ancestor_id=ancestor, descendant_id=descendant)
+            for ancestor, descendant in relations_to_create
         ))
     }
 
-    direct_ancestry_path_id_lookup = {
-        path.ancestry_id: path.id
-        for path in LocationAncestryPath.objects.bulk_create((
-            LocationAncestryPath(
+    direct_relation_path_id_lookup = {
+        path.relation_id: path.id
+        for path in LocationRelationPath.objects.bulk_create((
+            LocationRelationPath(
                 prev_path=None,
-                parentage_id=parentage_id_lookup[(ancestor_id, descendant_id)],
-                ancestry_id=ancestry_id,
+                adjacency_id=adjacency_id_lookup[(ancestor_id, descendant_id)],
+                relation_id=relation_id,
                 num_hops=0,
-            ) for (ancestor_id, descendant_id), ancestry_id in tuple(ancestry_id_lookup.items())[:len(direct_ancestry)]
+            ) for (ancestor_id, descendant_id), relation_id in tuple(relation_id_lookup.items())[:len(direct_relations)]
         ))
     }
-    LocationAncestryPath.objects.bulk_create(chain.from_iterable((
+    LocationRelationPath.objects.bulk_create(chain.from_iterable((
         (
-            LocationAncestryPath(
-                prev_path_id=direct_ancestry_path_id_lookup[ancestry_id_lookup[(intermediate_id, descendant_id)]],
-                parentage_id=parentage_id_lookup[(intermediate_id, descendant_id)],
-                ancestry_id=ancestry_id_lookup[(ancestor_id, descendant_id)],
+            LocationRelationPath(
+                prev_path_id=direct_relation_path_id_lookup[relation_id_lookup[(intermediate_id, descendant_id)]],
+                adjacency_id=adjacency_id_lookup[(intermediate_id, descendant_id)],
+                relation_id=relation_id_lookup[(ancestor_id, descendant_id)],
                 num_hops=1,
             ) for intermediate_id in intermediate_ids
         )
-        for (ancestor_id, descendant_id), intermediate_ids in indirect_ancestry.items()
+        for (ancestor_id, descendant_id), intermediate_ids in indirect_relations.items()
     )))
 
     Area = apps.get_model('mapdata', 'Area')
@@ -179,7 +179,7 @@ def unmigrate_location_hierarchy(apps, model_name):
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationGroupCategory = apps.get_model('mapdata', 'LocationGroupCategory')
-    LocationParentage = apps.get_model('mapdata', 'LocationParentage')
+    LocationAdjacency = apps.get_model('mapdata', 'LocationAdjacency')
 
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
@@ -204,12 +204,12 @@ def unmigrate_location_hierarchy(apps, model_name):
     # locations with parents that are no specific locations, those are former locationgroups
 
     former_group_locations = tuple(SpecificLocation.objects.filter(
-        pk__in=LocationParentage.objects.exclude(child_id__in=specific_location_ids).values_list("child_id", flat=True)
+        pk__in=LocationAdjacency.objects.exclude(child_id__in=specific_location_ids).values_list("child_id", flat=True)
     ))
 
     # parents of locationgroups are former locationgroupcategories
     former_categories = tuple(SpecificLocation.objects.filter(
-        pk__in=LocationParentage.objects.filter(
+        pk__in=LocationAdjacency.objects.filter(
             child_id__in=(l.pk for l in former_group_locations)
         ).values_list("parent_id", flat=True),
     ))
@@ -224,8 +224,8 @@ def unmigrate_location_hierarchy(apps, model_name):
                 help_texts=former_category.descriptions,
                 priority=former_category.priority,
                 single=all((num == 1) for child_id, num in Counter(
-                    LocationParentage.objects.filter(
-                        parent_id__in=LocationParentage.objects.filter(
+                    LocationAdjacency.objects.filter(
+                        parent_id__in=LocationAdjacency.objects.filter(
                             parent_id=former_category.id
                         ).values_list("child_id", flat=True)
                     ).values_list("child_id", flat=True)
@@ -252,7 +252,7 @@ def unmigrate_location_hierarchy(apps, model_name):
     LocationGroup.objects.bulk_create([
         LocationGroup(
             category_id=new_category_ids[next(iter(
-                set(LocationParentage.objects.filter(child_id=former_group.id).values_list("parent_id", flat=True))
+                set(LocationAdjacency.objects.filter(child_id=former_group.id).values_list("parent_id", flat=True))
                 & available_category_ids
             ))],
             **{field_name: getattr(former_group, field_name) for field_name in fields}
@@ -268,7 +268,7 @@ def unmigrate_location_hierarchy(apps, model_name):
     # add specific_locations to their location groups again
     location_group_ids = set(LocationGroup.objects.values_list("pk", flat=True))
     for specific_location in SpecificLocation.objects.all():
-        specific_location.groups.set(LocationParentage.objects.filter(
+        specific_location.groups.set(LocationAdjacency.objects.filter(
             child_id=specific_location.pk, parent_id__in=location_group_ids
         ).values_list("parent_id", flat=True))
 

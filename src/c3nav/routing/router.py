@@ -21,7 +21,7 @@ from c3nav.mapdata.locations import CustomLocation, LocationManager
 from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
-from c3nav.mapdata.models.locations import DefinedLocation, LocationAncestry
+from c3nav.mapdata.models.locations import DefinedLocation, LocationRelation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
