@@ -51,10 +51,10 @@ class Migration(migrations.Migration):
                                                name='unique_non_redirect_slugs'),
         ),
         migrations.AddField(
-            model_name='locationancestry',
-            name='first_parentages',
-            field=models.ManyToManyField(related_name='provides_ancestries', through='mapdata.LocationAncestryPath',
-                                         to='mapdata.locationparentage'),
+            model_name='LocationRelation',
+            name='first_adjacencies',
+            field=models.ManyToManyField(related_name='provides_relations', through='mapdata.LocationRelationPath',
+                                         to='mapdata.LocationAdjacency'),
         ),
         migrations.RemoveField(
             model_name='area',
