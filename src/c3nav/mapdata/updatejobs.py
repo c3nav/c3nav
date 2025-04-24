@@ -249,23 +249,15 @@ def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
         run_mapupdate_job.delay(job_type=job_type)
 
 
-class LocationAncestryPathTuple(NamedTuple):
-    prev: Optional["LocationAncestryPathTuple"]
-    ancestor: int | None
-    parent: int
-    location: int
-    num_hops: int
-
-
 # todo: make this a transaction?? is it already?
-@register_mapupdate_job("evaluate location ancestry", eager=True, dependencies=set())
-def evaluate_definedlocation_ancestry(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    DefinedLocation.evaluate_location_ancestry()
+@register_mapupdate_job("evaluate location relations", eager=True, dependencies=set())
+def evaluate_definedlocation_relations(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    DefinedLocation.evaluate_location_relations()
     return True
 
 
 @register_mapupdate_job("Defined location cached from parents",
-                        eager=True, dependencies=(evaluate_definedlocation_ancestry,))
+                        eager=True, dependencies=(evaluate_definedlocation_relations,))
 def recalculate_definedlocation_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
     DefinedLocation.recalculate_cached_from_parents()
     return True

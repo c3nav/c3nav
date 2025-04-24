@@ -1,20 +1,21 @@
 import operator
 import string
 from collections import deque, defaultdict
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
-from functools import reduce
+from functools import reduce, cached_property
 from itertools import chain, batched, product, groupby
 from operator import attrgetter, itemgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Iterator, Generator
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.aggregates import Count
+from django.db.models.aggregates import Count, Max
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.expressions import F, OuterRef, Subquery, When, Case, Value
 from django.db.models.query import Prefetch
@@ -24,7 +25,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils import translation
 from django.utils.crypto import get_random_string
-from django.utils.functional import cached_property, lazy
+from django.utils.functional import lazy
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _, get_language, get_language_info
 from django_pydantic_field import SchemaField
@@ -33,7 +34,7 @@ from shapely.geometry import shape
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel, PointSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
@@ -106,7 +107,7 @@ CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationGeometry | Tag
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
-class LocationParentage(models.Model):
+class LocationAdjacency(models.Model):
     """
     A direct parent-child-relationship between two locations.
     """
@@ -120,42 +121,44 @@ class LocationParentage(models.Model):
         )
 
 
-class LocationAncestry(models.Model):
-    """ Automatically populated. Indicating that there is (at least) one ancestry between two locations """
-    ancestor = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE, related_name="+")
-    descendant = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE, related_name="+")
+class LocationRelation(models.Model):
+    """ Automatically populated. Indicating that there is (at least) one relation path between two locations """
+    ancestor = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE,
+                                 related_name="downwards_ancestires")
+    descendant = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE,
+                                   related_name="upwards_relations")
 
     # look, this field is genuinely just for fun, cause we can, probably not useful
-    first_parentages = models.ManyToManyField("LocationParentage", related_name="provides_ancestries",
-                                              through="LocationAncestryPath")
+    first_adjacencies = models.ManyToManyField("LocationAdjacency", related_name="provides_relations",
+                                               through="LocationRelationPath")
 
     class Meta:
         constraints = (
             # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
-            UniqueConstraint(fields=("ancestor", "descendant"), name="unique_location_ancestry"),
-            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_ancestry"),
+            UniqueConstraint(fields=("ancestor", "descendant"), name="unique_location_relation"),
+            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_relation"),
         )
 
 
-class LocationAncestryPath(models.Model):
-    """ Automatically populated. One ancestry path for the given ancestry, ending with the given parentage. """
+class LocationRelationPath(models.Model):
+    """ Automatically populated. One relation path for the given relation, ending with the given adjacency. """
     prev_path = models.ForeignKey("self", on_delete=models.CASCADE, related_name="+", null=True)
-    parentage = models.ForeignKey("LocationParentage", on_delete=models.CASCADE, related_name="+")
-    ancestry = models.ForeignKey("LocationAncestry", on_delete=models.CASCADE, related_name="paths")
-    num_hops = models.PositiveSmallIntegerField()
+    adjacency = models.ForeignKey("LocationAdjacency", on_delete=models.CASCADE, related_name="+")
+    relation = models.ForeignKey("LocationRelation", on_delete=models.CASCADE, related_name="paths")
+    num_hops = models.PositiveSmallIntegerField(db_index=True)
 
     class Meta:
         constraints = (
             # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
-            UniqueConstraint(fields=("prev_path", "parentage"), name="ancestry_path_unique_prev_path_parentage"),
-            UniqueConstraint(fields=("prev_path", "ancestry"), name="ancestry_path_unique_prev_path_ancestry"),
+            UniqueConstraint(fields=("prev_path", "adjacency"), name="relation_path_unique_prev_path_adjacency"),
+            UniqueConstraint(fields=("prev_path", "relation"), name="relation_path_unique_prev_path_relation"),
             CheckConstraint(check=Q(prev_path__isnull=True, num_hops=0) |
-                                  Q(prev_path__isnull=False, num_hops__gt=0), name="ancestry_path_enforce_num_hops"),
+                                  Q(prev_path__isnull=False, num_hops__gt=0), name="relation_path_enforce_num_hops"),
         )
 
 
-class LocationAncestryPathTuple(NamedTuple):
-    prev: Optional["LocationAncestryPathTuple"]
+class SimpleLocationRelationPathTuple(NamedTuple):
+    prev: Optional["SimpleLocationRelationPathTuple"]
     ancestor: int | None
     parent: int
     location: int
@@ -225,9 +228,9 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     # imported from locationgroup end
 
     parents = models.ManyToManyField("self", related_name="children", symmetrical=False,
-                                     through="LocationParentage", through_fields=("child", "parent"))
+                                     through="LocationAdjacency", through_fields=("child", "parent"))
     calculated_ancestors = models.ManyToManyField("self", related_name="calculated_descendants", symmetrical=False,
-                                                  through="LocationAncestry", through_fields=("descendant", "ancestor"),
+                                                  through="LocationRelation", through_fields=("descendant", "ancestor"),
                                                   editable=False)
 
     levels = models.ManyToManyField('Level', related_name='locations')
@@ -379,11 +382,11 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         return self.effective_priority_order, color
 
     @classmethod
-    def evaluate_location_ancestry(cls):
+    def evaluate_location_relations(cls):
         build_children_by_parent: dict[int | None, deque[int]] = defaultdict(deque)
-        parentage_ids: dict[tuple[int, int], int] = {}
-        for pk, parent_id, child_id in LocationParentage.objects.values_list("pk", "parent_id", "child_id"):
-            parentage_ids[(parent_id, child_id)] = pk
+        adjacency_ids: dict[tuple[int, int], int] = {}
+        for pk, parent_id, child_id in LocationAdjacency.objects.values_list("pk", "parent_id", "child_id"):
+            adjacency_ids[(parent_id, child_id)] = pk
             build_children_by_parent[parent_id].append(child_id)
         children_by_parent: dict[int | None, frozenset[int]] = {
             parent_id: frozenset(children_ids) for parent_id, children_ids in build_children_by_parent.items()
@@ -392,12 +395,12 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         fail = False
 
         # create ancestors
-        expected_paths: dict[int, tuple[LocationAncestryPathTuple, ...]] = {}
+        expected_paths: dict[int, tuple[SimpleLocationRelationPathTuple, ...]] = {}
         num_hops = 0
-        last_paths: tuple[LocationAncestryPathTuple, ...] = tuple(chain.from_iterable(
+        last_paths: tuple[SimpleLocationRelationPathTuple, ...] = tuple(chain.from_iterable(
             (
-                LocationAncestryPathTuple(ancestor=parent_id, parent=parent_id, location=child_id,
-                                          prev=None, num_hops=0)
+                SimpleLocationRelationPathTuple(ancestor=parent_id, parent=parent_id, location=child_id,
+                                                prev=None, num_hops=0)
                 for child_id in child_ids
             ) for parent_id, child_ids in children_by_parent.items()
         ))
@@ -413,50 +416,50 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             num_hops += 1
             last_paths = tuple(chain.from_iterable(
                 (
-                    LocationAncestryPathTuple(ancestor=prev.ancestor, parent=prev.location, location=child_id,
-                                              prev=prev, num_hops=num_hops)
+                    SimpleLocationRelationPathTuple(ancestor=prev.ancestor, parent=prev.location, location=child_id,
+                                                    prev=prev, num_hops=num_hops)
                     for child_id in child_ids
                 ) for prev, child_ids in zip(last_paths, (children_by_parent.get(path.location, frozenset()) for path in last_paths))
             ))
 
-        expected_ancestries = {(path.ancestor, path.location) for path in chain.from_iterable(expected_paths.values())}
-        ancestry_ids = {
+        expected_relations = {(path.ancestor, path.location) for path in chain.from_iterable(expected_paths.values())}
+        relation_ids = {
             (ancestor_id, descendant_id): pk
-            for pk, ancestor_id, descendant_id in LocationAncestry.objects.values_list("pk", "ancestor_id", "descendant_id")
+            for pk, ancestor_id, descendant_id in LocationRelation.objects.values_list("pk", "ancestor_id", "descendant_id")
         }
-        existing_ancestries = set(ancestry_ids.keys())
+        existing_relations = set(relation_ids.keys())
 
-        missing_ancestries = expected_ancestries - existing_ancestries
-        if missing_ancestries:
-            print("INCONSISTENCY: Missing ancestries, creating:", missing_ancestries)
+        missing_relations = expected_relations - existing_relations
+        if missing_relations:
+            print("INCONSISTENCY: Missing relations, creating:", missing_relations)
             fail = True
-            ancestry_ids.update({
-                ancestry.pk: (ancestry.ancestor_id, ancestry.descendant_id)
-                for ancestry in LocationAncestry.objects.bulk_create((
-                    LocationAncestry(
+            relation_ids.update({
+                relation.pk: (relation.ancestor_id, relation.descendant_id)
+                for relation in LocationRelation.objects.bulk_create((
+                    LocationRelation(
                         ancestor_id=ancestor_id,
                         descendant_id=descendant_id,
-                    ) for ancestor_id, descendant_id in missing_ancestries
+                    ) for ancestor_id, descendant_id in missing_relations
                 ))
             })
 
-        extra_ancestries = existing_ancestries - expected_ancestries
-        if extra_ancestries:
-            print("INCONSISTENCY: Extra ancestries, deleting:", missing_ancestries)
+        extra_relations = existing_relations - expected_relations
+        if extra_relations:
+            print("INCONSISTENCY: Extra relations, deleting:", missing_relations)
             fail = True
-            LocationAncestry.objects.filter(
-                pk__in=(ancestry_ids[extra_ancestry] for extra_ancestry in extra_ancestries)
+            LocationRelation.objects.filter(
+                pk__in=(relation_ids[extra_relation] for extra_relation in extra_relations)
             ).delete()
-            for extra_ancestry in missing_ancestries:
-                del ancestry_ids[extra_ancestry]
+            for extra_relation in missing_relations:
+                del relation_ids[extra_relation]
 
-        num_deleted, num_deleted_per_model = LocationAncestryPath.objects.exclude(
+        num_deleted, num_deleted_per_model = LocationRelationPath.objects.exclude(
             # exclude things where things make sense
-            Q(parentage__child=F("ancestry__descendant")) & (
-                (Q(prev_path__isnull=True) | (Q(parentage__parent=F("prev_path__parentage__child"))
-                                              & Q(ancestry__ancestor=F("prev_path__ancestry__ancestor"))
+            Q(adjacency__child=F("relation__descendant")) & (
+                (Q(prev_path__isnull=True) | (Q(adjacency__parent=F("prev_path__adjacency__child"))
+                                              & Q(relation__ancestor=F("prev_path__relation__ancestor"))
                                               & Q(num_hops=F("prev_path__num_hops")+1)))
-                | (Q(prev_path__isnull=False) | Q(parentage__parent=F("ancestry__ancestor")))
+                | (Q(prev_path__isnull=False) | Q(adjacency__parent=F("relation__ancestor")))
             )
         ).delete()
         if num_deleted:
@@ -464,16 +467,17 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             fail = True
 
         existing_paths_by_id = {
-            pk: fields for pk, *fields in LocationAncestryPath.objects.values_list(
-                "pk", "prev_path_id", "ancestry__ancestor_id",
-                "parentage__parent_id", "parentage__child_id", "num_hops",
+            pk: fields for pk, *fields in LocationRelationPath.objects.values_list(
+                "pk", "prev_path_id", "relation__ancestor_id",
+                "adjacency__parent_id", "adjacency__child_id", "num_hops",
             )
         }
-        existing_paths_by_num_hops_and_id: dict[int, dict[int, LocationAncestryPathTuple]] = {}
-        existing_path_id_by_tuple: dict[LocationAncestryPathTuple | None, int | None] = {None: None}
+        existing_paths_by_num_hops_and_id: dict[int, dict[int, SimpleLocationRelationPathTuple]] = {}
+        existing_path_id_by_tuple: dict[SimpleLocationRelationPathTuple | None, int | None] = {None: None}
 
         for num_hops, paths in (
-            sorted(groupby(existing_paths_by_id.items(), key=lambda p: p[1][4]))
+            sorted((num_hops, tuple(paths))
+                   for num_hops, paths in groupby(existing_paths_by_id.items(), key=lambda p: p[1][4]))
         ):
             # todo: walrus operator?
             num_hops_paths = {}
@@ -482,7 +486,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             last_num_hops_paths = {} if num_hops == 0 else existing_paths_by_num_hops_and_id.get(num_hops - 1, {})
 
             for pk, (prev_path_id, ancestor_id, parent_id, child_id, n) in paths:
-                t = LocationAncestryPathTuple(
+                t = SimpleLocationRelationPathTuple(
                     prev=None if prev_path_id is None else last_num_hops_paths[prev_path_id],
                     ancestor=ancestor_id,
                     parent=parent_id,
@@ -500,33 +504,33 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             expected_paths_for_hops = frozenset(expected_paths.get(num_hops, ()))
 
             missing_paths = tuple(expected_paths_for_hops - existing_paths_for_hops)
-            if missing_ancestries:
+            if missing_relations:
                 print("INCONSISTENCY: Missing paths, creating:", missing_paths)
                 fail = True
                 existing_path_id_by_tuple.update(
-                    dict(zip(missing_paths, (created_path.pk for created_path in LocationAncestryPath.objects.bulk_create((
-                        LocationAncestryPath(
+                    dict(zip(missing_paths, (created_path.pk for created_path in LocationRelationPath.objects.bulk_create((
+                        LocationRelationPath(
                             prev_path=existing_path_id_by_tuple[missing_path.prev],
-                            parentage=parentage_ids[(missing_path.parent, missing_path.location)],
-                            ancestry=ancestry_ids[(missing_path.ancestor, missing_path.location)],
+                            adjacency=adjacency_ids[(missing_path.parent, missing_path.location)],
+                            relation=relation_ids[(missing_path.ancestor, missing_path.location)],
                             num_hops=num_hops,
                         ) for missing_path in missing_paths
                     )))))
                 )
 
             extra_paths = existing_paths_for_hops - expected_paths_for_hops
-            if extra_ancestries:
+            if extra_relations:
                 print("INCONSISTENCY: Extra paths, deleting:", extra_paths)
                 delete_ids.extend(existing_path_id_by_tuple[extra_path] for extra_path in extra_paths)
                 fail = True
 
         if delete_ids:
-            LocationAncestryPath.objects.filter(pk__in=delete_ids).delete()
+            LocationRelationPath.objects.filter(pk__in=delete_ids).delete()
 
         if fail:
-            raise ValueError("verify_location_ancestry failed")
+            raise ValueError("verify_location_relation failed")
 
-        print("location ancestry valid")
+        print("location relation valid")
 
         cls.recalculate_effective_order()
 
@@ -542,7 +546,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         children_for_parent = {
             parent_id: tuple(child_id for p, child_id in children)
             for parent_id, children in groupby(
-                LocationParentage.objects.order_by("-child__priority").values_list("parent_id", "child_id"),
+                LocationAdjacency.objects.order_by("-child__priority").values_list("parent_id", "child_id"),
                 key=itemgetter(1)
             )
         }
@@ -865,6 +869,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level",
                                                 "levels__locations", "spaces__locations", "areas__locations",
                                                 "pois__locations",):
+            obj: DefinedLocation
             result: CachedGeometriesByLevel = {}
             for target in obj.static_targets:
                 try:
@@ -940,8 +945,9 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                                                 "areas__space__locations", "areas__space__level__locations",
                                                 "pois__space__locations", "pois__space__level",
                                                 "dynamic_location_targets"):
+            obj: DefinedLocation
             location_target_subtitles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
-            static_targets = tuple(obj.static_targets)
+            static_targets: tuple[StaticLocationTarget, ...] = tuple(obj.static_targets)
             if len(static_targets) + len(obj.dynamic_location_targets.all()) == 1:
                 main_static_target = static_targets[0]
                 target_subtitle: list[tuple[str, str]] = []
@@ -1073,193 +1079,279 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
 
 # …eh… this should just work without the int | ? but pycharm doesn't like it then… maybe it's pointless
 type LocationID = int | NewType("LocationID", int)
-type ParentageID = int | NewType("ParentageID", int)
-type AncestryID = int | NewType("AncestryID", int)
-type AncestryPathID = int | NewType("AncestryPathID", int)
+type AdjacencyID = int | NewType("AdjacencyID", int)
+type RelationID = int | NewType("RelationID", int)
+type RelationPathID = int | NewType("RelationPathID", int)
 
-type AffectedParentages = tuple[tuple[LocationID, ParentageID], ...]
-type AffectedParentagesLookup = dict[LocationID, ParentageID]
+type AffectedAdjacencies = tuple[tuple[LocationID, AdjacencyID], ...]
+type AffectedAdjacenciesLookup = dict[LocationID, AdjacencyID]
+
+
+class LocationAdjacencyTuple(NamedTuple):
+    parent: LocationID
+    child: LocationID
+
+
+class LocationRelationTuple(NamedTuple):
+    ancestor: LocationID
+    descendant: LocationID
+
+
+class LocationRelationPathTuple(NamedTuple):
+    prev_path_id: RelationPathID | None
+    adjacency_id: AdjacencyID
+    relation_id: AdjacencyID
+    num_hops: int
 
 
 @receiver(m2m_changed, sender=DefinedLocation.parents.through)
-def location_parentage_changed(sender, instance: DefinedLocation, pk_set: set[int], action: str, reverse: bool,
+def location_adjacency_changed(sender, instance: DefinedLocation, pk_set: set[int], action: str, reverse: bool,
                                **kwargs):
     match (action, reverse):
         case ("post_add", False):
-            location_parents_added(instance=instance, pk_set=pk_set)
+            # new parents were added to the location
+            location_adjacency_added({(pk, instance.pk) for pk in pk_set})
         case ("post_add", True):
-            location_children_added(instance=instance, pk_set=pk_set)
+            # new children were added to the location
+            location_adjacency_added({(instance.pk, pk) for pk in pk_set})
         case ("post_remove" | "post_clear", False):
             location_parents_removed(instance=instance, pk_set=pk_set)
         case ("post_add" | "post_clear", True):
             location_children_removed(instance=instance, pk_set=pk_set)
 
 
-def location_parents_added(instance: DefinedLocation, pk_set: set[int]):
-    """
-    new parents were added to the location
-    """
-    # get added parentages, this is why we do this after
-    added_parentages: AffectedParentages = tuple(LocationParentage.objects.filter(  # noqa
-        parent_id__in=pk_set, child=instance,
-    ).values_list("parent_id", "pk"))
+def generate_paths_to_create(
+    created_relations: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...],
+    added_adjacencies: tuple[tuple[LocationID, LocationID, AdjacencyID], ...],
+    relevant_relations: tuple[tuple[RelationID, LocationID, LocationID], ...],
+    parent_relations: dict[LocationID, dict[LocationID, RelationID]],
+) -> Generator[tuple[LocationRelationPath, ...], tuple[LocationRelationPath, ...], None]:
+    relations_by_id = {relation_id: LocationRelationTuple(ancestor_id, descendant_id)
+                       for relation_id, ancestor_id, descendant_id in relevant_relations}
 
-    # map IDs of parents to IDs of parentages
-    added_parentages_lookup: AffectedParentagesLookup = dict(added_parentages)
+    # query all the paths we need
+    # even chained paths should all be contained in here, since we have all the relations that "lead to" them
+    relevant_paths_by_id: dict[RelationPathID, LocationRelationPathTuple] = {
+        path_id: LocationRelationPathTuple(*path)
+        for path_id, *path in LocationRelationPath.objects.filter(
+            relation_id__in=relations_by_id.keys()
+        ).values_list(
+            "pk", "prev_path_id", "adjacency_id", "relation_id", "num_hops", named=True
+        )
+    }
 
-    # get ancestries of added parents
-    parent_ancestries: tuple[tuple[AncestryID, LocationID, LocationID], ...] = tuple(  # noqa
-        LocationAncestry.objects.filter(descendant_id__in=pk_set).values_list(
+    created_relations_lookup = dict(created_relations)
+    added_adjacencies_lookup: dict[tuple[LocationID, LocationID], AdjacencyID] = {
+        (parent_id, child_id): pk for parent_id, child_id, pk in added_adjacencies
+    }
+
+    parent_relation_ids = set(
+        chain(one_parent_relations.values() for one_parent_relations in parent_relations.values())
+    )
+
+    # build path chains
+    path_ids_by_relation: dict[RelationID, set[RelationPathID]] = defaultdict(set)
+    next_paths_for_path_id: dict[RelationPathID | None, set[RelationPathID]] = defaultdict(set)
+    for path_id, path in relevant_paths_by_id.items():
+        path_ids_by_relation[path.relation_id].add(path_id)
+        if path.relation_id not in parent_relation_ids:
+            next_paths_for_path_id[path.prev_path_id].add(path_id)
+
+    paths_to_create, relations = zip(*chain(
+        # for each new relation that spans just one of the added adjacencies, create the singular path segment
+        ((
+            LocationRelationPath(
+                prev_path_id=None,
+                adjacency_id=added_adjacencies_lookup[parent, child],
+                relation_id=created_relations_lookup[parent, child],
+                num_hops=0
+            ), (parent, child)
+        ) for (parent, child), adjacency in added_adjacencies_lookup),
+
+        # for each new relation that ends with one of the added adjacencies, create the new last segment(s)
+        *chain.from_iterable((
+            ((
+                # the parent relation might have several paths, we continue all of them by one
+                LocationRelationPath(
+                    prev_path_id=path_id,
+                    adjacency_id=orig_adjacency_id,
+                    relation_id=created_relations_lookup[ancestor, child],
+                    num_hops=relevant_paths_by_id[path_id].num_hops
+                ), (parent, child)
+            ) for path_id in path_ids_by_relation[parent_relation_id])
+            for (ancestor, parent, child), orig_adjacency_id, parent_relation_id in chain.from_iterable(
+                # generate sequence of new relation ancestor and descendant that shoulud have been added,
+                # with adjacency id and relation id if of the parent
+                (
+                    ((ancestor, parent, child), adjacency_id, relation_id)
+                    # for every added adjacency, iterate over the parent relations
+                    for ancestor, relation_id in parent_relations[parent].items()
+                )
+                for (parent, child), adjacency_id in added_adjacencies_lookup.items()
+            )
+        ))
+    ))
+    created_paths = yield paths_to_create
+
+    if not next_paths_for_path_id:
+        return
+
+    if len(created_paths) != len(paths_to_create):
+        # this shouldn't happen
+        raise ValueError
+
+    # get path segments to copy that have no predecessor
+    # no predecessor implies: (ancestor, descendant) of its relation are (parent, child) of its adjacency
+    # this is why we can use ancestor of the paths segments relation to get the parent of its adjacency
+    first_paths_by_parent: dict[LocationID, tuple[RelationPathID, ...]] = {
+        parent: tuple(paths) for parent, paths in groupby(
+            next_paths_for_path_id.pop(None, ()),
+            key=lambda path_id: relations_by_id[relevant_paths_by_id[path_id].relation_id].ancestor
+        )
+    }
+
+    # copy first path segments of the child's relations and connect them to the created paths segents
+    paths_to_create, path_and_ancestor = zip(*chain.from_iterable(
+        # continue each path we just created with the first path segments of all child relations
+        ((
+            chain.from_iterable((
+                (LocationRelationPath(
+                    prev_path_id=prev_created_path.pk,
+                    # the adjacency is identical, since we are copying this path segment
+                    adjacency_id=path_to_copy.adjacency_id,
+                    # the relation is easy to look up, cause it's unique
+                    relation_id=created_relations_lookup[prev_ancestor, new_descendant],
+                    num_hops=path_to_copy.num_hops + prev_created_path.num_hops + 1
+                ), (path_to_copy_id, prev_ancestor))
+                for path_to_copy_id, path_to_copy, new_descendant in (
+                    (path_to_copy_id, path_to_copy, relations_by_id[path_to_copy.relation_id].descendant)
+                    for path_to_copy_id, path_to_copy in (
+                        (path_to_copy_id, relevant_paths_by_id[path_to_copy_id])
+                        for path_to_copy_id in first_paths_by_parent[prev_descendant]
+                    )
+                )
+            ))
+        ) for prev_created_path, (prev_ancestor, prev_descendant) in zip(created_paths, relations))
+    ))
+
+    created_paths = yield paths_to_create
+
+    if len(created_paths) != len(paths_to_create):
+        # this shouldn't happen
+        raise ValueError
+
+    while True:
+        paths_to_create, path_and_ancestor = zip(*chain.from_iterable(
+            # continue each path we just created with the next path segments
+            ((
+                chain.from_iterable((
+                    (LocationRelationPath(
+                        prev_path_id=prev_created_path.pk,
+                        # the adjacency is identical, since we are copying this path segment
+                        adjacency_id=path_to_copy.adjacency_id,
+                        # the relation is easy to look up, cause it's unique
+                        relation_id=created_relations_lookup[prev_ancestor, new_descendant],
+                        num_hops=path_to_copy.num_hops + prev_created_path.num_hops + 1
+                    ), (path_to_copy_id, prev_ancestor))
+                    for path_to_copy_id, path_to_copy, new_descendant in (
+                        (path_to_copy_id, path_to_copy, relations_by_id[path_to_copy.relation_id].descendant)
+                        for path_to_copy_id, path_to_copy in (
+                            (path_to_copy_id, relevant_paths_by_id[path_to_copy_id])
+                            for path_to_copy_id in next_paths_for_path_id[prev_copied_path]
+                        )
+                    )
+                ))
+            ) for prev_created_path, (prev_copied_path, prev_ancestor) in zip(created_paths, path_and_ancestor))
+        ))
+
+        created_paths = yield paths_to_create
+
+        if not paths_to_create:
+            # no more paths created? we're done
+            break
+
+        if len(created_paths) != len(paths_to_create):
+            # this shouldn't happen
+            raise ValueError
+
+
+def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
+    # get added adjacencies
+    added_adjacencies: tuple[tuple[LocationID, LocationID, AdjacencyID], ...] = tuple(LocationAdjacency.objects.filter(  # noqa
+        Q.create([Q(parent_id=parent, child_id=child) for parent, child in adjacencies], connector=Q.OR)
+    ).values_list("parent_id", "child_id", "pk"))
+
+    # generate sets of all parents and all childrens of the added adjacenties
+    parents: frozenset[LocationID]
+    children: frozenset[LocationID]
+    parents, children = (frozenset(ids) for ids in zip(*adjacencies))
+
+    # get all downwards relations to any of the parents or from any of the children
+    relevant_relations: tuple[tuple[RelationID, LocationID, LocationID], ...] = tuple(  # noqa
+        LocationRelation.objects.filter(
+            Q(ancestor_id__in=children) | Q(descendant_id__in=parents)
+        ).values_list(
             "pk", "ancestor_id", "descendant_id"
         )
     )
 
-    # create ancestries from this new parentage
-    created_ancestries: tuple[tuple[tuple[LocationID, LocationID], AncestryID], ...] = tuple(
-        ((created_ancestry.ancestor_id, created_ancestry.descendant_id), created_ancestry.id)
-        for created_ancestry in LocationAncestry.objects.bulk_create((
-            # new ancestry from parent (might be duplicates, thus ignore_conflicts)
-            *(LocationAncestry(ancestor_id=parent_id, descendant_id=instance.pk)
-              for parent_id, parentage_id in added_parentages),
-            # copy ancestries of parent (might be duplicates, thus ignore_conflicts)
-            *(LocationAncestry(ancestor_id=ancestor_id, descendant_id=instance.pk)
-              for ancestry_id, ancestor_id, descendant_id in parent_ancestries),
-        ), ignore_conflicts=True)
-    )
+    # sort relations into what parents or children they end at
+    parent_relations: dict[LocationID, dict[LocationID, RelationID]] = defaultdict(dict)
+    child_relations: dict[LocationID, dict[LocationID, RelationID]] = defaultdict(dict)
+    parent_for_child_relations: dict[RelationID, LocationID] = {}
+    for pk, one_max_num_hops, ancestor_id, descendant_id in relevant_relations:
+        if ancestor_id in children:
+            child_relations[ancestor_id][descendant_id] = pk
+            parent_for_child_relations[pk] = descendant_id
+        elif descendant_id in parents:
+            parent_relations[descendant_id][ancestor_id] = pk
 
-    # check that we really got as many ancestries back as wew put into bulk_create()
-    if len(created_ancestries) == len(added_parentages) + len(parent_ancestries):
-        raise ValueError("location_hierarchy_changed post_add handler bulk_insert len() mismatch")
+        else:
+            raise ValueError
 
-    # map IDs of parents' ancestries to IDs of their copies
-    copied_ancestries_id_lookup: dict[AncestryID, AncestryID] = dict(zip(
-        (parent_ancestry_id for parent_ancestry_id, *fields in parent_ancestries),
-        (created_ancestry_id for fields, created_ancestry_id in created_ancestries[len(added_parentages):]),
-    ))
-
-    # add hops to new ancestries
-    LocationAncestryPath.objects.bulk_create((
-        *(  # add path continuations for parent ancestries
-            LocationAncestryPath(
-                prev_path_id=path_id,
-                parentage_id=added_parentages_lookup[parent_id],
-                ancestry_id=copied_ancestries_id_lookup[ancestry_id],
-                num_hops=num_hops+1,
-            ) for path_id, parent_id, ancestry_id, num_hops in LocationAncestryPath.objects.filter(
-                # Select all paths belonging to the parent ancestries
-                ancestry_id__in=(ancestry_id for ancestry_id, *fields in parent_ancestries),
-            ).values_list("pk", "ancestry__descendant_id", "ancestry_id", "num_hops")
-        ),
-        *(  # add path for new ancestries
-            LocationAncestryPath(
-                prev_path_id=None,
-                parentage_id=added_parentages_lookup[parent_id],
-                ancestry_id=ancestry_id,
-                num_hops=0,
-            ) for parent_id, ancestry_id in zip(
-                # map parent ids to IDs of created direct ancestries
-                (parent_ancestry_id for parent_ancestry_id, *fields in parent_ancestries),
-                (created_ancestry_id for fields, created_ancestry_id in created_ancestries[len(added_parentages):]),
-            )
-        ),
-    ))
-
-    # notify changed geometries… todo: this should definitely use the descendants thing
-    instance.register_changed_geometries(force=True)
-
-
-def location_children_added(instance: DefinedLocation, pk_set: set[int]):
-    """
-    new children were added to the location
-    """
-    # get added parentages, this is why we do this after
-    added_parentages: AffectedParentages = tuple(LocationParentage.objects.filter(  # noqa
-        parent=instance, child_id__in=pk_set,
-    ).values_list("child_id", "pk"))
-
-    # map IDs of parents to IDs of parentages
-    added_parentages_lookup: AffectedParentagesLookup = dict(added_parentages)
-
-    # get this parent's ancestries
-    parent_ancestries: tuple[tuple[AncestryID, LocationID], ...] = tuple(LocationAncestry.objects.filter(  # noqa
-        descendant_id__in=pk_set
-    ).values_list("pk", "ancestor_id"))
-
-    # compute the product (all combintations of) parents ancestries and added children
-    ancestries_to_copy: tuple[tuple[tuple[AncestryID, LocationID], LocationID], ...] = tuple(
-        product(parent_ancestries, pk_set)
-    )
-
-    # create ancestries from this new parentage
-    created_ancestries: tuple[tuple[LocationID, LocationID, AncestryID], ...] = tuple(
-        (created_ancestry.ancestor_id, created_ancestry.descendant_id, created_ancestry.pk)
-        for created_ancestry in LocationAncestry.objects.bulk_create((
-            # new ancestry from parent (might be duplicates, thus ignore_conflicts)
-            *((LocationAncestry(ancestor_id=instance.pk, descendant_id=child_id)
-               for child_id, parentage_id in added_parentages)),
-            # copy ancestries of parent (might be duplicates, thus ignore_conflicts)
-            *((LocationAncestry(ancestor_id=ancestor_id, descendant_id=child_id)
-               for (parent_ancestry_id, ancestor_id), child_id in ancestries_to_copy)),
-        ), ignore_conflicts=True)
-    )
-
-    # check that we really got as many ancestries back as wew put into bulk_create()
-    if len(created_ancestries) == len(added_parentages) + len(added_parentages) * len(parent_ancestries):
-        raise ValueError("location_hierarchy_changed reverse post_add handler bulk_insert len() mismatch")
-
-    # get a list of ancestries to copy and the resulting (potential) copy
-    copied_ancestries = zip(ancestries_to_copy,
-                            (ancestry_id for a, d, ancestry_id in created_ancestries[len(added_parentages):]))
-
-    # map IDs of parents' ancestries and the child id that it was copied for to the IDs of the copy
-    created_ancestries_id_mapping: dict[tuple[AncestryID, LocationID], AncestryID] = dict(
-        ((parent_ancestry_id, child_id), created_ancestry_id)
-        for ((parent_ancestry_id, ancestor_id), child_id), created_ancestry_id in copied_ancestries
-    )
-
-    # create paths for ancestries
-    LocationAncestryPath.objects.bulk_create((
-        *(  # copy hops from parent ancestries
-            LocationAncestryPath(
-                prev_path_id=path_id,
-                parentage_id=added_parentages_lookup[child_id],
-                ancestry_id=created_ancestries_id_mapping[(ancestry_id, child_id)],
-                num_hops=num_hops + 1,
-            ) for (path_id, ancestry_id, num_hops), (child_id, parentage_id) in product(
-                # compute the product of the parent's ancestries' paths and the IDs of the added children and parentages
-                # because we want continue each path on each per-child ancestry copy
-                LocationAncestryPath.objects.filter(
-                    ancestry_id__in=(pk for pk, ancestor_id in parent_ancestries),
-                ).values_list("pk", "ancestry_id", "num_hops"),
-                added_parentages,
-            )
-        ),
-        *(  # add new parentage to new ancestries
-            LocationAncestryPath(
-                prev_path_id=None,
-                parentage_id=parentage_id,
-                ancestry_id=ancestry_id,
-                num_hops=0,
-            ) for ancestry_id, parentage_id in zip(
-                # get the created direct ancestries (for the added parentages)
-                (ancestry_id for fields, ancestry_id in created_ancestries[:len(added_parentages)]),
-                # get the get the added parentages
-                (parentage_id for child_id, parentage_id in added_parentages),
-            )
+    relations_to_create: tuple[tuple[LocationID, LocationID], ...] = tuple(frozenset(chain.from_iterable((
+        chain(
+            product(parent_relations[parent].keys(), child_relations[child].keys()),
+            product(parent_relations[parent].keys(), (child, )),
+            product((parent, ), child_relations[child].keys()),
         )
-    ))
+        for parent, child in adjacencies
+    ))) | adjacencies)
+    if any((ancestor == descendant) for ancestor, descendant in relations_to_create):
+        raise ValueError("No circular relations allowed!")
 
-    # notify changed geometries… todo: this should definitely use the descendants thing
-    for obj in DefinedLocation.objects.filter(pk__in=pk_set):
-        obj.register_changed_geometries(force=True)
+    created_relations: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...] = tuple(
+        ((created_relation.ancestor_id, created_relation.descendant_id), created_relation.id)
+        for created_relation in LocationRelation.objects.bulk_create((
+            LocationRelation(ancestor_id=ancestor, descendant_id=descendant)
+            for ancestor, descendant in relations_to_create
+        ), ignore_conflicts=True)
+    )
+
+    # check that we really got as many relations back as we put into bulk_create()
+    if len(created_relations) == len(relations_to_create):
+        raise ValueError ("location_hierarchy_changed post_add handler bulk_insert len() mismatch")
+
+    # create new paths
+    it = generate_paths_to_create(
+        created_relations=created_relations,
+        added_adjacencies=added_adjacencies,
+        relevant_relations=relevant_relations,
+        parent_relations=parent_relations,
+    )
+    with suppress(StopIteration):
+        while True:
+            paths_to_create = next(it)
+            created_paths = LocationRelationPath.objects.bulk_create(paths_to_create, ignore_conflicts=True)
+            it.send(tuple(created_paths))
 
 
 def location_parents_removed(instance: DefinedLocation, pk_set: set[int]):
     """
     parents were removed from the location
     """
-    # get removed parentages, this is why we do this before
-    LocationAncestry.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
+    # get removed adjacencies, this is why we do this before
+    LocationRelation.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
     instance.register_changed_geometries(force=True)
@@ -1271,9 +1363,9 @@ def location_children_removed(instance: DefinedLocation, pk_set: set[int] = None
     """
     if pk_set is None:
         # todo: this is a hack, can be done nicer
-        pk_set = set(LocationAncestry.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
+        pk_set = set(LocationRelation.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
 
-    LocationAncestry.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
+    LocationRelation.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
     for obj in DefinedLocation.objects.filter(pk__in=pk_set):
