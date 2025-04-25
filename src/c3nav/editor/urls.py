@@ -46,7 +46,7 @@ urlpatterns = [
     path('levels/<int:level>/overlays/<int:pk>/', overlay_features, name='editor.levels.overlay'),
     path('levels/<int:level>/overlays/<int:overlay>/create', overlay_feature_edit, name='editor.levels.overlay.create'),
     path('levels/<int:level>/overlays/<int:overlay>/features/<int:pk>', overlay_feature_edit, name='editor.levels.overlay.edit'),
-    path('defined_locations/<int:pk>/', list_objects, name='editor.defined_locations.list'),
+    path('location_tags/<int:pk>/', list_objects, name='editor.location_tags.list'),
     path('overlayfeatures/<int:pk>', overlay_feature_edit, name='editor.overlayfeatures.edit'),
     path('changeset/', changeset_redirect, name='editor.changesets.current'),
     path('changesets/<int:pk>/', changeset_detail, name='editor.changesets.detail'),
@@ -63,9 +63,9 @@ urlpatterns = [
     path('', main_index, name='editor.index'),
 ]
 urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
-urlpatterns.extend(add_editor_urls('DefinedLocation', explicit_edit=True))
+urlpatterns.extend(add_editor_urls('LocationTag', explicit_edit=True))
 urlpatterns.extend(add_editor_urls('ObstacleGroup'))
-urlpatterns.extend(add_editor_urls('DynamicLocationTarget'))
+urlpatterns.extend(add_editor_urls('DynamicLocationTagTarget'))
 urlpatterns.extend(add_editor_urls('WayType'))
 urlpatterns.extend(add_editor_urls('GroundAltitude'))
 urlpatterns.extend(add_editor_urls('AccessRestriction'))

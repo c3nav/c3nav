@@ -24,8 +24,8 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge, Source, GraphNode, Space, LocationSlug, WayType, GroundAltitude
 from c3nav.mapdata.models.access import AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
-from c3nav.mapdata.models.locations import DefinedLocation
-from c3nav.mapdata.models.theme import ThemeLocationBackgroundColor, ThemeObstacleGroupBackgroundColor, Theme
+from c3nav.mapdata.models.locations import LocationTag
+from c3nav.mapdata.models.theme import ThemeLocationTagColor, ThemeObstacleGroupBackgroundColor, Theme
 from c3nav.mapdata.permissions import active_map_permissions
 
 
@@ -39,27 +39,27 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
         if self._meta.model == Theme:
             if creating:
-                location_theme_colors = {}
+                location_tag_theme_colors = {}
                 obstaclegroup_theme_colors = {}
             else:
-                location_theme_colors = {
-                    theme_location.location_group_id: theme_location
-                    for theme_location in self.instance.locations.filter(theme_id=self.instance.pk)
+                location_tag_theme_colors = {
+                    theme_tag.tag_id: theme_tag
+                    for theme_tag in self.instance.tags.filter(theme_id=self.instance.pk)
                 }
                 obstaclegroup_theme_colors = {
                     theme_obstacle.obstacle_group_id: theme_obstacle
                     for theme_obstacle in self.instance.obstacles.filter(theme_id=self.instance.pk)
                 }
 
-            for location in DefinedLocation.objects.filter(color__isnull=False).prefetch_related(
-                    Prefetch('theme_colors', ThemeLocationBackgroundColor.objects.only('fill_color'))
+            for tag in LocationTag.objects.filter(color__isnull=False).prefetch_related(
+                    Prefetch('theme_colors', ThemeLocationTagColor.objects.only('fill_color'))
             ).all():
-                related = location_theme_colors.get(location.pk, None)
+                related = location_tag_theme_colors.get(tag.pk, None)
                 value = related.fill_color if related is not None else None
                 other_themes_colors = {
-                    str(theme_location.theme.title): theme_location.fill_color
-                    for theme_location in location.theme_colors.all()
-                    if related is None or theme_location.pk != related.pk
+                    str(theme_tag.theme.title): theme_tag.fill_color
+                    for theme_tag in tag.theme_colors.all()
+                    if related is None or theme_tag.pk != related.pk
                 }
                 if len(other_themes_colors) > 0:
                     other_themes_colors = json.dumps(other_themes_colors)
@@ -67,15 +67,15 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     other_themes_colors = False
                 field = CharField(
                     max_length=32,
-                    label=location.title,
+                    label=tag.title,
                     required=False,
                     initial=value,
                     widget=TextInput(attrs={
                         'data-themed-color': True,
-                        'data-color-base-theme': location.color if location.color else False,
+                        'data-color-base-theme': tag.color if tag.color else False,
                         'data-colors-other-themes': other_themes_colors,
                     }))
-                self.fields[f'location_{location.pk}'] = field
+                self.fields[f'locationtag_{tag.pk}'] = field
 
             for obstaclegroup in ObstacleGroup.objects.prefetch_related(
                     Prefetch('theme_colors', ThemeObstacleGroupBackgroundColor.objects.only('fill_color'))).all():
@@ -235,7 +235,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.make_redirect_slug: Optional[str] = None
         self.make_main_slug: Optional[str] = None
         self.add_slugs: Optional[dict[str, bool]] = None
-        if isinstance(self.instance, DefinedLocation):
+        if isinstance(self.instance, LocationTag):
             self.slugs = {s.slug: s.redirect for s in self.instance.slug_set.all()} if self.instance.pk else {}
             slug = next(iter(chain((s for s, r in self.slugs.items() if not r), (None, ))))
             redirect_slugs = [s for s, r in self.slugs.items() if r]
@@ -335,17 +335,15 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 self.instance.slug_set.create(slug=slug, redirect=r)
 
         if self._meta.model == Theme:
-            location_colors = {theme_location.location_group_id: theme_location
-                                    for theme_location in self.instance.locations.all()}
-            for location in DefinedLocation.objects.filter(color__isnull=False):
-                value = self.cleaned_data.get(f'location_{location.pk}', None)
+            tag_colors = {theme_tag.tag_id: theme_tag for theme_tag in self.instance.tags.all()}
+            for tag in LocationTag.objects.filter(color__isnull=False):
+                value = self.cleaned_data.get(f'locationtag_{tag.pk}', None)
                 if value:
-                    color = location_colors.get(location.pk, ThemeLocationBackgroundColor(theme=self.instance,
-                                                                                          location=location))
+                    color = tag_colors.get(tag.pk, ThemeLocationTagColor(theme=self.instance, location=tag))
                     color.fill_color = value
                     color.save()
                 else:
-                    color = location_colors.get(location.pk, None)
+                    color = tag_colors.get(tag.pk, None)
                     if color is not None:
                         color.delete()
 
@@ -496,34 +494,34 @@ class DoorGraphForm(Form):
                     edge.save()
 
 
-class LinkDefinedLocationForm(Form):
+class LinkLocationTagForm(Form):
     # todo: jo, permissions and stuff!
     def __init__(self, *args, target, **kwargs):
         super().__init__(*args, **kwargs)
         self.target = target
 
-        defined_locations = tuple(target.locations.all())
-        for location in defined_locations:
-            self.fields[f"unlink_{location.pk}"] = BooleanField(
+        location_tags = tuple(target.tags.all())
+        for tag in location_tags:
+            self.fields[f"unlink_{tag.pk}"] = BooleanField(
                 required=False,
                 label=_('Unlink %(title)s') % {'title': format_html(
                 '<a href="{url}">{title}</a>',
-                    url=reverse('editor.defined_locations.edit', kwargs={"pk": location.pk}),
-                    title=location.title,
+                    url=reverse('editor.location_tags.edit', kwargs={"pk": tag.pk}),
+                    title=tag.title,
                 )},
             )
 
         self.fields["link"] = ModelChoiceField(
-            DefinedLocation.objects.all(),
+            LocationTag.objects.all(),
             required=False,
             widget=TextInput(),
-            label=_('Add defined location by ID'),
+            label=_('Add tag by ID'),
         )
 
     def save(self):
-        remove_ids = {location.pk for location in self.target.locations.all()
+        remove_ids = {location.pk for location in self.target.tags.all()
                       if self.cleaned_data.get(f"unlink_{location.pk}")}
         if remove_ids:
-            self.target.locations.remove(*remove_ids)
+            self.target.tags.remove(*remove_ids)
         if self.cleaned_data["link"]:
-            self.target.locations.add(self.cleaned_data["link"])
+            self.target.tags.add(self.cleaned_data["link"])

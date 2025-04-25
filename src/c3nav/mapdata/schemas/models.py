@@ -6,7 +6,7 @@ from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 from c3nav.api.schema import BaseSchema, AnyGeometrySchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models.geometry.base import GeometryMixin
-from c3nav.mapdata.models.locations import DefinedLocation
+from c3nav.mapdata.models.locations import LocationTag
 from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
@@ -239,7 +239,7 @@ class CrossDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
     )
 
 
-class DefinedLocationSchema(WithAccessRestrictionSchema, TitledSchema, DjangoModelSchema):
+class LocationTagSchema(WithAccessRestrictionSchema, TitledSchema, DjangoModelSchema):
     """
     A location refering to a level, space, area, point of interest, or dynamic location.
     It can have other locations as parents (and thus, also, children).
@@ -302,7 +302,7 @@ class DefinedLocationSchema(WithAccessRestrictionSchema, TitledSchema, DjangoMod
 
     # imported from group
     priority: int = APIField()
-    can_report_missing: DefinedLocation.CanReportMissing = APIField(
+    can_report_missing: LocationTag.CanReportMissing = APIField(
         title="report missing locations",
         description="whether this location group can be used to report missing locations",
     )
@@ -317,13 +317,13 @@ class DefinedLocationSchema(WithAccessRestrictionSchema, TitledSchema, DjangoMod
     @classmethod
     def get_overrides(cls, value):
         return {
-            "locationtype": "defined",
+            "locationtype": "tag",
             "label_settings": value.label_settings_id,
             "load_group_display": value.load_group_display_id
         }
 
 
-class DynamicLocationTargetSchema(WithAccessRestrictionSchema, DjangoModelSchema):
+class DynamicLocationTagTargetSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
     Represents a moving object. Its position has to be separately queried through the position API.
     """

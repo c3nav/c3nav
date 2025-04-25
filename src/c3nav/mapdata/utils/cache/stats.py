@@ -10,7 +10,7 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, LocationSlug, Space
 from c3nav.mapdata.models.geometry.space import POI, Area, BeaconMeasurement
 from c3nav.mapdata.locations import CustomLocation, LocationManager
-from c3nav.mapdata.models.locations import DefinedLocation
+from c3nav.mapdata.models.locations import LocationTag
 
 
 def increment_cache_key(cache_key):
@@ -165,8 +165,9 @@ def convert_location(data):
         if getattr(location, 'can_search', False) or getattr(location, 'can_describe', False):
             result['coordinates']['by_poi'][location.effective_slug] = 0
 
-    for group in DefinedLocation.objects.filter(children__isnull=False).only("id"):
-        result['locations']['by_group'][group.effective_slug] = 0
+    for tag in LocationTag.objects.filter(children__isnull=False).only("id"):
+        # todo: by group??
+        result['locations']['by_group'][tag.effective_slug] = 0
 
     for name, value in data:
         if name[0] != 'pk' or name[0] == 'c:anywhere':

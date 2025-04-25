@@ -64,7 +64,7 @@ validate_slug = RegexValidator(
 class LocationSlug(models.Model):
     slug = models.SlugField(_('Slug'), unique=True, max_length=50, validators=[validate_slug])
     redirect = models.BooleanField(default=False)
-    target = models.ForeignKey('DefinedLocation', on_delete=models.CASCADE, related_name='slug_set')
+    target = models.ForeignKey('LocationTag', on_delete=models.CASCADE, related_name='slug_set')
 
     class Meta:
         verbose_name = _('Location Slug')
@@ -77,8 +77,8 @@ class LocationSlug(models.Model):
         ]
 
 
-StaticLocationTarget: TypeAlias = Union["Level", "Space", "Area", "POI"]
-LocationTarget: TypeAlias = Union["DynamicLocationTarget", "StaticLocationTarget"]
+StaticLocationTagTarget: TypeAlias = Union["Level", "Space", "Area", "POI"]
+LocationTarget: TypeAlias = Union["DynamicLocationTagTarget", "StaticLocationTagTarget"]
 
 
 @dataclass(frozen=True)
@@ -96,56 +96,56 @@ TaggedMaskedLocationGeometries: TypeAlias = list[MapPermissionTaggedItem[Polygon
 
 
 @dataclass(frozen=True)
-class MaskedLocationGeometry:
+class MaskedLocationTagGeometry:
     geometry: TaggedLocationGeometries
     masked_geometry: TaggedMaskedLocationGeometries
     space_id: int
 
 
 CachedBoundsByLevel: TypeAlias = dict[int, CachedBounds]
-CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationGeometry | TaggedLocationGeometries]]
+CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationTagGeometry | TaggedLocationGeometries]]
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
-class LocationAdjacency(models.Model):
+class LocationTagAdjacency(models.Model):
     """
     A direct parent-child-relationship between two locations.
     """
-    parent = models.ForeignKey("DefinedLocation", on_delete=models.PROTECT, related_name="+")
-    child = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE, related_name="+")
+    parent = models.ForeignKey("LocationTag", on_delete=models.PROTECT, related_name="+")
+    child = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="+")
 
     class Meta:
         constraints = (
-            UniqueConstraint(fields=("parent", "child"), name="unique_location_parent_child"),
-            CheckConstraint(check=~Q(parent=F("child")), name="location_parent_cant_be_child"),
+            UniqueConstraint(fields=("parent", "child"), name="unique_location_tag_parent_child"),
+            CheckConstraint(check=~Q(parent=F("child")), name="location_tag_parent_cant_be_child"),
         )
 
 
-class LocationRelation(models.Model):
+class LocationTagRelation(models.Model):
     """ Automatically populated. Indicating that there is (at least) one relation path between two locations """
-    ancestor = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE,
+    ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE,
                                  related_name="downwards_ancestires")
-    descendant = models.ForeignKey("DefinedLocation", on_delete=models.CASCADE,
+    descendant = models.ForeignKey("LocationTag", on_delete=models.CASCADE,
                                    related_name="upwards_relations")
 
     # look, this field is genuinely just for fun, cause we can, probably not useful
-    first_adjacencies = models.ManyToManyField("LocationAdjacency", related_name="provides_relations",
-                                               through="LocationRelationPath")
+    first_adjacencies = models.ManyToManyField("LocationTagAdjacency", related_name="provides_relations",
+                                               through="LocationTagRelationPathSegment")
 
     class Meta:
         constraints = (
             # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
-            UniqueConstraint(fields=("ancestor", "descendant"), name="unique_location_relation"),
-            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_relation"),
+            UniqueConstraint(fields=("ancestor", "descendant"), name="unique_location_tag_relation"),
+            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_tag_relation"),
         )
 
 
-class LocationRelationPath(models.Model):
+class LocationTagRelationPathSegment(models.Model):
     # todo: rename to path segment
     """ Automatically populated. One relation path for the given relation, ending with the given adjacency. """
     prev_path = models.ForeignKey("self", on_delete=models.CASCADE, related_name="+", null=True)
-    adjacency = models.ForeignKey("LocationAdjacency", on_delete=models.CASCADE, related_name="+")
-    relation = models.ForeignKey("LocationRelation", on_delete=models.CASCADE, related_name="paths")
+    adjacency = models.ForeignKey("LocationTagAdjacency", on_delete=models.CASCADE, related_name="+")
+    relation = models.ForeignKey("LocationTagRelation", on_delete=models.CASCADE, related_name="paths")
     # rename to num_predecessors?
     num_hops = models.PositiveSmallIntegerField(db_index=True)
 
@@ -167,19 +167,19 @@ class LocationRelationPath(models.Model):
                  if "adjacency" in self._state.fields_cache else f" adjacency={self.adjacency_id}"))
 
 
-class SimpleLocationRelationPathTuple(NamedTuple):
-    prev: Optional["SimpleLocationRelationPathTuple"]
+class SimpleLocationTagRelationPathSegmentTuple(NamedTuple):
+    prev: Optional["SimpleLocationTagRelationPathSegmentTuple"]
     ancestor: int | None
     parent: int
-    location: int
+    tag: int
     num_hops: int
 
 
-class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
+class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
     """
-    locationtype = "defined"
+    locationtype = "tag"
     slug_as_id = False
 
     class CanReportMissing(models.TextChoices):
@@ -238,15 +238,15 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     # imported from locationgroup end
 
     parents = models.ManyToManyField("self", related_name="children", symmetrical=False,
-                                              through="LocationAdjacency", through_fields=("child", "parent"))
+                                              through="LocationTagAdjacency", through_fields=("child", "parent"))
     calculated_ancestors = models.ManyToManyField("self", related_name="calculated_descendants", symmetrical=False,
-                                                  through="LocationRelation", through_fields=("descendant", "ancestor"),
+                                                  through="LocationTagRelation", through_fields=("descendant", "ancestor"),
                                                   editable=False)
 
-    levels = models.ManyToManyField('Level', related_name='locations')
-    spaces = models.ManyToManyField('Space', related_name='locations')
-    areas = models.ManyToManyField('Area', related_name='locations')
-    pois = models.ManyToManyField('POI', related_name='locations')
+    levels = models.ManyToManyField('Level', related_name="tags")
+    spaces = models.ManyToManyField('Space', related_name="tags")
+    areas = models.ManyToManyField('Area', related_name="tags")
+    pois = models.ManyToManyField('POI', related_name="tags")
 
     effective_depth_first_order = models.PositiveIntegerField(default=2**31-1, editable=False)
     effective_priority_order = models.PositiveIntegerField(default=2**31-1, editable=False)
@@ -271,9 +271,9 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     cached_all_position_secrets: list[str] = SchemaField(schema=list[str], default=list)
 
     class Meta:
-        verbose_name = _('Defined Location')
-        verbose_name_plural = _('Defined Locations')
-        default_related_name = 'defined_locations'
+        verbose_name = _('Location Tag')
+        verbose_name_plural = _('Location Tags')
+        default_related_name = 'location_tags'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -285,7 +285,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     """ Targets """
 
     @cached_property
-    def static_targets(self) -> MapPermissionGuardedSequence[StaticLocationTarget]:
+    def static_targets(self) -> MapPermissionGuardedSequence[StaticLocationTagTarget]:
         """
         Get all static location targets
         """
@@ -332,7 +332,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                     (_('Title ({lang})').format(lang=get_language_info(lang)['name_translated']), title)
                     for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language())
                 ),
-                (_('Parent locations'), list(self.display_superlocations)),
+                (_('Parent tags'), list(self.display_superlocations)),
                 (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
                 (_('searchable'), _('Yes') if self.can_search else _('No')),
                 (_('can describe'), _('Yes') if self.can_describe else _('No')),
@@ -354,12 +354,13 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         # todo: add groups again
 
         if editor_url:
-            result['editor_url'] = reverse('editor.defined_locations.edit', kwargs={'pk': self.pk})
+            result['editor_url'] = reverse('editor.location_tags.edit', kwargs={'pk': self.pk})
 
         return result
 
     @cached_property
     def sublocations(self) -> MapPermissionGuardedTaggedSequence[int]:
+        # todo: rename
         return MapPermissionGuardedTaggedSequence([
             MapPermissionTaggedItem(l.pk, l.effective_access_restrictions)
             for l in self.calculated_descendants.all()
@@ -367,6 +368,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @cached_property
     def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[dict]:
+        # todo: rename?
         return MapPermissionGuardedTaggedSequence([
             MapPermissionTaggedItem({
                 'id': l.pk,
@@ -392,10 +394,10 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         return self.effective_priority_order, color
 
     @classmethod
-    def evaluate_location_relations(cls):
+    def evaluate_location_tag_relations(cls):
         build_children_by_parent: dict[int | None, deque[int]] = defaultdict(deque)
         adjacency_ids: dict[tuple[int, int], int] = {}
-        for pk, parent_id, child_id in LocationAdjacency.objects.values_list("pk", "parent_id", "child_id"):
+        for pk, parent_id, child_id in LocationTagAdjacency.objects.values_list("pk", "parent_id", "child_id"):
             adjacency_ids[(parent_id, child_id)] = pk
             build_children_by_parent[parent_id].append(child_id)
         children_by_parent: dict[int | None, frozenset[int]] = {
@@ -405,20 +407,20 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         fail = False
 
         # create ancestors
-        expected_paths: dict[int, tuple[SimpleLocationRelationPathTuple, ...]] = {}
+        expected_paths: dict[int, tuple[SimpleLocationTagRelationPathSegmentTuple, ...]] = {}
         num_hops = 0
-        last_paths: tuple[SimpleLocationRelationPathTuple, ...] = tuple(chain.from_iterable(
+        last_paths: tuple[SimpleLocationTagRelationPathSegmentTuple, ...] = tuple(chain.from_iterable(
             (
-                SimpleLocationRelationPathTuple(ancestor=parent_id, parent=parent_id, location=child_id,
-                                                prev=None, num_hops=0)
+                SimpleLocationTagRelationPathSegmentTuple(ancestor=parent_id, parent=parent_id, tag=child_id,
+                                                          prev=None, num_hops=0)
                 for child_id in child_ids
             ) for parent_id, child_ids in children_by_parent.items()
         ))
         while last_paths:
             paths_by_cyclic = {cyclic: tuple(paths)
-                               for cyclic, paths in groupby(last_paths, key=lambda p: p.ancestor == p.location)}
+                               for cyclic, paths in groupby(last_paths, key=lambda p: p.ancestor == p.tag)}
             for path in paths_by_cyclic.get(True, ()):
-                print(f"INCONSISTENCY! Circular hierarchy! Breaking parent→child {path.parent}→{path.location}")
+                print(f"INCONSISTENCY! Circular hierarchy! Breaking parent→child {path.parent}→{path.tag}")
                 fail = True
             last_paths = paths_by_cyclic.get(False, ())
             expected_paths[num_hops] = last_paths
@@ -426,16 +428,16 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             num_hops += 1
             last_paths = tuple(chain.from_iterable(
                 (
-                    SimpleLocationRelationPathTuple(ancestor=prev.ancestor, parent=prev.location, location=child_id,
-                                                    prev=prev, num_hops=num_hops)
+                    SimpleLocationTagRelationPathSegmentTuple(ancestor=prev.ancestor, parent=prev.tag, tag=child_id,
+                                                              prev=prev, num_hops=num_hops)
                     for child_id in child_ids
-                ) for prev, child_ids in zip(last_paths, (children_by_parent.get(path.location, frozenset()) for path in last_paths))
+                ) for prev, child_ids in zip(last_paths, (children_by_parent.get(path.tag, frozenset()) for path in last_paths))
             ))
 
-        expected_relations = {(path.ancestor, path.location) for path in chain.from_iterable(expected_paths.values())}
+        expected_relations = {(path.ancestor, path.tag) for path in chain.from_iterable(expected_paths.values())}
         relation_ids = {
             (ancestor_id, descendant_id): pk
-            for pk, ancestor_id, descendant_id in LocationRelation.objects.values_list("pk", "ancestor_id", "descendant_id")
+            for pk, ancestor_id, descendant_id in LocationTagRelation.objects.values_list("pk", "ancestor_id", "descendant_id")
         }
         existing_relations = set(relation_ids.keys())
 
@@ -445,8 +447,8 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             fail = True
             relation_ids.update({
                 relation.pk: (relation.ancestor_id, relation.descendant_id)
-                for relation in LocationRelation.objects.bulk_create((
-                    LocationRelation(
+                for relation in LocationTagRelation.objects.bulk_create((
+                    LocationTagRelation(
                         ancestor_id=ancestor_id,
                         descendant_id=descendant_id,
                     ) for ancestor_id, descendant_id in missing_relations
@@ -457,13 +459,13 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         if extra_relations:
             print("INCONSISTENCY: Extra relations, deleting:", missing_relations)
             fail = True
-            LocationRelation.objects.filter(
+            LocationTagRelation.objects.filter(
                 pk__in=(relation_ids[extra_relation] for extra_relation in extra_relations)
             ).delete()
             for extra_relation in missing_relations:
                 del relation_ids[extra_relation]
 
-        num_deleted, num_deleted_per_model = LocationRelationPath.objects.exclude(
+        num_deleted, num_deleted_per_model = LocationTagRelationPathSegment.objects.exclude(
             # exclude things where things make sense
             Q(adjacency__child=F("relation__descendant")) & (
                 (Q(prev_path__isnull=True) | (Q(adjacency__parent=F("prev_path__adjacency__child"))
@@ -477,13 +479,13 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             fail = True
 
         existing_paths_by_id = {
-            pk: fields for pk, *fields in LocationRelationPath.objects.values_list(
+            pk: fields for pk, *fields in LocationTagRelationPathSegment.objects.values_list(
                 "pk", "prev_path_id", "relation__ancestor_id",
                 "adjacency__parent_id", "adjacency__child_id", "num_hops",
             )
         }
-        existing_paths_by_num_hops_and_id: dict[int, dict[int, SimpleLocationRelationPathTuple]] = {}
-        existing_path_id_by_tuple: dict[SimpleLocationRelationPathTuple | None, int | None] = {None: None}
+        existing_paths_by_num_hops_and_id: dict[int, dict[int, SimpleLocationTagRelationPathSegmentTuple]] = {}
+        existing_path_id_by_tuple: dict[SimpleLocationTagRelationPathSegmentTuple | None, int | None] = {None: None}
 
         for num_hops, paths in (
             sorted((num_hops, tuple(paths))
@@ -496,11 +498,11 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
             last_num_hops_paths = {} if num_hops == 0 else existing_paths_by_num_hops_and_id.get(num_hops - 1, {})
 
             for pk, (prev_path_id, ancestor_id, parent_id, child_id, n) in paths:
-                t = SimpleLocationRelationPathTuple(
+                t = SimpleLocationTagRelationPathSegmentTuple(
                     prev=None if prev_path_id is None else last_num_hops_paths[prev_path_id],
                     ancestor=ancestor_id,
                     parent=parent_id,
-                    location=child_id,
+                    tag=child_id,
                     num_hops=num_hops,
                 )
                 num_hops_paths[pk] = t
@@ -518,11 +520,11 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                 print("INCONSISTENCY: Missing paths, creating:", missing_paths)
                 fail = True
                 existing_path_id_by_tuple.update(
-                    dict(zip(missing_paths, (created_path.pk for created_path in LocationRelationPath.objects.bulk_create((
-                        LocationRelationPath(
+                    dict(zip(missing_paths, (created_path.pk for created_path in LocationTagRelationPathSegment.objects.bulk_create((
+                        LocationTagRelationPathSegment(
                             prev_path=existing_path_id_by_tuple[missing_path.prev],
-                            adjacency=adjacency_ids[(missing_path.parent, missing_path.location)],
-                            relation=relation_ids[(missing_path.ancestor, missing_path.location)],
+                            adjacency=adjacency_ids[(missing_path.parent, missing_path.tag)],
+                            relation=relation_ids[(missing_path.ancestor, missing_path.tag)],
                             num_hops=num_hops,
                         ) for missing_path in missing_paths
                     )))))
@@ -535,65 +537,65 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                 fail = True
 
         if delete_ids:
-            LocationRelationPath.objects.filter(pk__in=delete_ids).delete()
+            LocationTagRelationPathSegment.objects.filter(pk__in=delete_ids).delete()
 
         if fail:
             raise ValueError("verify_location_relation failed")
 
-        print("location relation valid")
+        print("location tag relation valid")
 
         cls.recalculate_effective_order()
 
     @classmethod
     def recalculate_effective_order(cls):
         pks, priorities, num_parents = zip(
-            *DefinedLocation.objects.annotate(
+            *LocationTag.objects.annotate(
                 Count("parents")
             ).values_list("pk", "priority", "parents__count").order_by("-priority")
         )
-        root_location_ids = tuple(pk for pk, parents in zip(pks, num_parents) if parents == 0)
+        root_tag_ids = tuple(pk for pk, parents in zip(pks, num_parents) if parents == 0)
 
         children_for_parent = {
             parent_id: tuple(child_id for p, child_id in children)
             for parent_id, children in groupby(
-                LocationAdjacency.objects.order_by("-child__priority").values_list("parent_id", "child_id"),
+                LocationTagAdjacency.objects.order_by("-child__priority").values_list("parent_id", "child_id"),
                 key=itemgetter(1)
             )
         }
 
         # depth first
-        locations_in_depth_first_order: deque[int] = deque(root_location_ids)
-        done_locations: set[int] = set()
-        next_locations: deque[int] = deque(root_location_ids)
-        while next_locations:
-            location_id = next_locations.popleft()
-            new_children = tuple(child_id for child_id in children_for_parent.get(location_id, ())
-                                 if child_id not in done_locations)
-            done_locations.update(new_children)
-            next_locations.extend(new_children)
-            locations_in_depth_first_order.extend(new_children)
+        tags_in_depth_first_order: deque[int] = deque(root_tag_ids)
+        done_tags: set[int] = set()
+        next_tags: deque[int] = deque(root_tag_ids)
+        while next_tags:
+            tag_id = next_tags.popleft()
+            new_children = tuple(child_id for child_id in children_for_parent.get(tag_id, ())
+                                 if child_id not in done_tags)
+            done_tags.update(new_children)
+            next_tags.extend(new_children)
+            tags_in_depth_first_order.extend(new_children)
 
         # priority first
-        locations_in_traversal_order: deque[int] = deque()
-        locations_in_priority_order: deque[int] = deque()
-        done_locations.clear()
-        def add_locations(ids: tuple[int, ...]):
+        tags_in_traversal_order: deque[int] = deque()
+        tags_in_priority_order: deque[int] = deque()
+        done_tags.clear()
+        def add_tags(ids: tuple[int, ...]):
             for id_ in ids:
-                if id_ in done_locations:
+                if id_ in done_tags:
                     continue
-                done_locations.add(id_)
-                locations_in_traversal_order.append(id_)
-                add_locations(children_for_parent.get(id_, ()))
-                locations_in_priority_order.append(id_)
+                done_tags.add(id_)
+                tags_in_traversal_order.append(id_)
+                add_tags(children_for_parent.get(id_, ()))
+                tags_in_priority_order.append(id_)
 
         field = models.PositiveIntegerField()
-        for order_name, location_ids in (("depth_first", locations_in_depth_first_order),
-                                         ("traversal", locations_in_traversal_order),
-                                         ("priority", locations_in_priority_order)):
-            DefinedLocation.objects.update(**{f"effective_{order_name}_order": Case(
+        for order_name, tag_ids in (("depth_first", tags_in_depth_first_order),
+                                         ("traversal", tags_in_traversal_order),
+                                         ("priority", tags_in_priority_order)):
+            LocationTag.objects.update(**{f"effective_{order_name}_order": Case(
          *(
-                    When(pk=location_id, then=Value(i, output_field=field))
-                    for i, location_id in enumerate(location_ids)
+                    When(pk=tag_id, then=Value(i, output_field=field))
+                    for i, tag_id in enumerate(tag_ids)
                 ),
                 default=Value(2**31-1, output_field=field),
             )})
@@ -602,7 +604,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     def calculate_effective_x(cls, name: str, default=...):
         output_field = cls._meta.get_field(f"effective_{name}")
         cls.objects.annotate(**{
-            f"parent_effective_{name}": Subquery(DefinedLocation.objects.filter(**{
+            f"parent_effective_{name}": Subquery(LocationTag.objects.filter(**{
                 "calculated_descendants": OuterRef("pk"),
                 f"{name}__isnull": False,
             }).order_by("effective_priority_order").values(name)[:1]),
@@ -628,24 +630,24 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     def calculate_cached_effective_color(cls):
         # collect ids for each value so we can later bulk-update
         colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
-        for defined_location in cls.objects.prefetch_related(
-                Prefetch("calculated_ancestors", DefinedLocation.objects.order_by(
+        for tag in cls.objects.prefetch_related(
+                Prefetch("calculated_ancestors", LocationTag.objects.order_by(
                     "effective_priority_order"
                 ).prefetch_related("theme_colors"))
             ):
-            location_colors: ColorByTheme = {}
-            for ancestor in chain((defined_location, ), defined_location.calculated_ancestors.all()):
+            tag_colors: ColorByTheme = {}
+            for ancestor in chain((tag, ), tag.calculated_ancestors.all()):
                 # add colors from this ancestor
-                if ancestor.color and 0 not in location_colors:
-                    location_colors[0] = FillAndBorderColor(fill=ancestor.color, border=None)
-                location_colors.update({
+                if ancestor.color and 0 not in tag_colors:
+                    tag_colors[0] = FillAndBorderColor(fill=ancestor.color, border=None)
+                tag_colors.update({
                     theme_color.theme_id: FillAndBorderColor(fill=theme_color.fill_color,
                                                              border=theme_color.border_color)
                     for theme_color in ancestor.theme_colors.all()
-                    if (theme_color.theme_id not in location_colors
+                    if (theme_color.theme_id not in tag_colors
                         and theme_color.fill_color and theme_color.border_color)
                 })
-            colors.setdefault(tuple(sorted(location_colors.items())), set()).add(defined_location.pk)
+            colors.setdefault(tuple(sorted(tag_colors.items())), set()).add(tag.pk)
 
         cls._bulk_cached_update(
             name="cached_effective_colors",
@@ -656,11 +658,11 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     @classmethod
     def calculate_cached_describing_titles(cls):
         all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
-        for defined_location in cls.objects.prefetch_related(
-                Prefetch("calculated_ancestors", DefinedLocation.objects.order_by("effective_priority_order"))
+        for tag in cls.objects.prefetch_related(
+                Prefetch("calculated_ancestors", LocationTag.objects.order_by("effective_priority_order"))
             ):
-            location_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
-            for ancestor in reversed(defined_location.calculated_ancestors.all()):
+            tag_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
+            for ancestor in reversed(tag.calculated_ancestors.all()):
                 if not (ancestor.can_describe and ancestor.titles):
                     continue
                 restrictions: frozenset[int] = (
@@ -668,13 +670,13 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                 )
                 titles: tuple[tuple[str, str], ...] = tuple(ancestor.titles.items())  # noqa
                 if not restrictions or all((restrictions-other_restrictions)
-                                           for titles, other_restrictions in location_describing_titles):
+                                           for titles, other_restrictions in tag_describing_titles):
                     # new restriction set was not covered by previous ones
-                    location_describing_titles.append((titles, restrictions))
+                    tag_describing_titles.append((titles, restrictions))
                 if not restrictions:
                     # no access restrictions? that's it, no more ancestors to evaluate
                     break
-            all_describing_titles.setdefault(tuple(location_describing_titles), set()).add(defined_location.pk)
+            all_describing_titles.setdefault(tuple(tag_describing_titles), set()).add(tag.pk)
         cls._bulk_cached_update(
             name="cached_describing_titles",
             values=tuple(
@@ -705,13 +707,13 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     @classmethod
     def recalculate_minimum_access_restrictions(cls):
         all_minimum_access_restrictions: dict[tuple[int, ...], set[int]] = {}
-        for defined_location in cls.objects.prefetch_related("levels", "spaces", "areas", "pois"):
+        for tag in cls.objects.prefetch_related("levels", "spaces", "areas", "pois"):
             all_minimum_access_restrictions.setdefault(  # noqa
                 tuple(reduce(
                     operator.and_,
-                    (target.effective_access_restrictions for target in defined_location.static_targets),
-                )) if defined_location.static_targets else (), set()
-            ).add(defined_location.pk)
+                    (target.effective_access_restrictions for target in tag.static_targets),
+                )) if tag.static_targets else (), set()
+            ).add(tag.pk)
         cls._bulk_cached_update(
             name="effective_minimum_access_restrictions",
             values=tuple(
@@ -755,9 +757,9 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     def recalculate_all_position_secrets(cls):
         all_position_secrets: dict[tuple[str, ...], set[int]] = {}
 
-        for obj in cls.objects.prefetch_related("dynamic_location_targets"):
+        for obj in cls.objects.prefetch_related("dynamic_targets"):
             all_position_secrets.setdefault(tuple(sorted(
-                target.position_secret for target in obj.dynamic_location_targets.all()
+                target.position_secret for target in obj.dynamic_targets.all()
             )), set()).add(obj.pk)
 
         cls._bulk_cached_update(
@@ -771,7 +773,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     @classmethod
     def recalculate_points(cls):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
-            obj: DefinedLocation
+            obj: LocationTag
             obj.cached_points = [
                 # we are filtering out versions of this targets points for users who lack certain permissions,
                 list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
@@ -809,7 +811,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     @classmethod
     def recalculate_bounds(cls):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
-            obj: DefinedLocation
+            obj: LocationTag
             # collect the cached bounds of all static targets, grouped by level
             collected_bounds: dict[int, deque[CachedBounds]] = defaultdict(deque)
             for target in obj.static_targets:
@@ -876,36 +878,35 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @classmethod
     def recalculate_geometries(cls):
-        for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level",
-                                                "levels__locations", "spaces__locations", "areas__locations",
-                                                "pois__locations",):
-            obj: DefinedLocation
+        for tag in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level",
+                                                "levels__tags", "spaces__tags", "areas__tags", "pois__tags",):
+            tag: LocationTag
             result: CachedGeometriesByLevel = {}
-            for target in obj.static_targets:
+            for target in tag.static_targets:
                 try:
                     mask = not target.base_mapdata_accessible
                 except AttributeError:
                     mask = False
                 # we are filtering out versions of this target's geometries for users who lack certain permissions,
-                # because being able to see this location implies certain permissions
+                # because being able to see this tag implies certain permissions
                 if mask:
-                    result.setdefault(target.primary_level_id, []).append(MaskedLocationGeometry(
+                    result.setdefault(target.primary_level_id, []).append(MaskedLocationTagGeometry(
                         geometry=list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
-                            target.cached_effective_geometries, obj.effective_access_restrictions
+                            target.cached_effective_geometries, tag.effective_access_restrictions
                         )),
                         masked_geometry=list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
-                            target.cached_simplified_geometries, obj.effective_access_restrictions
+                            target.cached_simplified_geometries, tag.effective_access_restrictions
                         )),
                         space_id=target.id,
                     ))
                 else:
                     result.setdefault(target.primary_level_id, []).append(
                         list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
-                            target.cached_effective_geometries, obj.effective_access_restrictions
+                            target.cached_effective_geometries, tag.effective_access_restrictions
                         ))
                     )
-            obj.cached_geometries = result
-            obj.save()
+            tag.cached_geometries = result
+            tag.save()
 
     @cached_property
     def _geometries_by_level(self) -> GeometriesByLevel:
@@ -929,7 +930,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
                             default=None),
                         space_id=geometries.space_id
                     )
-                    if isinstance(geometries, MaskedLocationGeometry)
+                    if isinstance(geometries, MaskedLocationTagGeometry)
                     else MapPermissionMaskedTaggedValue(MapPermissionGuardedTaggedValue(
                         [MapPermissionTaggedItem(shape(g.value), g.access_restrictions)
                          for g in geometries],
@@ -951,23 +952,22 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         # todo: make this work better for multiple targets
         all_target_subtitles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
         for obj in cls.objects.prefetch_related("levels",
-                                                "spaces__level", "spaces__locations", "spaces__level__locations",
-                                                "areas__space__locations", "areas__space__level__locations",
-                                                "pois__space__locations", "pois__space__level",
-                                                "dynamic_location_targets"):
-            obj: DefinedLocation
-            location_target_subtitles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
-            static_targets: tuple[StaticLocationTarget, ...] = tuple(obj.static_targets)
-            if len(static_targets) + len(obj.dynamic_location_targets.all()) == 1:
+                                                "spaces__level", "spaces__tags", "spaces__level__tags",
+                                                "areas__space__tags", "areas__space__level__tags",
+                                                "pois__space__tags", "pois__space__level", "dynamic_targets"):
+            obj: LocationTag
+            tag_target_subtitles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
+            static_targets: tuple[StaticLocationTagTarget, ...] = tuple(obj.static_targets)
+            if len(static_targets) + len(obj.dynamic_targets.all()) == 1:
                 main_static_target = static_targets[0]
                 target_subtitle: list[tuple[str, str]] = []
                 for language_code, language_name in settings.LANGUAGES:
                     with translation.override(language_code):
                         target_subtitle.append((language_code, str(main_static_target.subtitle)))
-                location_target_subtitles.append(
+                tag_target_subtitles.append(
                     (tuple(target_subtitle), main_static_target.effective_access_restrictions)
                 )
-            all_target_subtitles.setdefault(tuple(location_target_subtitles), set()).add(obj.pk)
+            all_target_subtitles.setdefault(tuple(tag_target_subtitles), set()).add(obj.pk)
 
         cls._bulk_cached_update(
             name="cached_target_subtitles",
@@ -1022,7 +1022,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
         # fallback if there is no subtitle  # todo: this could probably be better?
         if subtitle is not None:
             return subtitle
-        # todo: make location invisible if all targets are invisible
+        # todo: make tags invisible if all targets are invisible
         return (
             _('Location')
             if len(self._all_static_target_ids) + len(self.cached_all_position_secrets) <= 1
@@ -1088,46 +1088,45 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
 
 
 # …eh… this should just work without the int | ? but pycharm doesn't like it then… maybe it's pointless
-type LocationID = int | NewType("LocationID", int)
+type TagID = int | NewType("LocationID", int)
 type AdjacencyID = int | NewType("AdjacencyID", int)
 type RelationID = int | NewType("RelationID", int)
 type RelationPathID = int | NewType("RelationPathID", int)
 
-type AffectedAdjacencies = tuple[tuple[LocationID, AdjacencyID], ...]
-type AffectedAdjacenciesLookup = dict[LocationID, AdjacencyID]
+type AffectedAdjacencies = tuple[tuple[TagID, AdjacencyID], ...]
+type AffectedAdjacenciesLookup = dict[TagID, AdjacencyID]
 
 
-class LocationAdjacencyTuple(NamedTuple):
-    parent: LocationID
-    child: LocationID
+class LocationTagAdjacencyTuple(NamedTuple):
+    parent: TagID
+    child: TagID
 
 
-class LocationRelationTuple(NamedTuple):
-    ancestor: LocationID
-    descendant: LocationID
+class LocationTagRelationTuple(NamedTuple):
+    ancestor: TagID
+    descendant: TagID
 
 
-class LocationRelationPathTuple(NamedTuple):
+class LocationTagRelationPathSegmentTuple(NamedTuple):
     prev_path_id: RelationPathID | None
     adjacency_id: AdjacencyID
     relation_id: AdjacencyID
     num_hops: int
 
 
-@receiver(m2m_changed, sender=DefinedLocation.parents.through)
-def location_adjacency_changed(sender, instance: DefinedLocation, pk_set: set[int], action: str, reverse: bool,
-                               **kwargs):
+@receiver(m2m_changed, sender=LocationTag.parents.through)
+def locationtag_adjacency_changed(sender, instance: LocationTag, pk_set: set[int], action: str, reverse: bool, **kwargs):
     match (action, reverse):
         case ("post_add", False):
-            # new parents were added to the location
-            location_adjacency_added({(pk, instance.pk) for pk in pk_set})
+            # new parents were added to the tag
+            locationtag_adjacency_added({(pk, instance.pk) for pk in pk_set})
         case ("post_add", True):
-            # new children were added to the location
-            location_adjacency_added({(instance.pk, pk) for pk in pk_set})
+            # new children were added to the tag
+            locationtag_adjacency_added({(instance.pk, pk) for pk in pk_set})
         case ("post_remove" | "post_clear", False):
-            location_parents_removed(instance=instance, pk_set=pk_set)
+            locationtag_parents_removed(instance=instance, pk_set=pk_set)
         case ("post_remove" | "post_clear", True):
-            location_children_removed(instance=instance, pk_set=pk_set)
+            locationtag_children_removed(instance=instance, pk_set=pk_set)
 
 
 def unzip_paths_to_create(*data):
@@ -1137,19 +1136,19 @@ def unzip_paths_to_create(*data):
 
 
 def generate_paths_to_create(
-    created_relations: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...],
-    added_adjacencies: tuple[tuple[LocationID, LocationID, AdjacencyID], ...],
-    relevant_relations: tuple[tuple[RelationID, LocationID, LocationID], ...],
-    parent_relations: dict[LocationID, dict[LocationID, RelationID]],
-) -> Generator[tuple[LocationRelationPath, ...], tuple[LocationRelationPath, ...], None]:
-    relations_by_id = {relation_id: LocationRelationTuple(ancestor_id, descendant_id)
+    created_relations: tuple[tuple[tuple[TagID, TagID], RelationID], ...],
+    added_adjacencies: tuple[tuple[TagID, TagID, AdjacencyID], ...],
+    relevant_relations: tuple[tuple[RelationID, TagID, TagID], ...],
+    parent_relations: dict[TagID, dict[TagID, RelationID]],
+) -> Generator[tuple[LocationTagRelationPathSegment, ...], tuple[LocationTagRelationPathSegment, ...], None]:
+    relations_by_id = {relation_id: LocationTagRelationTuple(ancestor_id, descendant_id)
                        for relation_id, ancestor_id, descendant_id in relevant_relations}
 
     # query all the paths we need
     # even chained paths should all be contained in here, since we have all the relations that "lead to" them
-    relevant_paths_by_id: dict[RelationPathID, LocationRelationPathTuple] = {
-        path_id: LocationRelationPathTuple(*path)
-        for path_id, *path in LocationRelationPath.objects.filter(
+    relevant_paths_by_id: dict[RelationPathID, LocationTagRelationPathSegmentTuple] = {
+        path_id: LocationTagRelationPathSegmentTuple(*path)
+        for path_id, *path in LocationTagRelationPathSegment.objects.filter(
             relation_id__in=relations_by_id.keys()
         ).values_list(
             "pk", "prev_path_id", "adjacency_id", "relation_id", "num_hops", named=True
@@ -1157,7 +1156,7 @@ def generate_paths_to_create(
     }
 
     created_relations_lookup = dict(created_relations)
-    added_adjacencies_lookup: dict[tuple[LocationID, LocationID], AdjacencyID] = {
+    added_adjacencies_lookup: dict[tuple[TagID, TagID], AdjacencyID] = {
         (parent_id, child_id): pk for parent_id, child_id, pk in added_adjacencies
     }
 
@@ -1176,7 +1175,7 @@ def generate_paths_to_create(
     paths_to_create, relations = unzip_paths_to_create(*chain(
         # for each new relation that spans just one of the added adjacencies, create the singular path segment
         ((
-            LocationRelationPath(
+            LocationTagRelationPathSegment(
                 prev_path_id=None,
                 adjacency_id=added_adjacencies_lookup[parent, child],
                 relation_id=created_relations_lookup[parent, child],
@@ -1188,7 +1187,7 @@ def generate_paths_to_create(
         chain.from_iterable((
             ((
                 # the parent relation might have several paths, we continue all of them by one
-                LocationRelationPath(
+                LocationTagRelationPathSegment(
                     prev_path_id=path_id,
                     adjacency_id=orig_adjacency_id,
                     relation_id=created_relations_lookup[ancestor, child],
@@ -1221,7 +1220,7 @@ def generate_paths_to_create(
     # get path segments to copy that have no predecessor
     # no predecessor implies: (ancestor, descendant) of its relation are (parent, child) of its adjacency
     # this is why we can use ancestor of the paths segments relation to get the parent of its adjacency
-    first_paths_by_parent: dict[LocationID, tuple[RelationPathID, ...]] = {
+    first_paths_by_parent: dict[TagID, tuple[RelationPathID, ...]] = {
         parent: tuple(paths) for parent, paths in groupby(
             next_paths_for_path_id.pop(None, ()),
             key=lambda path_id: relations_by_id[relevant_paths_by_id[path_id].relation_id].ancestor
@@ -1232,7 +1231,7 @@ def generate_paths_to_create(
     paths_to_create, path_and_ancestor = unzip_paths_to_create(*chain.from_iterable(
         # continue each path we just created with the first path segments of all child relations
         ((
-            (LocationRelationPath(
+            (LocationTagRelationPathSegment(
                 prev_path_id=prev_created_path.pk,
                 # the adjacency is identical, since we are copying this path segment
                 adjacency_id=path_to_copy.adjacency_id,
@@ -1260,7 +1259,7 @@ def generate_paths_to_create(
         paths_to_create, path_and_ancestor = unzip_paths_to_create(*chain.from_iterable(
             # continue each path we just created with the next path segments
             ((
-                (LocationRelationPath(
+                (LocationTagRelationPathSegment(
                     prev_path_id=prev_created_path.pk,
                     # the adjacency is identical, since we are copying this path segment
                     adjacency_id=path_to_copy.adjacency_id,
@@ -1289,20 +1288,20 @@ class CircularyHierarchyError(IntegrityError):
     pass
 
 
-def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
+def locationtag_adjacency_added(adjacencies: set[tuple[TagID, TagID]]):
     # get added adjacencies
-    added_adjacencies: tuple[tuple[LocationID, LocationID, AdjacencyID], ...] = tuple(LocationAdjacency.objects.filter(  # noqa
+    added_adjacencies: tuple[tuple[TagID, TagID, AdjacencyID], ...] = tuple(LocationTagAdjacency.objects.filter(  # noqa
         Q.create([Q(parent_id=parent, child_id=child) for parent, child in adjacencies], connector=Q.OR)
     ).values_list("parent_id", "child_id", "pk"))
 
     # generate sets of all parents and all childrens of the added adjacenties
-    parents: frozenset[LocationID]
-    children: frozenset[LocationID]
+    parents: frozenset[TagID]
+    children: frozenset[TagID]
     parents, children = (frozenset(ids) for ids in zip(*adjacencies))
 
     # get all downwards relations to any of the parents or from any of the children
-    relevant_relations: tuple[tuple[RelationID, LocationID, LocationID], ...] = tuple(  # noqa
-        LocationRelation.objects.filter(
+    relevant_relations: tuple[tuple[RelationID, TagID, TagID], ...] = tuple(  # noqa
+        LocationTagRelation.objects.filter(
             Q(ancestor_id__in=children) | Q(descendant_id__in=parents)
         ).values_list(
             "pk", "ancestor_id", "descendant_id"
@@ -1310,9 +1309,9 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
     )
 
     # sort relations into what parents or children they end at
-    parent_relations: dict[LocationID, dict[LocationID, RelationID]] = defaultdict(dict)
-    child_relations: dict[LocationID, dict[LocationID, RelationID]] = defaultdict(dict)
-    parent_for_child_relations: dict[RelationID, LocationID] = {}
+    parent_relations: dict[TagID, dict[TagID, RelationID]] = defaultdict(dict)
+    child_relations: dict[TagID, dict[TagID, RelationID]] = defaultdict(dict)
+    parent_for_child_relations: dict[RelationID, TagID] = {}
     for pk, ancestor_id, descendant_id in relevant_relations:
         if ancestor_id in children:
             child_relations[ancestor_id][descendant_id] = pk
@@ -1323,7 +1322,7 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
         else:
             raise ValueError
 
-    relations_to_create: frozenset[tuple[LocationID, LocationID]] = frozenset(chain.from_iterable((
+    relations_to_create: frozenset[tuple[TagID, TagID]] = frozenset(chain.from_iterable((
         chain(
             product(parent_relations[parent].keys(), child_relations[child].keys()),
             product(parent_relations[parent].keys(), (child, )),
@@ -1334,8 +1333,8 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
     if any((ancestor == descendant) for ancestor, descendant in relations_to_create):
         raise CircularyHierarchyError("Circular relations are now allowed")
 
-    already_existing_relations: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...] = tuple((
-        ((ancestor_id, descendant_id), pk) for ancestor_id, descendant_id, pk in LocationRelation.objects.filter(
+    already_existing_relations: tuple[tuple[tuple[TagID, TagID], RelationID], ...] = tuple((
+        ((ancestor_id, descendant_id), pk) for ancestor_id, descendant_id, pk in LocationTagRelation.objects.filter(
             # todo: more performant with index?
             Q.create([Q(ancestor_id=ancestor, descendant_id=descendant)
                       for ancestor, descendant in relations_to_create], Q.OR)
@@ -1343,12 +1342,12 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
     ))
     if already_existing_relations:
         relations_to_create -= frozenset(tuple(zip(*already_existing_relations))[0])
-    relations_to_create: tuple[tuple[LocationID, LocationID], ...] = tuple(relations_to_create)
+    relations_to_create: tuple[tuple[TagID, TagID], ...] = tuple(relations_to_create)
 
-    created_relations_ids: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...] = tuple(
+    created_relations_ids: tuple[tuple[tuple[TagID, TagID], RelationID], ...] = tuple(
         ((created_relation.ancestor_id, created_relation.descendant_id), created_relation.id)
-        for created_relation in LocationRelation.objects.bulk_create((
-            LocationRelation(ancestor_id=ancestor, descendant_id=descendant)
+        for created_relation in LocationTagRelation.objects.bulk_create((
+            LocationTagRelation(ancestor_id=ancestor, descendant_id=descendant)
             for ancestor, descendant in relations_to_create
         ))
     )
@@ -1366,46 +1365,46 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
     )
     paths_to_create = next(it)
     while paths_to_create:
-        created_paths = LocationRelationPath.objects.bulk_create(paths_to_create)
+        created_paths = LocationTagRelationPathSegment.objects.bulk_create(paths_to_create)
         paths_to_create = it.send(tuple(created_paths))
 
 
-def location_parents_removed(instance: DefinedLocation, pk_set: set[int]):
+def locationtag_parents_removed(instance: LocationTag, pk_set: set[int]):
     """
     parents were removed from the location
     """
     # get removed adjacencies, this is why we do this before
-    LocationRelation.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
+    LocationTagRelation.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
     instance.register_changed_geometries(force=True)
 
 
-def location_children_removed(instance: DefinedLocation, pk_set: set[int] = None):
+def locationtag_children_removed(instance: LocationTag, pk_set: set[int] = None):
     """
     children were removed from the location
     """
     if pk_set is None:
         # todo: this is a hack, can be done nicer
-        pk_set = set(LocationRelation.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
+        pk_set = set(LocationTagRelation.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
 
-    LocationRelation.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
+    LocationTagRelation.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
-    for obj in DefinedLocation.objects.filter(pk__in=pk_set):
+    for obj in LocationTag.objects.filter(pk__in=pk_set):
         obj.register_changed_geometries(force=True)
 
 
-@receiver(m2m_changed, sender=DefinedLocation.levels.through)
-@receiver(m2m_changed, sender=DefinedLocation.spaces.through)
-@receiver(m2m_changed, sender=DefinedLocation.areas.through)
-@receiver(m2m_changed, sender=DefinedLocation.pois.through)
-def locations_targets_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
+@receiver(m2m_changed, sender=LocationTag.levels.through)
+@receiver(m2m_changed, sender=LocationTag.spaces.through)
+@receiver(m2m_changed, sender=LocationTag.areas.through)
+@receiver(m2m_changed, sender=LocationTag.pois.through)
+def locationtag_targets_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
     if action not in ('post_add', 'post_remove', 'post_clear'):
         return
 
     if not reverse:
-        # the targets of a defined location were changed
+        # the targets of a location tag were changed
         if action not in ('post_clear',):
             raise NotImplementedError
         query = model.objects.filter(pk__in=pk_set)
@@ -1415,30 +1414,29 @@ def locations_targets_changed(sender, instance, action, reverse, model, pk_set, 
         for obj in query:
             obj.register_change(force=True)
     else:
-        # the locations of a defined location target were changed
+        # the location tags of a target were changed
         instance.register_change(force=True)
 
 
-class DefinedLocationTargetMixin(models.Model):
+class LocationTagTargetMixin(models.Model):
     class Meta:
         abstract = True
 
     @cached_property
-    def sorted_locations(self) -> MapPermissionGuardedSequence[DefinedLocation]:
+    def sorted_tags(self) -> MapPermissionGuardedSequence[LocationTag]:
         """
         highest priority first
         """
-        if 'locations' not in getattr(self, '_prefetched_objects_cache', ()):
-            raise ValueError(f'Accessing sorted_locations on {self} despite no prefetch_related.')
+        if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
+            raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
             # return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
-        return MapPermissionGuardedSequence(sorted(self.locations.all(),
-                                                   key=attrgetter("effective_priority_order")))
+        return MapPermissionGuardedSequence(sorted(self.tags.all(), key=attrgetter("effective_priority_order")))
 
     @property
     def title(self) -> str:
         # todo: precalculate
-        return self.sorted_locations[0].title if self.sorted_locations else str(self)
+        return self.sorted_tags[0].title if self.sorted_tags else str(self)
 
     @property
     def subtitle(self):
@@ -1446,21 +1444,19 @@ class DefinedLocationTargetMixin(models.Model):
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
         try:
-            return next(iter(filter(None, (location.get_color(color_manager) for location in self.sorted_locations))))
+            return next(iter(filter(None, (tag.get_color(color_manager) for tag in self.sorted_tags))))
         except StopIteration:
             return None
 
     def get_color_sorted(self, color_manager) -> tuple[int, str] | None:
         try:
-            return next(iter(filter(None, (
-                location.get_color_sorted(color_manager) for location in self.sorted_locations
-            ))))
+            return next(iter(filter(None, (tag.get_color_sorted(color_manager) for tag in self.sorted_tags))))
         except StopIteration:
             return None
 
-    def get_location(self, can_describe=False) -> Optional[DefinedLocation]:
+    def get_location(self, can_describe=False) -> Optional[LocationTag]:
         # todo: do we want to get rid of this?
-        return next(iter((*(location for location in self.sorted_locations if location.can_describe), None)))
+        return next(iter((*(tag for tag in self.sorted_tags if tag.can_describe), None)))
 
 
 CachedEffectiveGeometries = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]
@@ -1498,14 +1494,14 @@ class LoadGroup(models.Model):
         default_related_name = 'labelgroup'
 
 
-class DynamicLocationTarget(DefinedLocationTargetMixin, models.Model):
-    location = models.ForeignKey("DefinedLocation", null=True, on_delete=models.CASCADE)
+class DynamicLocationTagTarget(LocationTagTargetMixin, models.Model):
+    tag = models.ForeignKey("LocationTag", null=True, on_delete=models.CASCADE, related_name="dynamic_targets")
     position_secret = models.CharField(_('position secret'), max_length=32)
 
     class Meta:
-        verbose_name = _("Dynamic location target")
-        verbose_name_plural = _("Dynamic locations target")
-        default_related_name = "dynamic_location_targets"
+        verbose_name = _("Dynamic location tag target")
+        verbose_name_plural = _("Dynamic location tag targets")
+        default_related_name = "dynamic_location_tag_targets"
 
 
 def get_position_secret():

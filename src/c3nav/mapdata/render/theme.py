@@ -1,6 +1,6 @@
 from c3nav import settings
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
-from c3nav.mapdata.models.locations import DefinedLocation
+from c3nav.mapdata.models.locations import LocationTag
 from c3nav.mapdata.models.theme import Theme
 
 RENDER_COLOR_BACKGROUND = "#DCDCDC"
@@ -26,10 +26,9 @@ class ThemeColorManager:
             self.obstacles_default_fill = settings.BASE_THEME['map']['obstacles_default_fill']
             self.obstacles_default_border = settings.BASE_THEME['map']['obstacles_default_border']
             self.highlight = settings.BASE_THEME['map']['highlight']
-            self.location_border_colors = {}
-            self.location_fill_colors = {
-                location.pk: location.color
-                for location in DefinedLocation.objects.filter(color__isnull=False).all()
+            self.location_tag_border_colors = {}
+            self.location_tag_fill_colors = {
+                tag.pk: tag.color for tag in LocationTag.objects.filter(color__isnull=False).all()
             }
             self.obstacle_group_border_colors = {}
             self.obstacle_group_fill_colors = {
@@ -45,13 +44,13 @@ class ThemeColorManager:
             self.obstacles_default_fill = theme.color_obstacles_default_fill or settings.BASE_THEME['map']['obstacles_default_fill']
             self.obstacles_default_border = theme.color_obstacles_default_border or settings.BASE_THEME['map']['obstacles_default_border']
             self.highlight = theme.color_css_primary or settings.BASE_THEME['map']['highlight']
-            self.location_border_colors = {
-                theme_location_group.location_group_id: theme_location_group.border_color
-                for theme_location_group in theme.locations.all()
+            self.location_tag_border_colors = {
+                theme_tag.tag_id: theme_tag.border_color
+                for theme_tag in theme.tags.all()
             }
-            self.location_fill_colors = {
-                theme_location_group.location_group_id: theme_location_group.fill_color
-                for theme_location_group in theme.locations.all()
+            self.location_tag_fill_colors = {
+                theme_tag.tag_id: theme_tag.fill_color
+                for theme_tag in theme.tags.all()
             }
             self.obstacle_group_border_colors = {
                 theme_obstacle_group.obstacle_group_id: theme_obstacle_group.border_color
@@ -62,11 +61,11 @@ class ThemeColorManager:
                 for theme_obstacle in theme.obstacle_groups.all()
             }
 
-    def location_border_color(self, location: DefinedLocation):
-        return self.location_border_colors.get(location.pk, None)
+    def location_border_color(self, location: LocationTag):
+        return self.location_tag_border_colors.get(location.pk, None)
 
-    def location_fill_color(self, location: DefinedLocation):
-        return self.location_fill_colors.get(location.pk, None)
+    def location_tag_fill_color(self, location: LocationTag):
+        return self.location_tag_fill_colors.get(location.pk, None)
 
     def obstaclegroup_border_color(self, obstacle_group: ObstacleGroup):
         return self.obstacle_group_border_colors.get(obstacle_group.pk, self.obstacles_default_border)
