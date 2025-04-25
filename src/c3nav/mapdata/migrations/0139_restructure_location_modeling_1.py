@@ -87,6 +87,7 @@ def unmigrate_locations(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('control', '0021_prepare_userpermissions_restructured_locations'),
         ('mapdata', '0138_rangingbeacon_max_observed_num_clients_and_more'),
     ]
 
