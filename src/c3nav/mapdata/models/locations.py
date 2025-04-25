@@ -1118,8 +1118,14 @@ def location_adjacency_changed(sender, instance: DefinedLocation, pk_set: set[in
             location_adjacency_added({(instance.pk, pk) for pk in pk_set})
         case ("post_remove" | "post_clear", False):
             location_parents_removed(instance=instance, pk_set=pk_set)
-        case ("post_add" | "post_clear", True):
+        case ("post_remove" | "post_clear", True):
             location_children_removed(instance=instance, pk_set=pk_set)
+
+
+def unzip_paths_to_create(*data):
+    if not data:
+        return (), ()
+    return zip(*data)
 
 
 def generate_paths_to_create(
@@ -1159,7 +1165,7 @@ def generate_paths_to_create(
         if path.relation_id not in parent_relation_ids:
             next_paths_for_path_id[path.prev_path_id].add(path_id)
 
-    paths_to_create, relations = zip(*chain(
+    paths_to_create, relations = unzip_paths_to_create(*chain(
         # for each new relation that spans just one of the added adjacencies, create the singular path segment
         ((
             LocationRelationPath(
@@ -1171,14 +1177,14 @@ def generate_paths_to_create(
         ) for (parent, child), adjacency in added_adjacencies_lookup.items()),
 
         # for each new relation that ends with one of the added adjacencies, create the new last segment(s)
-        *chain.from_iterable((
+        chain.from_iterable((
             ((
                 # the parent relation might have several paths, we continue all of them by one
                 LocationRelationPath(
                     prev_path_id=path_id,
                     adjacency_id=orig_adjacency_id,
                     relation_id=created_relations_lookup[ancestor, child],
-                    num_hops=relevant_paths_by_id[path_id].num_hops
+                    num_hops=relevant_paths_by_id[path_id].num_hops + 1
                 ), (parent, child)
             ) for path_id in path_ids_by_relation[parent_relation_id])
             for (ancestor, parent, child), orig_adjacency_id, parent_relation_id in chain.from_iterable(
@@ -1201,7 +1207,8 @@ def generate_paths_to_create(
 
     if not next_paths_for_path_id:
         # we're done, only empty left
-        yield from repeat(())
+        yield ()
+        return
 
     # get path segments to copy that have no predecessor
     # no predecessor implies: (ancestor, descendant) of its relation are (parent, child) of its adjacency
@@ -1214,26 +1221,24 @@ def generate_paths_to_create(
     }
 
     # copy first path segments of the child's relations and connect them to the created paths segents
-    paths_to_create, path_and_ancestor = zip(*chain.from_iterable(
+    paths_to_create, path_and_ancestor = unzip_paths_to_create(*chain.from_iterable(
         # continue each path we just created with the first path segments of all child relations
         ((
-            chain.from_iterable((
-                (LocationRelationPath(
-                    prev_path_id=prev_created_path.pk,
-                    # the adjacency is identical, since we are copying this path segment
-                    adjacency_id=path_to_copy.adjacency_id,
-                    # the relation is easy to look up, cause it's unique
-                    relation_id=created_relations_lookup[prev_ancestor, new_descendant],
-                    num_hops=path_to_copy.num_hops + prev_created_path.num_hops + 1
-                ), (path_to_copy_id, prev_ancestor))
-                for path_to_copy_id, path_to_copy, new_descendant in (
-                    (path_to_copy_id, path_to_copy, relations_by_id[path_to_copy.relation_id].descendant)
-                    for path_to_copy_id, path_to_copy in (
-                        (path_to_copy_id, relevant_paths_by_id[path_to_copy_id])
-                        for path_to_copy_id in first_paths_by_parent[prev_descendant]
-                    )
+            (LocationRelationPath(
+                prev_path_id=prev_created_path.pk,
+                # the adjacency is identical, since we are copying this path segment
+                adjacency_id=path_to_copy.adjacency_id,
+                # the relation is easy to look up, cause it's unique
+                relation_id=created_relations_lookup[prev_ancestor, new_descendant],
+                num_hops=path_to_copy.num_hops + prev_created_path.num_hops + 1
+            ), (path_to_copy_id, prev_ancestor))
+            for path_to_copy_id, path_to_copy, new_descendant in (
+                (path_to_copy_id, path_to_copy, relations_by_id[path_to_copy.relation_id].descendant)
+                for path_to_copy_id, path_to_copy in (
+                    (path_to_copy_id, relevant_paths_by_id[path_to_copy_id])
+                    for path_to_copy_id in first_paths_by_parent.get(prev_descendant, ())
                 )
-            ))
+            )
         ) for prev_created_path, (prev_ancestor, prev_descendant) in zip(created_paths, relations))
     ))
 
@@ -1244,7 +1249,7 @@ def generate_paths_to_create(
         raise ValueError
 
     while paths_to_create:
-        paths_to_create, path_and_ancestor = zip(*chain.from_iterable(
+        paths_to_create, path_and_ancestor = unzip_paths_to_create(*chain.from_iterable(
             # continue each path we just created with the next path segments
             ((
                 chain.from_iterable((
@@ -1274,7 +1279,7 @@ def generate_paths_to_create(
             raise ValueError
 
     # we're done, only empty left
-    yield from repeat(())
+    yield ()
 
 
 def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
@@ -1301,7 +1306,7 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
     parent_relations: dict[LocationID, dict[LocationID, RelationID]] = defaultdict(dict)
     child_relations: dict[LocationID, dict[LocationID, RelationID]] = defaultdict(dict)
     parent_for_child_relations: dict[RelationID, LocationID] = {}
-    for pk, one_max_num_hops, ancestor_id, descendant_id in relevant_relations:
+    for pk, ancestor_id, descendant_id in relevant_relations:
         if ancestor_id in children:
             child_relations[ancestor_id][descendant_id] = pk
             parent_for_child_relations[pk] = descendant_id
@@ -1355,8 +1360,7 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
     paths_to_create = next(it)
     while paths_to_create:
         created_paths = LocationRelationPath.objects.bulk_create(paths_to_create)
-        it.send(tuple(created_paths))
-        paths_to_create = next(it)
+        paths_to_create = it.send(tuple(created_paths))
 
 
 def location_parents_removed(instance: DefinedLocation, pk_set: set[int]):
