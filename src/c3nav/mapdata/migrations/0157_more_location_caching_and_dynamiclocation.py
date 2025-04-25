@@ -8,18 +8,17 @@ from django.db import migrations, models
 
 
 def make_dynamic_location_target_m2m(apps, model_name):
-    DynamicLocationTarget = apps.get_model('mapdata', 'DynamicLocationTarget')
-    DynamicLocationTarget.objects.filter(position_secret="").delete()
-    for dynamic_location_target in DynamicLocationTarget.objects.prefetch_related("locations"):
-        dynamic_location_target.location = dynamic_location_target.locations.get()
+    DynamicLocationTagTarget = apps.get_model('mapdata', 'DynamicLocationTagTarget')
+    DynamicLocationTagTarget.objects.filter(position_secret="").delete()
+    for dynamic_location_target in DynamicLocationTagTarget.objects.prefetch_related("tags"):
+        dynamic_location_target.tag = dynamic_location_target.tags.get()
         dynamic_location_target.save()
 
 
 def un_make_dynamic_location_m2m(apps, model_name):
-    DynamicLocationTarget = apps.get_model('mapdata', 'DynamicLocationTarget')
-    for dynamic_location_target in DynamicLocationTarget.objects.select_related("location"):
+    DynamicLocationTagTarget = apps.get_model('mapdata', 'DynamicLocationTagTarget')
+    for dynamic_location_target in DynamicLocationTagTarget.objects.select_related("location"):
         dynamic_location_target.location.dynamiclocations.add(dynamic_location_target)
-
 
 
 class Migration(migrations.Migration):
@@ -31,7 +30,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name='dynamiclocation',
-            options={'default_related_name': 'dynamic_location_targets', 'verbose_name': 'Dynamic location target', 'verbose_name_plural': 'Dynamic locations target'},
+            options={'default_related_name': 'dynamic_location_tag_targets', 'verbose_name': 'Dynamic location tag target', 'verbose_name_plural': 'Dynamic location tag targets'},
         ),
         migrations.RemoveField(
             model_name='dynamiclocation',
@@ -59,12 +58,12 @@ class Migration(migrations.Migration):
         ),
         migrations.RenameModel(
             old_name='DynamicLocation',
-            new_name='DynamicLocationTarget',
+            new_name='DynamicLocationTagTarget',
         ),
         migrations.AddField(
-            model_name='dynamiclocationtarget',
-            name='location',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='mapdata.specificlocation'),
+            model_name='dynamiclocationtagtarget',
+            name='tag',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='mapdata.specificlocation', related_name='dynamic_targets'),
         ),
         migrations.RunPython(make_dynamic_location_target_m2m, un_make_dynamic_location_m2m),
         migrations.RemoveField(
@@ -72,7 +71,7 @@ class Migration(migrations.Migration):
             name='dynamiclocations',
         ),
         migrations.AlterField(
-            model_name='dynamiclocationtarget',
+            model_name='dynamiclocationtagtarget',
             name='position_secret',
             field=models.CharField(max_length=32, verbose_name='position secret'),
         ),

@@ -123,7 +123,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         Prefetch('spaces', Space.objects.only('geometry', 'level', 'outside')),
         Prefetch('doors', Door.objects.only('geometry', 'level')),
         Prefetch('spaces__columns', Column.objects.only('geometry', 'space')),
-        'spaces__locations',
+        'spaces__tags',
         Prefetch('buildings', Building.objects.only('geometry', 'level')),
         Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
         Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
@@ -198,7 +198,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         levels_for_level = LevelsForLevel.for_level(level.primary_level, special_if_on_top=True)
         other_spaces = Space.objects.filter(level__pk__in=levels_for_level.levels).only(
             'geometry', 'level',
-        ).prefetch_related("locations")
+        ).prefetch_related("tags")
 
         space = next(s for s in other_spaces if s.pk == space.pk)
         other_spaces = [s for s in other_spaces
@@ -246,7 +246,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         graph_nodes = []
         graph_edges = []
 
-    areas = space.areas.only('geometry', 'space').prefetch_related("locations")
+    areas = space.areas.only('geometry', 'space').prefetch_related("tags")
     for area in areas:
         area.opacity = 0.5
 
@@ -266,7 +266,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         space.altitudemarkers.all().only('geometry', 'space'),
         space.beacon_measurements.all().only('geometry', 'space'),
         space.ranging_beacons.all().only('geometry', 'space'),
-        space.pois.only('geometry', 'space').prefetch_related("locations"),
+        space.pois.only('geometry', 'space').prefetch_related("tags"),
         other_spaces_upper,
         graph_edges,
         graph_nodes

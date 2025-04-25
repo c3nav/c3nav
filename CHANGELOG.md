@@ -8,19 +8,19 @@ and potential backwards incompatibilities.
 
 # New Location Hierarchy branch
 
-Location Restructuring:
+Location tags:
 
 - Previously, Locations were either Specific Locations, which would be Levels, Spaces, Areas, POIs or Dynamic Locations,
   or a Location Group. This entire concept has been removed. Updating will migrate your data.
 - Now, there are only Locations and Location Targets. 
-- A location can be a Custom Location (coordinates), a (moving) Position or a Defined Location.
-- A location target can be a Level, Space, Area, POI or Dynamic Location Target (which links to a Position).
-- Defined Locations become a acyclic directed graph, meaning every defined location can have multiple parents.
-- A defined location can point to 0-* Location Targets
+- A location can be a Custom Location (coordinates), a (moving) Position or a Location Tag.
+- A location target can be a Level, Space, Area, POI or Dynamic Location Tag Target (which links to a Position).
+- Location tags become a acyclic directed graph, meaning every location tag can have multiple parents.
+- A location tags can point to 0-* Location Targets
 - Specific Locations, Location Groups and Location Group Categories have all been converted to Defined Locations.
 - Inheritable attributes like color get inherited from the highest priority parent.
-- For search, defined locations are ranked by depth first, priority second.
-- Searching for a Location with children will match all of its descendant's targets,
+- For search, locations tags are ranked by depth first, priority second.
+- Searching for a Location tag with children will match all of its descendant's targets,
   which means you can now easily Group locations based on Purpose, Building Section, Building, Event, …
 - Location Targets can belong to more than one location. This makes it possible to have, for example,
   two locations for one Space, one being the Room Number given by the building and another one being the Name

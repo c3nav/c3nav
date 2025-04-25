@@ -27,7 +27,7 @@ from c3nav.mapdata.models import Theme, Area, Space, Level
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, \
     BeaconMeasurement
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
-from c3nav.mapdata.models.locations import Position, LoadGroup, DefinedLocation
+from c3nav.mapdata.models.locations import Position, LoadGroup, LocationTag
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
@@ -88,7 +88,7 @@ class LocationListFilters(BaseSchema):
 @map_api_router.get('/locations/', summary="list locations",
                     description="Get locations",
                     response={200: list[ListedLocationItemSchema], **validate_responses, **auth_responses})
-@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))
+@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ))
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
         return LocationManager.get_searchable().values()
@@ -107,7 +107,7 @@ class ShowRedirects(BaseSchema):
                     description="Retrieve location",
                     response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
-@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: custom location changes later
+@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ))  # todo: custom location changes later
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
     location = LocationManager.get(identifier)
 
@@ -131,7 +131,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
                     description="Retrieve displayable information about a location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
-@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ))  # todo: custom location changes later
+@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ))  # todo: custom location changes later
 def location_display(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
     if location is None:
@@ -152,7 +152,7 @@ def location_display(request, identifier: LocationIdentifier):
                     description="Get location geometries (if available)",
                     response={200: GeometriesByLevelSchema, **API404.dict(), **auth_responses})
 @api_stats('location_geometries')
-@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_definedlocation_final", ))
+@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_locationtag_final", ))
 def location_geometries(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
 
@@ -243,14 +243,14 @@ Legend
 @map_api_router.get('/legend/{theme_id}/', summary="get legend",
                         description="Get legend / color key for theme",
                         response={200: LegendSchema, **API404.dict(), **auth_responses})
-@api_etag(cache_job_types=("mapdata.recalculate_definedlocation_final", ), permissions=True)
+@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ), permissions=True)
 def legend_for_theme(request, theme_id: int):
     try:
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    legend_locations = DefinedLocation.objects.filter(in_legend=True).prefetch_related(
-        Prefetch("calculated_descendants", DefinedLocation.objects.only("pk")),
+    legend_tags = LocationTag.objects.filter(in_legend=True).prefetch_related(
+        Prefetch("calculated_descendants", LocationTag.objects.only("pk")),
     ).order_by("effective_depth_first_order")
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
@@ -258,11 +258,11 @@ def legend_for_theme(request, theme_id: int):
     )
     return LegendSchema(
         base=[],
-        groups=[item for item in (LegendItemSchema(title=location.title,
-                                                   fill=manager.location_fill_color(location),
-                                                   border=manager.location_border_color(location))
-                                  for location in legend_locations
-                                  if location.calculated_descendants.all() or location.cached_all_static_targets)
+        groups=[item for item in (LegendItemSchema(title=tag.title,
+                                                   fill=manager.location_tag_fill_color(tag),
+                                                   border=manager.location_border_color(tag))
+                                  for tag in legend_tags
+                                  if tag.calculated_descendants.all() or tag.cached_all_static_targets)
                 if item.fill or item.border],
         obstacles=[item for item in (LegendItemSchema(title=group.title,
                                                       fill=manager.obstaclegroup_fill_color(group),
@@ -328,22 +328,21 @@ def get_load(request):
 
     # todo: better caching?
 
-    locations_contribute_to = dict(
-        DefinedLocation.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
+    tags_contribute_to = dict(
+        LocationTag.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
     )
     for area in Area.objects.filter(
-        Q(locations__in=locations_contribute_to.keys())
-        | Q(locations__calculated_ancestors__in=locations_contribute_to.keys())
+        Q(tags__in=tags_contribute_to.keys())
+        | Q(tags__calculated_ancestors__in=tags_contribute_to.keys())
     ).prefetch_related(
-        Prefetch("locations", DefinedLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
-            Prefetch("calculated_ancestors", DefinedLocation.objects.only("pk", "load_group_contribute_id")),
+        Prefetch("tags", LocationTag.objects.only("pk", "load_group_contribute_id").prefetch_related(
+            Prefetch("calculated_ancestors", LocationTag.objects.only("pk", "load_group_contribute_id")),
         )),
     ):
         contribute_to = set()
-        for location in chain(area.locations.all(),
-                              *(location.calculated_ancestors.all() for location in area.locations_all())):
-            if location.load_group_contribute_id:
-                contribute_to.add(location.load_group_contribute_id)
+        for tag in chain(area.tags.all(), *(tag.calculated_ancestors.all() for tag in area.tags.all())):
+            if tag.load_group_contribute_id:
+                contribute_to.add(tag.load_group_contribute_id)
         for beacon in beacons_by_space.get(area.space_id, {}).values():
             if area.geometry.intersects(unwrap_geom(beacon.geometry)):
                 for load_group_id in contribute_to:
@@ -351,18 +350,17 @@ def get_load(request):
                     current_values[load_group_id] += beacon.num_clients
 
     for space in Space.objects.filter(
-        Q(locations__in=locations_contribute_to.keys())
-        | Q(locations__calculated_ancestors__in=locations_contribute_to.keys())
+        Q(tags__in=tags_contribute_to.keys())
+        | Q(tags__calculated_ancestors__in=tags_contribute_to.keys())
     ).prefetch_related(
-        Prefetch("locations", DefinedLocation.objects.only("pk", "load_group_contribute_id").prefetch_related(
-            Prefetch("calculated_ancestors", DefinedLocation.objects.only("pk", "load_group_contribute_id")),
+        Prefetch("tags", LocationTag.objects.only("pk", "load_group_contribute_id").prefetch_related(
+            Prefetch("calculated_ancestors", LocationTag.objects.only("pk", "load_group_contribute_id")),
         )),
     ):
         contribute_to = set()
-        for location in chain(space.locations.all(),
-                              *(location.calculated_ancestors.all() for location in space.locations_all())):
-            if location.load_group_contribute_id:
-                contribute_to.add(location.load_group_contribute_id)
+        for tag in chain(space.tags.all(), *(tag.calculated_ancestors.all() for tag in space.tags.all())):
+            if tag.load_group_contribute_id:
+                contribute_to.add(tag.load_group_contribute_id)
         for beacon in beacons_by_space.get(space.pk, {}).values():
             for load_group_id in contribute_to:
                 max_values[load_group_id] += beacon.max_observed_num_clients
