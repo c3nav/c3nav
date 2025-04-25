@@ -1,50 +1,48 @@
-from collections import defaultdict
 from typing import Callable
 
 from django.db.models.expressions import F
 from django.db.models.query_utils import Q
-from django.db.utils import IntegrityError
 from django.test.testcases import TransactionTestCase
 
-from c3nav.mapdata.models.locations import DefinedLocation, LocationAdjacency, LocationRelationPath, LocationRelation, \
+from c3nav.mapdata.models.locations import LocationTag, LocationTagRelationPathSegment, LocationTagRelation, \
     CircularyHierarchyError
 
 type LocationHierarchyState = dict[tuple[int, int], set[tuple[int, ...]]]
-type UpdateRelationFunc = Callable[[DefinedLocation, DefinedLocation], None]
+type UpdateRelationFunc = Callable[[LocationTag, LocationTag], None]
 
 
 class LocationHierarchyTests(TransactionTestCase):
     def assertHierarchyState(self, state: LocationHierarchyState, msg="location hierarchy doesn't match"):
-        self.assertQuerySetEqual(LocationRelationPath.objects.select_related(
+        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
             "prev_path", "adjacency", "relation"
         ).exclude(
             adjacency__child=F("relation__descendant")
         ), [], msg="Found relation path segment where adjacency child doesn't match relation descendant")
 
-        self.assertQuerySetEqual(LocationRelationPath.objects.select_related(
+        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
             "prev_path", "adjacency", "relation"
         ).exclude(
             Q(prev_path__isnull=True, num_hops=0) | Q(prev_path__num_hops=F("num_hops")-1)
         ), [], msg="Found relation path segment with num_hops not matching prev_path")
 
-        self.assertQuerySetEqual(LocationRelationPath.objects.select_related(
+        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
             "prev_path", "adjacency", "relation"
         ).exclude(
             Q(prev_path__isnull=True) | Q(relation__ancestor=F("prev_path__relation__ancestor"))
         ), [], msg="Found relation path segment with different relation ancestor than its prev_path")
 
-        self.assertQuerySetEqual(LocationRelationPath.objects.select_related(
+        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
             "prev_path", "adjacency", "relation"
         ).exclude(
             Q(prev_path__isnull=True) | Q(adjacency__parent=F("prev_path__adjacency__child"))
         ), [], msg="Found relation path segment where adjacency parent doesn't match prev_path's adjacency child")
 
         relation_lookup: dict[tuple[int, int], set[tuple[int, ...]]] = {
-            relation: set() for relation in LocationRelation.objects.values_list("ancestor_id", "descendant_id")
+            relation: set() for relation in LocationTagRelation.objects.values_list("ancestor_id", "descendant_id")
         }
         path_chains: dict[int | None, tuple[int, ...]] = {None: ()}
 
-        for path_id, prev_path_id, ancestor, descendant in LocationRelationPath.objects.values_list(
+        for path_id, prev_path_id, ancestor, descendant in LocationTagRelationPathSegment.objects.values_list(
                 "pk", "prev_path_id", "relation__ancestor", "relation__descendant"
         ).order_by("num_hops"):
             path_chains[path_id] = (prev_path_chain := path_chains[prev_path_id]) + (descendant, )
@@ -53,7 +51,7 @@ class LocationHierarchyTests(TransactionTestCase):
         self.assertDictEqual(state, relation_lookup, msg)
 
     def _test_simple_add(self, add_parent_func: UpdateRelationFunc):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(3)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
 
         add_parent_func(locations[1], locations[0])
         self.assertHierarchyState({
@@ -81,7 +79,7 @@ class LocationHierarchyTests(TransactionTestCase):
         self._test_simple_add(lambda a, b: b.children.add(a))
 
     def _test_simple_remove(self, remove_parent_func: UpdateRelationFunc):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(3)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
 
         locations[1].parents.add(locations[0])
         locations[2].parents.add(locations[1])
@@ -105,7 +103,7 @@ class LocationHierarchyTests(TransactionTestCase):
         self._test_simple_remove(lambda a, b: b.children.remove(a))
 
     def test_simple_clear_parents(self):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(3)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
         locations[1].parents.add(locations[0])
         locations[2].parents.add(locations[1])
         locations[2].parents.add(locations[0])
@@ -116,7 +114,7 @@ class LocationHierarchyTests(TransactionTestCase):
         }, msg="hierarchy clear failed")
 
     def test_simple_clear_children(self):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(3)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
         locations[1].parents.add(locations[0])
         locations[2].parents.add(locations[1])
         locations[2].parents.add(locations[0])
@@ -127,7 +125,7 @@ class LocationHierarchyTests(TransactionTestCase):
         }, msg="hierarchy clear failed")
 
     def test_add_multiple_parents(self):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(4)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
 
         locations[2].parents.add(locations[0], locations[1])
         self.assertHierarchyState({
@@ -145,7 +143,7 @@ class LocationHierarchyTests(TransactionTestCase):
         }, msg="adding two more parents failed")
 
     def test_add_multiple_children(self):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(4)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
 
         locations[0].children.add(locations[1], locations[2])
         self.assertHierarchyState({
@@ -163,7 +161,7 @@ class LocationHierarchyTests(TransactionTestCase):
         }, msg="adding two more children failed")
 
     def _test_add_downwards_tree(self, add_parent_func: UpdateRelationFunc):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(4)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
 
         add_parent_func(locations[1], locations[0])
         add_parent_func(locations[2], locations[1])
@@ -186,7 +184,7 @@ class LocationHierarchyTests(TransactionTestCase):
         self._test_add_downwards_tree(lambda a, b: b.children.add(a))
 
     def _test_add_upwards_tree(self, add_parent_func: UpdateRelationFunc):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(4)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
 
         add_parent_func(locations[1], locations[0])
         add_parent_func(locations[2], locations[1])
@@ -209,7 +207,7 @@ class LocationHierarchyTests(TransactionTestCase):
         self._test_add_upwards_tree(lambda a, b: b.children.add(a))
 
     def test_circular_fails(self):
-        locations = DefinedLocation.objects.bulk_create([DefinedLocation() for i in range(3)])
+        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
         locations[0].children.add(locations[1])
         locations[1].children.add(locations[2])
         with self.assertRaises(CircularyHierarchyError):

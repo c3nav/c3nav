@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RenameModel(
             old_name='ThemeLocationGroupBackgroundColor',
-            new_name='ThemeLocationBackgroundColor',
+            new_name='ThemeLocationTagColor',
         ),
         migrations.RenameField(
             model_name='locationslug',
@@ -51,10 +51,10 @@ class Migration(migrations.Migration):
                                                name='unique_non_redirect_slugs'),
         ),
         migrations.AddField(
-            model_name='LocationRelation',
+            model_name='LocationTagRelation',
             name='first_adjacencies',
-            field=models.ManyToManyField(related_name='provides_relations', through='mapdata.LocationRelationPath',
-                                         to='mapdata.LocationAdjacency'),
+            field=models.ManyToManyField(related_name='provides_relations', through='mapdata.LocationTagRelationPathSegment',
+                                         to='mapdata.LocationTagAdjacency'),
         ),
         migrations.RemoveField(
             model_name='area',
@@ -96,24 +96,35 @@ class Migration(migrations.Migration):
         ),
         migrations.RenameModel(
             old_name='SpecificLocation',
-            new_name='DefinedLocation',
+            new_name='LocationTag',
         ),
         migrations.AlterModelOptions(
-            name='definedlocation',
-            options={'default_related_name': 'defined_locations', 'verbose_name': 'Defined Location', 'verbose_name_plural': 'Defined Locations'},
+            name='locationtag',
+            options={'default_related_name': 'location_tags', 'verbose_name': 'Location Tag', 'verbose_name_plural': 'Location Tags'},
         ),
         migrations.RemoveField(
-            model_name='definedlocation',
+            model_name='locationtag',
             name='import_block_geom',
         ),
         migrations.RenameField(
-            model_name='definedlocation',
+            model_name='locationtag',
             old_name='import_block_data',
             new_name='import_block',
         ),
         migrations.AlterField(
-            model_name='definedlocation',
+            model_name='locationtag',
             name='import_block',
             field=models.BooleanField(default=False, verbose_name="don't change on import"),
+        ),
+        migrations.RenameField(
+            model_name='report',
+            old_name='location',
+            new_name='location_tag',
+        ),
+        migrations.AlterField(
+            model_name='report',
+            name='location_tag',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='reports',
+                                    to='mapdata.locationtag', verbose_name='location tag'),
         ),
     ]

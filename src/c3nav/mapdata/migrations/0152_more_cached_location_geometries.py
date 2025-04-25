@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='specificlocation',
             name='cached_geometries',
-            field=django_pydantic_field.fields.PydanticSchemaField(config=None, encoder=django.core.serializers.json.DjangoJSONEncoder, null=True, schema=django_pydantic_field.compat.django.GenericContainer(typing.Union, (django_pydantic_field.compat.django.GenericContainer(dict, (int, django_pydantic_field.compat.django.GenericContainer(list, (c3nav.mapdata.models.locations.MaskedLocationGeometry | list[c3nav.mapdata.permissions.MapPermissionTaggedItem[c3nav.api.schema.PolygonSchema | c3nav.api.schema.MultiPolygonSchema | c3nav.api.schema.PointSchema]],)))), types.NoneType))),
+            field=django_pydantic_field.fields.PydanticSchemaField(config=None, encoder=django.core.serializers.json.DjangoJSONEncoder, null=True, schema=django_pydantic_field.compat.django.GenericContainer(typing.Union, (django_pydantic_field.compat.django.GenericContainer(dict, (int, django_pydantic_field.compat.django.GenericContainer(list, (c3nav.mapdata.models.locations.MaskedLocationTagGeometry | list[c3nav.mapdata.permissions.MapPermissionTaggedItem[c3nav.api.schema.PolygonSchema | c3nav.api.schema.MultiPolygonSchema | c3nav.api.schema.PointSchema]],)))), types.NoneType))),
         ),
         migrations.AddField(
             model_name='specificlocation',

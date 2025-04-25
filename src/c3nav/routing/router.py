@@ -21,7 +21,7 @@ from c3nav.mapdata.locations import CustomLocation, LocationManager
 from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
-from c3nav.mapdata.models.locations import DefinedLocation, LocationRelation
+from c3nav.mapdata.models.locations import LocationTag, LocationTagRelation
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
@@ -58,7 +58,7 @@ class Router:
     spaces: dict[int, "RouterSpace"]
     areas: dict[int, "RouterArea"]
     pois: dict[int, "RouterPOI"]
-    definedlocations: dict[int, Union["RouterLocation"]]
+    locationtags: dict[int, Union["RouterLocation"]]
     restrictions: dict[int, "RouterRestriction"]
     nodes: tuple["RouterNode", ...]
     edges: dict[EdgeIndex, "RouterEdge"]
@@ -72,16 +72,15 @@ class Router:
     @classmethod
     def rebuild(cls, update: MapUpdateTuple):
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'spaces__graphnodes',
-                                                      'spaces__holes', 'spaces__columns', 'spaces__locations',
-                                                      'spaces__obstacles', 'spaces__lineobstacles',
-                                                      'spaces__areas', 'spaces__areas__locations',
-                                                      'spaces__pois',  'spaces__pois__locations', 'locations')
+                                                      'spaces__holes', 'spaces__columns', 'spaces__tags', 'tags'
+                                                      'spaces__obstacles', 'spaces__lineobstacles', 'spaces__areas',
+                                                      'spaces__areas__tags', 'spaces__pois',  'spaces__pois__tags')
 
         levels: dict[int, RouterLevel] = {}
         spaces: dict[int, RouterSpace] = {}
         areas: dict[int, RouterArea] = {}
         pois: dict[int, RouterPOI] = {}
-        definedlocations: dict[int, RouterLocation] = {}
+        locationtags: dict[int, RouterLocation] = {}
         restrictions: dict[int, RouterRestriction] = {}
         nodes: deque[RouterNode] = deque()
         for level in levels_query:
@@ -135,8 +134,8 @@ class Router:
                         routerarea.nodes.add(nearest_node.i)
                     areas[area.pk] = routerarea
                     routerspace.areas.add(area.pk)
-                    for location in area.locations.all():
-                        definedlocations.setdefault(location.pk, RouterLocation(location)).targets.append(routerarea)
+                    for location in area.tags.all():
+                        locationtags.setdefault(location.pk, RouterLocation(location)).targets.append(routerarea)
 
                 for altitudearea in level.altitudeareas.all():
                     altitudearea.geometry = unwrap_geom(altitudearea.geometry).buffer(0)
@@ -214,8 +213,8 @@ class Router:
                     routerpoi.nodes_addition = poi_nodes
                     pois[poi.pk] = routerpoi
                     routerspace.pois.add(poi.pk)
-                    for location in poi.locations.all():
-                        definedlocations.setdefault(location.pk, RouterLocation(location)).targets.append(routerpoi)
+                    for location in poi.tags.all():
+                        locationtags.setdefault(location.pk, RouterLocation(location)).targets.append(routerpoi)
 
                 for column in space_obj.columns.all():
                     if column.access_restriction_id is None:
@@ -229,8 +228,8 @@ class Router:
                 routerspace.geometry = accessible_geom
 
                 spaces[space.pk] = routerspace
-                for location in space.locations.all():
-                    definedlocations.setdefault(location.pk, RouterLocation(location)).targets.append(routerspace)
+                for location in space.tags.all():
+                    locationtags.setdefault(location.pk, RouterLocation(location)).targets.append(routerspace)
 
             level_spaces = set(space.pk for space in level.spaces.all())
 
@@ -238,14 +237,14 @@ class Router:
             routerlevel.spaces = level_spaces
             routerlevel.nodes = set(range(nodes_before_count, len(nodes)))
             levels[level.pk] = routerlevel
-            for location in level.locations.all():
-                definedlocations.setdefault(location.pk, RouterLocation(location)).targets.append(level)
+            for location in level.tags.all():
+                locationtags.setdefault(location.pk, RouterLocation(location)).targets.append(level)
 
         # add sublocations
-        for location in DefinedLocation.objects.prefetch_related(
-                Prefetch("calculated_descendants", DefinedLocation.objects.only("pk"))
+        for location in LocationTag.objects.prefetch_related(
+                Prefetch("calculated_descendants", LocationTag.objects.only("pk"))
         ):
-            router_location = definedlocations.setdefault(location.pk, RouterLocation(location))
+            router_location = locationtags.setdefault(location.pk, RouterLocation(location))
             router_location.sublocations.update(sublocation.pk for sublocation in location.calculated_descendants.all())
 
         # add graph descriptions
@@ -311,7 +310,7 @@ class Router:
             spaces=spaces,
             areas=areas,
             pois=pois,
-            definedlocations=definedlocations,
+            locationtags=locationtags,
             restrictions=restrictions,
             nodes=nodes,
             edges=edges,
@@ -358,16 +357,16 @@ class Router:
     def get_locations(self, location: LocationProtocol, restrictions: "RouterRestrictionSet") -> "RouterLocationSet":
         locations: tuple[RouterLocation, ...] = ()
 
-        if isinstance(location, DefinedLocation):
-            # definedlocations… we just check if we know them
-            if location.pk not in self.definedlocations:
+        if isinstance(location, LocationTag):
+            # locationtags… we just check if we know them
+            if location.pk not in self.locationtags:
                 raise NotYetRoutable
-            definedlocation = self.definedlocations[location.pk]
+            locationtag = self.locationtags[location.pk]
 
-            if definedlocation.can_see(restrictions):  # todo: used to be run on the incoming object, do that again
+            if locationtag.can_see(restrictions):  # todo: used to be run on the incoming object, do that again
                 locations = (
-                    definedlocation,
-                    *(sublocation for sublocation in (self.definedlocations[pk] for pk in definedlocation.sublocations)
+                    locationtag,
+                    *(sublocation for sublocation in (self.locationtags[pk] for pk in locationtag.sublocations)
                       if sublocation.can_see(restrictions))
                 )
 
@@ -614,13 +613,13 @@ class Router:
 
 class CustomLocationDescription(NamedTuple):
     # todo: space and space_geometry? this could clearly be much better
-    space: Optional[DefinedLocation]
+    space: Optional[LocationTag]
     space_geometry: Optional["RouterSpace"]
     altitude: Optional[float]
-    areas: Sequence[DefinedLocation]
-    near_area: Optional[DefinedLocation]
-    near_poi: Optional[DefinedLocation]
-    nearby: Sequence[DefinedLocation]
+    areas: Sequence[LocationTag]
+    near_area: Optional[LocationTag]
+    near_poi: Optional[LocationTag]
+    nearby: Sequence[LocationTag]
 
 
 @dataclass
@@ -640,17 +639,17 @@ class BaseRouterDatabaseTarget(BaseRouterTarget):
     def __init__(self, src):
         super().__init__(src)
         self.id = src.id
-        self.sorted_locations: list[int] = [location.pk for location in src.sorted_locations]
+        self.sorted_tags: list[int] = [location.pk for location in src.sorted_tags]
 
     @property
     def pk(self):
         return self.id
 
-    def get_location(self) -> DefinedLocation | None:
+    def get_location(self) -> LocationTag | None:
         # todo: do this nicer eventually
         visible_locations = LocationManager.get_visible()
         return next(iter(chain(
-            filter(None, (visible_locations.get(pk, None) for pk in self.sorted_locations)),
+            filter(None, (visible_locations.get(pk, None) for pk in self.sorted_tags)),
             (None, )
         )))
 

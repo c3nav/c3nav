@@ -7,7 +7,7 @@ from pydantic import Field as APIField, AfterValidator
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models import Level, MapUpdate, Space, DataOverlay
-from c3nav.mapdata.models.locations import DefinedLocation
+from c3nav.mapdata.models.locations import LocationTag
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.cache.proxied import versioned_cache
 
@@ -69,11 +69,11 @@ class BySpaceFilter(FilterSchema):
 
 
 class TargetsByLocationFilter(FilterSchema):
-    location: Annotated[Optional[int], AfterValidator(ValidateID(DefinedLocation)), APIField(
-        title="filter by location",
-        description="if set, only items belonging to the location with this ID or one if its descendants will be shown"
+    tag: Annotated[Optional[int], AfterValidator(ValidateID(LocationTag)), APIField(
+        title="filter by location tag",
+        description="if set, only items belonging to the location tag with this ID or one if its descendants will be shown"
     )] = None
-    direct_location: Annotated[Optional[int], AfterValidator(ValidateID(DefinedLocation)), APIField(
+    direct_location: Annotated[Optional[int], AfterValidator(ValidateID(LocationTag)), APIField(
         title="filter by direct location",
         description="if set, only items directly belonging to the location with this ID will be shown"
     )] = None
@@ -81,8 +81,8 @@ class TargetsByLocationFilter(FilterSchema):
     def filter_qs(self, request, qs: QuerySet) -> QuerySet:
         if self.direct_location:
             qs = qs.filter(locations=self.direct_location)
-        if self.location:
-            qs = qs.filter(Q(locations=self.location) | Q(locations__calculated_ancestors=self.location))
+        if self.tag:
+            qs = qs.filter(Q(tags=self.tag) | Q(tags__calculated_ancestors=self.tag))
         return super().filter_qs(request, qs)
 
 

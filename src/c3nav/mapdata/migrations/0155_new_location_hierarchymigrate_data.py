@@ -15,9 +15,9 @@ def migrate_location_hierarchy(apps, model_name):
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationGroupCategory = apps.get_model('mapdata', 'LocationGroupCategory')
-    LocationAdjacency = apps.get_model('mapdata', 'LocationAdjacency')
-    LocationRelation = apps.get_model('mapdata', 'LocationRelation')
-    LocationRelationPath = apps.get_model('mapdata', 'LocationRelationPath')
+    LocationTagAdjacency = apps.get_model('mapdata', 'LocationTagAdjacency')
+    LocationTagRelation = apps.get_model('mapdata', 'LocationTagRelation')
+    LocationTagRelationPathSegment = apps.get_model('mapdata', 'LocationTagRelationPathSegment')
 
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
@@ -44,8 +44,8 @@ def migrate_location_hierarchy(apps, model_name):
     )))
 
     for specific_location in SpecificLocation.objects.prefetch_related("levels", "spaces", "areas", "pois",
-                                                                       "dynamic_location_targets"):
-        for group, name in zip(new_location_groups, ("levels", "spaces", "areas", "pois", "dynamic_location_targets")):
+                                                                       "dynamic_targets"):
+        for group, name in zip(new_location_groups, ("levels", "spaces", "areas", "pois", "dynamic_targets")):
             if getattr(specific_location, name).all():
                 specific_location.groups.add(group)
 
@@ -97,7 +97,7 @@ def migrate_location_hierarchy(apps, model_name):
         report.created_parents.set([group.id for group in report.created_groups.all()])
 
     # migrate theme location group back ground color
-    ThemeLocationGroupBackgroundColor.objects.update(location_id=F("location_group_id"))
+    ThemeLocationGroupBackgroundColor.objects.update(tag_id=F("location_group_id"))
 
     # create relation
     category_lookup = {category.id: new_category.id for category, new_category in zip(categories, new_categories)}
@@ -110,20 +110,20 @@ def migrate_location_hierarchy(apps, model_name):
             indirect_relations[(new_category_id, specific_location.id)].add(group.id)
             direct_relations.add((group.id, specific_location.id))
     adjacency_id_lookup = {(parent, child): pk
-                           for pk, parent, child in LocationAdjacency.objects.values_list("pk", "parent_id", "child_id")}
+                           for pk, parent, child in LocationTagAdjacency.objects.values_list("pk", "parent_id", "child_id")}
     relations_to_create = (*direct_relations, *indirect_relations.keys())
     relation_id_lookup = {
         (relation.ancestor_id, relation.descendant_id): relation.id
-        for relation in LocationRelation.objects.bulk_create((
-            LocationRelation(ancestor_id=ancestor, descendant_id=descendant)
+        for relation in LocationTagRelation.objects.bulk_create((
+            LocationTagRelation(ancestor_id=ancestor, descendant_id=descendant)
             for ancestor, descendant in relations_to_create
         ))
     }
 
     direct_relation_path_id_lookup = {
         path.relation_id: path.id
-        for path in LocationRelationPath.objects.bulk_create((
-            LocationRelationPath(
+        for path in LocationTagRelationPathSegment.objects.bulk_create((
+            LocationTagRelationPathSegment(
                 prev_path=None,
                 adjacency_id=adjacency_id_lookup[(ancestor_id, descendant_id)],
                 relation_id=relation_id,
@@ -131,9 +131,9 @@ def migrate_location_hierarchy(apps, model_name):
             ) for (ancestor_id, descendant_id), relation_id in tuple(relation_id_lookup.items())[:len(direct_relations)]
         ))
     }
-    LocationRelationPath.objects.bulk_create(chain.from_iterable((
+    LocationTagRelationPathSegment.objects.bulk_create(chain.from_iterable((
         (
-            LocationRelationPath(
+            LocationTagRelationPathSegment(
                 prev_path_id=direct_relation_path_id_lookup[relation_id_lookup[(intermediate_id, descendant_id)]],
                 adjacency_id=adjacency_id_lookup[(intermediate_id, descendant_id)],
                 relation_id=relation_id_lookup[(ancestor_id, descendant_id)],
@@ -146,10 +146,10 @@ def migrate_location_hierarchy(apps, model_name):
     Area = apps.get_model('mapdata', 'Area')
     Space = apps.get_model('mapdata', 'Space')
     for target in chain(
-        Area.objects.filter(load_group_contribute__isnull=False).prefetch_related("locations"),
-        Space.objects.filter(load_group_contribute__isnull=False).prefetch_related("locations"),
+        Area.objects.filter(load_group_contribute__isnull=False).prefetch_related("tags"),
+        Space.objects.filter(load_group_contribute__isnull=False).prefetch_related("tags"),
     ):
-        for location in target.locations.all():
+        for location in target.tags.all():
             location.load_group_contribute_id = target.load_group_contribute_id
             location.save()
 
@@ -178,7 +178,7 @@ def unmigrate_location_hierarchy(apps, model_name):
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationGroupCategory = apps.get_model('mapdata', 'LocationGroupCategory')
-    LocationAdjacency = apps.get_model('mapdata', 'LocationAdjacency')
+    LocationTagAdjacency = apps.get_model('mapdata', 'LocationTagAdjacency')
 
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
@@ -195,20 +195,20 @@ def unmigrate_location_hierarchy(apps, model_name):
         num_spaces=Count("spaces"),
         num_areas=Count("areas"),
         num_pois=Count("pois"),
-        num_dynamic_location_targets=Count("dynamic_location_targets"),
+        num_dynamic_targets=Count("dynamic_targets"),
     ).exclude(
-        num_levels=0, num_spaces=0, num_areas=0, num_pois=0, num_dynamic_location_targets=0
+        num_levels=0, num_spaces=0, num_areas=0, num_pois=0, num_dynamic_targets=0
     ).values_list("pk", flat=True))
 
     # locations with parents that are no specific locations, those are former locationgroups
 
     former_group_locations = tuple(SpecificLocation.objects.filter(
-        pk__in=LocationAdjacency.objects.exclude(child_id__in=specific_location_ids).values_list("child_id", flat=True)
+        pk__in=LocationTagAdjacency.objects.exclude(child_id__in=specific_location_ids).values_list("child_id", flat=True)
     ))
 
     # parents of locationgroups are former locationgroupcategories
     former_categories = tuple(SpecificLocation.objects.filter(
-        pk__in=LocationAdjacency.objects.filter(
+        pk__in=LocationTagAdjacency.objects.filter(
             child_id__in=(l.pk for l in former_group_locations)
         ).values_list("parent_id", flat=True),
     ))
@@ -223,8 +223,8 @@ def unmigrate_location_hierarchy(apps, model_name):
                 help_texts=former_category.descriptions,
                 priority=former_category.priority,
                 single=all((num == 1) for child_id, num in Counter(
-                    LocationAdjacency.objects.filter(
-                        parent_id__in=LocationAdjacency.objects.filter(
+                    LocationTagAdjacency.objects.filter(
+                        parent_id__in=LocationTagAdjacency.objects.filter(
                             parent_id=former_category.id
                         ).values_list("child_id", flat=True)
                     ).values_list("child_id", flat=True)
@@ -251,7 +251,7 @@ def unmigrate_location_hierarchy(apps, model_name):
     LocationGroup.objects.bulk_create([
         LocationGroup(
             category_id=new_category_ids[next(iter(
-                set(LocationAdjacency.objects.filter(child_id=former_group.id).values_list("parent_id", flat=True))
+                set(LocationTagAdjacency.objects.filter(child_id=former_group.id).values_list("parent_id", flat=True))
                 & available_category_ids
             ))],
             **{field_name: getattr(former_group, field_name) for field_name in fields}
@@ -267,7 +267,7 @@ def unmigrate_location_hierarchy(apps, model_name):
     # add specific_locations to their location groups again
     location_group_ids = set(LocationGroup.objects.values_list("pk", flat=True))
     for specific_location in SpecificLocation.objects.all():
-        specific_location.groups.set(LocationAdjacency.objects.filter(
+        specific_location.groups.set(LocationTagAdjacency.objects.filter(
             child_id=specific_location.pk, parent_id__in=location_group_ids
         ).values_list("parent_id", flat=True))
 
@@ -279,10 +279,10 @@ def unmigrate_location_hierarchy(apps, model_name):
     Area = apps.get_model('mapdata', 'Area')
     Space = apps.get_model('mapdata', 'Space')
     for target in chain(
-            Area.objects.prefetch_related("locations"),
-            Space.objects.prefetch_related("locations"),
+            Area.objects.prefetch_related("tags"),
+            Space.objects.prefetch_related("tags"),
     ):
-        for location in target.locations.all():
+        for location in target.tags.all():
             if location.load_group_contribute_id is not None:
                 target.load_group_contribute_id = location.load_group_contribute_id
                 location.load_group_contribute_id = None

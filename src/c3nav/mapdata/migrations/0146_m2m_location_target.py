@@ -85,27 +85,27 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='specificlocation',
             name='areas',
-            field=models.ManyToManyField(related_name='locations', to='mapdata.area'),
+            field=models.ManyToManyField(related_name='tags', to='mapdata.area'),
         ),
         migrations.AddField(
             model_name='specificlocation',
             name='dynamiclocations',
-            field=models.ManyToManyField(related_name='locations', to='mapdata.dynamiclocation'),
+            field=models.ManyToManyField(related_name='tags', to='mapdata.dynamiclocation'),
         ),
         migrations.AddField(
             model_name='specificlocation',
             name='levels',
-            field=models.ManyToManyField(related_name='locations', to='mapdata.level'),
+            field=models.ManyToManyField(related_name='tags', to='mapdata.level'),
         ),
         migrations.AddField(
             model_name='specificlocation',
             name='pois',
-            field=models.ManyToManyField(related_name='locations', to='mapdata.poi'),
+            field=models.ManyToManyField(related_name='tags', to='mapdata.poi'),
         ),
         migrations.AddField(
             model_name='specificlocation',
             name='spaces',
-            field=models.ManyToManyField(related_name='locations', to='mapdata.space'),
+            field=models.ManyToManyField(related_name='tags', to='mapdata.space'),
         ),
         migrations.RunPython(make_location_target_m2m, make_location_target_o2o),
         migrations.RemoveConstraint(

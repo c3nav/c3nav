@@ -34,7 +34,7 @@ from c3nav.mapdata.grid import grid, GridSchema
 from c3nav.mapdata.locations import LocationRedirect, LocationManager, get_random_location_parents
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
-from c3nav.mapdata.models.locations import Position, DefinedLocation, get_position_secret
+from c3nav.mapdata.models.locations import Position, LocationTag, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.schemas.locations import SingleLocationItemSchema, LocationProtocol
 from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
@@ -592,9 +592,9 @@ def report_select_location(request, coordinates):
 
 @never_cache
 def report_missing_choose(request, coordinates):
-    parents = DefinedLocation.objects.filter(can_report_missing__in=(
-        DefinedLocation.CanReportMissing.SINGLE,
-        DefinedLocation.CanReportMissing.REJECT,
+    parents = LocationTag.objects.filter(can_report_missing__in=(
+        LocationTag.CanReportMissing.SINGLE,
+        LocationTag.CanReportMissing.REJECT,
     ))
     if not parents.exists():
         return redirect(reverse('site.report_create', kwargs={"coordinates": coordinates}))
@@ -644,16 +644,16 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.coordinates_id = coordinates
         if parent:
             parent = LocationManager.get(parent)
-            if not isinstance(parent, DefinedLocation):
+            if not isinstance(parent, LocationTag):
                 raise Http404
-            if parent.can_report_missing == DefinedLocation.CanReportMissing.REJECT:
+            if parent.can_report_missing == LocationTag.CanReportMissing.REJECT:
                 messages.error(request, format_html(
                     '{}<br><br>{}',
                     _('We do not accept reports for this type of location.'),
                     parent.report_help_text,
                 ))
                 return render(request, 'site/report_question.html', {})
-            if parent.can_report_missing != DefinedLocation.CanReportMissing.SINGLE:
+            if parent.can_report_missing != LocationTag.CanReportMissing.SINGLE:
                 raise Http404
             help_text = parent.report_help_text
             form_kwargs["parent"] = parent
@@ -663,20 +663,22 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
             raise Http404
     elif location:
         report.category = 'location-issue'
-        report.location = get_report_location_for_request(location)
+        report.location_tag = get_report_location_for_request(location)
         # todo: migrate this to not use groups but use ALL parents / ancestors
-        if isinstance(report.location, DefinedLocation):
-            for parent in report.location.calculated_ancestors.all():
-                if parent.can_report_mistake == DefinedLocation.CanReportMistake.REJECT:
+        if isinstance(report.location_tag, LocationTag):
+            for parent in report.location_tag.calculated_ancestors.all():
+                # todo: filter?
+                if parent.can_report_mistake == LocationTag.CanReportMistake.REJECT:
                     messages.error(request, format_html(
                         '{}<br><br>{}',
                         _('We do not accept reports for this location.'),
                         parent.report_help_text,
                     ))
                     return render(request, 'site/report_question.html', {})
-        if report.location is None:
+        if report.location_tag is None:
             raise Http404
-        if not isinstance(report.location, DefinedLocation):
+        if not isinstance(report.location_tag, LocationTag):
+            # todo: this should never happen
             raise Http404
     elif origin:
         report.category = 'route-issue'

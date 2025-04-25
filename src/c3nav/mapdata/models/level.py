@@ -11,11 +11,11 @@ from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.access import AccessRestrictionMixin
-from c3nav.mapdata.models.geometry.base import CachedPoints, CachedBounds
-from c3nav.mapdata.models.locations import DefinedLocationTargetMixin
+from c3nav.mapdata.models.geometry.base import CachedBounds
+from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissionTaggedItem
 from c3nav.mapdata.schemas.model_base import BoundsSchema
-from c3nav.mapdata.utils.cache.proxied import versioned_cache, versioned_per_request_cache
+from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
 
 level_index_re = _lazy_re_compile(r"^[-a-zA-Z0-9._]+\Z")
 validate_level_index = RegexValidator(
@@ -26,7 +26,7 @@ validate_level_index = RegexValidator(
 )
 
 
-class Level(DefinedLocationTargetMixin, AccessRestrictionMixin, models.Model):
+class Level(LocationTagTargetMixin, AccessRestrictionMixin, models.Model):
     """
     A physical level of the map, containing building, spaces, doors…
 
