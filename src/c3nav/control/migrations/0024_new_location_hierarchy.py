@@ -24,7 +24,7 @@ def unmigrate_location_hierarchy(apps, model_name):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('control', '0021_alter_userpermissions_restructured_locations'),
+        ('control', '0023_alter_userpermissions_restructured_locations'),
         ('mapdata', '0159_new_location_hierarchymigrate_data'),
     ]
 

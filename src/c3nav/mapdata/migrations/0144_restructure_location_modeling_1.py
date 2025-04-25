@@ -87,6 +87,7 @@ def unmigrate_locations(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('control', '0022_prepare_userpermissions_restructured_locations'),
         ('mapdata', '0143_report_image_alter_locationgroup_can_report_missing_and_more'),
     ]
 

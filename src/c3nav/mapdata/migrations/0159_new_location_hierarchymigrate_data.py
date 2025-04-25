@@ -4,7 +4,7 @@ from itertools import chain
 
 from django.conf import settings
 from django.db import migrations
-from django.db.models.aggregates import Count
+from django.db.models.aggregates import Count, Max
 from django.db.models.expressions import F
 from django.utils import translation
 from django.utils.text import slugify
@@ -28,10 +28,9 @@ def migrate_location_hierarchy(apps, model_name):
     )
 
     max_id = max(
-        max(LocationGroup.objects.values_list("pk", flat=True)),
-        max(SpecificLocation.objects.values_list("pk", flat=True)),
+        LocationGroup.objects.aggregate(max_pk=Max("pk", default=0))["max_pk"],
+        SpecificLocation.objects.aggregate(max_pk=Max("pk", default=0))["max_pk"],
     )
-    LocationGroup.objects.filter()
     new_location_groups = tuple(group.pk for group in LocationGroup.objects.bulk_create((
         LocationGroup(
             id=max_id+i+1,
