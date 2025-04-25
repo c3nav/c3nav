@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('control', '0020_userpermissions_can_write_load_data'),
+        ('control', '0021_prepare_userpermissions_restructured_locations'),
         ('mapdata', '0139_restructure_location_modeling_1'),
     ]
 
