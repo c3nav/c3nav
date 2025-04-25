@@ -11,7 +11,6 @@ import c3nav.mapdata.models.locations
 
 def unmigrate_new_specific_locations(apps, model_name):
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
-    LocationGroup = apps.get_model('mapdata', 'LocationGroup')
 
     # this needs to be here because https://code.djangoproject.com/ticket/36161
     SpecificLocation.objects.filter(import_tag="DELETEDELETEDELETE").delete()
@@ -27,7 +26,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='mapupdatejob',
             name='job_type',
-            field=models.CharField(choices=(('mapdata.evaluate_definedlocation_relation', 'evaluate location relation'), ('mapdata.recalculate_definedlocation_cached_from_parents', 'Defined location cached from parents'), ('mapdata.recalculate_definedlocation_static_targets', 'Defined location static targets'), ('mapdata.recalculate_definedlocation_dynamic_targets', 'Defined location dynamic targets'), ('mapdata.recalculate_definedlocation_target_subtitles', 'Defined location target subtitles'), ('mapdata.recalculate_definedlocation_minimum_access_restrictions', 'Defined location minimum access restrictions'), ('mapdata.recalculate_level_bounds', 'level bounds'), ('mapdata.recalculate_space_effective_geometries', 'Space effective geometries'), ('mapdata.recalculate_space_simplified_geometries', 'Space simplified geometries'), ('mapdata.recalculate_area_effective_geometries', 'Area effective geometries'), ('mapdata.recalculate_space_points', 'Space points'), ('mapdata.recalculate_area_points', 'Area points'), ('mapdata.recalculate_space_bounds', 'Space bounds'), ('mapdata.recalculate_area_bounds', 'Area bounds'), ('mapdata.recalculate_definedlocation_geometries', 'Defined location geometries'), ('mapdata.recalculate_definedlocation_bounds', 'Defined location bounds'), ('mapdata.recalculate_definedlocation_points', 'Defined location points'), ('mapdata.recalculate_definedlocation_final', 'Defined location finalize'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64),
+            field=models.CharField(choices=(('mapdata.evaluate_definedlocation_relations', 'evaluate location relations'), ('mapdata.recalculate_definedlocation_cached_from_parents', 'Defined location cached from parents'), ('mapdata.recalculate_definedlocation_static_targets', 'Defined location static targets'), ('mapdata.recalculate_definedlocation_dynamic_targets', 'Defined location dynamic targets'), ('mapdata.recalculate_definedlocation_target_subtitles', 'Defined location target subtitles'), ('mapdata.recalculate_definedlocation_minimum_access_restrictions', 'Defined location minimum access restrictions'), ('mapdata.recalculate_level_bounds', 'level bounds'), ('mapdata.recalculate_space_effective_geometries', 'Space effective geometries'), ('mapdata.recalculate_space_simplified_geometries', 'Space simplified geometries'), ('mapdata.recalculate_area_effective_geometries', 'Area effective geometries'), ('mapdata.recalculate_space_points', 'Space points'), ('mapdata.recalculate_area_points', 'Area points'), ('mapdata.recalculate_space_bounds', 'Space bounds'), ('mapdata.recalculate_area_bounds', 'Area bounds'), ('mapdata.recalculate_definedlocation_geometries', 'Defined location geometries'), ('mapdata.recalculate_definedlocation_bounds', 'Defined location bounds'), ('mapdata.recalculate_definedlocation_points', 'Defined location points'), ('mapdata.recalculate_definedlocation_final', 'Defined location finalize'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64),
         ),
         migrations.RunPython(migrations.RunPython.noop, unmigrate_new_specific_locations),
         migrations.CreateModel(
@@ -42,8 +41,8 @@ class Migration(migrations.Migration):
             name='LocationRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ancestor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.specificlocation')),
-                ('descendant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.specificlocation')),
+                ('ancestor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='downwards_ancestires', to='mapdata.definedlocation')),
+                ('descendant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='upwards_relations', to='mapdata.definedlocation')),
             ],
         ),
         migrations.AddField(
@@ -151,13 +150,17 @@ class Migration(migrations.Migration):
             name='LocationRelationPath',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('num_hops', models.PositiveSmallIntegerField()),
+                ('num_hops', models.PositiveSmallIntegerField(db_index=True)),
                 ('relation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='paths', to='mapdata.LocationRelation')),
                 ('adjacency', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.LocationAdjacency')),
                 ('prev_path', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='mapdata.LocationRelationPath')),
             ],
             options={
-                'constraints': [models.UniqueConstraint(fields=('prev_path', 'adjacency'), name='relation_path_unique_prev_path_parentage'), models.UniqueConstraint(fields=('prev_path', 'relation'), name='relation_path_unique_prev_path_relation'), models.CheckConstraint(condition=models.Q(models.Q(('num_hops', 0), ('prev_path__isnull', True)), models.Q(('num_hops__gt', 0), ('prev_path__isnull', False)), _connector='OR'), name='relation_path_enforce_num_hops')],
+                'constraints': [
+                    models.UniqueConstraint(fields=('prev_path', 'adjacency'), name='relation_path_unique_prev_path_adjacency'),
+                    models.UniqueConstraint(fields=('prev_path', 'relation'), name='relation_path_unique_prev_path_relation'),
+                    models.CheckConstraint(condition=models.Q(models.Q(('num_hops', 0), ('prev_path__isnull', True)), models.Q(('num_hops__gt', 0), ('prev_path__isnull', False)), _connector='OR'), name='relation_path_enforce_num_hops'),
+                ],
             },
         ),
         migrations.AlterModelOptions(
