@@ -1,25 +1,25 @@
 import operator
 import string
 from collections import deque, defaultdict
-from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce, cached_property
-from itertools import chain, batched, product, groupby, repeat
+from itertools import chain, batched, product, groupby
 from operator import attrgetter, itemgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Iterator, Generator
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Generator
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.aggregates import Count, Max
+from django.db.models.aggregates import Count
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.expressions import F, OuterRef, Subquery, When, Case, Value
 from django.db.models.query import Prefetch
 from django.db.models.signals import m2m_changed
+from django.db.utils import IntegrityError
 from django.dispatch.dispatcher import receiver
 from django.urls import reverse
 from django.utils import timezone
@@ -34,7 +34,7 @@ from shapely.geometry import shape
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel, PointSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
+from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
@@ -157,6 +157,14 @@ class LocationRelationPath(models.Model):
             CheckConstraint(check=Q(prev_path__isnull=True, num_hops=0) |
                                   Q(prev_path__isnull=False, num_hops__gt=0), name="relation_path_enforce_num_hops"),
         )
+
+    def __str__(self):
+        return (f"{self.pk}: num_hops={self.num_hops} "
+                f"prev_path={self.prev_path if "prev_path" in self._state.fields_cache else self.prev_path_id !r}" +
+                (f" ancestor={self.relation.ancestor_id} descendant={self.relation.descendant_id}"
+                 if "relation" in self._state.fields_cache else f" relation={self.relation_id}") +
+                (f" parent={self.adjacency.parent_id} child={self.adjacency.child_id}"
+                 if "adjacency" in self._state.fields_cache else f" adjacency={self.adjacency_id}"))
 
 
 class SimpleLocationRelationPathTuple(NamedTuple):
@@ -1252,23 +1260,21 @@ def generate_paths_to_create(
         paths_to_create, path_and_ancestor = unzip_paths_to_create(*chain.from_iterable(
             # continue each path we just created with the next path segments
             ((
-                chain.from_iterable((
-                    (LocationRelationPath(
-                        prev_path_id=prev_created_path.pk,
-                        # the adjacency is identical, since we are copying this path segment
-                        adjacency_id=path_to_copy.adjacency_id,
-                        # the relation is easy to look up, cause it's unique
-                        relation_id=created_relations_lookup[prev_ancestor, new_descendant],
-                        num_hops=path_to_copy.num_hops + prev_created_path.num_hops + 1
-                    ), (path_to_copy_id, prev_ancestor))
-                    for path_to_copy_id, path_to_copy, new_descendant in (
-                        (path_to_copy_id, path_to_copy, relations_by_id[path_to_copy.relation_id].descendant)
-                        for path_to_copy_id, path_to_copy in (
-                            (path_to_copy_id, relevant_paths_by_id[path_to_copy_id])
-                            for path_to_copy_id in next_paths_for_path_id[prev_copied_path]
-                        )
+                (LocationRelationPath(
+                    prev_path_id=prev_created_path.pk,
+                    # the adjacency is identical, since we are copying this path segment
+                    adjacency_id=path_to_copy.adjacency_id,
+                    # the relation is easy to look up, cause it's unique
+                    relation_id=created_relations_lookup[prev_ancestor, new_descendant],
+                    num_hops=prev_created_path.num_hops + 1
+                ), (path_to_copy_id, prev_ancestor))
+                for path_to_copy_id, path_to_copy, new_descendant in (
+                    (path_to_copy_id, path_to_copy, relations_by_id[path_to_copy.relation_id].descendant)
+                    for path_to_copy_id, path_to_copy in (
+                        (path_to_copy_id, relevant_paths_by_id[path_to_copy_id])
+                        for path_to_copy_id in next_paths_for_path_id[prev_copied_path]
                     )
-                ))
+                )
             ) for prev_created_path, (prev_copied_path, prev_ancestor) in zip(created_paths, path_and_ancestor))
         ))
 
@@ -1278,8 +1284,9 @@ def generate_paths_to_create(
             # this shouldn't happen
             raise ValueError
 
-    # we're done, only empty left
-    yield ()
+
+class CircularyHierarchyError(IntegrityError):
+    pass
 
 
 def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
@@ -1325,7 +1332,7 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
         for parent, child in adjacencies
     ))) | adjacencies
     if any((ancestor == descendant) for ancestor, descendant in relations_to_create):
-        raise ValueError("No circular relations allowed!")
+        raise CircularyHierarchyError("Circular relations are now allowed")
 
     already_existing_relations: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...] = tuple((
         ((ancestor_id, descendant_id), pk) for ancestor_id, descendant_id, pk in LocationRelation.objects.filter(
