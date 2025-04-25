@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce, cached_property
-from itertools import chain, batched, product, groupby
+from itertools import chain, batched, product, groupby, repeat
 from operator import attrgetter, itemgetter
 from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Iterator, Generator
 
@@ -141,10 +141,12 @@ class LocationRelation(models.Model):
 
 
 class LocationRelationPath(models.Model):
+    # todo: rename to path segment
     """ Automatically populated. One relation path for the given relation, ending with the given adjacency. """
     prev_path = models.ForeignKey("self", on_delete=models.CASCADE, related_name="+", null=True)
     adjacency = models.ForeignKey("LocationAdjacency", on_delete=models.CASCADE, related_name="+")
     relation = models.ForeignKey("LocationRelation", on_delete=models.CASCADE, related_name="paths")
+    # rename to num_predecessors?
     num_hops = models.PositiveSmallIntegerField(db_index=True)
 
     class Meta:
@@ -228,7 +230,7 @@ class DefinedLocation(AccessRestrictionMixin, TitledMixin, models.Model):
     # imported from locationgroup end
 
     parents = models.ManyToManyField("self", related_name="children", symmetrical=False,
-                                     through="LocationAdjacency", through_fields=("child", "parent"))
+                                              through="LocationAdjacency", through_fields=("child", "parent"))
     calculated_ancestors = models.ManyToManyField("self", related_name="calculated_descendants", symmetrical=False,
                                                   through="LocationRelation", through_fields=("descendant", "ancestor"),
                                                   editable=False)
@@ -1166,7 +1168,7 @@ def generate_paths_to_create(
                 relation_id=created_relations_lookup[parent, child],
                 num_hops=0
             ), (parent, child)
-        ) for (parent, child), adjacency in added_adjacencies_lookup),
+        ) for (parent, child), adjacency in added_adjacencies_lookup.items()),
 
         # for each new relation that ends with one of the added adjacencies, create the new last segment(s)
         *chain.from_iterable((
@@ -1193,12 +1195,13 @@ def generate_paths_to_create(
     ))
     created_paths = yield paths_to_create
 
-    if not next_paths_for_path_id:
-        return
-
     if len(created_paths) != len(paths_to_create):
         # this shouldn't happen
         raise ValueError
+
+    if not next_paths_for_path_id:
+        # we're done, only empty left
+        yield from repeat(())
 
     # get path segments to copy that have no predecessor
     # no predecessor implies: (ancestor, descendant) of its relation are (parent, child) of its adjacency
@@ -1240,7 +1243,7 @@ def generate_paths_to_create(
         # this shouldn't happen
         raise ValueError
 
-    while True:
+    while paths_to_create:
         paths_to_create, path_and_ancestor = zip(*chain.from_iterable(
             # continue each path we just created with the next path segments
             ((
@@ -1266,13 +1269,12 @@ def generate_paths_to_create(
 
         created_paths = yield paths_to_create
 
-        if not paths_to_create:
-            # no more paths created? we're done
-            break
-
         if len(created_paths) != len(paths_to_create):
             # this shouldn't happen
             raise ValueError
+
+    # we're done, only empty left
+    yield from repeat(())
 
 
 def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
@@ -1309,41 +1311,52 @@ def location_adjacency_added(adjacencies: set[tuple[LocationID, LocationID]]):
         else:
             raise ValueError
 
-    relations_to_create: tuple[tuple[LocationID, LocationID], ...] = tuple(frozenset(chain.from_iterable((
+    relations_to_create: frozenset[tuple[LocationID, LocationID]] = frozenset(chain.from_iterable((
         chain(
             product(parent_relations[parent].keys(), child_relations[child].keys()),
             product(parent_relations[parent].keys(), (child, )),
             product((parent, ), child_relations[child].keys()),
         )
         for parent, child in adjacencies
-    ))) | adjacencies)
+    ))) | adjacencies
     if any((ancestor == descendant) for ancestor, descendant in relations_to_create):
         raise ValueError("No circular relations allowed!")
 
-    created_relations: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...] = tuple(
+    already_existing_relations: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...] = tuple((
+        ((ancestor_id, descendant_id), pk) for ancestor_id, descendant_id, pk in LocationRelation.objects.filter(
+            # todo: more performant with index?
+            Q.create([Q(ancestor_id=ancestor, descendant_id=descendant)
+                      for ancestor, descendant in relations_to_create], Q.OR)
+        ).values_list("ancestor_id", "descendant_id", "pk")
+    ))
+    if already_existing_relations:
+        relations_to_create -= frozenset(tuple(zip(*already_existing_relations))[0])
+    relations_to_create: tuple[tuple[LocationID, LocationID], ...] = tuple(relations_to_create)
+
+    created_relations_ids: tuple[tuple[tuple[LocationID, LocationID], RelationID], ...] = tuple(
         ((created_relation.ancestor_id, created_relation.descendant_id), created_relation.id)
         for created_relation in LocationRelation.objects.bulk_create((
             LocationRelation(ancestor_id=ancestor, descendant_id=descendant)
             for ancestor, descendant in relations_to_create
-        ), ignore_conflicts=True)
+        ))
     )
 
     # check that we really got as many relations back as we put into bulk_create()
-    if len(created_relations) == len(relations_to_create):
+    if len(created_relations_ids) != len(relations_to_create):
         raise ValueError ("location_hierarchy_changed post_add handler bulk_insert len() mismatch")
 
     # create new paths
     it = generate_paths_to_create(
-        created_relations=created_relations,
+        created_relations=already_existing_relations + created_relations_ids,
         added_adjacencies=added_adjacencies,
         relevant_relations=relevant_relations,
         parent_relations=parent_relations,
     )
-    with suppress(StopIteration):
-        while True:
-            paths_to_create = next(it)
-            created_paths = LocationRelationPath.objects.bulk_create(paths_to_create, ignore_conflicts=True)
-            it.send(tuple(created_paths))
+    paths_to_create = next(it)
+    while paths_to_create:
+        created_paths = LocationRelationPath.objects.bulk_create(paths_to_create)
+        it.send(tuple(created_paths))
+        paths_to_create = next(it)
 
 
 def location_parents_removed(instance: DefinedLocation, pk_set: set[int]):
@@ -1627,7 +1640,6 @@ class Position(models.Model):
                 (_('icon'), None),
             ],
         }
-
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
