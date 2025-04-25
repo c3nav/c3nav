@@ -141,7 +141,6 @@ class LocationTagRelation(models.Model):
 
 
 class LocationTagRelationPathSegment(models.Model):
-    # todo: rename to path segment
     """ Automatically populated. One relation path for the given relation, ending with the given adjacency. """
     prev_path = models.ForeignKey("self", on_delete=models.CASCADE, related_name="+", null=True)
     adjacency = models.ForeignKey("LocationTagAdjacency", on_delete=models.CASCADE, related_name="+")
