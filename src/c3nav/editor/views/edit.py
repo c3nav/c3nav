@@ -22,12 +22,12 @@ from django.views.decorators.http import etag
 from shapely import LineString
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm, \
-    LinkDefinedLocationForm
+    LinkLocationTagForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.mapdata.models import Level, Space, GraphNode, GraphEdge, Door, Area, POI
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
-from c3nav.mapdata.models.locations import DefinedLocation, DefinedLocationTargetMixin
+from c3nav.mapdata.models.locations import LocationTag, LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissionsFromRequest, active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
@@ -53,10 +53,10 @@ def main_index(request):
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
         'child_models': [
-            child_model(request, 'DefinedLocation'),
+            child_model(request, 'LocationTag'),
             child_model(request, 'ObstacleGroup'),
             child_model(request, 'GroundAltitude'),
-            child_model(request, 'DynamicLocationTarget'),
+            child_model(request, 'DynamicLocationTagTarget'),
             child_model(request, 'WayType'),
             child_model(request, 'AccessRestriction'),
             child_model(request, 'AccessRestrictionGroup'),
@@ -73,7 +73,7 @@ def main_index(request):
 @accesses_mapdata
 @sidebar_view
 def level_detail(request, pk):
-    level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top', "locations"),
+    level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top', "tags"),
                               pk=pk)
 
     if request.user_permissions.can_access_base_mapdata:
@@ -103,7 +103,7 @@ def level_detail(request, pk):
 @sidebar_view
 def space_detail(request, level, pk):
     # todo: HOW TO GET DATA
-    space = get_object_or_404(Space.objects.select_related('level').prefetch_related("locations"),
+    space = get_object_or_404(Space.objects.select_related('level').prefetch_related("tags"),
                               level__pk=level, pk=pk)
 
     edit_utils = SpaceChildEditUtils(space)
@@ -152,17 +152,17 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         kwargs = {'pk': pk}
         qs = model.objects.all()
 
-        if issubclass(model, DefinedLocation):
+        if issubclass(model, LocationTag):
             qs = qs.prefetch_related(
-                Prefetch("levels", Level.objects.prefetch_related("locations")),
-                Prefetch("spaces", Space.objects.prefetch_related("locations").select_related("level")),
-                Prefetch("areas", Area.objects.prefetch_related("locations").select_related("space__level")),
-                Prefetch("pois", POI.objects.prefetch_related("locations").select_related("space__level")),
+                Prefetch("levels", Level.objects.prefetch_related("tags")),
+                Prefetch("spaces", Space.objects.prefetch_related("tags").select_related("level")),
+                Prefetch("areas", Area.objects.prefetch_related("tags").select_related("space__level")),
+                Prefetch("pois", POI.objects.prefetch_related("tags").select_related("space__level")),
             )
 
-        elif issubclass(model, DefinedLocationTargetMixin):
+        elif issubclass(model, LocationTagTargetMixin):
             # todo: no qs_for_request here, but this might be important for when non-admins edit stuff?
-            qs = qs.prefetch_related('locations')
+            qs = qs.prefetch_related("tags")
 
         utils_cls = DefaultEditUtils
         if level is not None:
@@ -208,11 +208,11 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'geometry_url': geometry_url,
     }
 
-    if not new and isinstance(obj, DefinedLocation):
+    if not new and isinstance(obj, LocationTag):
         if not obj.static_targets:
             ctx["secondary"] = {
                 "title": _('Targets'),
-                "text": _('This defined location has no targets'),
+                "text": _('This location tag has no targets'),
             }
         else:
             target_links = []
@@ -292,14 +292,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'back_url': reverse('editor.spaces.list', kwargs={'level': level.pk}),
             'nozoom': True,
         })
-    elif hasattr(model, 'level') and 'Dynamic' not in model.__name__ and 'Defined' not in model.__name__:
+    elif hasattr(model, 'level'):
         if not new:
             level = obj.level
         ctx.update({
             'level': level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'level': level.pk}),
         })
-    elif hasattr(model, 'space') and 'Defined' not in model.__name__:
+    elif hasattr(model, 'space'):
         if not new:
             space = obj.space
         space_id = space.pk
@@ -369,12 +369,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx["door"] = {"spaces": spaces}
         ctx["secondary"] = {"title": _('Connecting spaces')}
 
-    defined_location_form_cls = None
-    if not new and isinstance(obj, DefinedLocationTargetMixin):
-        defined_location_form_cls = LinkDefinedLocationForm
-        ctx["secondary"] = {"title": DefinedLocation._meta.verbose_name_plural}
-        if not obj.locations.all():
-            ctx["secondary"]["text"] = (_('There are no defined location associated with this %(target_type)s.')
+    location_tag_form_cls = None
+    if not new and isinstance(obj, LocationTagTargetMixin):
+        location_tag_form_cls = LinkLocationTagForm
+        ctx["secondary"] = {"title": LocationTag._meta.verbose_name_plural}
+        if not obj.tags.all():
+            ctx["secondary"]["text"] = (_('There are no location tags associated with this %(target_type)s.')
                                         % {"target_type": obj._meta.verbose_name})
 
     error = None
@@ -419,8 +419,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
         if "door" in ctx:
             secondary_form = DoorGraphForm(spaces=spaces, nodes=nodes, edges=edges, data=data)
-        elif defined_location_form_cls:
-            secondary_form = defined_location_form_cls(target=obj, data=data)
+        elif location_tag_form_cls:
+            secondary_form = location_tag_form_cls(target=obj, data=data)
 
         if secondary_form is not None:
             ctx["secondary"]["form"] = secondary_form
@@ -457,8 +457,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                       geometry_editable=edit_utils.can_access_child_base_mapdata)
         if "door" in ctx:
             secondary_form = DoorGraphForm(spaces=spaces, nodes=nodes, edges=edges)
-        elif defined_location_form_cls:
-            secondary_form = defined_location_form_cls(target=obj)
+        elif location_tag_form_cls:
+            secondary_form = location_tag_form_cls(target=obj)
 
         if secondary_form is not None:
             ctx["secondary"]["form"] = secondary_form
@@ -508,7 +508,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
     resolver_match = getattr(request, 'sub_resolver_match', request.resolver_match)
     if pk is not None:
-        model = DefinedLocation
+        model = LocationTag
     if not resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
@@ -529,7 +529,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
     if level is not None:
         reverse_kwargs['level'] = level
-        level = get_object_or_404(Level.objects.prefetch_related("locations"), pk=level)
+        level = get_object_or_404(Level.objects.prefetch_related("tags"), pk=level)
         queryset = queryset.filter(level=level).defer('geometry')
         edit_utils = LevelChildEditUtils(level)
         ctx.update({
@@ -544,7 +544,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     elif space is not None:
         reverse_kwargs['space'] = space
         sub_qs = Space.objects.select_related('level').defer('geometry').prefetch_related(
-            "locations", "level__locations"
+            "tags", "level__tags"
         )
         space = get_object_or_404(sub_qs, pk=space)
         queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
@@ -599,24 +599,24 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             queryset = queryset.select_related('groundaltitude')
             queryset = queryset.order_by('groundaltitude__altitude')
 
-        if model == DefinedLocation:
+        if model == LocationTag:
             queryset.annotate(num_children=Count("children"))
             if pk is None:
                 queryset = queryset.annotate(num_parents=Count("parents")).filter(num_parents=0)
             else:
-                parent_location = get_object_or_404(DefinedLocation.objects.prefetch_related("parents"), pk=pk)
-                queryset = queryset.filter(parents=parent_location)
+                parent_tag = get_object_or_404(LocationTag.objects.prefetch_related("parents"), pk=pk)
+                queryset = queryset.filter(parents=parent_tag)
                 ctx.update({
-                    "parent": parent_location,
+                    "parent": parent_tag,
                     "can_edit": can_edit,
-                    "edit_url": reverse('editor.defined_locations.edit', kwargs={"pk": parent_location.pk}),
+                    "edit_url": reverse('editor.location_tags.edit', kwargs={"pk": parent_tag.pk}),
                     "back": [
                         {
-                            "url": reverse('editor.defined_locations.list', kwargs={"pk": p.pk}),
+                            "url": reverse('editor.location_tags.list', kwargs={"pk": p.pk}),
                             "title": _('back to %(parent_location)s') % {"parent_location": p.title},
-                        } for p in parent_location.parents.all()
-                    ] if parent_location.parents.all() else [{
-                        "url": reverse('editor.defined_locations.list'),
+                        } for p in parent_tag.parents.all()
+                    ] if parent_tag.parents.all() else [{
+                        "url": reverse('editor.location_tags.list'),
                         "title": _('back to location root'),
                     }]
                 })
@@ -629,14 +629,14 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             })
 
 
-    if issubclass(model, DefinedLocationTargetMixin):
-        queryset = queryset.prefetch_related('locations')
+    if issubclass(model, LocationTagTargetMixin):
+        queryset = queryset.prefetch_related("tags")
 
     edit_url_name = ".".join((*resolver_match.url_name.split(".")[:-1], ('detail' if explicit_edit else 'edit')))
     for obj in queryset:
         reverse_kwargs['pk'] = obj.pk
-        if model == DefinedLocation:
-            obj.edit_url = reverse("editor.defined_locations.list", kwargs=reverse_kwargs)
+        if model == LocationTag:
+            obj.edit_url = reverse("editor.location_tags.list", kwargs=reverse_kwargs)
         else:
             obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
         obj.add_cols = tuple(getattr(obj, col) for col in add_cols)

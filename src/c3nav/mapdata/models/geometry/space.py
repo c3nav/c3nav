@@ -18,7 +18,7 @@ from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin, CachedPoints, CachedBounds
-from c3nav.mapdata.models.locations import DefinedLocationTargetMixin
+from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
@@ -124,7 +124,7 @@ class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
         default_related_name = 'columns'
 
 
-class Area(CachedEffectiveGeometryMixin, SpaceGeometryMixin, DefinedLocationTargetMixin,
+class Area(CachedEffectiveGeometryMixin, SpaceGeometryMixin, LocationTagTargetMixin,
            AccessRestrictionMixin, models.Model):
     """
     An area in a space.
@@ -329,7 +329,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         return result
 
 
-class POI(SpaceGeometryMixin, DefinedLocationTargetMixin, AccessRestrictionMixin, models.Model):
+class POI(SpaceGeometryMixin, LocationTagTargetMixin, AccessRestrictionMixin, models.Model):
     """
     A point of interest
     """

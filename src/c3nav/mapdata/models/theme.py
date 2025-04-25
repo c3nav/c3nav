@@ -83,25 +83,25 @@ class Theme(TitledMixin, models.Model):
         default_related_name = 'themes'
 
 
-class ThemeLocationBackgroundColor(models.Model):
+class ThemeLocationTagColor(models.Model):
     """
-    A background color for a DefinedLocation in a theme
+    A background color for a LocationTag in a theme
     """
-    theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="locations")
-    location = models.ForeignKey("DefinedLocation", on_delete=models.SET_NULL, null=True, blank=True,
-                                 related_name="theme_colors")
+    theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="tags")
+    tag = models.ForeignKey("LocationTag", on_delete=models.SET_NULL, null=True, blank=True,
+                            related_name="theme_colors")
     fill_color = models.CharField(max_length=32, null=True, blank=True)
     border_color = models.CharField(max_length=32, null=True, blank=True)
 
     def pre_save_changed_geometries(self):
-        self.location.register_changed_geometries()
+        self.tag.register_changed_geometries()
 
     def save(self, *args, **kwargs):
         self.pre_save_changed_geometries()
         super().save(*args, **kwargs)
 
     def pre_delete_changed_geometries(self):
-        self.location.register_changed_geometries()
+        self.tag.register_changed_geometries()
 
     def delete(self, *args, **kwargs):
         self.pre_delete_changed_geometries()

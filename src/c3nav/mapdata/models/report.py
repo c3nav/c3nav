@@ -1,5 +1,4 @@
 import string
-from itertools import chain
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -12,9 +11,8 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models.locations import DefinedLocation
+from c3nav.mapdata.models.locations import LocationTag
 from c3nav.mapdata.utils.fields import LocationById
-from c3nav.mapdata.utils.models import get_submodels
 from c3nav.site.tasks import send_report_notification
 
 
@@ -39,8 +37,8 @@ class Report(models.Model):
                                    help_text=_('tell us precisely what\'s wrong'))
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_reports', verbose_name=_('assigned to'))
-    location = models.ForeignKey('mapdata.DefinedLocation', null=True, on_delete=models.SET_NULL,
-                                 related_name='reports', verbose_name=_('location'))
+    location_tag = models.ForeignKey('mapdata.LocationTag', null=True, on_delete=models.SET_NULL,
+                                     related_name='reports', verbose_name=_('location tag'))
     coordinates_id = models.CharField(_('coordinates'), null=True, max_length=48)
     origin_id = models.CharField(_('origin'), null=True, max_length=48)
     destination_id = models.CharField(_('destination'), null=True, max_length=48)
@@ -48,7 +46,7 @@ class Report(models.Model):
 
     created_title = I18nField(_('new location title'), plural_name='titles', blank=False, fallback_any=True,
                               help_text=_('you have to supply a title in at least one language'))
-    created_parents = models.ManyToManyField('mapdata.DefinedLocation', verbose_name=_('location type'), blank=True,
+    created_parents = models.ManyToManyField('mapdata.LocationTag', verbose_name=_('location type'), blank=True,
                                              help_text=_('select all that apply, if any'), related_name='+')
     secret = models.CharField(_('secret'), max_length=32, default=get_report_secret)
 
@@ -73,16 +71,16 @@ class Report(models.Model):
         if request.user_permissions.review_all_reports:
             return cls.objects.all()
         elif request.user.is_authenticated:
-            child_location_ids = {
+            child_tag_ids = {
                 *request.user_permissions.review_parent_ids,
-                *DefinedLocation.objects.filter(
+                *LocationTag.objects.filter(
                     calculated__ancestors__in=request.user_permissions.review_parent_ids
                 ).values_list('pk', flat=True)
             }
             return cls.objects.filter(
                 Q(author=request.user) |
-                Q(location_id__in=child_location_ids) |
-                Q(created_parents__in=child_location_ids)
+                Q(location_tag_id__in=child_tag_ids) |
+                Q(created_parents__in=child_tag_ids)
             )
         else:
             return cls.objects.none()
@@ -90,12 +88,12 @@ class Report(models.Model):
     def get_affected_parent_ids(self):
         if self.category == 'missing-location':
             location_ids = self.created_parents.values_list('pk', flat=True)
-            return (*location_ids, DefinedLocation.objects.filter(
+            return (*location_ids, LocationTag.objects.filter(
                 calculated__descendants__in=location_ids
             ).values_list('pk', flat=True))
         elif self.category == 'location-issue':
             return (
-                self.location.pk, *self.location.calculated_ancestors.values_list('pk', flat=True)
+                self.location_tag.pk, *self.location_tag.calculated_ancestors.values_list('pk', flat=True)
             )
         return ()
 
@@ -140,10 +138,10 @@ class Report(models.Model):
                 })+'?x=%.2f&y=%.2f' % (self.coordinates.x, self.coordinates.y)
             return None
         elif self.category == 'location-issue':
-            if self.location is None:
+            if self.location_tag is None:
                 return None
-            return reverse('editor.defined_location.edit', kwargs={
-                'pk': self.location.pk,
+            return reverse('editor.location_tags.edit', kwargs={
+                'pk': self.location_tag.pk,
             })
 
     def save(self, *args, **kwargs):

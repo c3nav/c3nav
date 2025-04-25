@@ -15,7 +15,7 @@ from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, MapUpdate
-from c3nav.mapdata.models.locations import LocationSlug, Position, DefinedLocation
+from c3nav.mapdata.models.locations import LocationSlug, Position, LocationTag
 from c3nav.mapdata.permissions import active_map_permissions, MapPermissionGuardedMapping
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
@@ -32,10 +32,10 @@ except ImportError:
 @dataclass
 class LocationRedirect:
     identifier: LocationIdentifier
-    target: DefinedLocation
+    target: LocationTag
 
 
-LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, DefinedLocation]
+LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, LocationTag]
 
 
 class SlugTarget(NamedTuple):
@@ -168,7 +168,7 @@ class LocationManager:
 
     @classmethod
     def _maybe_update(cls):
-        update = MapUpdate.last_update("mapdata.recalculate_definedlocation_final")
+        update = MapUpdate.last_update("mapdata.recalculate_locationtag_final")
         update_id = None if update is None else update.update_id
         if update_id != cls._cache_key:
             cls.update(update_id)
@@ -179,7 +179,7 @@ class LocationManager:
         cls._cache_key = update_id
         with active_map_permissions.disable_access_checks():
             cache_key = f'mapdata:all_locations:{update_id}'
-            all_locations: dict[int, DefinedLocation] | None
+            all_locations: dict[int, LocationTag] | None
             all_locations = cache.get(cache_key, None)
             if all_locations is None:
                 all_locations = cls.generate_locations_by_id()
@@ -203,16 +203,16 @@ class LocationManager:
             })
 
     @classmethod
-    def generate_locations_by_id(cls) -> dict[int, DefinedLocation]:
+    def generate_locations_by_id(cls) -> dict[int, LocationTag]:
         locations = {
-            location.pk: location for location in DefinedLocation.objects.select_related(
+            tag.pk: tag for tag in LocationTag.objects.select_related(
                 "effective_label_settings",
                 "load_group_display",
             ).prefetch_related(
                 "slug_set",
                 "calculated_descendants",
                 Prefetch("calculated_ancestors",
-                         DefinedLocation.objects.order_by("effective_traversal_order")),
+                         LocationTag.objects.order_by("effective_traversal_order")),
             ).order_by("effective_depth_first_order")
         }
 
@@ -398,6 +398,6 @@ def get_random_location_parents() -> frozenset[int]:
     result = versioned_per_request_cache.get(last_update, cache_key, None)
     if result is not None:
         return result
-    result = frozenset(DefinedLocation.objects.filter(include_in_random_location=True).values_list("pk", flat=True))
+    result = frozenset(LocationTag.objects.filter(include_in_random_location=True).values_list("pk", flat=True))
     versioned_per_request_cache.set(last_update, cache_key, result, 3600)
     return result

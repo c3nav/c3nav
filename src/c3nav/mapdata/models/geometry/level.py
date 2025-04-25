@@ -26,7 +26,7 @@ from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin
-from c3nav.mapdata.models.locations import DefinedLocationTargetMixin
+from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
@@ -115,7 +115,7 @@ class Building(LevelGeometryMixin, models.Model):
 CachedSimplifiedGeometries: TypeAlias = list[MapPermissionTaggedItem[PolygonSchema]]
 
 
-class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, DefinedLocationTargetMixin,
+class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetMixin,
             AccessRestrictionMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
