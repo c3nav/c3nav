@@ -31,23 +31,34 @@ def migrate_location_hierarchy(apps, model_name):
         LocationGroup.objects.aggregate(max_pk=Max("pk", default=0))["max_pk"],
         SpecificLocation.objects.aggregate(max_pk=Max("pk", default=0))["max_pk"],
     )
-    new_location_groups = tuple(group.pk for group in LocationGroup.objects.bulk_create((
-        LocationGroup(
-            id=max_id+i+1,
-            titles={"en": title},
-            can_search=False,
-            can_describe=True,
-            priority=-1000,
-            category=tmp_category,
-        )
-        for i, title in enumerate(("Level", "Space", "Area", "POI", "Dynamic Location"))
-    )))
+    new_location_groups = dict(zip(
+        ("building_space", "event_space",
+         "level", "space", "area", "poi", "dynamic_location"),
+        (group.pk for group in LocationGroup.objects.bulk_create((
+            LocationGroup(
+                id=max_id+i+1,
+                titles={"en": title},
+                can_search=False,
+                can_describe=can_describe,
+                priority=-1000+i,
+                category=tmp_category,
+            )
+            for i, (title, can_describe) in enumerate((("Space (Building)", False), ("Space (Event override)", False),
+                                                       ("Level", True), ("Space", True), ("Area", True), ("POI", True),
+                                                       ("Dynamic Location", True)))
+        )))
+    ))
 
-    for specific_location in SpecificLocation.objects.prefetch_related("levels", "spaces", "areas", "pois",
-                                                                       "dynamic_targets"):
-        for group, name in zip(new_location_groups, ("levels", "spaces", "areas", "pois", "dynamic_targets")):
-            if getattr(specific_location, name).all():
-                specific_location.groups.add(group)
+    for specific_location in SpecificLocation.objects.prefetch_related("levels", "spaces", "spaces__tags",
+                                                                       "areas", "pois", "dynamic_targets"):
+        for manager_name, group_key in (("levels", "level"), ("areas", "area"), ("pois", "poi"), ("spaces", "space")):
+            if getattr(specific_location, manager_name).all():
+                specific_location.groups.add(new_location_groups[group_key])
+        if specific_location.spaces.all():
+            first_id = min(location.pk for location in tuple(specific_location.spaces.all())[0].tags.all())
+            specific_location.groups.add(
+                new_location_groups["building_space" if specific_location.pk == first_id else "event_space"]
+            )
 
     # convert locationgroups into specific locations
     fields = {f.attname for f in LocationGroup._meta.get_fields()
@@ -109,8 +120,10 @@ def migrate_location_hierarchy(apps, model_name):
         for specific_location in group.specific_locations.all():
             indirect_relations[(new_category_id, specific_location.id)].add(group.id)
             direct_relations.add((group.id, specific_location.id))
-    adjacency_id_lookup = {(parent, child): pk
-                           for pk, parent, child in LocationTagAdjacency.objects.values_list("pk", "parent_id", "child_id")}
+    adjacency_id_lookup = {
+        (parent, child): pk
+        for pk, parent, child in LocationTagAdjacency.objects.values_list("pk", "parent_id", "child_id")
+    }
     relations_to_create = (*direct_relations, *indirect_relations.keys())
     relation_id_lookup = {
         (relation.ancestor_id, relation.descendant_id): relation.id
@@ -169,8 +182,6 @@ def migrate_location_hierarchy(apps, model_name):
     to_delete.children.clear()
     to_delete.calculated_descendants.clear()
     to_delete.delete()
-
-
 
 
 def unmigrate_location_hierarchy(apps, model_name):
