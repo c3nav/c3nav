@@ -73,7 +73,7 @@ class Router:
     @classmethod
     def rebuild(cls, update: MapUpdateTuple):
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'spaces__graphnodes',
-                                                      'spaces__holes', 'spaces__columns', 'spaces__tags', 'tags'
+                                                      'spaces__holes', 'spaces__columns', 'spaces__tags', 'tags',
                                                       'spaces__obstacles', 'spaces__lineobstacles', 'spaces__areas',
                                                       'spaces__areas__tags', 'spaces__pois',  'spaces__pois__tags')
 
