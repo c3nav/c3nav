@@ -20,30 +20,36 @@ class LocalCacheProxy:
         # we don't particularly care about this for LocalCacheProxy,
         # but we DEFINITELY care about this for the local request cache.
         # Most importantly, this is why the clear function always sets a new dictionary to be extra sure.
-        self.clear()
+
+    def _get_items(self):
+        try:
+            return self._items.get()
+        except LookupError:
+            self.clear()
+            return self._items.get()
 
     def get(self, key, default=None):
         if self._mapupdate is None:
             self._check_mapupdate()
         try:
             # first check out cache
-            result = self._items.get()[key]
+            result = self._get_items()[key]
         except KeyError:
             # not in our cache
             result = cache.get(key, default=NoneFromCache)
             if result is not NoneFromCache:
-                self._items.get()[key] = result
+                self._get_items()[key] = result
                 self._prune()
             else:
                 result = default
         else:
-            self._items.get().move_to_end(key, last=True)
+            self._get_items().move_to_end(key, last=True)
         return result
 
     def _prune(self):
         # remove old items
-        while len(self._items.get()) > self._maxsize:
-            self._items.get().pop(next(iter(self._items.get().keys())))
+        while len(self._get_items()) > self._maxsize:
+            self._get_items().pop(next(iter(self._get_items().keys())))
 
     def _check_mapupdate(self):
         # todo: thanks to enable_globally() we shouldn't need this any more
@@ -66,7 +72,7 @@ class LocalCacheProxy:
         self._check_mapupdate()
         cache.set(key, value, expire)
         if LocalCacheProxy.enabled:
-            self._items.get()[key] = value
+            self._get_items()[key] = value
         self._prune()
 
     def clear(self):
