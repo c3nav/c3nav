@@ -260,7 +260,14 @@
     </main>
     {% if not embed %}
         <div id="modal" class="loading">
-            <div id="modal-content"></div>
+            <div id="modal-content-container">
+                <div id="modal-content">
+                    <button class="button-clear material-symbols" id="close-modal">clear</button>
+                    <div id="modal-content-inner">
+
+                    </div>
+                </div>
+            </div>
         </div>
     {% endif %}
     {% include 'site/fragment_fakemobileclient.html' %}

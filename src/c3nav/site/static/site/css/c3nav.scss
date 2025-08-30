@@ -55,12 +55,9 @@ body {
     font-weight: normal;
     display: flex;
     flex-direction: column;
-    position: absolute;
     align-items: stretch;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
+    width: 100vw;
+    height: 100vh;
 }
 
 
@@ -1206,14 +1203,19 @@ main:not([data-view=route-result]) #route-summary {
     border-radius: var(--border-radius);
     background-color: var(--color-background);
     width: 380px;
-    min-height: 150px;
-    max-height: 95vh;
-    max-width: 95vw;
-    padding: 20px;
     overflow: auto;
     -ms-scroll-chaining: none;
     overscroll-behavior: contain;
     position: relative;
+}
+
+#modal-content-inner {
+    overflow: auto;
+    padding: 20px;
+    height: min-content;
+    min-height: 150px;
+    max-height: 95vh;
+    max-width: 95vw;
 }
 
 #modal.loading #modal-content {
@@ -1223,8 +1225,6 @@ main:not([data-view=route-result]) #route-summary {
         display: block;
         mask-position: center;
     }
-
-    background-color: var(--color-background);
 }
 
 #close-modal {

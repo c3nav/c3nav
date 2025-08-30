@@ -1503,10 +1503,10 @@ c3nav = {
     },
     _set_modal_content: function (content, no_close) {
         const $modal = $('#modal');
-        const $content = $modal.find('#modal-content');
-        $modal.toggleClass('loading', !content)
-        $content.html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
-            .append(content || '<div class="loader"></div>');
+        const $content = $modal.find('#modal-content-inner');
+        $modal.toggleClass('loading', !content);
+        $modal.toggleClass('no-close', no_close);
+        $content.html(content || '<div class="loader"></div>');
         if ($content.find('[name=look_for_ap]').length) {
             $content.find('button[type=submit]').hide();
             if (!window.mobileclient) {
