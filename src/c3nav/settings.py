@@ -801,7 +801,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # SSO
 
-SOCIAL_AUTH_STRATEGY = 'c3nav.control.sso.C3navStrategy'
+SOCIAL_AUTH_STRATEGY = 'c3nav.control.sso.strategy.C3navStrategy'
 SOCIAL_AUTH_JSONFIELD_ENABLED = DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql'
 
 AUTHENTICATION_BACKENDS = (
