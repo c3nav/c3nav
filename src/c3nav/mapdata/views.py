@@ -298,7 +298,7 @@ def preview_route(request, slug, slug2):
 
     minx, miny, maxx, maxy, img_scale = bounds_for_preview(combined_geometry, cache_package)
 
-    theme = None  # previews are unthemed
+    theme = None if settings.DEFAULT_THEME == 0 else settings.DEFAULT_THEME  # previews use the default theme
 
     level_data = cache_package.levels.get((origin_level, theme))
     if level_data is None:
