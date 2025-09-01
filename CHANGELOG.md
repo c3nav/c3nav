@@ -6,7 +6,12 @@ This file aims to give you an idea of what has changed between events where c3na
 development team. These lists do not aim to be complete but help you get an overview about the most iportant changes
 and potential backwards incompatibilities.
 
-# Easterhegg 2025 (development ongoing)
+# Eurofurence 29 (development ongoing)
+
+- Fix Problem with fetch updates API
+- ...
+
+# Easterhegg 2025 ([eh2025](https://github.com/c3nav/c3nav/tree/eh2025))
 
 Behind the scenes, comfort, bug fixes:
 
