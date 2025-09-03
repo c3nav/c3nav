@@ -497,7 +497,7 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
     node_number = models.PositiveSmallIntegerField(_('Node Number'), unique=True, null=True, blank=True)
 
     addresses: list[MacAddress] = SchemaField(list[MacAddress], verbose_name=_('Mac Address / BSSIDs'), default=list,
-                                              help_text=_("uses node's value if not set"))
+                                              blank=True, help_text=_("uses node's value if not set"))
     bluetooth_address = models.CharField(_('Bluetooth Address'), unique=True, null=True, blank=True,
                                          max_length=17,
                                          validators=[RegexValidator(
