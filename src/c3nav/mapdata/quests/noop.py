@@ -7,7 +7,6 @@ from shapely.geometry import mapping
 
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.quests.base import ChangeSetModelForm, register_quest, Quest
-from c3nav.mapdata.quests.positioning import RangingBeaconBSSIDsQuestForm
 
 
 class RangingBeaconMarvelQuestForm(ChangeSetModelForm):
@@ -32,7 +31,7 @@ class RangingBeaconMarvelQuest(Quest):
     quest_type = "event_wifi_ack"
     quest_type_label = _('Wifi AP Marveling')
     quest_type_icon = "wifi_proxy"
-    form_class = RangingBeaconBSSIDsQuestForm
+    form_class = RangingBeaconMarvelQuestForm
     obj: RangingBeacon
 
     @property
