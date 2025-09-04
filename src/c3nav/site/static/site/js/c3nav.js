@@ -160,6 +160,9 @@ c3nav = {
             }
 
         } else {
+            if (navigator.bluetooth && navigator.bluetooth.getAvailability())
+                c3nav._set_user_location(null);
+
             document.addEventListener('visibilitychange', c3nav.on_visibility_change, false);
         }
 
@@ -372,6 +375,8 @@ c3nav = {
 
         if (window.mobileclient) {
             c3nav.startWifiScanning();
+            c3nav.startBLEScanning();
+        } else if (navigator.bluetooth) {
             c3nav.startBLEScanning();
         }
 
@@ -1189,13 +1194,17 @@ c3nav = {
     },
     _locationinput_locate: function (e) {
         e.preventDefault();
-        if (!window.mobileclient) {
+        if (window.mobileclient) {
+            if (typeof window.mobileclient.checkLocationPermission === 'function') {
+                window.mobileclient.checkLocationPermission(true);
+            }
+        } else if (navigator.bluetooth) {
+            c3nav.startBLEScanning();
+        } else {
             c3nav.open_modal($('#app-ad').html());
             return;
         }
-        if (typeof window.mobileclient.checkLocationPermission === 'function') {
-            window.mobileclient.checkLocationPermission(true);
-        }
+
         if (c3nav._current_user_location) {
             c3nav._locationinput_set($(this).parent(), c3nav._current_user_location);
             c3nav.update_state();
@@ -2297,7 +2306,17 @@ c3nav = {
     _hasLocationPermission: undefined,
     hasLocationPermission: function (nocache) {
         if (c3nav._hasLocationPermission === undefined || (nocache !== undefined && nocache === true)) {
-            c3nav._hasLocationPermission = window.mobileclient && (typeof window.mobileclient.hasLocationPermission !== 'function' || window.mobileclient.hasLocationPermission())
+            if (window.mobileclient) {
+                c3nav._hasLocationPermission = typeof window.mobileclient.hasLocationPermission !== 'function' || window.mobileclient.hasLocationPermission();
+            } else if (navigator.bluetooth) {
+                navigator.bluetooth.getAvailability().then((available) => {
+                    if (available) {
+                        c3nav._hasLocationPermission = true;
+                    } else {
+                        c3nav._hasLocationPermission = false;
+                    }
+                });
+            }
         }
         return c3nav._hasLocationPermission;
     },
@@ -2309,6 +2328,9 @@ c3nav = {
         // stay compatible to older app versions
         return 30000;
 
+    },
+    getBLEScanRate: function () {
+        return 2000;
     },
     _wifiScanningTimer: null,
     startWifiScanning: function () {
@@ -2325,13 +2347,112 @@ c3nav = {
             c3nav._wifiScanningTimer = null;
         }
     },
-
+    _c3BeaconUuuid: "a142621a-2f42-09b3-245b-e1ac6356e9b0",
+    _receivedBLEAdvertisements: [],
+    _BLEreportingInterval: null,
     startBLEScanning: function () {
-        if (mobileclient.registerBeaconUuid) {
-            mobileclient.registerBeaconUuid("a142621a-2f42-09b3-245b-e1ac6356e9b0");
+        if (window.mobileclient) {
+            if (mobileclient.registerBeaconUuid) {
+                mobileclient.registerBeaconUuid(c3nav._c3BeaconUuuid);
+            }
+        } else if (navigator.bluetooth) {
+            if (c3nav._bleScan && c3nav._bleScan.active)
+                return;
+
+            navigator.bluetooth.getAvailability().then((available) => {
+                if (available && navigator.userActivation.isActive) {
+                    c3nav._bleScan = navigator.bluetooth.requestLEScan({
+                        filters: [{
+                          manufacturerData: [{
+                            companyIdentifier: 0x004C,
+                            dataPrefix: new Uint8Array([0x02, 0x15])
+                           }]
+                        }],
+                        keepRepeatedDevices: true
+                    });
+                    navigator.bluetooth.addEventListener('advertisementreceived', c3nav._handleBLEAdvertisement);
+                }
+            });
         }
     },
+    stopBLEScanning: function () {
+        if (c3nav._bleScan && c3nav._bleScan.active)
+            c3nav._bleScan.stop();
 
+        if (c3nav._BLEreportingInterval)
+            clearInterval(c3nav._BLEreportingInterval);
+    },
+    _calciBeaconDistance: function (txPower, rssi) {
+        if (rssi == 0)
+            return -1.0;
+
+        ratio = rssi*1.0/txPower;
+        if (ratio < 1.0)
+            distance =  math.pow(ratio,10);
+        else
+            distance =  (0.89976) * math.pow(ratio,7.7095) + 0.111;
+        
+        return distance;
+    },
+    _handleBLEAdvertisement: function (event) {        
+        if (!event.manufacturerData || !event.manufacturerData.has(0x004C))
+            return;
+
+        // APPL MFC
+        var beaconData = event.manufacturerData.get(0x004C);
+        // Check iBeacon magic headers
+        if (beaconData.byteLength != 23 || beaconData.getUint16(0, false) !== 0x0215) {
+            return;
+        }
+
+        var _uuidArray = new Uint8Array(beaconData.buffer, 2, 16);
+        var _uuid = Buffer.from(_uuidArray).toString('utf-8');
+        // Not our beacons
+        if (_uuid != c3nav._c3BeaconUuuid)
+            return;
+        var _rssi = event.rssi;
+        var _timestamp = event.timeStamp;
+        var _major = beaconData.getUint16(18, false);
+        var _minor = beaconData.getUint16(20, false);
+        var _txPower = -beaconData.getInt8(22);
+        var _pathLoss = (_txPower - _rssi);
+        var _distance = c3nav._calciBeaconDistance(_txPower, _rssi);
+        var _lastSeen = _timestamp;
+        var _lastSeenBeacons = c3nav._receivedBLEAdvertisements.filter(obj => {
+            return obj.uuid == uuid
+        }).sort(
+            (a, b) => b.timestamp - a.timestamp
+        );
+
+        if (_lastSeenBeacons.length > 0)
+            _lastSeen = _lastSeenBeacons[0].timestamp;
+
+        var beacon = {
+            uuid: _uuid,
+            major: _major,
+            minor: _minor,
+            rssi: _rssi,
+            txPower: _txPower,
+            path_loss: _pathLoss,
+            distance: _distance,
+            timestamp: _timestamp,
+            lastSeen: _lastSeen,
+        };
+        c3nav._receivedBLEAdvertisements.push(beacon);
+
+        if (!c3nav._BLEreportingInterval) {
+            c3nav._BLEreportingInterval = setInterval(function() {
+                c3nav._ibeacon_scan_results(c3nav._receivedBLEAdvertisements);
+                
+                // Housekeeping
+                if (c3Nav._receivedBLEAdvertisements.length > 128)
+                    c3nav._receivedBLEAdvertisements = [];
+
+                if (c3nav._bleScan && !c3nav._bleScan.active)
+                    c3nav.startBLEScanning();
+            }, c3nav.getBLEScanRate());
+        }
+    },
     _last_scan: 0,
     _last_wifi_peers: [],
     _last_ibeacon_peers: [],
@@ -2550,6 +2671,8 @@ c3nav = {
         if (c3nav._overlayControl) {
             c3nav._overlayControl.pause();
         }
+
+        c3nav.stopBLEScanning();
     },
     _resume: function () {
         if (c3nav._fetch_updates_timer === null) {
@@ -2573,6 +2696,8 @@ c3nav = {
         if (c3nav._overlayControl) {
             c3nav._overlayControl.resume();
         }
+
+        c3nav.startBLEScanning();
     },
     _visibility_hidden_timer: null,
     on_visibility_change: function () {
