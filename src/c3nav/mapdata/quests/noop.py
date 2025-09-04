@@ -7,7 +7,6 @@ from shapely.geometry import mapping
 
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.quests.base import ChangeSetModelForm, register_quest, Quest
-from c3nav.mapdata.quests.positioning import RangingBeaconBSSIDsQuestForm
 
 
 class RangingBeaconMarvelQuestForm(ChangeSetModelForm):
@@ -31,17 +30,17 @@ class RangingBeaconMarvelQuestForm(ChangeSetModelForm):
 class RangingBeaconMarvelQuest(Quest):
     quest_type = "event_wifi_ack"
     quest_type_label = _('Wifi AP Marveling')
-    quest_type_icon = "android_wifi_4_bar_alert"
-    form_class = RangingBeaconBSSIDsQuestForm
+    quest_type_icon = "wifi_proxy"
+    form_class = RangingBeaconMarvelQuestForm
     obj: RangingBeacon
 
     @property
     def quest_description(self) -> list[str]:
         return [
-            _("Marvel at this access point with the name: %s") & self.obj.title,
-            _("Marvel at its addresses: %s") & self.obj.addresses,
-            _("Marvel at its bluetooth addresses: %s") & self.obj.bluetooth_address,
-            _("Marvel at its BLE addresses: %s %s %s") & (self.obj.ibeacon_uuid,
+            _("Marvel at this access point with the name: %s") % self.obj.title,
+            _("Marvel at its addresses: %s") % self.obj.addresses,
+            _("Marvel at its bluetooth addresses: %s") % self.obj.bluetooth_address,
+            _("Marvel at its BLE addresses: %s %s %s") % (self.obj.ibeacon_uuid,
                                                           self.obj.ibeacon_major,
                                                           self.obj.ibeacon_minor),
             _("Your time starts now."),
