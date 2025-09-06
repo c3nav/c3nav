@@ -139,6 +139,7 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
                                        verbose_name=_('easily identifyable/findable'),
                                        help_text=_('if unknown, this will be a quest. if yes, quests for enter, '
                                                    'leave or cross descriptions to this room will be generated.'))
+    media_panel_done = models.BooleanField(default=False, verbose_name=_("All media panels mapped"))
 
     class Meta:
         verbose_name = _('Space')

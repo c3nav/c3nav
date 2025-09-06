@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from shapely import Point
 from shapely.geometry import mapping
 
+from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.quests.base import ChangeSetModelForm, register_quest, Quest
 
@@ -53,3 +54,42 @@ class RangingBeaconMarvelQuest(Quest):
     @classmethod
     def _qs_for_request(cls, request):
         return RangingBeacon.qs_for_request(request).filter(beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
+
+
+class MediaPanelFinderQuestForm(ChangeSetModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = Space
+        fields = ("media_panel_done", )
+
+    @property
+    def changeset_title(self):
+        return f'Media Panel Scouting Quest: {self.instance.title}'
+
+
+@register_quest
+@dataclass
+class MediaPanelFinderQuest(Quest):
+    quest_type = "event_wifi_ack"
+    quest_type_label = _('Media Panel Scouting')
+    quest_type_icon = "lan"
+    form_class = MediaPanelFinderQuestForm
+    obj: Space
+
+    @property
+    def quest_description(self) -> list[str]:
+        return [
+            _("Find all media panels in this room: %s ") % self.obj.title,
+            _("Report them all using the report missing location form."),
+            _("Once you are done, complete this quest."),
+        ]
+
+    @property
+    def point(self) -> Point:
+        return mapping(self.obj.geometry)
+
+    @classmethod
+    def _qs_for_request(cls, request):
+        return Space.qs_for_request(request).filter(media_panel_done=False)
