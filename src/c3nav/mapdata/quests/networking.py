@@ -83,7 +83,7 @@ class MediaPanelFinderQuest(Quest):
         return [
             _("Find all media panels in this room: %s ") % self.obj.title,
             _("Report them all using the report missing location form."),
-            _("Take a picture of them as well and store it separately, so we know the ports.")
+            _("Take a picture of them as well and store it separately, so we know the ports."),
             _("Once you are done, complete this quest."),
         ]
 
