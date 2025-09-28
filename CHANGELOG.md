@@ -6,10 +6,18 @@ This file aims to give you an idea of what has changed between events where c3na
 development team. These lists do not aim to be complete but help you get an overview about the most iportant changes
 and potential backwards incompatibilities.
 
-# Eurofurence 29 (development ongoing)
+# 39. Chaos Communication Congress (development ongoing)
+
+# Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
 
 - Fix Problem with fetch updates API
-- ...
+- Fix issues with localcontext in main UI
+- Some updates to accomodate theming
+- Fix SSO strategy imports
+- Fix router preview not being themed
+- New quest to look at known WiFi AP
+- Experimental support for scanning for BLE iBeacons through native brower APIs
+- Experimental support for mapping out media panels / network panels
 
 # Easterhegg 2025 ([eh2025](https://github.com/c3nav/c3nav/tree/eh2025))
 
