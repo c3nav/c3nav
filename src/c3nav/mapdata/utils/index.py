@@ -2,10 +2,7 @@ import operator
 from functools import reduce
 
 from django.core import checks
-from shapely import speedups
-
-if speedups.available:
-    speedups.enable()
+from shapely.geometry.base import BaseGeometry
 
 
 try:
@@ -17,23 +14,24 @@ except OSError:
         def __init__(self):
             self.objects = {}
 
-        def insert(self, value, geometry):
+        def insert(self, value: int, geometry):
             self.objects[value] = geometry
 
-        def delete(self, value):
+        def delete(self, value: int):
             self.objects.pop(value)
 
-        def intersection(self, geometry):
-            return self.objects.values()
+        def intersection(self, geometry) -> set[int]:
+            raise ValueError("abc")
+            return set(self.objects.keys())
 else:
     rtree_index = True
 
     class Index:
         def __init__(self):
-            self._index = rtree.index.Index()
+            self._index = rtree.index.Index(interleaved=True)
             self._bounds = {}
 
-        def insert(self, value, geometry):
+        def insert(self, value: int, geometry):
             try:
                 geoms = geometry.geoms
             except AttributeError:
@@ -43,11 +41,11 @@ else:
                 for geom in geoms:
                     self.insert(value, geom)
 
-        def delete(self, value):
+        def delete(self, value: int):
             for bounds in self._bounds.pop(value):
                 self._index.delete(value, bounds)
 
-        def intersection(self, geometry):
+        def intersection(self, geometry: BaseGeometry) -> set[int]:
             try:
                 geoms = geometry.geoms
             except AttributeError:

@@ -1,9 +1,11 @@
 import logging
-from collections import deque, namedtuple
+import time
+from collections import namedtuple, defaultdict
 from decimal import Decimal
 from itertools import chain, combinations
+from math import log10, ceil
 from operator import attrgetter, itemgetter
-from typing import Sequence, TypeAlias
+from typing import Sequence, TypeAlias, Union, NamedTuple
 
 import numpy as np
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,10 +17,8 @@ from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
 from pydantic import Field as APIField
 from scipy.interpolate._rbfinterp import RBFInterpolator
-from shapely import prepared
-from shapely.affinity import scale
-from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon, Polygon, shape, GeometryCollection
-from shapely.geometry.polygon import orient
+from shapely import prepared, normalize, set_precision
+from shapely.geometry import JOIN_STYLE, LineString, MultiLineString, MultiPolygon, Polygon, shape, GeometryCollection
 from shapely.ops import unary_union
 
 from c3nav.api.schema import BaseSchema, PolygonSchema, MultiPolygonSchema
@@ -27,10 +27,11 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin
 from c3nav.mapdata.models.locations import LocationTagTargetMixin
-from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
+from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.utils.cache.changes import changed_geometries
-from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
-                                          cut_polygon_with_line, unwrap_geom)
+from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, remove_redundant_points_polygon,
+                                          unwrap_geom, cut_polygons_with_lines, snap_to_grid_and_fully_normalized)
+from c3nav.mapdata.utils.index import Index
 
 
 class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
@@ -162,6 +163,8 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
 
     @classmethod
     def recalculate_effective_geometries(cls):
+        logger = logging.getLogger('c3nav')
+
         # collect all buildings, by level and merge polygons
         buildings_by_level = {}
         for building in buildings_by_level:
@@ -215,7 +218,7 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
                     ))
 
             if not result:
-                print("Space with no effective geometry at all:", space)
+                logger.warning(f"Space with no effective geometry at all: {space}")
                 pass # todo: some nice warning here wrould be nice… in other places too
 
             space.cached_effective_geometries = result
@@ -303,14 +306,13 @@ class ItemWithValue:
         return self._func()
 
 
-class AltitudeAreaPoint(BaseSchema):
-    coordinates: tuple[float, float] = APIField(
-        example=[1, 2.5]
-    )
+class AltitudeAreaPoint(NamedTuple):
+    coordinates: tuple[float, float]
     altitude: float
 
 
 RampConnectedTo = namedtuple('RampConnectedTo', ('area', 'intersections'))
+type AltitudeAreaLookup = dict[Union[float, frozenset[AltitudeAreaPoint]], dict[Union[Polygon, MultiPolygon], int]]
 
 
 class AltitudeArea(LevelGeometryMixin, models.Model):
@@ -365,448 +367,513 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     @classmethod
     def recalculate(cls):
         # collect location areas
-        all_areas: list[AltitudeArea] = []  # all non-ramp altitude areas of the entire map
-        all_ramps: list[AltitudeArea] = []  # all ramp altitude areas of the entire map
-        space_areas: dict[int, list[AltitudeArea]] = {}  # all non-ramp altitude areas present in the given space
-        space_ramps: dict[int, list[AltitudeArea]] = {}  # all ramp altitude areas present in the given space
-        spaces: dict[int, list[Space]] = {}  # all spaces by space id
+        all_areas: list[Union[Polygon, MultiPolygon]] = []
+        area_connections: list[tuple[int, int]] = []
+        area_altitudes: dict[int, float] = {}
+        level_areas: dict[int, set[int]] = {}
+        level_ramps: dict[int, Union[Polygon, MultiPolygon, GeometryCollection]] = {}
+        level_obstacles_areas: dict[int, list[Union[Polygon, MultiPolygon]]] = {}
+        from c3nav.mapdata.models import AltitudeMarker
+        level_altitudemarkers: dict[int, list[AltitudeMarker]] = {}
+
+
+        space_areas: dict[int, set[int]] = defaultdict(set)  # all non-ramp altitude areas present in the given space
         levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
                                                 'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
                                                 'spaces__stairs', 'spaces__ramps',
                                                 'spaces__altitudemarkers__groundaltitude')
         logger = logging.getLogger('c3nav')
 
+        starttime = time.time()
+        logger.info('- Collecting levels...')
+
         for level in levels:
-            areas = []  # all altitude areas on this level that aren't ramps
-            ramps = []  # all altitude areas on this level that are ramps
-            stairs = []  # all stairs on this level
+            logger.info(f'  - Level {level.short_label}')
+
+            areas_collect: list[Union[Polygon, MultiPolygon]] = []
+            obstacles_collect: list[Union[Polygon, MultiPolygon]] = []
+            ramps_collect: list[Union[Polygon, MultiPolygon]] = []
+            stairs_collect: list[Union[LineString, MultiLineString]] = []
+
+            spaces_geom: dict[int, Union[Polygon, MultiPolygon]] = {}  # spaces by space id
+            spaces_geom_prep: dict[int, prepared.PreparedGeometry] = {}
+
+            buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
+
+            space_index = Index()
+
+            # how precise can be depends on how big our accessible geom is
+            precision = 10**(-14+int(ceil(log10(max(
+                abs(i) for i in chain.from_iterable(space.geometry.bounds for space in level.spaces.all())
+            )))))
+            logger.info(f'    - Precision: {precision}')
 
             # collect all accessible areas on this level
-            buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
+            altitudemarkers = []
             for space in level.spaces.all():
-                spaces[space.pk] = space
-                space.orig_geometry = space.geometry
+                this_area = space.geometry
                 if space.outside:
-                    space.geometry = space.geometry.difference(buildings_geom)
-                space_accessible = space.geometry.difference(
-                    unary_union(
-                        tuple(unwrap_geom(c.geometry) for c in space.columns.all() if c.access_restriction_id is None) +
-                        tuple(unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0) +
-                        tuple(o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0) +
-                        tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
+                    this_area = this_area.difference(buildings_geom)
+                this_area = this_area.difference(unary_union(
+                    tuple(unwrap_geom(c.geometry) for c in space.columns.all() if c.access_restriction_id is None) +
+                    tuple(unwrap_geom(h.geometry) for h in space.holes.all())),
                 )
 
-                space_ramps_geom = unary_union(tuple(unwrap_geom(r.geometry) for r in space.ramps.all()))
-                areas.append(space_accessible.difference(space_ramps_geom))
-                for geometry in assert_multipolygon(space_accessible.intersection(space_ramps_geom)):
-                    ramp = AltitudeArea(geometry=geometry, level=level)
-                    ramp.geometry_prep = prepared.prep(geometry)
-                    ramp.space = space.pk
-                    ramp.markers = []
-                    ramps.append(ramp)
-                    space_ramps.setdefault(space.pk, []).append(ramp)
+                if not this_area.area:
+                    continue
+                space_clip = this_area.buffer(precision, join_style=JOIN_STYLE.round, quad_segs=2)
+                spaces_geom[space.pk] = space_clip
+                spaces_geom_prep[space.pk] = prepared.prep(space_clip)
+                space_index.insert(space.pk, space_clip)
+                areas_collect.append(this_area)
 
-            areas = tuple(orient(polygon) for polygon in assert_multipolygon(
-                unary_union(areas+list(unwrap_geom(door.geometry) for door in level.doors.all()))
-            ))
+                this_obstacles = tuple(chain(
+                    (o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0),
+                    (unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0),
+                ))
+                obstacles_collect.extend(
+                    space_clip.intersection(geom)
+                    for geom in chain(
+                        (o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0),
+                        (unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0),
+                    )
+                )
+                ramps_collect.append(space_clip.intersection(
+                    unary_union(tuple(unwrap_geom(r.geometry) for r in space.ramps.all()))
+                ))
+                stairs_collect.append(space_clip.intersection(
+                    unary_union(tuple(unwrap_geom(stair.geometry) for stair in space.stairs.all()))
+                ))
 
-            # collect all stairs on this level
-            for space in level.spaces.all():
-                space_buffer = space.geometry.buffer(0.001, join_style=JOIN_STYLE.mitre)
-                for stair in space.stairs.all():
-                    stairs.extend(assert_multilinestring(
-                        stair.geometry.intersection(space_buffer)
-                    ))
-
-            # divide areas using stairs
-            for stair in stairs:
-                areas = cut_polygon_with_line(areas, stair)
-
-            # create altitudearea objects
-            areas = [AltitudeArea(geometry=clean_cut_polygon(area), level=level)
-                     for area in areas]
-
-            # prepare area geometries
-            for area in areas:
-                area.geometry_prep = prepared.prep(area.geometry)
-
-            # assign spaces to areas
-            space_areas.update({space.pk: [] for space in level.spaces.all()})
-            for area in areas:
-                area.spaces = set()
-                area.geometry_prep = prepared.prep(unwrap_geom(area.geometry))
-                for space in level.spaces.all():
-                    if area.geometry_prep.intersects(unwrap_geom(space.geometry)):
-                        area.spaces.add(space.pk)
-                        space_areas[space.pk].append(area)
-
-            # give altitudes to areas
-            for space in level.spaces.all():
-                for altitudemarker in space.altitudemarkers.select_related('groundaltitude').all():
-                    for area in space_areas[space.pk]:
-                        if area.geometry_prep.contains(unwrap_geom(altitudemarker.geometry)):
-                            area.altitude = altitudemarker.altitude
-                            break
-                    else:
-                        for ramp in space_ramps[space.pk]:
-                            if ramp.geometry_prep.contains(unwrap_geom(altitudemarker.geometry)):
-                                ramp.markers.append(altitudemarker)
-                                break
-                        else:
+                this_altitudemarkers = tuple(space.altitudemarkers.all())
+                if this_altitudemarkers:
+                    this_accessible = this_area.difference(unary_union(this_obstacles))
+                    for altitudemarker in space.altitudemarkers.all():
+                        if not this_accessible.intersects(unwrap_geom(altitudemarker.geometry)):
                             logger.error(
                                 _('AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level %(level_label)s '
                                   'is not placed in an accessible area') % {'marker_id': altitudemarker.pk,
                                                                             'space_id': space.pk,
                                                                             'level_label': level.short_label})
+                            continue
+                        altitudemarkers.append(altitudemarker)
 
-            # determine altitude area connections
-            for area in areas:
-                area.connected_to = []
-            for area, other_area in combinations(areas, 2):
-                if area.geometry_prep.intersects(other_area.geometry):
-                    area.connected_to.append(other_area)
-                    other_area.connected_to.append(area)
+            level_altitudemarkers[level.pk] = altitudemarkers
 
-            # determine ramp connections
-            for ramp in ramps:
-                ramp.connected_to = []
-                buffered = ramp.geometry.buffer(0.001)
-                for area in areas:
-                    if area.geometry_prep.intersects(buffered):
-                        intersections = []
-                        for area_polygon in assert_multipolygon(area.geometry):
-                            for ring in chain([area_polygon.exterior], area_polygon.interiors):
-                                if ring.intersects(buffered):
-                                    intersections.append(ring.intersection(buffered))
-                        ramp.connected_to.append(RampConnectedTo(area, intersections))
-                num_altitudes = len(ramp.connected_to) + len(ramp.markers)
-                if num_altitudes != 2:
-                    if num_altitudes == 0:
-                        logger.warning('A ramp in space #%d has no altitudes!' % ramp.space)
-                    elif num_altitudes == 1:
-                        logger.warning('A ramp in space #%d has only one altitude!' % ramp.space)
+            areas_collect.extend(unwrap_geom(door.geometry) for door in level.doors.all())
 
-            # add areas to global areas
-            all_areas.extend(areas)
-            all_ramps.extend(ramps)
+            areas_geom: Union[Polygon, MultiPolygon] = unary_union(areas_collect)  # noqa
+            obstacles_geom: Union[Polygon, MultiPolygon] = unary_union(obstacles_collect)  # noqa
+            ramps_geom: Union[Polygon, MultiPolygon] = unary_union(ramps_collect)  # noqa
 
-        # give temporary ids to all areas
-        areas = all_areas
-        ramps = all_ramps
-        for i, area in enumerate(areas):
-            area.tmpid = i
-        for area in areas:
-            area.connected_to = set(area.tmpid for area in area.connected_to)
-        for space in space_areas.keys():
-            space_areas[space] = set(area.tmpid for area in space_areas[space])
-        areas_without_altitude = set(area.tmpid for area in areas if area.altitude is None)
+            obstacles_geom_prep = prepared.prep(obstacles_geom.buffer(precision,
+                                                                      join_style=JOIN_STYLE.round, quad_segs=2))
+
+            # collect cuts on this level
+            cuts = list(chain(
+                chain.from_iterable(
+                    chain((polygon.exterior, ), polygon.interiors)
+                    for polygon in chain.from_iterable(assert_multipolygon(obstacle)
+                                                       for obstacle in chain(obstacles_collect, ramps_collect))
+                ),
+                chain.from_iterable(assert_multilinestring(s) for s in stairs_collect),
+            ))
+
+            logger.info(f'    - Performing cuts...')
+            cut_result = cut_polygons_with_lines(areas_geom, cuts, precision=precision)
+
+            # divide cut result into accessible ares and obstacle areas
+            logger.info(f'    - Processing cut result...')
+            accessible_areas = []
+            obstacle_areas = []
+            for section in assert_multipolygon(cut_result):
+                (obstacle_areas if obstacles_geom_prep.covers(section) else accessible_areas).append(section)
+
+            logger.info(f'    - {len(accessible_areas)} accessible areas, {len(obstacle_areas)} obstacle areas')
+
+            # import matplotlib.pyplot as plt
+            # ax = plt.axes([0.05, 0.05, 0.85, 0.85])  # [left, bottom, width, height]
+            # from shapely.plotting import plot_polygon, plot_line
+            # plot_polygon(areas_geom, ax, add_points=False, facecolor="#00000020", edgecolor="#00000000")
+            # for cut in cuts:
+            #     plot_line(cut, ax, add_points=False, color="#ff0000", linewidth=1)
+            # for area in accessible_areas:
+            #     plot_polygon(area, ax, add_points=False, facecolor="#0000ff50", edgecolor="#0000ff")
+            # for area in obstacle_areas:
+            #     plot_polygon(area, ax, add_points=False, facecolor="#009950", edgecolor="#009900")
+            # plt.show()
+
+            # prepare stuff for the next few steps
+            accessible_areas_prep = [prepared.prep(area) for area in accessible_areas]
+            from_i = len(all_areas)
+
+            # join obstacle areas into accessible areas if they are only touching one
+            logger.info(f'    - Joining trivial obstacle areas...')
+            while True:
+                index = Index()
+                for i, area in enumerate(accessible_areas):
+                    index.insert(i, area)
+
+                old_obstacle_areas = obstacle_areas
+                obstacle_areas = []
+                add: dict[int, list[Polygon]] = defaultdict(list)
+                for area in old_obstacle_areas:
+                    matches = {i for i in index.intersection(area)
+                               if (accessible_areas_prep[i].touches(area) and
+                                   assert_multilinestring(accessible_areas[i].intersection(area)))}
+                    if len(matches) == 1:
+                        add[next(iter(matches))].append(area)
+                    else:
+                        obstacle_areas.append(area)
+
+                if not add:
+                    break
+                for i, area_add in add.items():
+                    accessible_areas[i] = unary_union((accessible_areas[i], *area_add))
+                    accessible_areas_prep[i] = prepared.prep(accessible_areas[i])
+
+            del old_obstacle_areas
+            del add
+
+            logger.info(f'    - Preparing interpolation graph...')
+
+            # assign areas to spaces
+            for area_i, area in enumerate(accessible_areas):
+                i = 0
+                for space_id in space_index.intersection(area):
+                    if spaces_geom_prep[space_id].intersects(area):
+                        space_areas[space_id].add(from_i+area_i)
+                        i += 1
+                if not i:
+                    raise ValueError(f'- Area {area_i} {area.representative_point} {area.area}m² has no space')
+
+            # determine connections between areas
+            for i, area in enumerate(accessible_areas):
+                for j in (index.intersection(area) - {i}):
+                    if not accessible_areas_prep[i].touches(accessible_areas[j]):
+                        continue
+                    if not assert_multilinestring(accessible_areas[i].intersection(accessible_areas[j])):
+                        continue
+                    area_connections.append((i+from_i, j+from_i))
+
+            # assign altitude markers to altitude areas
+            logger.info(f'    - Assigning altitude markers...')
+            for altitudemarker in altitudemarkers:
+                matches = {i for i in index.intersection(altitudemarker.geometry)
+                           if accessible_areas_prep[i].intersects(unwrap_geom(altitudemarker.geometry))}
+                explained_matches = (accessible_areas[i].representative_point() for i in matches)
+                if len(matches) == 1:
+                    area_altitudes[next(iter(matches))+from_i] = float(altitudemarker.groundaltitude.altitude)
+                elif len(matches) > 1:
+                    logger.error(
+                        _(f'AltitudeMarker {altitudemarker.pk} {altitudemarker.geometry} '
+                          f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
+                          f'is placed between accessible areas {matches} {tuple(explained_matches)}')
+                    )
+                else:
+                    logger.error(
+                        _(f'AltitudeMarker {altitudemarker.pk} in Space #{altitudemarker.space_id} on '
+                          f'Level {level.short_label} is on an obstacle in between altitude areas')
+                    )
+
+            level_areas[level.pk] = set(range(len(all_areas), len(all_areas) + len(accessible_areas)))
+            all_areas.extend(accessible_areas)
+            level_ramps[level.pk] = ramps_geom
+            level_obstacles_areas[level.pk] = obstacle_areas
+
+            #import matplotlib.pyplot as plt
+            #ax = plt.axes([0.05, 0.05, 0.85, 0.85])  # [left, bottom, width, height]
+            #from shapely.plotting import plot_polygon, plot_line
+            #plot_polygon(areas_geom, ax, add_points=False, facecolor="#00000020", edgecolor="#00000000")
+            #for cut in cuts:
+            #    plot_line(cut, ax, add_points=False, color="#ff0000", linewidth=1)
+            #for area in enumerate(accessible_areas, ):
+            #    plot_polygon(area, ax, add_points=False, facecolor="#0000ff50", edgecolor="#0000ff")
+            # plt.show()
+
+        del space_index
 
         # interpolate altitudes
-        logger.info('Interpolating altitudes...')
+        logger.info('- Interpolating altitudes...')
 
-        areas_with_altitude = [i for i in range(len(areas)) if i not in areas_without_altitude]
-        for i, tmpid in enumerate(areas_with_altitude):
-            areas[tmpid].i = i
+        areas_without_altitude = {i for i in range(len(all_areas)) if i not in area_altitudes}
+        csgraph = np.zeros((len(all_areas), len(all_areas)), dtype=bool)
+        for i, j in area_connections:
+            csgraph[i, j] = True
+            csgraph[j, i] = True
 
-        csgraph = np.zeros((len(areas), len(areas)), dtype=bool)
-        for area in areas:
-            for connected_tmpid in area.connected_to:
-                csgraph[area.tmpid, connected_tmpid] = True
+        logger.info(f'  - {len(areas_without_altitude)} areas without altitude before')
 
         repeat = True
-
         from scipy.sparse.csgraph._shortest_path import dijkstra
         while repeat:
             repeat = False
             # noinspection PyTupleAssignmentBalance
             distances, predecessors = dijkstra(csgraph, directed=False, return_predecessors=True, unweighted=True)
-            np_areas_with_altitude = np.array(areas_with_altitude, dtype=np.uint32)
+            np_areas_with_altitude = np.array(tuple(area_altitudes), dtype=np.uint32)
             relevant_distances = distances[np_areas_with_altitude[:, None], np_areas_with_altitude]
             # noinspection PyTypeChecker
             for from_i, to_i in np.argwhere(np.logical_and(relevant_distances < np.inf, relevant_distances > 1)):
-                from_area = areas[areas_with_altitude[from_i]]
-                to_area = areas[areas_with_altitude[to_i]]
-                if from_area.altitude == to_area.altitude:
+                from_area = int(np_areas_with_altitude[from_i])
+                to_area = int(np_areas_with_altitude[to_i])
+                if area_altitudes[from_area] == area_altitudes[to_area]:
                     continue
 
-                path = [to_area.tmpid]
-                while path[-1] != from_area.tmpid:
-                    path.append(predecessors[from_area.tmpid, path[-1]])
+                path = [to_area]
+                while path[-1] != from_area:
+                    path.append(predecessors[from_area, path[-1]])
 
-                from_altitude = from_area.altitude
-                delta_altitude = (to_area.altitude-from_altitude)/(len(path)-1)
+                from_altitude = area_altitudes[from_area]
+                to_altitude = area_altitudes[to_area]
+                delta_altitude = (to_altitude-from_altitude)/(len(path)-1)
 
                 if set(path[1:-1]).difference(areas_without_altitude):
                     continue
 
-                for i, tmpid in enumerate(reversed(path[1:-1]), start=1):
-                    area = areas[tmpid]
-                    area.altitude = Decimal(from_altitude+delta_altitude*i).quantize(Decimal('1.00'))
-                    areas_without_altitude.discard(tmpid)
-                    area.i = len(areas_with_altitude)
-                    areas_with_altitude.append(tmpid)
+                for i, area_id in enumerate(reversed(path[1:-1]), start=1):
+                    area_altitudes[area_id] = from_altitude + (delta_altitude * i)
+                    areas_without_altitude.discard(area_id)
 
-                for from_tmpid, to_tmpid in zip(path[:-1], path[1:]):
-                    csgraph[from_tmpid, to_tmpid] = False
-                    csgraph[to_tmpid, from_tmpid] = False
+                for from_area, to_area in zip(path[:-1], path[1:]):
+                    csgraph[from_area, to_area] = False
+                    csgraph[to_area, from_area] = False
 
                 repeat = True
 
+        logger.info(f'  - now {len(areas_without_altitude)} areas without altitude')
+
+        old_area_connections = area_connections
+        area_connections: dict[int, set[int]] = defaultdict(set)
+        for i, j in old_area_connections:
+            area_connections[i].add(j)
+            area_connections[j].add(i)
+
+        logger.info(f'- Assigning non-interpolateable areas...')
+
         # remaining areas: copy altitude from connected areas if any
-        repeat = True
-        while repeat:
-            repeat = False
-            for tmpid in tuple(areas_without_altitude):
-                area = areas[tmpid]
-                connected_with_altitude = area.connected_to-areas_without_altitude
+        done = False
+        while not done:
+            done = True
+            for i in tuple(areas_without_altitude):
+                connected_with_altitude = tuple(j for j in area_connections[i] if j in area_altitudes)
                 if connected_with_altitude:
-                    area.altitude = areas[next(iter(connected_with_altitude))].altitude
-                    areas_without_altitude.discard(tmpid)
-                    repeat = True
+                    area_altitudes[i] = area_altitudes[next(iter(connected_with_altitude))]
+                    areas_without_altitude.discard(i)
+                    done = False
 
         # remaining areas which belong to a room that has an altitude somewhere
-        for contained_areas in space_areas.values():
+        for space_i, contained_areas in space_areas.items():
             contained_areas_with_altitude = contained_areas - areas_without_altitude
             contained_areas_without_altitude = contained_areas - contained_areas_with_altitude
             if contained_areas_with_altitude and contained_areas_without_altitude:
+                logger.info(f"  - {len(contained_areas_without_altitude)} areas still to assign in Space #{space_i}")
                 altitude_areas = {}
-                for tmpid in contained_areas_with_altitude:
-                    area = areas[tmpid]
-                    altitude_areas.setdefault(area.altitude, []).append(area.geometry)
+                for i in contained_areas_with_altitude:
+                    altitude_areas.setdefault(area_altitudes[i], []).append(all_areas[i])
 
                 for altitude in altitude_areas.keys():
                     altitude_areas[altitude] = unary_union(altitude_areas[altitude])
-                for tmpid in contained_areas_without_altitude:
-                    area = areas[tmpid]
-                    area.altitude = min(altitude_areas.items(), key=lambda aa: aa[1].distance(area.geometry))[0]
+                for i in contained_areas_without_altitude:
+                    area_altitudes[i] = min(altitude_areas.items(), key=lambda aa: aa[1].distance(all_areas[i]))[0]
                 areas_without_altitude.difference_update(contained_areas_without_altitude)
 
-        # last fallback: level base_altitude
-        for tmpid in areas_without_altitude:
-            area = areas[tmpid]
-            area.altitude = area.level.base_altitude
-
-        # prepare per-level operations
-        level_areas = {}
-        for area in areas:
-            level_areas.setdefault(area.level, set()).add(area.tmpid)
-
-        # make sure there is only one altitude area per altitude per level
-        for level in levels:
-            areas_by_altitude = {}
-            for tmpid in level_areas.get(level, []):
-                area = areas[tmpid]
-                areas_by_altitude.setdefault(area.altitude, []).append(area.geometry)
-
-            level_areas[level] = [AltitudeArea(level=level, geometry=unary_union(geometries), altitude=altitude)
-                                  for altitude, geometries in areas_by_altitude.items()]
-
-        # renumber joined areas
-        areas = list(chain(*(a for a in level_areas.values())))
-        for i, area in enumerate(areas):
-            area.tmpid = i
-
-        # finalize ramps
-        for ramp in ramps:
-            if not ramp.connected_to:
-                for area in space_areas[ramp.space]:
-                    ramp.altitude = areas[area].altitude
-                    break
-                else:
-                    ramp.altitude = ramp.level.base_altitude
-                continue
-
-            if len(ramp.connected_to) == 1:
-                ramp.altitude = ramp.connected_to[0].area.altitude
-                continue
-
-            # collecting this as a dict to ensure that there are no duplicate coordinates
-            points = {}
-            for connected_to in ramp.connected_to:
-                for intersection in connected_to.intersections:
-                    for linestring in assert_multilinestring(intersection):
-                        points.update({
-                            coords: AltitudeAreaPoint(coordinates=coords,
-                                                      altitude=float(connected_to.area.altitude))
-                            for coords in linestring.coords
-                        })
-            points.update({
-                marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords,
-                                                          altitude=float(marker.altitude))
-                for marker in ramp.markers
-            })
-            ramp.points = list(points.values())
-
-            ramp.tmpid = len(areas)
-            areas.append(ramp)
-            level_areas[ramp.level].append(ramp)
-
-        #
-        # we have altitude areas, but they only cover accessible space for now
-        # however, we need obstacles to be part of altitude areas too.
-        # this is where we do that.
-        #
-        for level in levels:
-            logger.info('Assign remaining space (%s)...' % level.title)
-            for space in level.spaces.all():
-                space.geometry = space.orig_geometry
-
-            buildings_geom = unary_union(tuple(unwrap_geom(b.geometry) for b in level.buildings.all()))
-            doors_geom = unary_union(tuple(unwrap_geom(d.geometry) for d in level.doors.all()))
-            space_geom = unary_union(tuple((unwrap_geom(s.geometry)
-                                            if not s.outside
-                                            else s.geometry.difference(buildings_geom))
-                                           for s in level.spaces.all()))
-
-            # accessible area on this level is doors + spaces - holes
-            accessible_area = unary_union((doors_geom, space_geom))
-            for space in level.spaces.all():
-                accessible_area = accessible_area.difference(space.geometry.intersection(
-                    unary_union(tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
-                ))
-
-            # areas mean altitude areas (including ramps) here
-            our_areas = level_areas.get(level, [])
-            for area in our_areas:
-                area.orig_geometry = area.geometry
-                area.orig_geometry_prep = prepared.prep(area.geometry)
-                area.polygons_to_add = deque()
-
-            stairs = []
-            for space in level.spaces.all():
-                space_geom = space.geometry
-                if space.outside:
-                    space_geom = space_geom.difference(buildings_geom)
-                space_geom_prep = prepared.prep(unwrap_geom(space_geom))
-                holes_geom = unary_union(tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
-
-                # remaining_space means remaining space (=obstacles) that still needs to be added to altitude areas
-                remaining_space = (
-                    tuple(unwrap_geom(o.geometry) for o in space.obstacles.all()) +
-                    tuple(o.buffered_geometry for o in space.lineobstacles.all())
-                )
-                # make sure to remove everything outside the space the obstacles are in as well as holes
-                remaining_space = tuple(g.intersection(unwrap_geom(space_geom)).difference(holes_geom)
-                                        for g in remaining_space
-                                        if space_geom_prep.intersects(unwrap_geom(g)))
-                # we need this to be a list of simple normal polygons
-                remaining_space = tuple(chain(*(
-                    assert_multipolygon(g) for g in remaining_space if not g.is_empty
-                )))
-                if not remaining_space:
-                    # if there are no remaining spaces? great, we're done here.
-                    continue
-
-                cuts = []
-                for cut in chain(*(assert_multilinestring(stair.geometry) for stair in space.stairs.all()),
-                                 (ramp.geometry.exterior for ramp in space.ramps.all())):
-                    for coord1, coord2 in zip(tuple(cut.coords)[:-1], tuple(cut.coords)[1:]):
-                        line = space_geom.intersection(LineString([coord1, coord2]))
-                        if line.is_empty:
-                            continue
-                        factor = (line.length + 2) / line.length
-                        line = scale(line, xfact=factor, yfact=factor)
-                        centroid = line.centroid
-                        line = min(assert_multilinestring(space_geom.intersection(line)),
-                                   key=lambda line_: line_.centroid.distance(centroid), default=None)
-                        cuts.append(scale(line, xfact=1.01, yfact=1.01))
-
-                remaining_space = tuple(
-                    orient(polygon) for polygon in remaining_space
-                )
-
-                for cut in cuts:
-                    remaining_space = tuple(chain(*(cut_polygon_with_line(geom, cut)
-                                                    for geom in remaining_space)))
-                remaining_space = MultiPolygon(remaining_space)
-
-                for polygon in assert_multipolygon(remaining_space):
-                    polygon = clean_cut_polygon(polygon).buffer(0)
-                    buffered = polygon.buffer(0.001)
-
-                    center = polygon.centroid
-                    touches = tuple(ItemWithValue(area, lambda: buffered.intersection(area.orig_geometry).area)
-                                    for area in our_areas
-                                    if area.orig_geometry_prep.intersects(buffered))
-                    if len(touches) == 1:
-                        area = touches[0].obj
-                    elif touches:
-                        min_touches = sum((t.value for t in touches), 0)/4
-                        area = max(touches, key=lambda item: (
-                            item.value > min_touches,
-                            item.obj.points is not None,
-                            (max(p.altitude for p in item.obj.points)
-                             if item.obj.altitude is None else item.obj.altitude),
-                            item.value
-                        )).obj
-                    else:
-                        area = min(our_areas,
-                                   key=lambda a: a.orig_geometry.distance(center)-(0 if a.points is None else 0.6))
-                    area.polygons_to_add.append(polygon)
-
-            for i_area, area in enumerate(our_areas):
-                if area.polygons_to_add:
-                    area.geometry = unary_union((area.geometry.buffer(0), *area.polygons_to_add))
-                del area.polygons_to_add
-
-        for level in levels:
-            level_areas[level] = set(area.tmpid for area in level_areas.get(level, []))
-
-        # save to database
-        areas_to_save = set(range(len(areas)))
-
-        all_candidates = AltitudeArea.objects.select_related('level')
-        for candidate in all_candidates:
-            candidate.area = candidate.geometry.area
-            candidate.geometry_prep = prepared.prep(unwrap_geom(candidate.geometry))
-        all_candidates = sorted(all_candidates, key=attrgetter('area'), reverse=True)
+        logger.info(f'- Finalizing level altitude areas...')
 
         num_modified = 0
         num_deleted = 0
         num_created = 0
 
-        field = AltitudeArea._meta.get_field('geometry')
+        del areas_without_altitude
+        del np_areas_with_altitude
 
-        for candidate in all_candidates:
-            new_area = None
+        for level in levels:
+            logger.info(f'  - Level {level.short_label}')
 
-            if candidate.points is None:
-                for tmpid in level_areas.get(candidate.level, set()):
-                    area = areas[tmpid]
-                    if area.points is None and area.altitude == candidate.altitude:
-                        new_area = area
-                        break
-            else:
-                potential_areas = [areas[tmpid] for tmpid in level_areas.get(candidate.level, set())]
-                potential_areas = [area for area in potential_areas
-                                   if ((candidate.altitude, set(p.altitude for p in (candidate.points or ()))) ==
-                                       (area.altitude, set(p.altitude for p in (area.points or ()))))]
-                potential_areas = [(area, area.geometry.intersection(unwrap_geom(candidate.geometry)).area)
-                                   for area in potential_areas
-                                   if candidate.geometry_prep.intersects(unwrap_geom(area.geometry))]
-                if potential_areas:
-                    new_area = max(potential_areas, key=itemgetter(1))[0]
+            level_areas_without_altitude = set(level_areas[level.pk]) - set(area_altitudes)
+            if level_areas_without_altitude:
+                level_areas_with_altitude = set(level_areas[level.pk]) & set(area_altitudes)
+                if level_areas_with_altitude:
+                    for area_i in level_areas_without_altitude:
+                        match_i = min(level_areas_with_altitude, key=lambda i: all_areas[i].distance(all_areas[area_i]))
+                        area_altitudes[area_i] = area_altitudes[match_i]
+                        logger.warning(
+                            f"    - Altitude area {set_precision(all_areas[area_i].representative_point(), 0.001)} "
+                            f"({all_areas[area_i].area:.2f}m²) in Level {level.short_label}, isn't connected to "
+                            f"interpolated areas. Using altitude {area_altitudes[area_i]:.2f}m from closest area "
+                            f"({all_areas[match_i].distance(all_areas[area_i]):.2f}m away)"
+                        )
+                else:
+                    logger.warning(f"    - No altitudes on Level {level.short_label}, "
+                                   f"defaulting to base_altitude for all areas on this level.")
+                    for area_i in level_areas_without_altitude:
+                        area_altitudes[area_i] = float(level.base_altitude)
 
-            if new_area is None:
-                candidate.delete()
+            ramps_geom_prep = prepared.prep(level_ramps[level.pk].buffer(1e-14,
+                                                                         join_style=JOIN_STYLE.round, quad_segs=2))
+
+            logger.info(f'    - Processing ramps...')
+
+            # detect ramps and non-ramps
+            areas_by_altitude: dict[float, list[Union[Polygon, MultiPolygon]]] = defaultdict(list)
+            ramp_areas: list[Union[Polygon, MultiPolygon]] = []
+            for i in level_areas.get(level.pk, ()):
+                if ramps_geom_prep.covers(all_areas[i]):
+                    ramp_areas.append(all_areas[i])
+                else:
+                    areas_by_altitude[area_altitudes[i]].append(all_areas[i])
+
+            this_areas: list[list[Union[Polygon, MultiPolygon]]] = []
+            this_area_altitudes: list[float | frozenset[AltitudeAreaPoint]] = []
+            for altitude, a in areas_by_altitude.items():
+                this_area_altitudes.append(altitude)
+                this_areas.append(a)
+
+            this_areas: list[Union[Polygon, MultiPolygon]] = [unary_union(geoms) for geoms in this_areas]  # noqa
+            this_areas_prep: list[prepared.PreparedGeometry] = [prepared.prep(geom) for geom in this_areas]
+            index = Index()
+            for i, area in enumerate(this_areas):
+                index.insert(i, area)
+
+            # finalize ramps
+            for i, ramp in enumerate(assert_multipolygon(unary_union(ramp_areas))):
+                points: dict[tuple[float, float], AltitudeAreaPoint] = {}
+                for area_i in index.intersection(ramp):
+                    if not this_areas_prep[area_i].intersects(ramp):
+                        continue
+                    for linestring in assert_multilinestring(this_areas[area_i].intersection(ramp)):
+                        points.update({
+                            coords: AltitudeAreaPoint(coordinates=coords, altitude=float(this_area_altitudes[area_i]))
+                            for coords in linestring.coords
+                        })
+                ramp_prep = prepared.prep(ramp)
+                points.update({
+                    marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords,
+                                                              altitude=float(marker.altitude))
+                    for marker in level_altitudemarkers[level.pk]
+                    if ramp_prep.intersects(unwrap_geom(marker.geometry))
+                })
+                # todo: make sure the points are all inside the ramp / touching the ramp
+                unique_altitudes = set(points.values())
+                if len(unique_altitudes) >= 2:
+                    this_area_altitudes.append(frozenset(points.values()))
+                elif unique_altitudes:
+                    logger.warning(f'      - Ramp in {ramp.representative_point()} has only altitude '
+                                   f'{next(iter(unique_altitudes))}, thus not a ramp!')
+                    this_area_altitudes.append(next(iter(unique_altitudes)).altitude)
+                else:
+                    logger.warning(f'      - Ramp in {ramp.representative_point()} has no altitude, defaulting to '
+                                   f'level\'s base altitude!')
+                    this_area_altitudes.append(float(level.base_altitude))
+                this_areas.append(ramp)
+
+            logger.info(f'    - Processing obstacles...')
+
+            # assign remaining obstacle areas
+            remaining_obstacle_areas = level_obstacles_areas[level.pk]
+            done = False
+            while not done and remaining_obstacle_areas:
+                done = True
+
+                index = Index()
+                for i, area in enumerate(this_areas):
+                    index.insert(i, area)
+
+                this_areas_prep: list[prepared.PreparedGeometry] = [prepared.prep(geom) for geom in this_areas]
+
+                new_remaining_obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
+                add_to_area: dict[int, list[Union[Polygon, MultiPolygon]]] = defaultdict(list)
+                for obstacle in remaining_obstacle_areas:
+                    matched_area: int | None = max((
+                        area_i for area_i in index.intersection(obstacle)
+                        if (this_areas_prep[area_i].intersects(obstacle)
+                            and assert_multilinestring(this_areas[area_i].intersection(obstacle))
+                            and isinstance(this_area_altitudes[area_i], float))
+                    ), key=lambda a_i: this_area_altitudes[a_i], default=None)  # todo: interpolate here
+                    if matched_area is not None:
+                        add_to_area[matched_area].append(obstacle)
+                        done = False
+                    else:
+                        new_remaining_obstacle_areas.append(obstacle)
+
+                remaining_obstacle_areas = new_remaining_obstacle_areas
+                if add_to_area:
+                    done = False
+                    for area_i, add_geoms in add_to_area.items():
+                        this_areas[area_i] = unary_union((this_areas[area_i], *add_geoms))  # noqa
+
+            add_to_area: dict[int, list[Union[Polygon, MultiPolygon]]] = defaultdict(list)
+            for obstacle in remaining_obstacle_areas:
+                add_to_area[min(enumerate(this_areas),
+                                key=lambda aa: aa[1].distance(obstacle))[0]].append(obstacle)
+
+            for area_i, add_geoms in add_to_area.items():
+                this_areas[area_i] = unary_union((this_areas[area_i], *add_geoms))  # noqa
+
+            logger.info(f'    - Matching and saving...')
+
+            # normalize
+            if this_areas:
+                this_areas, this_area_altitudes = zip(*(
+                    (area, altitude) for area, altitude in (
+                        (snap_to_grid_and_fully_normalized(area), altitude)
+                        for area, altitude in zip(this_areas, this_area_altitudes)
+                    ) if not area.is_empty
+                ))
+            this_areas: list[Union[Polygon, MultiPolygon]]
+
+            logger.info(f"    - {len(this_areas)} altitude areas on this level")
+
+            # find matching areas
+            old_areas_lookup: AltitudeAreaLookup = defaultdict(dict)
+
+            for area in level.altitudeareas.all():
+                old_areas_lookup[
+                    float(area.altitude) if area.altitude is not None else frozenset(area.points)
+                ][snap_to_grid_and_fully_normalized(unwrap_geom(area.geometry))] = area
+
+            done_areas = set()
+
+            # find exactly matching areas
+            for i, (geom, altitude) in enumerate(zip(this_areas, this_area_altitudes)):
+                old_area = old_areas_lookup.get(altitude, {}).pop(geom, None)
+                if old_area is not None:
+                    done_areas.add(i)
+
+            # find overlapping areas with same altitude
+            for i, (geom, altitude) in enumerate(zip(this_areas, this_area_altitudes)):
+                if i in done_areas:
+                    continue
+                geom_prep = prepared.prep(geom)
+                match_geom, match_area = max(
+                    [(geom, i) for geom, i in old_areas_lookup.get(altitude, {}).items() if geom_prep.overlaps(geom)],
+                    key=lambda other: other[0].intersection(geom).area,
+                    default=(None, None)
+                )
+                if match_geom is not None:
+                    num_modified += 1
+                    old_areas_lookup.get(altitude, {}).pop(match_geom, None)
+                    match_area.geometry = geom
+                    match_area.save()
+                    done_areas.add(i)
+
+            for altitudearea in chain.from_iterable(items.values() for items in old_areas_lookup.values()):
+                altitudearea.delete()
                 num_deleted += 1
-                continue
 
-            if not field.get_final_value(new_area.geometry).equals_exact(unwrap_geom(candidate.geometry), 0.00001):
-                num_modified += 1
-
-            candidate.geometry = new_area.geometry
-            candidate.altitude = new_area.altitude
-            candidate.points = new_area.points
-            candidate.save()
-            areas_to_save.discard(new_area.tmpid)
-            level_areas[new_area.level].discard(new_area.tmpid)
-
-        for tmpid in areas_to_save:
-            num_created += 1
-            areas[tmpid].save()
+            for i, (geom, altitude) in enumerate(zip(this_areas, this_area_altitudes)):
+                if i in done_areas:
+                    continue
+                obj = cls(
+                    level_id=level.pk,
+                    geometry=geom,
+                    altitude=altitude if isinstance(altitude, float) else None,
+                    points=list(altitude) if not isinstance(altitude, float) else None,
+                )
+                obj.save()
+                num_created += 1
 
         logger = logging.getLogger('c3nav')
-        logger.info(_('%d altitude areas built.') % len(areas))
+        logger.info(_('%d altitude areas built (took %.2f seconds).') % (num_created + num_modified,
+                                                                         time.time() - starttime))
         logger.info(_('%(num_modified)d modified, %(num_deleted)d deleted, %(num_created)d created.') %
                     {'num_modified': num_modified, 'num_deleted': num_deleted, 'num_created': num_created})
