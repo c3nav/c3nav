@@ -49,7 +49,8 @@ Big stuff:
 - Geometries will now be correctly cropped to spaces etc when highlighted on the map.
 - A lot more type hinting in the codebase, much code modernizatino.
 - A lof of old serialization code has been removed, we use pydantic more directly now. Thanks to multi-model 
-  inheritance being gone the entire code base and inheritance is now easier to understand. 
+  inheritance being gone the entire code base and inheritance is now easier to understand.
+- Altitude areas are now calculated in a much more reliable, correct and faster way.
 
 Semi-big stuff:
 
