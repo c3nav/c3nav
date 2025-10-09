@@ -78,7 +78,7 @@ def assert_multipolygon(geometry: Union[Polygon, MultiPolygon, GeometryCollectio
     return [geom for geom in geometry.geoms if isinstance(geom, Polygon)]
 
 
-def assert_multilinestring(geometry: Union[Polygon, MultiPolygon, GeometryCollection, Iterable]) -> list[LineString]:
+def assert_multilinestring(geometry: Union[LineString, MultiLineString, GeometryCollection, Iterable]) -> list[LineString]:
     """
     given a LineString or MultiLineString, return a list of LineStrings
     :param geometry: a LineString or a MultiLineString
