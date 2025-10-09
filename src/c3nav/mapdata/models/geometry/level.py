@@ -474,13 +474,23 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                                                       join_style=JOIN_STYLE.round, quad_segs=2))
 
             # collect cuts on this level
-            cuts = list(chain(
+            stair_ramp_cuts = unary_union(tuple(chain(
                 chain.from_iterable(
                     chain((polygon.exterior, ), polygon.interiors)
-                    for polygon in chain.from_iterable(assert_multipolygon(obstacle)
-                                                       for obstacle in chain(obstacles_collect, ramps_collect))
+                    for polygon in chain.from_iterable(assert_multipolygon(ramp) for ramp in chain(ramps_collect))
                 ),
                 chain.from_iterable(assert_multilinestring(s) for s in stairs_collect),
+            )))
+            stair_ramp_cuts_prep = prepared.prep(stair_ramp_cuts)
+
+            # noinspection PyTypeChecker
+            cuts = list(chain(
+                assert_multilinestring(stair_ramp_cuts),
+                assert_multilinestring(unary_union(tuple(chain.from_iterable(
+                    chain((polygon.exterior, ), polygon.interiors)
+                    for polygon in chain.from_iterable(assert_multipolygon(obstacle) for obstacle in obstacles_collect
+                                                       if stair_ramp_cuts_prep.intersects(obstacle))
+                ))))
             ))
 
             logger.info(f'    - Performing cuts...')
