@@ -351,7 +351,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         if len(self.points) == 2:
             slope = np.array(self.points[1].coordinates) - np.array(self.points[0].coordinates)
             distances = (
-                (np.sum(((points - np.array(self.points[0].coordinates)) * slope), axis=1)
+                (np.sum(((points - np.array(self.points[0].coordinates)) * slope), axis=1)  # noqa
                 / (slope ** 2).sum()).clip(0, 1)
             )
             altitudes = self.points[0].altitude + distances*(self.points[1].altitude-self.points[0].altitude)
@@ -756,36 +756,47 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 index.insert(i, area)
 
             # finalize ramps
-            for i, ramp in enumerate(assert_multipolygon(unary_union(ramp_areas))):
+            add_non_ramps: dict[float, list[Union[Polygon, MultiPolygon]]] = defaultdict(list)
+            for i, ramp in enumerate(assert_multipolygon(unary_union(ramp_areas))):  # noqa
                 points: dict[tuple[float, float], AltitudeAreaPoint] = {}
                 for area_i in index.intersection(ramp):
                     if not this_areas_prep[area_i].intersects(ramp):
                         continue
-                    for linestring in assert_multilinestring(this_areas[area_i].intersection(ramp)):
+                    for linestring in assert_multilinestring(this_areas[area_i].intersection(ramp)):  # noqa
                         points.update({
                             coords: AltitudeAreaPoint(coordinates=coords, altitude=float(this_area_altitudes[area_i]))
                             for coords in linestring.coords
                         })
                 ramp_prep = prepared.prep(ramp)
                 points.update({
-                    marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords,
+                    marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords[0],
                                                               altitude=float(marker.altitude))
                     for marker in level_altitudemarkers[level.pk]
                     if ramp_prep.intersects(unwrap_geom(marker.geometry))
                 })
                 # todo: make sure the points are all inside the ramp / touching the ramp
-                unique_altitudes = set(points.values())
+                unique_altitudes = set(p.altitude for p in points.values())
                 if len(unique_altitudes) >= 2:
                     this_area_altitudes.append(frozenset(points.values()))
+                    this_areas.append(ramp)
                 elif unique_altitudes:
                     logger.warning(f'      - Ramp in {ramp.representative_point()} has only altitude '
                                    f'{next(iter(unique_altitudes))}, thus not a ramp!')
-                    this_area_altitudes.append(next(iter(unique_altitudes)).altitude)
+                    add_non_ramps[next(iter(unique_altitudes))].append(ramp)
                 else:
                     logger.warning(f'      - Ramp in {ramp.representative_point()} has no altitude, defaulting to '
                                    f'level\'s base altitude!')
-                    this_area_altitudes.append(float(level.base_altitude))
-                this_areas.append(ramp)
+                    add_non_ramps[next(iter(unique_altitudes))].append(ramp)
+
+            # add add_non_ramps ramps
+            for i, (altitude, geom) in enumerate(zip(this_area_altitudes, this_areas)):
+                add_ramps = add_non_ramps.pop(altitude, None)
+                if add_ramps:
+                    this_areas[i] = unary_union((geom, *add_ramps))  # noqa
+
+            for altitude, geoms in add_non_ramps.items():
+                this_area_altitudes.append(altitude)
+                this_areas.append(unary_union(geoms))  # noqa
 
             logger.info(f'    - Processing obstacles...')
 
@@ -807,7 +818,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     matched_area: int | None = max((
                         area_i for area_i in index.intersection(obstacle)
                         if (this_areas_prep[area_i].intersects(obstacle)
-                            and assert_multilinestring(this_areas[area_i].intersection(obstacle))
+                            and assert_multilinestring(this_areas[area_i].intersection(obstacle))  # noqa
                             and isinstance(this_area_altitudes[area_i], float))
                     ), key=lambda a_i: this_area_altitudes[a_i], default=None)  # todo: interpolate here
                     if matched_area is not None:
