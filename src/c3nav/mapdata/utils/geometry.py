@@ -3,7 +3,7 @@ from itertools import chain
 from typing import Union, TYPE_CHECKING, Iterable, overload
 
 from django.utils.functional import cached_property
-from shapely import line_merge, prepared, simplify, normalize, set_precision
+from shapely import line_merge, prepared, simplify, normalize, set_precision, make_valid
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
