@@ -3,7 +3,6 @@ import time
 from collections import namedtuple, defaultdict
 from decimal import Decimal
 from itertools import chain, combinations
-from math import log10, ceil
 from typing import Sequence, TypeAlias, Union, NamedTuple
 
 import numpy as np
@@ -577,18 +576,26 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 matches = {i for i in index.intersection(altitudemarker.geometry)
                            if accessible_areas_prep[i].intersects(unwrap_geom(altitudemarker.geometry))}
                 if len(matches) == 1:
-                    area_altitudes[next(iter(matches))+from_i] = float(altitudemarker.groundaltitude.altitude)
+                    this_i = next(iter(matches))+from_i
+                    if this_i in area_altitudes:
+                        logger.warning(
+                            _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
+                              f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
+                              f'is on the same area as a different altitude marker.')
+                        )
+                    area_altitudes[this_i] = float(altitudemarker.groundaltitude.altitude)
                 elif len(matches) > 1:
-                    logger.error(
-                        _(f'AltitudeMarker {altitudemarker.pk} {altitudemarker.geometry} '
+                    logger.warning(
+                        _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
                           f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
                           f'is placed between accessible areas {matches} '
                           f'{tuple(accessible_areas[i].representative_point() for i in matches)}')
                     )
                 else:
-                    logger.error(
-                        _(f'AltitudeMarker {altitudemarker.pk} in Space #{altitudemarker.space_id} on '
-                          f'Level {level.short_label} is on an obstacle in between altitude areas')
+                    logger.warning(
+                        _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)}'
+                          f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
+                          f'is on an obstacle in between altitude areas')
                     )
 
             level_areas[level.pk] = set(range(len(all_areas), len(all_areas) + len(accessible_areas)))
