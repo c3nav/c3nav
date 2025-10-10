@@ -3,6 +3,7 @@ import time
 from collections import namedtuple, defaultdict
 from decimal import Decimal
 from itertools import chain, combinations
+from operator import attrgetter, itemgetter
 from typing import Sequence, TypeAlias, Union, NamedTuple
 
 import numpy as np
@@ -378,7 +379,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         from c3nav.mapdata.models import AltitudeMarker
         level_altitudemarkers: dict[int, list[AltitudeMarker]] = {}
 
-
         space_areas: dict[int, set[int]] = defaultdict(set)  # all non-ramp altitude areas present in the given space
         levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
                                                 'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
@@ -431,10 +431,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 space_index.insert(space.pk, space_clip)
                 areas_collect.append(this_area)
 
-                this_obstacles = tuple(chain(
-                    (o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0),
-                    (unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0),
-                ))
                 obstacles_collect.extend(
                     space_clip.intersection(geom)
                     for geom in chain(
@@ -449,18 +445,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     unary_union(tuple(unwrap_geom(stair.geometry) for stair in space.stairs.all()))
                 ))
 
-                this_altitudemarkers = tuple(space.altitudemarkers.all())
-                if this_altitudemarkers:
-                    this_accessible = this_area.difference(unary_union(this_obstacles))
-                    for altitudemarker in space.altitudemarkers.all():
-                        if not this_accessible.intersects(unwrap_geom(altitudemarker.geometry)):
-                            logger.error(
-                                _('AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level %(level_label)s '
-                                  'is not placed in an accessible area') % {'marker_id': altitudemarker.pk,
-                                                                            'space_id': space.pk,
-                                                                            'level_label': level.short_label})
-                            continue
-                        altitudemarkers.append(altitudemarker)
+                for altitudemarker in space.altitudemarkers.all():
+                    if not this_area.intersects(unwrap_geom(altitudemarker.geometry)):
+                        logger.error(
+                            _('AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level %(level_label)s '
+                              'is not placed in the space') % {'marker_id': altitudemarker.pk,
+                                                               'space_id': space.pk,
+                                                               'level_label': level.short_label})
+                        continue
+                    altitudemarkers.append(altitudemarker)
+
+            altitudemarkers.sort(key=attrgetter("altitude"), reverse=True)
 
             level_altitudemarkers[level.pk] = altitudemarkers
 
@@ -518,7 +513,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             # plt.show()
 
             # prepare stuff for the next few steps
-            accessible_areas_prep = [prepared.prep(area) for area in accessible_areas]
+            accessible_areas_prep = [prepared.prep(area) for area in accessible_areas]  # pragma: nobranch
             from_i = len(all_areas)
 
             # join obstacle areas into accessible areas if they are only touching one
@@ -532,7 +527,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 obstacle_areas = []
                 add: dict[int, list[Polygon]] = defaultdict(list)
                 for area in old_obstacle_areas:
-                    matches = {i for i in index.intersection(area)
+                    matches = {i for i in index.intersection(area)  # pragma: nobranch
                                if (accessible_areas_prep[i].touches(area) and
                                    assert_multilinestring(accessible_areas[i].intersection(area)))}
                     if len(matches) == 1:
@@ -558,7 +553,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     if spaces_geom_prep[space_id].intersects(area):
                         space_areas[space_id].add(from_i+area_i)
                         i += 1
-                if not i:
+                if not i:  # pragma: nocover
                     raise ValueError(f'- Area {area_i} {area.representative_point} {area.area}m² has no space')
 
             # determine connections between areas
@@ -577,13 +572,14 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                            if accessible_areas_prep[i].intersects(unwrap_geom(altitudemarker.geometry))}
                 if len(matches) == 1:
                     this_i = next(iter(matches))+from_i
-                    if this_i in area_altitudes:
+                    if this_i not in area_altitudes:
+                        area_altitudes[this_i] = float(altitudemarker.groundaltitude.altitude)
+                    else:
                         logger.warning(
                             _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
                               f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
                               f'is on the same area as a different altitude marker.')
                         )
-                    area_altitudes[this_i] = float(altitudemarker.groundaltitude.altitude)
                 elif len(matches) > 1:
                     logger.warning(
                         _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
@@ -695,8 +691,15 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
                 for altitude in altitude_areas.keys():
                     altitude_areas[altitude] = unary_union(altitude_areas[altitude])
+
                 for i in contained_areas_without_altitude:
-                    area_altitudes[i] = min(altitude_areas.items(), key=lambda aa: aa[1].distance(all_areas[i]))[0]
+                    area = all_areas[i]
+                    centroid = area.centroid
+                    area_altitudes[i] = min(
+                        altitude_areas.items(),
+                        key=lambda a: (a[1].distance(area), a[1].centroid.distance(centroid), a[0])
+                    )[0]
+
                 areas_without_altitude.difference_update(contained_areas_without_altitude)
 
         logger.info(f'- Finalizing level altitude areas...')
