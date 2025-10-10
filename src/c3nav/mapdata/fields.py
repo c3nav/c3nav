@@ -17,7 +17,7 @@ from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, 
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.multipoint import MultiPoint
 
-from c3nav.mapdata.utils.geometry import WrappedGeometry, clean_geometry, snap_to_grid_and_fully_normalized, unwrap_geom
+from c3nav.mapdata.utils.geometry import WrappedGeometry, snap_to_grid_and_fully_normalized, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
 
 logger = logging.getLogger('c3nav')
@@ -92,11 +92,6 @@ class GeometryField(models.JSONField):
             geometry = shape(value)
         except Exception:
             raise ValidationError(_('Invalid GeoJSON.'))
-        self._validate_geomtype(geometry)
-        try:
-            geometry = clean_geometry(geometry)
-        except Exception:
-            raise ValidationError(_('Could not clean geometry.'))
         self._validate_geomtype(geometry)
         return geometry
 
