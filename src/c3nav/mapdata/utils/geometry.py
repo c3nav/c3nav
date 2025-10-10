@@ -23,7 +23,7 @@ class WrappedGeometry:
 
     @cached_property
     def wrapped_geom(self):
-        if not self.wrapped_geojson or not self.wrapped_geojson['coordinates']:
+        if not self.wrapped_geojson or not self.wrapped_geojson.get('coordinates', ()):
             return GeometryCollection()
         return shapely_shape(self.wrapped_geojson)
 
@@ -154,6 +154,8 @@ def _remove_redundant_points_coords_linearring(ring: LinearRing) -> list[tuple[f
     coords = tuple(ring.coords)
     if coords[0] == coords[-1]:
         coords = coords[:-1]
+    if len(coords) < 3:
+        return list(coords)
     new_coords = []
     for i in range(len(coords)):
         if not ((coords[i][0] == coords[i-1][0] and coords[i-1][0] == coords[i-2][0]) or
@@ -164,11 +166,14 @@ def _remove_redundant_points_coords_linearring(ring: LinearRing) -> list[tuple[f
 
 def _remove_redundant_points_coords_linestring(ring: LineString) -> list[tuple[float, ...]]:
     coords = tuple(ring.coords)
-    new_coords = []
-    for i in range(len(coords)):
-        if not ((coords[i][0] == coords[i-1][0] and coords[i-1][0] == coords[i-2][0]) or
-                (coords[i][1] == coords[i-1][1] and coords[i-1][1] == coords[i-2][1])):
-            new_coords.append(coords[i-1])
+    if len(coords) < 3:
+        return list(coords)
+    new_coords = [coords[0]]
+    for i in range(1, len(coords)-1):
+        if not ((coords[i-1][0] == coords[i][0] and coords[i][0] == coords[i+1][0]) or
+                (coords[i-1][1] == coords[i][1] and coords[i][1] == coords[i+1][1])):
+            new_coords.append(coords[i])
+    new_coords.append(coords[-1])
     return new_coords
 
 
