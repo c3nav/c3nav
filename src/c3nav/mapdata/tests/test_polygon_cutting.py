@@ -1,8 +1,7 @@
 from typing import Union
 
 from django.test.testcases import TestCase
-from shapely import Polygon, LineString, GeometryCollection, unary_union, MultiPolygon, normalize
-from shapely.geometry.base import BaseGeometry
+from shapely import Polygon, LineString, GeometryCollection, MultiPolygon, normalize
 
 from c3nav.mapdata.utils.geometry import cut_polygons_with_lines
 
@@ -13,12 +12,10 @@ class PolygonCuttingTests(TestCase):
                          expected_result: tuple[Union[Polygon, MultiPolygon], ...]):
 
         actual_result = tuple(cut_polygons_with_lines(polygons, lines))
-        if len(actual_result) == 1 and actual_result[0].is_empty:
-            actual_result = ()
-        print("actual", actual_result)
-        print("expected", expected_result)
-        print("expected normalized", [normalize(item) for item in expected_result])
-        self.assertSetEqual(
+        # print("actual", actual_result)
+        # print("expected", expected_result)
+        # print("expected normalized", [normalize(item) for item in expected_result])
+        self.assertSetEqual(  # pragma: no branch
             {normalize(item) for item in actual_result},
             {normalize(item) for item in expected_result}
         )

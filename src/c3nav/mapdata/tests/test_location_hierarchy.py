@@ -19,6 +19,9 @@ type UpdateRelationFunc = Callable[[LocationTag, LocationTag], None]
 
 
 class LocationHierarchyTests(TransactionTestCase):
+    def _create_tags(self, num: int):
+        return LocationTag.objects.bulk_create([LocationTag() for i in range(num)])  # pragma: no branch
+
     def assertHierarchyState(self, state: LocationHierarchyState, msg="location hierarchy doesn't match"):
         """
         :param state: a set of ancestry paths for every AncestorDescendantTuple
@@ -48,8 +51,8 @@ class LocationHierarchyTests(TransactionTestCase):
             Q(prev_path__isnull=True) | Q(adjacency__parent=F("prev_path__adjacency__child"))
         ), [], msg="Found relation path segment where adjacency parent doesn't match prev_path's adjacency child")
 
-        relation_lookup: dict[tuple[int, int], set[tuple[int, ...]]] = {
-            relation: set() for relation in LocationTagRelation.objects.values_list("ancestor_id", "descendant_id")
+        relation_lookup: dict[tuple[int, int], set[tuple[int, ...]]] = {    # pragma: no branch
+            rel: set() for rel in LocationTagRelation.objects.values_list("ancestor_id", "descendant_id")
         }
         path_chains: dict[int | None, tuple[int, ...]] = {None: ()}
 
@@ -68,8 +71,7 @@ class LocationHierarchyTests(TransactionTestCase):
 
         :param add_parent_func: function that takes two location tags a and b, and adds a as a child to b
         """
-
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
+        locations = self._create_tags(3)
 
         add_parent_func(locations[1], locations[0])
         self.assertHierarchyState({
@@ -111,8 +113,7 @@ class LocationHierarchyTests(TransactionTestCase):
         :param remove_parent_func: function that takes two location tags a and b, wehre a is a child of b,
                                    and removes that relationship
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
-
+        locations = self._create_tags(3)
         locations[1].parents.add(locations[0])
         locations[2].parents.add(locations[1])
         locations[2].parents.add(locations[0])
@@ -145,7 +146,7 @@ class LocationHierarchyTests(TransactionTestCase):
         Create three location tags and turn them into a hierarchy chain with a shortcut from the top to bottom.
         Clear all the parents of the bottom location tag and verify the hierarchy.
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
+        locations = self._create_tags(3)
         locations[1].parents.add(locations[0])
         locations[2].parents.add(locations[1])
         locations[2].parents.add(locations[0])
@@ -160,7 +161,7 @@ class LocationHierarchyTests(TransactionTestCase):
         Create three location tags and turn them into a hierarchy chain with a shortcut from the top to bottom.
         Clear all the children of the top location tag and verify the hierarchy.
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
+        locations = self._create_tags(3)
         locations[1].parents.add(locations[0])
         locations[2].parents.add(locations[1])
         locations[2].parents.add(locations[0])
@@ -176,8 +177,7 @@ class LocationHierarchyTests(TransactionTestCase):
         Step 1: Add #0 and #1 as parents of #2 and verify the location state
         Step 2: Add #1 and #2 as parents of #3 and verify the location state
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
-
+        locations = self._create_tags(4)
         locations[2].parents.add(locations[0], locations[1])
         self.assertHierarchyState({
             AncestorDescendantTuple(locations[0].id, locations[2].id): {()},
@@ -199,8 +199,7 @@ class LocationHierarchyTests(TransactionTestCase):
         Step 1: Add #1 and #2 as children of #0 and verify the location state
         Step 2: Add #2 and #3 as parents of #1 and verify the location state
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
-
+        locations = self._create_tags(4)
         locations[0].children.add(locations[1], locations[2])
         self.assertHierarchyState({
             AncestorDescendantTuple (locations[0].id, locations[1].id): {()},
@@ -222,7 +221,7 @@ class LocationHierarchyTests(TransactionTestCase):
         Then make the top one (#0) into a child of #3. This adds an entire downwards "tree" to #3.
         Verify the location state.
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
+        locations = self._create_tags(4)
 
         add_parent_func(locations[1], locations[0])
         add_parent_func(locations[2], locations[1])
@@ -256,7 +255,7 @@ class LocationHierarchyTests(TransactionTestCase):
         Then make the bottom one (#0) into a parent of #3. This adds an entire upwards "tree" to #3.
         Verify the location state.
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(4)])
+        locations = self._create_tags(4)
 
         add_parent_func(locations[1], locations[0])
         add_parent_func(locations[2], locations[1])
@@ -289,7 +288,7 @@ class LocationHierarchyTests(TransactionTestCase):
         Create three location tags and turn them into a chain.
         Try to add the bottom one as a parent to the top one, creating a circle. This needs to fail.
         """
-        locations = LocationTag.objects.bulk_create([LocationTag() for i in range(3)])
+        locations = self._create_tags(3)
         locations[0].children.add(locations[1])
         locations[1].children.add(locations[2])
         with self.assertRaises(CircularyHierarchyError):
