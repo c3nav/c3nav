@@ -28,7 +28,8 @@ from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, unwrap_geom,
-                                          cut_polygons_with_lines, snap_to_grid_and_fully_normalized)
+                                          cut_polygons_with_lines, snap_to_grid_and_fully_normalized,
+                                          calculate_precision)
 from c3nav.mapdata.utils.index import Index
 
 
@@ -403,9 +404,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             space_index = Index()
 
             # how precise can be depends on how big our accessible geom is
-            precision = 10**(-14+int(ceil(log10(max(
-                (abs(i) for i in chain.from_iterable(space.geometry.bounds for space in level.spaces.all())), default=1,
-            )))))
+            precision = calculate_precision(
+                GeometryCollection(tuple(unwrap_geom(space.geometry) for space in level.spaces.all()))
+            )
             logger.info(f'    - Precision: {precision}')
 
             # collect all accessible areas on this level
@@ -490,7 +491,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             ))
 
             logger.info(f'    - Performing cuts...')
-            cut_result = cut_polygons_with_lines(areas_geom, cuts, precision=precision)
+            cut_result = cut_polygons_with_lines(areas_geom, cuts)
 
             # divide cut result into accessible ares and obstacle areas
             logger.info(f'    - Processing cut result...')
