@@ -404,10 +404,7 @@ class PolygonCuttingTests(TransactionTestCase):
     def test_simple_ramp(self):
         level = self._create_level()
         space = self._create_space(level)
-        Ramp.objects.create(
-            space=space,
-            geometry=Polygon([(20, -1), (80, -1), (80, 100), (20, 100)])
-        )
+        Ramp.objects.create(space=space, geometry=box(20, -1, 80, 100))
         AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 10),
@@ -425,5 +422,54 @@ class PolygonCuttingTests(TransactionTestCase):
                     AltitudeAreaPoint(coordinates=(80.0, 100.0), altitude=2.00),
                 )),
                 geometry=box(20, 0, 80, 100),
+            )
+        })
+
+    def test_ramp_only_one_end(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Ramp.objects.create(space=space, geometry=box(20, -1, 101, 100))
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100)),
+        })
+
+    def test_ramp_two_identical_ends(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Ramp.objects.create(space=space, geometry=box(20, -1, 80, 100))
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1a", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1b", altitude=Decimal("1.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100)),
+        })
+
+    def test_ramp_multiple_points(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Ramp.objects.create(space=space, geometry=box(20, -1, 101, 100))
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
+                                      groundaltitude=GroundAltitude.objects.create(name="3", altitude=Decimal("3.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 20, 100)),
+            ExpectedAltitudeArea.new(
+                level=level,
+                points=frozenset((
+                    AltitudeAreaPoint(coordinates=(20.0, 0.0), altitude=1.00),
+                    AltitudeAreaPoint(coordinates=(20.0, 100.0), altitude=1.00),
+                    AltitudeAreaPoint(coordinates=(90.0, 10.0), altitude=2.00),
+                    AltitudeAreaPoint(coordinates=(90.0, 90.0), altitude=3.00),
+                )),
+                geometry=box(20, 0, 100, 100),
             )
         })
