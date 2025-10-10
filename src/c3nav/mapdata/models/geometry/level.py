@@ -389,6 +389,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         starttime = time.time()
         logger.info('- Collecting levels...')
 
+        space_index = None
+
         for level in levels:
             logger.info(f'  - Level {level.short_label}')
 
@@ -406,7 +408,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             # how precise can be depends on how big our accessible geom is
             precision = 10**(-14+int(ceil(log10(max(
-                abs(i) for i in chain.from_iterable(space.geometry.bounds for space in level.spaces.all())
+                (abs(i) for i in chain.from_iterable(space.geometry.bounds for space in level.spaces.all())), default=1,
             )))))
             logger.info(f'    - Precision: {precision}')
 
