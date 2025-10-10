@@ -404,14 +404,18 @@ class PolygonCuttingTests(TransactionTestCase):
     def test_simple_ramp(self):
         level = self._create_level()
         space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(10, -1), (10, 101)]))
         Ramp.objects.create(space=space, geometry=box(20, -1, 80, 100))
-        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+        AltitudeMarker.objects.create(space=space, geometry=Point(11, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(1, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="3", altitude=Decimal("3.00")))
         AltitudeArea.recalculate()
         self._assertAltitudeAreas({
-            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 20, 100)),
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("3.00"), geometry=box(0, 0, 10, 100)),
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(10, 0, 20, 100)),
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=box(80, 0, 100, 100)),
             ExpectedAltitudeArea.new(
                 level=level,
@@ -472,4 +476,27 @@ class PolygonCuttingTests(TransactionTestCase):
                 )),
                 geometry=box(20, 0, 100, 100),
             )
+        })
+
+    def test_ramp_only_no_markers(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Ramp.objects.create(space=space, geometry=box(-1, -1, 101, 100))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea.new(level=level, altitude=self.altitude, geometry=box(0, 0, 100, 100)),
+        })
+
+    def test_ramp_surrounded_with_gap(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Ramp.objects.create(space=space, geometry=box(-1, -1, 101, 100))
+        space2_polygon = box(-10, -10, 110, 110).difference(box(-5, -5, 105, 105))
+        space2 = Space.objects.create(level=level, geometry=space2_polygon)
+        AltitudeMarker.objects.create(space=space2, geometry=Point(-6, -6),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=space2_polygon),
+            ExpectedAltitudeArea.new(level=level, altitude=self.altitude, geometry=box(0, 0, 100, 100)),
         })
