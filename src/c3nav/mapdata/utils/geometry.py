@@ -1,5 +1,6 @@
 from collections import namedtuple
 from itertools import chain
+from math import ceil, log10
 from typing import Union, TYPE_CHECKING, Iterable, overload
 
 from django.utils.functional import cached_property
@@ -163,13 +164,20 @@ def get_rings(geometry):
 cutpoint = namedtuple('cutpoint', ('point', 'polygon', 'ring'))
 
 
+def calculate_precision(geometry: BaseGeometry):
+    if geometry.is_empty:
+        return 10 ** -14
+    return 10 ** (-14 + int(ceil(log10(max((abs(i) for i in geometry.bounds), default=1)))))
+
+
 def cut_polygons_with_lines(polygon: Union[Polygon, MultiPolygon, GeometryCollection],
-                            lines: list[LineString], precision: float) -> tuple[Union[Polygon, MultiPolygon], ...]:
+                            lines: list[LineString]) -> tuple[Union[Polygon, MultiPolygon], ...]:
+    precision = calculate_precision(polygon)
     polygon_prep = prepared.prep(polygon.buffer(precision, join_style=JOIN_STYLE.round, quad_segs=2))
     polygons = []
     holes = []
     for item in polygonize([
-        line for line in assert_multilinestring(unary_union(line_merge((
+        line for line in assert_multilinestring(unary_union(line_merge((  # noqa
             *chain.from_iterable((p.exterior, *p.interiors) for p in assert_multipolygon(polygon)),
             *lines,
         ))))
@@ -297,7 +305,7 @@ def _snap_to_grid_coords(coords: Iterable[tuple[float, float]]) -> tuple[tuple[f
 
 
 def _snap_to_grid_polygon(polygon: Polygon) -> Polygon:
-    return make_valid(Polygon(
+    return make_valid(Polygon(  # noqa
         _snap_to_grid_coords(polygon.exterior.coords),
         tuple(_snap_to_grid_coords(interior.coords) for interior in polygon.interiors),
     ))
