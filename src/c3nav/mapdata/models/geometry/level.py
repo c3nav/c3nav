@@ -4,7 +4,6 @@ from collections import namedtuple, defaultdict
 from decimal import Decimal
 from itertools import chain, combinations
 from math import log10, ceil
-from operator import attrgetter, itemgetter
 from typing import Sequence, TypeAlias, Union, NamedTuple
 
 import numpy as np
@@ -15,13 +14,12 @@ from django.db.models import CheckConstraint, Q
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_pydantic_field import SchemaField
-from pydantic import Field as APIField
 from scipy.interpolate._rbfinterp import RBFInterpolator
-from shapely import prepared, normalize, set_precision
+from shapely import prepared, set_precision
 from shapely.geometry import JOIN_STYLE, LineString, MultiLineString, MultiPolygon, Polygon, shape, GeometryCollection
 from shapely.ops import unary_union
 
-from c3nav.api.schema import BaseSchema, PolygonSchema, MultiPolygonSchema
+from c3nav.api.schema import PolygonSchema, MultiPolygonSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
@@ -29,8 +27,8 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeo
 from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.utils.cache.changes import changed_geometries
-from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, remove_redundant_points_polygon,
-                                          unwrap_geom, cut_polygons_with_lines, snap_to_grid_and_fully_normalized)
+from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, unwrap_geom,
+                                          cut_polygons_with_lines, snap_to_grid_and_fully_normalized)
 from c3nav.mapdata.utils.index import Index
 
 
@@ -575,14 +573,14 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             for altitudemarker in altitudemarkers:
                 matches = {i for i in index.intersection(altitudemarker.geometry)
                            if accessible_areas_prep[i].intersects(unwrap_geom(altitudemarker.geometry))}
-                explained_matches = (accessible_areas[i].representative_point() for i in matches)
                 if len(matches) == 1:
                     area_altitudes[next(iter(matches))+from_i] = float(altitudemarker.groundaltitude.altitude)
                 elif len(matches) > 1:
                     logger.error(
                         _(f'AltitudeMarker {altitudemarker.pk} {altitudemarker.geometry} '
                           f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
-                          f'is placed between accessible areas {matches} {tuple(explained_matches)}')
+                          f'is placed between accessible areas {matches} '
+                          f'{tuple(accessible_areas[i].representative_point() for i in matches)}')
                     )
                 else:
                     logger.error(
@@ -645,7 +643,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     continue
 
                 for i, area_id in enumerate(reversed(path[1:-1]), start=1):
-                    area_altitudes[area_id] = from_altitude + (delta_altitude * i)
+                    area_altitudes[area_id] = round(from_altitude + (delta_altitude * i), 2)
                     areas_without_altitude.discard(area_id)
 
                 for from_area, to_area in zip(path[:-1], path[1:]):

@@ -171,7 +171,7 @@ class LineObstacleSchema(WithLineStringGeometrySchema, BaseObstacleSchema):
         return {
             **super().get_overrides(value),
             "buffered_geometry": (
-                format_geojson(smart_mapping(value.buffered_geometry), rounded=False)
+                format_geojson(smart_mapping(value.buffered_geometry))
                 if not getattr(value, '_hide_geometry', False) else None
             ),
         }
