@@ -167,7 +167,7 @@ class WithGeometrySchema(BaseSchema):
         return {
             **super().get_overrides(value),
             "geometry": (
-                format_geojson(smart_mapping(value.geometry), rounded=False)
+                format_geojson(smart_mapping(value.geometry))
                 if not getattr(value, '_hide_geometry', False) else None
             ),
             "bounds": ((int(math.floor(minx)), int(math.floor(miny))),

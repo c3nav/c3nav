@@ -68,11 +68,11 @@ class GeometryMixin(models.Model):
         result = {
             'type': 'Feature',
             'properties': self.get_geojson_properties(),
-            'geometry': format_geojson(smart_mapping(self.geometry), rounded=False),
+            'geometry': format_geojson(smart_mapping(self.geometry)),
         }
         original_geometry = getattr(self, 'original_geometry', None)
         if original_geometry:
-            result['original_geometry'] = format_geojson(smart_mapping(original_geometry), rounded=False)
+            result['original_geometry'] = format_geojson(smart_mapping(original_geometry))
         return result
 
     @property

@@ -17,7 +17,7 @@ from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, 
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.multipoint import MultiPoint
 
-from c3nav.mapdata.utils.geometry import WrappedGeometry, clean_geometry
+from c3nav.mapdata.utils.geometry import WrappedGeometry, clean_geometry, snap_to_grid_and_fully_normalized, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
 
 logger = logging.getLogger('c3nav')
@@ -122,23 +122,9 @@ class GeometryField(models.JSONField):
             ))
 
     def get_final_value(self, value, as_json=False):
-        json_value = format_geojson(mapping(value))
-        if value.is_empty:
-            return json_value
-        rounded_value = shape(json_value)
-
-        shapely_logger.setLevel('ERROR')
-        if rounded_value.is_valid:
-            return json_value if as_json else rounded_value
-        shapely_logger.setLevel('INFO')
-
-        rounded_value = rounded_value.buffer(0)
-        if not rounded_value.is_empty:
-            value = rounded_value
-        else:
-            logging.debug('Fixing rounded geometry failed, saving it to the database without rounding.')
-
-        return format_geojson(mapping(value), rounded=False) if as_json else value
+        # todo: do we still use as_json?
+        value = snap_to_grid_and_fully_normalized(unwrap_geom(value))
+        return format_geojson(mapping(value)) if as_json else value
 
     def get_prep_value(self, value):
         if value is None or value == '':
