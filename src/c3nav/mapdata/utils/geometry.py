@@ -1,7 +1,6 @@
-import math
-from collections import deque, namedtuple
+from collections import namedtuple
 from itertools import chain
-from typing import List, Sequence, Union, TYPE_CHECKING, Iterable, overload
+from typing import Union, TYPE_CHECKING, Iterable, overload
 
 from django.utils.functional import cached_property
 from shapely import line_merge, prepared, simplify, normalize, set_precision
@@ -264,19 +263,48 @@ def snap_to_grid_and_fully_normalized(geom: GeometryCollection) -> GeometryColle
 def snap_to_grid_and_fully_normalized(geom: BaseGeometry) -> BaseGeometry:
     match geom:
         case MultiLineString() | LineString():
-            return normalize(unary_union(tuple(
-                remove_redundant_points_linestring(linestring)
-                for linestring in assert_multilinestring(set_precision(set_precision(geom, 0.01), 0))
-            )))
+            for i in range(10):
+                new_geom = normalize(unary_union(tuple(
+                    remove_redundant_points_linestring(LineString(_snap_to_grid_coords(linestring.coords)))
+                    for linestring in assert_multilinestring(set_precision(set_precision(geom, 0.01), 0))
+                )))
+                if new_geom == geom:  # todo: can we shorten this?
+                    break
+                geom = new_geom
+            return geom
         case Polygon() | MultiPolygon():
-            return normalize(unary_union(tuple(
-                remove_redundant_points_polygon(polygon)
-                for polygon in assert_multipolygon(set_precision(set_precision(geom, 0.01), 0))
-            )))
+            for i in range(10):
+                new_geom = normalize(unary_union(tuple(
+                    remove_redundant_points_polygon(_snap_to_grid_polygon(polygon))
+                    for polygon in assert_multipolygon(set_precision(set_precision(geom, 0.01), 0))
+                )))
+                if new_geom == geom:
+                    break
+                geom = new_geom
+            else:
+                raise ValueError
+            return geom
+        case Point():
+            return Point(round(geom.x, 2), round(geom.y, 2))
         case GeometryCollection():
             return GeometryCollection(tuple(snap_to_grid_and_fully_normalized(g) for g in geom.geoms))
         case _:
             raise ValueError(f"Unsupported geometry for snap_to_grid_and_fully_normalized: {geom}")
+
+
+def _snap_to_grid_coords(coords: Iterable[tuple[float, float]]) -> tuple[tuple[float, float], ...]:
+    return tuple((round(x, 2), round(y, 2)) for x, y in coords)
+
+
+def _snap_to_grid_polygon(polygon: Polygon) -> Polygon:
+    return make_valid(Polygon(
+        _snap_to_grid_coords(polygon.exterior.coords),
+        tuple(_snap_to_grid_coords(interior.coords) for interior in polygon.interiors),
+    ))
+
+
+def _snap_to_grid_point(point: Point) -> Point:
+    return Point(round(point.x, 2), round(point.y, 2))
 
 
 def merge_bounds(*bounds: "BoundsByLevelSchema") -> "BoundsByLevelSchema":
