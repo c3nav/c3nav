@@ -568,7 +568,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             # assign altitude markers to altitude areas
             logger.info(f'    - Assigning altitude markers...')
             for altitudemarker in altitudemarkers:
-                matches = {i for i in index.intersection(altitudemarker.geometry)
+                matches = {i for i in index.intersection(altitudemarker.geometry)  # pragma: nocover
                            if accessible_areas_prep[i].intersects(unwrap_geom(altitudemarker.geometry))}
                 if len(matches) == 1:
                     this_i = next(iter(matches))+from_i
@@ -614,7 +614,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         # interpolate altitudes
         logger.info('- Interpolating altitudes...')
 
-        areas_without_altitude = {i for i in range(len(all_areas)) if i not in area_altitudes}
+        areas_without_altitude = {i for i in range(len(all_areas)) if i not in area_altitudes}  # pragma: nocover
         csgraph = np.zeros((len(all_areas), len(all_areas)), dtype=bool)
         for i, j in area_connections:
             csgraph[i, j] = True
@@ -753,8 +753,13 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 this_area_altitudes.append(altitude)
                 this_areas.append(a)
 
-            this_areas: list[Union[Polygon, MultiPolygon]] = [unary_union(geoms) for geoms in this_areas]  # noqa
-            this_areas_prep: list[prepared.PreparedGeometry] = [prepared.prep(geom) for geom in this_areas]
+            # noinspection PyTypeChecker
+            this_areas: list[Union[Polygon, MultiPolygon]] = [  # pragma: nobranch
+                unary_union(geoms) for geoms in this_areas
+            ]  # noqa
+            this_areas_prep: list[prepared.PreparedGeometry] = [  #pragma: nobranch
+                prepared.prep(geom) for geom in this_areas
+            ]
             index = Index()
             for i, area in enumerate(this_areas):
                 index.insert(i, area)
@@ -767,12 +772,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     if not this_areas_prep[area_i].intersects(ramp):
                         continue
                     for linestring in assert_multilinestring(this_areas[area_i].intersection(ramp)):  # noqa
-                        points.update({
+                        points.update({  # pragma: nobranch
                             coords: AltitudeAreaPoint(coordinates=coords, altitude=float(this_area_altitudes[area_i]))
                             for coords in linestring.coords
                         })
                 ramp_prep = prepared.prep(ramp)
-                points.update({
+                points.update({  # pragma: nobranch
                     marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords[0],
                                                               altitude=float(marker.altitude))
                     for marker in level_altitudemarkers[level.pk]
@@ -790,7 +795,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 else:
                     logger.warning(f'      - Ramp in {ramp.representative_point()} has no altitude, defaulting to '
                                    f'level\'s base altitude!')
-                    add_non_ramps[next(iter(unique_altitudes))].append(ramp)
+                    add_non_ramps[float(level.base_altitude)].append(ramp)
 
             # add add_non_ramps ramps
             for i, (altitude, geom) in enumerate(zip(this_area_altitudes, this_areas)):
@@ -814,7 +819,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 for i, area in enumerate(this_areas):
                     index.insert(i, area)
 
-                this_areas_prep: list[prepared.PreparedGeometry] = [prepared.prep(geom) for geom in this_areas]
+                this_areas_prep: list[prepared.PreparedGeometry] = [  # pragma: nobranch
+                    prepared.prep(geom) for geom in this_areas
+                ]
 
                 new_remaining_obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
                 add_to_area: dict[int, list[Union[Polygon, MultiPolygon]]] = defaultdict(list)
