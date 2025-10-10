@@ -1,3 +1,5 @@
+# pragma: no branch
+
 from decimal import Decimal
 from typing import NamedTuple, Self
 
@@ -30,7 +32,8 @@ class PolygonCuttingTests(TransactionTestCase):
     altitude = Decimal("13.70")
 
     def _assertAltitudeAreas(self, expected: set[ExpectedAltitudeArea]) -> tuple[int, ...]:
-        actual = {ExpectedAltitudeArea.from_altitudearea(area): area.pk for area in AltitudeArea.objects.all()}
+        actual = {ExpectedAltitudeArea.from_altitudearea(area): area.pk    # pragma: no branch
+                  for area in AltitudeArea.objects.all()}
         self.assertSetEqual(set(actual), expected)
         return tuple(actual.values())  # noqa
 
@@ -39,7 +42,7 @@ class PolygonCuttingTests(TransactionTestCase):
         self.assertFalse(AltitudeArea.objects.exists())
 
     def _create_level(self, altitude: Decimal = None) -> Level:
-        if altitude is None:
+        if altitude is None:  # pragma: no branch
             altitude = self.altitude
         return Level.objects.create(
             base_altitude=altitude,
