@@ -281,6 +281,34 @@ class PolygonCuttingTests(TransactionTestCase):
             ExpectedAltitudeArea.new(level=level, altitude=self.altitude, geometry=box(0, 0, 100, 100)),
         })
 
+    def test_t_shaped_staircase(self):
+        level = self._create_level()
+        space = Space.objects.create(
+            level=level,
+            geometry=box(-25, 0, 25, 10).union(box(-5, 0, 5, 30)),
+        )
+        Stair.objects.create(space=space, geometry=LineString([(-15, 0), (-15, 10)]))
+        Stair.objects.create(space=space, geometry=LineString([(15, 0), (15, 10)]))
+        Stair.objects.create(space=space, geometry=LineString([(-5, 0), (-5, 10), (5, 10), (5, 0)]))
+        Stair.objects.create(space=space, geometry=LineString([(-10, 20), (10, 20)]))
+        altitude1 = GroundAltitude.objects.create(name="1", altitude=Decimal("1.00"))
+        altitude2 = GroundAltitude.objects.create(name="2", altitude=Decimal("2.00"))
+        AltitudeMarker.objects.create(space=space, geometry=Point(-20, 5), groundaltitude=altitude1)
+        AltitudeMarker.objects.create(space=space, geometry=Point(20, 5), groundaltitude=altitude1)
+        AltitudeMarker.objects.create(space=space, geometry=Point(0, 25), groundaltitude=altitude2)
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=MultiPolygon((
+                box(-25, 0, -15, 10), box(15, 0, 25, 10)
+            ))),
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.25"), geometry=MultiPolygon((
+                box(-15, 0, -5, 10), box(5, 0, 15, 10)
+            ))),
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.50"), geometry=box(-5, 0, 5, 10)),
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.75"), geometry=box(-5, 10, 5, 20)),
+            ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=box(-5, 20, 5, 30)),
+        })
+
     def test_disconnected_space(self):
         level = self._create_level()
         space = self._create_space(level)
