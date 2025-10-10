@@ -97,3 +97,28 @@ class PolygonCuttingTests(TransactionTestCase):
             ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
                                  geometry=normalize(Polygon([(70, 0), (100, 0), (100, 100), (70, 100)]))),
         })
+
+    def test_one_space_cross_cuts_interpolate(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 101)]))
+        Stair.objects.create(space=space, geometry=LineString([(-1, 50), (101, 50)]))
+        Stair.objects.create(space=space, geometry=LineString([(-1, 101), (51, 49)]))
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (50, 0), (50, 50), (0, 50)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.50"),
+                                 geometry=normalize(Polygon([(50, 0), (100, 0), (100, 50), (50, 50)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.33"),
+                                 geometry=normalize(Polygon([(0, 50), (50, 50), (0, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.67"),
+                                 geometry=normalize(Polygon([(50, 100), (50, 50), (0, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(50, 50), (100, 50), (100, 100), (50, 100)]))),
+        })
