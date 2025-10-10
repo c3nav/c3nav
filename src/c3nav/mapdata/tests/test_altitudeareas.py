@@ -1,14 +1,14 @@
-# pragma: no branch
-
 from decimal import Decimal
 from typing import NamedTuple, Self
 
 from django.test.testcases import TransactionTestCase
-from shapely import normalize, Polygon, LineString, Point
+from shapely import normalize, Polygon, LineString, Point, MultiPolygon
 from shapely.geometry.base import BaseGeometry
 
-from c3nav.mapdata.models import AltitudeArea, Level, Space, Stair, AltitudeMarker, GroundAltitude
-from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
+from c3nav.mapdata.models import AltitudeArea, Level, Space, Stair, AltitudeMarker, GroundAltitude, Obstacle, \
+    LineObstacle, AccessRestriction
+from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint, Building
+from c3nav.mapdata.models.geometry.space import Column, Hole
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
@@ -31,6 +31,11 @@ class ExpectedAltitudeArea(NamedTuple):
 class PolygonCuttingTests(TransactionTestCase):
     altitude = Decimal("13.70")
 
+    # todo: use bbox or something for rectangular polygons
+
+    def setUp(self):
+        self.restriction_1 = AccessRestriction.objects.create(titles={"en": "Restriction 1"})
+
     def _assertAltitudeAreas(self, expected: set[ExpectedAltitudeArea]) -> tuple[int, ...]:
         actual = {ExpectedAltitudeArea.from_altitudearea(area): area.pk    # pragma: no branch
                   for area in AltitudeArea.objects.all()}
@@ -50,14 +55,25 @@ class PolygonCuttingTests(TransactionTestCase):
             level_index="0i",
         )
 
-    def _create_space(self, level) -> Space:
+    def _create_space(self, level, offset=0, outside=False) -> Space:
         return Space.objects.create(
             level=level,
-            geometry=Polygon([(0, 0), (100, 0), (100, 100), (0, 100)]),
+            geometry=Polygon([(0+offset, 0), (100+offset, 0), (100+offset, 100), (0+offset, 100)]),
+            outside=outside,
         )
 
     def test_level_no_spaces(self):
         self._create_level()
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas(set())
+
+    def test_one_space_filled_with_hole(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Hole.objects.create(
+            space=space,
+            geometry=Polygon([(-10, -10), (110, -10), (110, 110), (-10, 110)]),
+        )
         AltitudeArea.recalculate()
         self._assertAltitudeAreas(set())
 
@@ -124,4 +140,293 @@ class PolygonCuttingTests(TransactionTestCase):
                                  geometry=normalize(Polygon([(50, 100), (50, 50), (0, 100)]))),
             ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
                                  geometry=normalize(Polygon([(50, 50), (100, 50), (100, 100), (50, 100)]))),
+        })
+
+    def test_altitudemarker_outside_area(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 101)]))
+        AltitudeMarker.objects.create(space=space, geometry=Point(20, 50),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(110, 50),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)]))),
+        })
+
+    def test_altitudemarker_in_obstacle(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(40, -1), (40, 101)]))
+        Stair.objects.create(space=space, geometry=LineString([(60, -1), (60, 101)]))
+        Obstacle.objects.create(space=space, geometry=Polygon([(90, 90), (101, 90), (101, 101), (90, 101)]))
+        AltitudeMarker.objects.create(space=space, geometry=Point(20, 50),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(95, 95),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (40, 0), (40, 100), (0, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.50"),
+                                 geometry=normalize(Polygon([(40, 0), (60, 0), (60, 100), (40, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(60, 0), (100, 0), (100, 100), (60, 100)]))),
+        })
+
+    def test_polygon_obstacle_is_a_cut(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 50)]))
+        Obstacle.objects.create(space=space, geometry=Polygon([(49, 49), (51, 49), (51, 101), (49, 101)]))
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(
+                level=level, altitude=Decimal("1.00"),
+                geometry=normalize(Polygon([(0, 0), (50, 0), (50, 49), (49, 49), (49, 100), (0, 100)]))
+            ),
+            ExpectedAltitudeArea(
+                level=level, altitude=Decimal("2.00"),
+                geometry=normalize(Polygon([(50, 0), (100, 0), (100, 100), (49, 100), (49, 49), (50, 49)]))
+            ),
+        })
+
+    def test_line_obstacle_is_a_cut(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 50)]))
+        LineObstacle.objects.create(space=space, geometry=LineString([(50, 49), (50, 101)]), width=0.2)
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(
+                level=level, altitude=Decimal("1.00"),
+                geometry=normalize(Polygon([(0, 0), (50, 0), (50, 49), (49.9, 49), (49.9, 100), (0, 100)]))
+            ),
+            ExpectedAltitudeArea(
+                level=level, altitude=Decimal("2.00"),
+                geometry=normalize(Polygon([(50, 0), (100, 0), (100, 100), (49.9, 100), (49.9, 49), (50, 49)]))
+            ),
+        })
+
+    def test_raised_obstacle_is_not_a_cut(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 50)]))
+        LineObstacle.objects.create(space=space, geometry=LineString([(50, 49), (50, 101)]), width=0.2, altitude=0.1)
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)]))),
+        })
+
+    def test_obstacle_gets_cut_too(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 101)]))
+        LineObstacle.objects.create(space=space, geometry=LineString([(50, 49), (50, 101)]), width=0.2)
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (50, 0), (50, 100), (0, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(50, 0), (100, 0), (100, 100), (50, 100)]))),
+        })
+
+    def test_staircase_with_middle_divider_nearest_area(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(40, -1), (40, 101)]))
+        Stair.objects.create(space=space, geometry=LineString([(60, -1), (60, 101)]))
+        LineObstacle.objects.create(space=space, geometry=LineString([(-1, 50), (101, 50)]), width=0.2)
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(90, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (40, 0), (40, 100), (0, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.50"),
+                                 geometry=normalize(Polygon([(40, 0), (60, 0), (60, 100), (40, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(60, 0), (100, 0), (100, 100), (60, 100)]))),
+        })
+
+    def test_staircase_with_marker_on_stair(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(40, -1), (40, 101)]))
+        Stair.objects.create(space=space, geometry=LineString([(60, -1), (60, 101)]))
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(60, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)]))),
+        })
+
+    def test_staircase_with_marker_in_split_obstacle(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 51)]))
+        LineObstacle.objects.create(space=space, geometry=LineString([(50, 49), (50, 101)]), width=0.2)
+        AltitudeMarker.objects.create(space=space, geometry=Point(50.05, 70),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=self.altitude,
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)]))),
+        })
+
+    def test_disconnected_space(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        space2 = self._create_space(level, offset=200)
+        space3 = self._create_space(level, offset=400)
+        AltitudeMarker.objects.create(space=space, geometry=Point(50, 70),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space2, geometry=Point(250, 70),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(MultiPolygon((
+                                     Polygon([(200, 0), (300, 0), (300, 100), (200, 100)]),
+                                     Polygon([(400, 0), (500, 0), (500, 100), (400, 100)]),
+                                 )))),
+        })
+
+    def test_space_clipped_by_building(self):
+        level = self._create_level()
+        space = self._create_space(level, outside=True)
+        Building.objects.create(
+            level=level,
+            geometry=Polygon([(-10, -10), (-10, 10), (10, 10), (10, -10)]),
+        )
+        AltitudeMarker.objects.create(space=space, geometry=Point(5, 5),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=self.altitude,
+                                 geometry=normalize(Polygon([(0, 10), (10, 10), (10, 0),
+                                                             (100, 0), (100, 100), (0, 100)]))),
+        })
+
+    def test_space_clipped_by_column(self):
+        level = self._create_level()
+        Building.objects.create(
+            level=level,
+            geometry=Polygon([(-10, -10), (-10, 110), (110, 110), (110, -10)]),
+        )
+        space = self._create_space(level)
+        Column.objects.create(
+            space=space,
+            geometry=Polygon([(40, 40), (40, 60), (60, 60), (60, 40)]),
+        )
+        space2 = Space.objects.create(
+            level=level,
+            geometry=Polygon([(45, 45), (45, 55), (55, 55), (55, 45)]),
+        )
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space2, geometry=Point(50, 50),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)],
+                                                            [[(40, 40), (40, 60), (60, 60), (60, 40)]]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(45, 45), (45, 55), (55, 55), (55, 45)]))),
+        })
+
+    def test_space_not_clipped_by_restricted_column(self):
+        level = self._create_level()
+        Building.objects.create(
+            level=level,
+            geometry=Polygon([(-10, -10), (-10, 110), (110, 110), (110, -10)]),
+        )
+        space = self._create_space(level)
+        Column.objects.create(
+            space=space,
+            geometry=Polygon([(40, 40), (40, 60), (60, 60), (60, 40)]),
+            access_restriction=self.restriction_1,
+        )
+        Space.objects.create(
+            level=level,
+            geometry=Polygon([(45, 45), (45, 55), (55, 55), (55, 45)]),
+        )
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space, geometry=Point(50, 50),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)]))),
+        })
+
+    def test_space_clipped_by_hole(self):
+        level = self._create_level()
+        Building.objects.create(
+            level=level,
+            geometry=Polygon([(-10, -10), (-10, 110), (110, 110), (110, -10)]),
+        )
+        space = self._create_space(level)
+        Hole.objects.create(
+            space=space,
+            geometry=Polygon([(40, 40), (40, 60), (60, 60), (60, 40)]),
+        )
+        space2 = Space.objects.create(
+            level=level,
+            geometry=Polygon([(45, 45), (45, 55), (55, 55), (55, 45)]),
+        )
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space2, geometry=Point(50, 50),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("1.00"),
+                                 geometry=normalize(Polygon([(0, 0), (100, 0), (100, 100), (0, 100)],
+                                                            [[(40, 40), (40, 60), (60, 60), (60, 40)]]))),
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(45, 45), (45, 55), (55, 55), (55, 45)]))),
+        })
+
+    def test_spaces_overlap(self):
+        level = self._create_level()
+        space = self._create_space(level)
+        space2 = self._create_space(level, offset=10)
+        AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
+        AltitudeMarker.objects.create(space=space2, geometry=Point(100, 10),
+                                      groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
+        AltitudeArea.recalculate()
+        self._assertAltitudeAreas({
+            ExpectedAltitudeArea(level=level, altitude=Decimal("2.00"),
+                                 geometry=normalize(Polygon([(0, 0), (110, 0), (110, 100), (0, 100)]))),
         })
