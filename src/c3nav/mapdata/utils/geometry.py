@@ -48,19 +48,6 @@ def smart_mapping(geometry):
     return shapely_mapping(geometry)
 
 
-def clean_geometry(geometry):
-    """
-    if the given geometry is a Polygon and invalid, try to make it valid if it results in a Polygon (not MultiPolygon)
-    """
-    if geometry.is_valid:
-        return geometry
-
-    if isinstance(geometry, Polygon):
-        return geometry.buffer(0)
-
-    return geometry
-
-
 def assert_multipolygon(geometry: Union[Polygon, MultiPolygon, GeometryCollection, Iterable]) -> list[Polygon]:
     """
     given a Polygon or a MultiPolygon, return a list of Polygons
@@ -109,40 +96,6 @@ def good_representative_point(geometry) -> Point:
              tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(unwrap_geom(geometry)))))
     return min(lines, key=lambda line: (line.distance(c), line.length),
                default=geometry.representative_point()).centroid
-
-
-def plot_geometry(geom, title=None, bounds=None):
-    # these imports live here so they are only imported when needed
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import PathPatch
-    from matplotlib.path import Path
-
-    fig = plt.figure()
-    axes = fig.add_subplot(111)
-    if bounds is None:
-        bounds = geom.bounds
-    axes.set_xlim(bounds[0], bounds[2])
-    axes.set_ylim(bounds[1], bounds[3])
-    verts = []
-    codes = []
-    if not isinstance(geom, (tuple, list)):
-        geom = assert_multipolygon(geom)
-    else:
-        geom = tuple(chain(*(assert_multipolygon(g) for g in geom)))
-    for polygon in geom:
-        for ring in chain([polygon.exterior], polygon.interiors):
-            verts.extend(ring.coords)
-            codes.append(Path.MOVETO)
-            codes.extend((Path.LINETO,) * len(ring.coords))
-            verts.append(verts[-1])
-
-    if title is not None:
-        plt.title(title)
-
-    path = Path(verts, codes)
-    patch = PathPatch(path)
-    axes.add_patch(patch)
-    plt.show()
 
 
 def get_rings(geometry):
