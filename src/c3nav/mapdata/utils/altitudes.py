@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from itertools import chain
 from operator import attrgetter
-from typing import Union, Optional
+from typing import Union, Optional, Any
 
 import numpy as np
 from django.utils.translation import gettext_lazy as _
@@ -79,14 +79,19 @@ class BuildAltitudeArea:
 class BuildAltitudeAreaDict:
     def __init__(self):
         self._dict: dict[Any, BuildAltitudeArea] = {}
-        self._ifndex: Index | None = None
+        self._index: Index | None = None
+        self._keep_index = False
 
     def __getitem__(self, item: Any) -> BuildAltitudeArea:
         return self._dict[item]
 
     def __setitem__(self, item: Any, value: BuildAltitudeArea):
         self._dict[item] = value
-        self._index = None
+        if not self._keep_index:
+            self._index = None
+
+    def __contains__(self, item: Any) -> bool:
+        return item in self._dict
 
     def __len__(self):
         return len(self._dict)
@@ -98,6 +103,13 @@ class BuildAltitudeAreaDict:
             for i, area in self._dict.items():
                 self._index.insert(i, area.geometry)
         return self._index
+
+    def keep_index(self):
+        self._keep_index = True
+
+    def lose_index(self):
+        self._keep_index = False
+        self._index = None
 
     def items(self):
         return self._dict.items()
@@ -480,7 +492,7 @@ class AltitudeAreaBuilder:
         logger.info(f'    - Processing ramps...')
 
         # detect ramps and non-ramps
-        this_areas: dict[int | frozenset[AltitudeAreaPoint], BuildAltitudeArea] = {}
+        this_areas: BuildAltitudeAreaDict = BuildAltitudeAreaDict()
         ramp_areas: list[Union[Polygon, MultiPolygon]] = []
         for i in builder_level.areas:
             if ramps_geom_prep.covers(self.areas[i].geometry):
@@ -492,17 +504,13 @@ class AltitudeAreaBuilder:
             else:
                 this_areas[altitude] = self.areas[i]
 
-        for area in this_areas.values():
-            area.merge()
-
-        index = Index()
-        for altitude, area in this_areas.items():
-            index.insert(altitude, area.geometry)
+        this_areas.merge_all()
 
         # finalize ramps
+        this_areas.keep_index()
         for i, ramp in enumerate(assert_multipolygon(unary_union(ramp_areas))):  # noqa
             points: dict[tuple[float, float], AltitudeAreaPoint] = {}
-            for altitude in index.intersection(ramp):
+            for altitude in this_areas.index.intersection(ramp):
                 if not this_areas[altitude].prep.intersects(ramp):
                     continue
                 for linestring in assert_multilinestring(this_areas[altitude].geometry.intersection(ramp)):  # noqa
@@ -536,8 +544,8 @@ class AltitudeAreaBuilder:
                 else:
                     this_areas[altitude] = BuildAltitudeArea(ramp)
 
-        for area in this_areas.values():
-            area.merge()
+        this_areas.lose_index()
+        this_areas.merge_all()
 
         logger.info(f'    - Processing obstacles...')
 
@@ -546,15 +554,11 @@ class AltitudeAreaBuilder:
         done = False
         while not done and remaining_obstacle_areas:
             done = True
-
-            index = Index()
-            for altitude, area in this_areas.items():
-                index.insert(altitude, area.geometry)
-
+            this_areas.keep_index()
             new_remaining_obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
             for obstacle in remaining_obstacle_areas:
                 matched_altitude: int | None = max((
-                    altitude for altitude in index.intersection(obstacle)
+                    altitude for altitude in this_areas.index.intersection(obstacle)
                     if (this_areas[altitude].prep.intersects(obstacle)
                         and assert_multilinestring(this_areas[altitude].geometry.intersection(obstacle))  # noqa
                         and isinstance(altitude, int))
@@ -566,15 +570,14 @@ class AltitudeAreaBuilder:
                     new_remaining_obstacle_areas.append(obstacle)
 
             remaining_obstacle_areas = new_remaining_obstacle_areas
-            for area in this_areas.values():
-                area.merge()
+            this_areas.merge_all()
+            this_areas.lose_index()
 
         for obstacle in remaining_obstacle_areas:
             # todo: better matching
             min(this_areas.values(), key=lambda area: area.geometry.distance(obstacle)).add(obstacle)
 
-        for area in this_areas.values():
-            area.merge()
+        this_areas.merge_all()
 
         logger.info(f'    - Matching and saving...')
 
