@@ -44,10 +44,15 @@ class CreationResult:
 
 @dataclass
 class AltitudeAreaBuilderLevel:
+    level: Level
+
     areas: set[int]
     ramps: Union[Polygon, MultiPolygon, GeometryCollection]
     obstacles_areas: list[Union[Polygon, MultiPolygon]]
     altitudemarkers: list[AltitudeMarker]
+
+    build_areas: BuildAltitudeAreaDict[float | frozenset[AltitudeAreaPoint]] = None
+    build_ramps: list[Union[Polygon, MultiPolygon]] = None
 
 
 @dataclass
@@ -371,6 +376,7 @@ class AltitudeAreaBuilder:
         self._assign_altitudemarkers(accessible_areas, altitudemarkers, from_i, level.short_label)
 
         self.levels[level.pk] = AltitudeAreaBuilderLevel(
+            level=level,
             areas=set(range(len(self.areas), len(self.areas) + len(accessible_areas))),
             ramps=ramps_geom,
             obstacles_areas=obstacle_areas,
@@ -478,54 +484,47 @@ class AltitudeAreaBuilder:
 
                 areas_without_altitude.difference_update(contained_areas_without_altitude)
 
-    def _finalize_level(self, level: Level) -> CreationResult:
-        logger.info(f'  - Level {level.short_label}')
-
-        builder_level = self.levels[level.pk]
-
-        level_areas_without_altitude = set(builder_level.areas) - set(self.area_altitudes)
+    def _finalize_disconnected_areas(self, level: AltitudeAreaBuilderLevel):
+        level_areas_without_altitude = set(level.areas) - set(self.area_altitudes)
         if level_areas_without_altitude:
-            level_areas_with_altitude = set(builder_level.areas) & set(self.area_altitudes)
+            level_areas_with_altitude = set(level.areas) & set(self.area_altitudes)
             if level_areas_with_altitude:
                 for altitude in level_areas_without_altitude:
-                    match_i = min(level_areas_with_altitude,
-                                  key=lambda i: self.areas[i].geometry.distance(self.areas[altitude].geometry))
-                    self.area_altitudes[altitude] = self.area_altitudes[match_i]
+                    match = min(level_areas_with_altitude,
+                                key=lambda i: self.areas[i].geometry.distance(self.areas[altitude].geometry))
+                    self.area_altitudes[altitude] = self.area_altitudes[match]
                     logger.warning(
-                        f"    - Altitude area {self.areas[altitude].desc} in Level {level.short_label}, isn't connected to "
-                        f"interpolated areas. Using altitude {self.area_altitudes[altitude]:.2f} m from closest area "
-                        f"({self.areas[match_i].geometry.distance(self.areas[altitude].geometry):.2f}m away)"
+                        f"    - Altitude area {self.areas[altitude].desc} in Level {level.level.short_label}, isn't "
+                        f"connected to interpolated areas. Using altitude {self.area_altitudes[altitude]:.2f} m from "
+                        f"closest area ({self.areas[match].geometry.distance(self.areas[altitude].geometry):.2f}m away)"
                     )
             else:
-                logger.warning(f"    - No altitudes on Level {level.short_label}, "
+                logger.warning(f"    - No altitudes on Level {level.level.short_label}, "
                                f"defaulting to base_altitude for all areas on this level.")
                 for altitude in level_areas_without_altitude:
-                    self.area_altitudes[altitude] = float(level.base_altitude)
+                    self.area_altitudes[altitude] = float(level.level.base_altitude)
 
-        ramps_geom_prep = prepared.prep(builder_level.ramps.buffer(1e-14, join_style=JOIN_STYLE.round, quad_segs=2))
-
-        logger.info(f'    - Processing ramps...')
+    def _split_areas_and_ramps(self, level: AltitudeAreaBuilderLevel):
+        ramps_geom_prep = prepared.prep(level.ramps.buffer(1e-14, join_style=JOIN_STYLE.round, quad_segs=2))
 
         # detect ramps and non-ramps
-        this_areas: BuildAltitudeAreaDict[float | frozenset[AltitudeAreaPoint]] = (
-            BuildAltitudeAreaDict[float | frozenset[AltitudeAreaPoint]]()
-        )
-        ramp_areas: list[Union[Polygon, MultiPolygon]] = []
-        for i in builder_level.areas:
+        level.build_areas = BuildAltitudeAreaDict[float | frozenset[AltitudeAreaPoint]]()
+        level.build_ramps = []
+        for i in level.areas:
             if ramps_geom_prep.covers(self.areas[i].geometry):
-                ramp_areas.append(self.areas[i].geometry)
+                level.build_ramps.append(self.areas[i].geometry)
                 continue
-            altitude = self.area_altitudes[i]
-            this_areas.add(altitude, self.areas[i].geometry)
+            level.build_areas.add(self.area_altitudes[i], self.areas[i].geometry)
 
-        this_areas.merge_all()
+        level.build_areas.merge_all()
 
+    def _fill_ramps(self, level: AltitudeAreaBuilderLevel):
         # finalize ramps
-        this_areas.keep_index()
-        for i, ramp in enumerate(assert_multipolygon(unary_union(ramp_areas))):  # noqa
+        level.build_areas.keep_index()
+        for i, ramp in enumerate(assert_multipolygon(unary_union(level.build_ramps))):  # noqa
             points: dict[tuple[float, float], AltitudeAreaPoint] = {}
-            for altitude in this_areas.intersections(ramp):
-                for linestring in assert_multilinestring(this_areas[altitude].geometry.intersection(ramp)):  # noqa
+            for altitude in level.build_areas.intersections(ramp):
+                for linestring in assert_multilinestring(level.build_areas[altitude].geometry.intersection(ramp)):
                     points.update({  # pragma: nobranch
                         coords: AltitudeAreaPoint(coordinates=coords, altitude=altitude)
                         for coords in linestring.coords
@@ -534,13 +533,13 @@ class AltitudeAreaBuilder:
             points.update({  # pragma: nobranch
                 marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords[0],
                                                           altitude=float(marker.altitude))
-                for marker in builder_level.altitudemarkers
+                for marker in level.altitudemarkers
                 if ramp_prep.intersects(unwrap_geom(marker.geometry))
             })
             # todo: make sure the points are all inside the ramp / touching the ramp
             unique_altitudes = set(p.altitude for p in points.values())
             if len(unique_altitudes) >= 2:
-                this_areas[frozenset(points.values())] = BuildAltitudeArea(ramp)
+                level.build_areas[frozenset(points.values())] = BuildAltitudeArea(ramp)
             else:
                 if unique_altitudes:
                     logger.warning(f'      - Ramp in {ramp.representative_point()} has only altitude '
@@ -549,51 +548,48 @@ class AltitudeAreaBuilder:
                 else:
                     logger.warning(f'      - Ramp in {ramp.representative_point()} has no altitude, defaulting to '
                                    f'level\'s base altitude!')
-                    altitude = float(level.base_altitude)
+                    altitude = float(level.level.base_altitude)
 
-                this_areas.add(altitude, ramp)
+                level.build_areas.add(altitude, ramp)
 
-        this_areas.lose_index()
-        this_areas.merge_all()
+        level.build_areas.lose_index()
+        level.build_areas.merge_all()
 
-        logger.info(f'    - Processing obstacles...')
-
-        # assign remaining obstacle areas
-        remaining_obstacle_areas = builder_level.obstacles_areas
+    def _assign_remaining_obstacles(self, level: AltitudeAreaBuilderLevel):
+        remaining_obstacle_areas = level.obstacles_areas
         done = False
         while not done and remaining_obstacle_areas:
             done = True
-            this_areas.keep_index()
+            level.build_areas.keep_index()
             new_remaining_obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
             for obstacle in remaining_obstacle_areas:
                 matched_altitude: float | None = max((
-                    altitude for altitude in this_areas.touches_in_line(obstacle)
+                    altitude for altitude in level.build_areas.touches_in_line(obstacle)
                     if isinstance(altitude, float)
                 ), default=None)  # todo: interpolate here
                 if matched_altitude is not None:
-                    this_areas[matched_altitude].add(obstacle)
+                    level.build_areas[matched_altitude].add(obstacle)
                     done = False
                 else:
                     new_remaining_obstacle_areas.append(obstacle)
 
             remaining_obstacle_areas = new_remaining_obstacle_areas
-            this_areas.merge_all()
-            this_areas.lose_index()
+            level.build_areas.merge_all()
+            level.build_areas.lose_index()
 
         for obstacle in remaining_obstacle_areas:
-            this_areas[this_areas.closest_straight(obstacle)].add(obstacle)
+            level.build_areas[level.build_areas.closest_straight(obstacle)].add(obstacle)
 
-        this_areas.merge_all()
+        level.build_areas.merge_all()
 
-        logger.info(f'    - Matching and saving...')
-
+    def _save_level(self, level: AltitudeAreaBuilderLevel) -> CreationResult:
         result = CreationResult()
 
         # normalize
         this_areas: dict[float | frozenset[AltitudeAreaPoint], BaseGeometry] = {
             altitude: geom for altitude, geom in (
                 (altitude, snap_to_grid_and_fully_normalized(area.geometry))
-                for altitude, area in this_areas.items()
+                for altitude, area in level.build_areas.items()
             ) if not geom.is_empty
         }
         this_areas: dict[float | frozenset[AltitudeAreaPoint], Union[Polygon, MultiPolygon]]
@@ -603,7 +599,7 @@ class AltitudeAreaBuilder:
         # find matching areas
         old_areas_lookup: AltitudeAreaLookup = defaultdict(dict)
 
-        for area in level.altitudeareas.all():
+        for area in level.level.altitudeareas.all():
             old_areas_lookup[
                 float(area.altitude) if area.altitude is not None else frozenset(area.points)
             ][snap_to_grid_and_fully_normalized(unwrap_geom(area.geometry))] = area
@@ -641,7 +637,7 @@ class AltitudeAreaBuilder:
             if altitude in done_areas:
                 continue
             obj = AltitudeArea(
-                level_id=level.pk,
+                level_id=level.level.pk,
                 geometry=geom,
                 altitude=altitude if isinstance(altitude, float) else None,
                 points=list(altitude) if not isinstance(altitude, float) else None,
@@ -650,6 +646,21 @@ class AltitudeAreaBuilder:
             result.created += 1
 
         return result
+
+    def _finalize_level(self, level: AltitudeAreaBuilderLevel) -> CreationResult:
+        logger.info(f'  - Level {level.level.short_label}')
+
+        self._finalize_disconnected_areas(level)
+
+        logger.info(f'    - Processing ramps...')
+        self._split_areas_and_ramps(level)
+        self._fill_ramps(level)
+
+        logger.info(f'    - Processing obstacles...')
+        self._assign_remaining_obstacles(level)
+
+        logger.info(f'    - Matching and saving...')
+        return self._save_level(level)
 
     def _build(self):
         # collect location areas
@@ -681,7 +692,7 @@ class AltitudeAreaBuilder:
 
         result = CreationResult()
 
-        for level in levels:
+        for level in self.levels.values():
             result += self._finalize_level(level)
 
         logger.info(_('%d altitude areas built (took %.2f seconds).') % (result.created + result.modified,
