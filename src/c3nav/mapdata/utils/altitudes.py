@@ -77,22 +77,29 @@ class BuildAltitudeArea:
 
 
 class BuildAltitudeAreaDict[T]:
-    # todo: because of Index(), T needs to be int
     def __init__(self):
         self._dict: dict[T, BuildAltitudeArea] = {}
+        self._idx_lookup: list[T] = []
         self._index: Index | None = None
         self._keep_index = False
 
-    def __getitem__(self, item: T) -> BuildAltitudeArea:
-        return self._dict[item]
+    def __getitem__(self, key: T) -> BuildAltitudeArea:
+        return self._dict[key]
 
-    def __setitem__(self, item: T, value: BuildAltitudeArea):
-        self._dict[item] = value
+    def __setitem__(self, key: T, area: BuildAltitudeArea):
+        self._dict[key] = area
         if not self._keep_index:
             self._index = None
+            self._idx_lookup = []
 
-    def __contains__(self, item: T) -> bool:
-        return item in self._dict
+    def add(self, key: T, geometry: BaseGeometry):
+        if key in self._dict:
+            self._dict[key].add(geometry)
+        else:
+            self._dict[key] = BuildAltitudeArea(geometry)
+
+    def __contains__(self, key: T) -> bool:
+        return key in self._dict
 
     def __len__(self):
         return len(self._dict)
@@ -101,8 +108,10 @@ class BuildAltitudeAreaDict[T]:
     def index(self):
         if self._index is None:
             self._index = Index()
-            for i, area in self._dict.items():
+            self._idx_lookup = []
+            for i, (key, area) in enumerate(self._dict.items()):
                 self._index.insert(i, area.geometry)
+                self._idx_lookup.append(key)
         return self._index
 
     def keep_index(self):
@@ -111,6 +120,7 @@ class BuildAltitudeAreaDict[T]:
     def lose_index(self):
         self._keep_index = False
         self._index = None
+        self._idx_lookup = []
 
     def items(self):
         return self._dict.items()
@@ -123,13 +133,21 @@ class BuildAltitudeAreaDict[T]:
             area.merge()
 
     def intersections(self, geometry: BaseGeometry) -> set[T]:
-        return {i for i in self.index.intersection(geometry)  # pragma: nobranch
-                if self._dict[i].prep.intersects(geometry)}
+        return {key for key in (self._idx_lookup[i] for i in self.index.intersection(geometry))  # pragma: nobranch
+                if self._dict[key].prep.intersects(geometry)}
+
+    def _touches_in_line(self, area: BuildAltitudeArea, geometry: BaseGeometry) -> bool:
+        return area.prep.touches(geometry) and assert_multilinestring(area.geometry.intersection(geometry))  # noqa
 
     def touches_in_line(self, geometry: BaseGeometry) -> set[T]:
-        return {i for i in self.index.intersection(geometry)  # pragma: nobranch
-                if (self._dict[i].prep.touches(geometry) and
-                    assert_multilinestring(self._dict[i].geometry.intersection(geometry)))}  # noqa
+        return {key for key in (self._idx_lookup[i] for i in self.index.intersection(geometry))  # pragma: nobranch
+                if self._touches_in_line(self._dict[key], geometry)}
+
+    def closest_straight(self, geometry: BaseGeometry) -> T:
+        geometry_new = geometry.buffer(-10**-7)
+        if geometry.is_empty:
+            geometry_new = geometry.centroid
+        return min(self.items(), key=lambda a: a[1].geometry.distance(geometry_new))[0]
 
 
 class AltitudeAreaBuilder:
@@ -449,21 +467,14 @@ class AltitudeAreaBuilder:
             contained_areas_without_altitude = contained_areas - contained_areas_with_altitude
             if contained_areas_with_altitude and contained_areas_without_altitude:
                 logger.info(f"  - {len(contained_areas_without_altitude)} areas still to assign in Space #{space_i}")
-                altitude_areas = {}
+                altitude_areas = BuildAltitudeAreaDict[float]()
                 for i in contained_areas_with_altitude:
-                    altitude_areas.setdefault(self.area_altitudes[i], []).append(self.areas[i].geometry)
-
-                for altitude in altitude_areas.keys():
-                    altitude_areas[altitude] = unary_union(altitude_areas[altitude])
+                    if altitude_areas.add(self.area_altitudes[i], self.areas[i].geometry):  # todo: without .geometry=
+                        pass
+                altitude_areas.merge_all()
 
                 for i in contained_areas_without_altitude:
-                    # todo: better matching
-                    area = self.areas[i]
-                    centroid = area.geometry.centroid
-                    self.area_altitudes[i] = min(
-                        altitude_areas.items(),
-                        key=lambda a: (a[1].distance(area.geometry), a[1].centroid.distance(centroid), a[0])
-                    )[0]
+                    self.area_altitudes[i] = altitude_areas.closest_straight(self.areas[i].geometry)
 
                 areas_without_altitude.difference_update(contained_areas_without_altitude)
 
@@ -477,7 +488,8 @@ class AltitudeAreaBuilder:
             level_areas_with_altitude = set(builder_level.areas) & set(self.area_altitudes)
             if level_areas_with_altitude:
                 for altitude in level_areas_without_altitude:
-                    match_i = min(level_areas_with_altitude, key=lambda i: self.areas[i].geometry.distance(self.areas[altitude].geometry))
+                    match_i = min(level_areas_with_altitude,
+                                  key=lambda i: self.areas[i].geometry.distance(self.areas[altitude].geometry))
                     self.area_altitudes[altitude] = self.area_altitudes[match_i]
                     logger.warning(
                         f"    - Altitude area {self.areas[altitude].desc} in Level {level.short_label}, isn't connected to "
@@ -504,10 +516,7 @@ class AltitudeAreaBuilder:
                 ramp_areas.append(self.areas[i].geometry)
                 continue
             altitude = int(self.area_altitudes[i]*100)
-            if altitude in this_areas:
-                this_areas[altitude].add(self.areas[i].geometry)
-            else:
-                this_areas[altitude] = self.areas[i]
+            this_areas.add(altitude, self.areas[i].geometry)
 
         this_areas.merge_all()
 
@@ -542,10 +551,7 @@ class AltitudeAreaBuilder:
                                    f'level\'s base altitude!')
                     altitude = int(float(level.base_altitude)*100)
 
-                if altitude in this_areas:
-                    this_areas[altitude].add(ramp)
-                else:
-                    this_areas[altitude] = BuildAltitudeArea(ramp)
+                this_areas.add(altitude, ramp)
 
         this_areas.lose_index()
         this_areas.merge_all()
@@ -561,11 +567,8 @@ class AltitudeAreaBuilder:
             new_remaining_obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
             for obstacle in remaining_obstacle_areas:
                 matched_altitude: int | None = max((
-                    # todo: make this nicer
-                    altitude for altitude in this_areas.index.intersection(obstacle)
-                    if (this_areas[altitude].prep.intersects(obstacle)
-                        and assert_multilinestring(this_areas[altitude].geometry.intersection(obstacle))  # noqa
-                        and isinstance(altitude, int))
+                    altitude for altitude in this_areas.touches_in_line(obstacle)
+                    if isinstance(altitude, int)
                 ), default=None)  # todo: interpolate here
                 if matched_altitude is not None:
                     this_areas[matched_altitude].add(obstacle)
@@ -578,8 +581,7 @@ class AltitudeAreaBuilder:
             this_areas.lose_index()
 
         for obstacle in remaining_obstacle_areas:
-            # todo: better matching
-            min(this_areas.values(), key=lambda area: area.geometry.distance(obstacle)).add(obstacle)
+            this_areas[this_areas.closest_straight(obstacle)].add(obstacle)
 
         this_areas.merge_all()
 
