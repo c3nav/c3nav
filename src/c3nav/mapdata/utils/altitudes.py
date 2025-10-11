@@ -56,7 +56,7 @@ class BuildAltitudeArea:
     _add_geometry: list[Union[Polygon, MultiPolygon, GeometryCollection]] = field(default_factory=list, init=False)
     _prep: Optional[prepared.PreparedGeometry] = field(default=None, init=False, repr=False)
 
-    def union(self):
+    def merge(self):
         if self._add_geometry:
             self.geometry = unary_union((self.geometry, *self._add_geometry))  # noqa
             self._add_geometry = []
@@ -74,6 +74,40 @@ class BuildAltitudeArea:
         if self._prep is None:
             self._prep = prepared.prep(self.geometry)
         return self._prep
+
+
+class BuildAltitudeAreaDict:
+    def __init__(self):
+        self._dict: dict[Any, BuildAltitudeArea] = {}
+        self._ifndex: Index | None = None
+
+    def __getitem__(self, item: Any) -> BuildAltitudeArea:
+        return self._dict[item]
+
+    def __setitem__(self, item: Any, value: BuildAltitudeArea):
+        self._dict[item] = value
+        self._index = None
+
+    def __len__(self):
+        return len(self._dict)
+
+    @property
+    def index(self):
+        if self._index is None:
+            self._index = Index()
+            for i, area in self._dict.items():
+                self._index.insert(i, area.geometry)
+        return self._index
+
+    def items(self):
+        return self._dict.items()
+
+    def values(self):
+        return self._dict.values()
+
+    def merge_all(self):
+        for area in self._dict.values():
+            area.merge()
 
 
 class AltitudeAreaBuilder:
@@ -148,21 +182,17 @@ class AltitudeAreaBuilder:
         return areas, ramps, stairs, obstacles, spaces, altitudemarkers
 
     def _join_trivial_obstacle_areas(
-            self, accessible_areas: list[BuildAltitudeArea],
+            self, accessible_areas: BuildAltitudeAreaDict,
             obstacle_areas: list[Union[Polygon, MultiPolygon]]
-    ) -> tuple[list[Union[Polygon, MultiPolygon]], Index]:
+    ) -> list[Union[Polygon, MultiPolygon]]:
         logger.info(f'    - Joining trivial obstacle areas...')
         while True:
             # todo: make index part of a special list type
-            index = Index()
-            for i, area in enumerate(accessible_areas):
-                index.insert(i, area.geometry)
-
             old_obstacle_areas = obstacle_areas
             obstacle_areas = []
             added = False
             for area in old_obstacle_areas:
-                matches = {i for i in index.intersection(area)  # pragma: nobranch
+                matches = {i for i in accessible_areas.index.intersection(area)  # pragma: nobranch
                            if (accessible_areas[i].prep.touches(area) and
                                assert_multilinestring(accessible_areas[i].geometry.intersection(area)))}  # noqa
                 if len(matches) == 1:
@@ -173,17 +203,16 @@ class AltitudeAreaBuilder:
 
             if not added:
                 break
-            for area in accessible_areas:
-                area.union()
-        return obstacle_areas, index
+            accessible_areas.merge_all()
+        return obstacle_areas
 
     def _assign_spaces(self, spaces: dict[int, Union[Polygon, MultiPolygon]],
-                       accessible_areas: list[BuildAltitudeArea], from_i: int):
+                       accessible_areas: BuildAltitudeAreaDict, from_i: int):
         # assign areas to spaces
         space_index = Index()
         for pk, space_clip in spaces.items():
             space_index.insert(pk, space_clip)
-        for area_i, area in enumerate(accessible_areas):
+        for area_i, area in accessible_areas.items():
             i = 0
             for space_id in space_index.intersection(area.geometry):
                 if area.prep.intersects(spaces[space_id]):
@@ -192,24 +221,24 @@ class AltitudeAreaBuilder:
             if not i:  # pragma: nocover
                 raise ValueError(f'- Area {area_i} {area.desc} has no space')
 
-    def _prepare_level_graph(self, accessible_areas: list[BuildAltitudeArea], from_i: int, index: Index):
+    def _prepare_level_graph(self, accessible_areas: BuildAltitudeAreaDict, from_i: int):
         logger.info(f'    - Preparing interpolation graph...')
 
         # determine connections between areas
-        for i, area in enumerate(accessible_areas):
-            for j in (index.intersection(area.geometry) - {i}):
+        for i, area in accessible_areas.items():
+            for j in (accessible_areas.index.intersection(area.geometry) - {i}):
                 if not accessible_areas[i].prep.touches(accessible_areas[j].geometry):
                     continue
                 if not assert_multilinestring(accessible_areas[i].geometry.intersection(accessible_areas[j].geometry)):  # noqa
                     continue
                 self.area_connections.append((i+from_i, j+from_i))
 
-    def _assign_altitudemarkers(self, accessible_areas: list[BuildAltitudeArea], altitudemarkers: list[AltitudeMarker],
-                                index: Index, from_i: int, level: str):
+    def _assign_altitudemarkers(self, accessible_areas: BuildAltitudeAreaDict, altitudemarkers: list[AltitudeMarker],
+                                from_i: int, level: str):
         # assign altitude markers to altitude areas
         logger.info(f'    - Assigning altitude markers...')
         for altitudemarker in altitudemarkers:
-            matches = {i for i in index.intersection(altitudemarker.geometry)  # pragma: nocover
+            matches = {i for i in accessible_areas.index.intersection(altitudemarker.geometry)  # pragma: nocover
                        if accessible_areas[i].prep.intersects(unwrap_geom(altitudemarker.geometry))}
             if len(matches) == 1:
                 this_i = next(iter(matches))+from_i
@@ -276,13 +305,13 @@ class AltitudeAreaBuilder:
 
         # divide cut result into accessible ares and obstacle areas
         logger.info(f'    - Processing cut result...')
-        accessible_areas: list[BuildAltitudeArea] = []
+        accessible_areas = BuildAltitudeAreaDict()
         obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
         for section in assert_multipolygon(cut_result):
             if obstacles_geom_prep.covers(section):
                 obstacle_areas.append(section)
             else:
-                accessible_areas.append(BuildAltitudeArea(section))
+                accessible_areas[len(accessible_areas)] = BuildAltitudeArea(section)
 
         logger.info(f'    - {len(accessible_areas)} accessible areas, {len(obstacle_areas)} obstacle areas')
 
@@ -302,11 +331,11 @@ class AltitudeAreaBuilder:
         from_i = len(self.areas)
 
         # join obstacle areas into accessible areas if they are only touching one
-        obstacle_areas, index = self._join_trivial_obstacle_areas(accessible_areas, obstacle_areas)
+        obstacle_areas = self._join_trivial_obstacle_areas(accessible_areas, obstacle_areas)
 
         self._assign_spaces(spaces, accessible_areas, from_i)
-        self._prepare_level_graph(accessible_areas, from_i, index)
-        self._assign_altitudemarkers(accessible_areas, altitudemarkers, index, from_i, level.short_label)
+        self._prepare_level_graph(accessible_areas, from_i)
+        self._assign_altitudemarkers(accessible_areas, altitudemarkers, from_i, level.short_label)
 
         self.levels[level.pk] = AltitudeAreaBuilderLevel(
             areas=set(range(len(self.areas), len(self.areas) + len(accessible_areas))),
@@ -314,7 +343,7 @@ class AltitudeAreaBuilder:
             obstacles_areas=obstacle_areas,
             altitudemarkers=altitudemarkers,
         )
-        self.areas.extend(accessible_areas)
+        self.areas.extend(accessible_areas.values())
 
         #import matplotlib.pyplot as plt
         #ax = plt.axes([0.05, 0.05, 0.85, 0.85])  # [left, bottom, width, height]
@@ -464,7 +493,7 @@ class AltitudeAreaBuilder:
                 this_areas[altitude] = self.areas[i]
 
         for area in this_areas.values():
-            area.union()
+            area.merge()
 
         index = Index()
         for altitude, area in this_areas.items():
@@ -508,7 +537,7 @@ class AltitudeAreaBuilder:
                     this_areas[altitude] = BuildAltitudeArea(ramp)
 
         for area in this_areas.values():
-            area.union()
+            area.merge()
 
         logger.info(f'    - Processing obstacles...')
 
@@ -538,14 +567,14 @@ class AltitudeAreaBuilder:
 
             remaining_obstacle_areas = new_remaining_obstacle_areas
             for area in this_areas.values():
-                area.union()
+                area.merge()
 
         for obstacle in remaining_obstacle_areas:
             # todo: better matching
             min(this_areas.values(), key=lambda area: area.geometry.distance(obstacle)).add(obstacle)
 
         for area in this_areas.values():
-            area.union()
+            area.merge()
 
         logger.info(f'    - Matching and saving...')
 
