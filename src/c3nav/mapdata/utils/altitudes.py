@@ -76,21 +76,22 @@ class BuildAltitudeArea:
         return self._prep
 
 
-class BuildAltitudeAreaDict:
+class BuildAltitudeAreaDict[T]:
+    # todo: because of Index(), T needs to be int
     def __init__(self):
-        self._dict: dict[Any, BuildAltitudeArea] = {}
+        self._dict: dict[T, BuildAltitudeArea] = {}
         self._index: Index | None = None
         self._keep_index = False
 
-    def __getitem__(self, item: Any) -> BuildAltitudeArea:
+    def __getitem__(self, item: T) -> BuildAltitudeArea:
         return self._dict[item]
 
-    def __setitem__(self, item: Any, value: BuildAltitudeArea):
+    def __setitem__(self, item: T, value: BuildAltitudeArea):
         self._dict[item] = value
         if not self._keep_index:
             self._index = None
 
-    def __contains__(self, item: Any) -> bool:
+    def __contains__(self, item: T) -> bool:
         return item in self._dict
 
     def __len__(self):
@@ -120,6 +121,15 @@ class BuildAltitudeAreaDict:
     def merge_all(self):
         for area in self._dict.values():
             area.merge()
+
+    def intersections(self, geometry: BaseGeometry) -> set[T]:
+        return {i for i in self.index.intersection(geometry)  # pragma: nobranch
+                if self._dict[i].prep.intersects(geometry)}
+
+    def touches_in_line(self, geometry: BaseGeometry) -> set[T]:
+        return {i for i in self.index.intersection(geometry)  # pragma: nobranch
+                if (self._dict[i].prep.touches(geometry) and
+                    assert_multilinestring(self._dict[i].geometry.intersection(geometry)))}  # noqa
 
 
 class AltitudeAreaBuilder:
@@ -204,9 +214,7 @@ class AltitudeAreaBuilder:
             obstacle_areas = []
             added = False
             for area in old_obstacle_areas:
-                matches = {i for i in accessible_areas.index.intersection(area)  # pragma: nobranch
-                           if (accessible_areas[i].prep.touches(area) and
-                               assert_multilinestring(accessible_areas[i].geometry.intersection(area)))}  # noqa
+                matches = accessible_areas.touches_in_line(area)
                 if len(matches) == 1:
                     accessible_areas[next(iter(matches))].add(area)
                     added = True
@@ -238,11 +246,7 @@ class AltitudeAreaBuilder:
 
         # determine connections between areas
         for i, area in accessible_areas.items():
-            for j in (accessible_areas.index.intersection(area.geometry) - {i}):
-                if not accessible_areas[i].prep.touches(accessible_areas[j].geometry):
-                    continue
-                if not assert_multilinestring(accessible_areas[i].geometry.intersection(accessible_areas[j].geometry)):  # noqa
-                    continue
+            for j in accessible_areas.touches_in_line(area.geometry) - {i}:
                 self.area_connections.append((i+from_i, j+from_i))
 
     def _assign_altitudemarkers(self, accessible_areas: BuildAltitudeAreaDict, altitudemarkers: list[AltitudeMarker],
@@ -250,8 +254,7 @@ class AltitudeAreaBuilder:
         # assign altitude markers to altitude areas
         logger.info(f'    - Assigning altitude markers...')
         for altitudemarker in altitudemarkers:
-            matches = {i for i in accessible_areas.index.intersection(altitudemarker.geometry)  # pragma: nocover
-                       if accessible_areas[i].prep.intersects(unwrap_geom(altitudemarker.geometry))}
+            matches = accessible_areas.intersections(unwrap_geom(altitudemarker.geometry))
             if len(matches) == 1:
                 this_i = next(iter(matches))+from_i
                 if this_i not in self.area_altitudes:
@@ -317,7 +320,7 @@ class AltitudeAreaBuilder:
 
         # divide cut result into accessible ares and obstacle areas
         logger.info(f'    - Processing cut result...')
-        accessible_areas = BuildAltitudeAreaDict()
+        accessible_areas = BuildAltitudeAreaDict[int]()
         obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
         for section in assert_multipolygon(cut_result):
             if obstacles_geom_prep.covers(section):
@@ -492,7 +495,9 @@ class AltitudeAreaBuilder:
         logger.info(f'    - Processing ramps...')
 
         # detect ramps and non-ramps
-        this_areas: BuildAltitudeAreaDict = BuildAltitudeAreaDict()
+        this_areas: BuildAltitudeAreaDict[int | frozenset[AltitudeAreaPoint]] = (
+            BuildAltitudeAreaDict[int | frozenset[AltitudeAreaPoint]]()
+        )
         ramp_areas: list[Union[Polygon, MultiPolygon]] = []
         for i in builder_level.areas:
             if ramps_geom_prep.covers(self.areas[i].geometry):
@@ -510,9 +515,7 @@ class AltitudeAreaBuilder:
         this_areas.keep_index()
         for i, ramp in enumerate(assert_multipolygon(unary_union(ramp_areas))):  # noqa
             points: dict[tuple[float, float], AltitudeAreaPoint] = {}
-            for altitude in this_areas.index.intersection(ramp):
-                if not this_areas[altitude].prep.intersects(ramp):
-                    continue
+            for altitude in this_areas.intersections(ramp):
                 for linestring in assert_multilinestring(this_areas[altitude].geometry.intersection(ramp)):  # noqa
                     points.update({  # pragma: nobranch
                         coords: AltitudeAreaPoint(coordinates=coords, altitude=float(altitude/100))
@@ -558,6 +561,7 @@ class AltitudeAreaBuilder:
             new_remaining_obstacle_areas: list[Union[Polygon, MultiPolygon]] = []
             for obstacle in remaining_obstacle_areas:
                 matched_altitude: int | None = max((
+                    # todo: make this nicer
                     altitude for altitude in this_areas.index.intersection(obstacle)
                     if (this_areas[altitude].prep.intersects(obstacle)
                         and assert_multilinestring(this_areas[altitude].geometry.intersection(obstacle))  # noqa
