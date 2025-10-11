@@ -89,28 +89,20 @@ class AltitudeAreaBuilder:
     def build(cls):
         cls()._build()
 
-    def _collect_level(self, level: Level):
-        logger.info(f'  - Level {level.short_label}')
+    """
+    Collect
+    """
 
-        areas_collect: list[Union[Polygon, MultiPolygon]] = []
-        obstacles_collect: list[Union[Polygon, MultiPolygon]] = []
-        ramps_collect: list[Union[Polygon, MultiPolygon]] = []
-        stairs_collect: list[Union[LineString, MultiLineString]] = []
-
-        spaces_geom: dict[int, Union[Polygon, MultiPolygon]] = {}  # spaces by space id
-        spaces_geom_prep: dict[int, prepared.PreparedGeometry] = {}
-
-        buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
-
-        space_index = Index()
-
-        # how precise can be depends on how big our accessible geom is
-        precision = calculate_precision(
-            GeometryCollection(tuple(unwrap_geom(space.geometry) for space in level.spaces.all()))
-        )
-        logger.info(f'    - Precision: {precision}')
-
+    def _collect_space(self, level: Level, precision: float):
         # collect all accessible areas on this level
+        buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
+        spaces: dict[int, Union[Polygon, MultiPolygon]] = {}  # spaces by space id
+
+        areas: list[Union[Polygon, MultiPolygon]] = []
+        obstacles: list[Union[Polygon, MultiPolygon]] = []
+        ramps: list[Union[Polygon, MultiPolygon]] = []
+        stairs: list[Union[LineString, MultiLineString]] = []
+
         altitudemarkers = []
         for space in level.spaces.all():
             this_area = space.geometry
@@ -124,22 +116,20 @@ class AltitudeAreaBuilder:
             if not this_area.area:
                 continue
             space_clip = this_area.buffer(precision, join_style=JOIN_STYLE.round, quad_segs=2)
-            spaces_geom[space.pk] = space_clip
-            spaces_geom_prep[space.pk] = prepared.prep(space_clip)
-            space_index.insert(space.pk, space_clip)
-            areas_collect.append(this_area)
+            spaces[space.pk] = space_clip
+            areas.append(this_area)
 
-            obstacles_collect.extend(
+            obstacles.extend(
                 space_clip.intersection(geom)
                 for geom in chain(
                     (o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0),
                     (unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0),
                 )
             )
-            ramps_collect.append(space_clip.intersection(
+            ramps.append(space_clip.intersection(
                 unary_union(tuple(unwrap_geom(r.geometry) for r in space.ramps.all()))
             ))
-            stairs_collect.append(space_clip.intersection(
+            stairs.append(space_clip.intersection(
                 unary_union(tuple(unwrap_geom(stair.geometry) for stair in space.stairs.all()))
             ))
 
@@ -155,22 +145,119 @@ class AltitudeAreaBuilder:
 
         altitudemarkers.sort(key=attrgetter("altitude"), reverse=True)
 
-        areas_collect.extend(unwrap_geom(door.geometry) for door in level.doors.all())
+        return areas, ramps, stairs, obstacles, spaces, altitudemarkers
 
-        areas_geom: Union[Polygon, MultiPolygon] = unary_union(areas_collect)  # noqa
-        obstacles_geom: Union[Polygon, MultiPolygon] = unary_union(obstacles_collect)  # noqa
-        ramps_geom: Union[Polygon, MultiPolygon] = unary_union(ramps_collect)  # noqa
+    def _join_trivial_obstacle_areas(
+            self, accessible_areas: list[BuildAltitudeArea],
+            obstacle_areas: list[Union[Polygon, MultiPolygon]]
+    ) -> tuple[list[Union[Polygon, MultiPolygon]], Index]:
+        logger.info(f'    - Joining trivial obstacle areas...')
+        while True:
+            # todo: make index part of a special list type
+            index = Index()
+            for i, area in enumerate(accessible_areas):
+                index.insert(i, area.geometry)
 
-        obstacles_geom_prep = prepared.prep(obstacles_geom.buffer(precision,
-                                                                  join_style=JOIN_STYLE.round, quad_segs=2))
+            old_obstacle_areas = obstacle_areas
+            obstacle_areas = []
+            added = False
+            for area in old_obstacle_areas:
+                matches = {i for i in index.intersection(area)  # pragma: nobranch
+                           if (accessible_areas[i].prep.touches(area) and
+                               assert_multilinestring(accessible_areas[i].geometry.intersection(area)))}  # noqa
+                if len(matches) == 1:
+                    accessible_areas[next(iter(matches))].add(area)
+                    added = True
+                    continue
+                obstacle_areas.append(area)
+
+            if not added:
+                break
+            for area in accessible_areas:
+                area.union()
+        return obstacle_areas, index
+
+    def _assign_spaces(self, spaces: dict[int, Union[Polygon, MultiPolygon]],
+                       accessible_areas: list[BuildAltitudeArea], from_i: int):
+        # assign areas to spaces
+        space_index = Index()
+        for pk, space_clip in spaces.items():
+            space_index.insert(pk, space_clip)
+        for area_i, area in enumerate(accessible_areas):
+            i = 0
+            for space_id in space_index.intersection(area.geometry):
+                if area.prep.intersects(spaces[space_id]):
+                    self.space_areas[space_id].add(from_i+area_i)
+                    i += 1
+            if not i:  # pragma: nocover
+                raise ValueError(f'- Area {area_i} {area.desc} has no space')
+
+    def _prepare_level_graph(self, accessible_areas: list[BuildAltitudeArea], from_i: int, index: Index):
+        logger.info(f'    - Preparing interpolation graph...')
+
+        # determine connections between areas
+        for i, area in enumerate(accessible_areas):
+            for j in (index.intersection(area.geometry) - {i}):
+                if not accessible_areas[i].prep.touches(accessible_areas[j].geometry):
+                    continue
+                if not assert_multilinestring(accessible_areas[i].geometry.intersection(accessible_areas[j].geometry)):  # noqa
+                    continue
+                self.area_connections.append((i+from_i, j+from_i))
+
+    def _assign_altitudemarkers(self, accessible_areas: list[BuildAltitudeArea], altitudemarkers: list[AltitudeMarker],
+                                index: Index, from_i: int, level: str):
+        # assign altitude markers to altitude areas
+        logger.info(f'    - Assigning altitude markers...')
+        for altitudemarker in altitudemarkers:
+            matches = {i for i in index.intersection(altitudemarker.geometry)  # pragma: nocover
+                       if accessible_areas[i].prep.intersects(unwrap_geom(altitudemarker.geometry))}
+            if len(matches) == 1:
+                this_i = next(iter(matches))+from_i
+                if this_i not in self.area_altitudes:
+                    self.area_altitudes[this_i] = float(altitudemarker.groundaltitude.altitude)
+                else:
+                    logger.warning(
+                        _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
+                          f'in Space #{altitudemarker.space_id} on Level {level} '
+                          f'is on the same area as a different altitude marker.')
+                    )
+            elif len(matches) > 1:
+                logger.warning(
+                    _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
+                      f'in Space #{altitudemarker.space_id} on Level {level} '
+                      f'is placed between accessible areas {matches} '
+                      f'{tuple(accessible_areas[i].geometry.representative_point() for i in matches)}')
+                )
+            else:
+                logger.warning(
+                    _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)}'
+                      f'in Space #{altitudemarker.space_id} on Level {level} '
+                      f'is on an obstacle in between altitude areas')
+                )
+
+    def _collect_level(self, level: Level):
+        logger.info(f'  - Level {level.short_label}')
+
+        # how precise can be depends on how big our accessible geom is
+        precision = calculate_precision(GeometryCollection([unwrap_geom(s.geometry) for s in level.spaces.all()]))
+        logger.info(f'    - Precision: {precision}')
+
+        areas, ramps, stairs, obstacles, spaces, altitudemarkers = self._collect_space(level, precision)
+        areas.extend(unwrap_geom(door.geometry) for door in level.doors.all())
+
+        areas_geom: Union[Polygon, MultiPolygon] = unary_union(areas)  # noqa
+        obstacles_geom: Union[Polygon, MultiPolygon] = unary_union(obstacles)  # noqa
+        ramps_geom: Union[Polygon, MultiPolygon] = unary_union(ramps)  # noqa
+
+        obstacles_geom_prep = prepared.prep(obstacles_geom.buffer(precision, join_style=JOIN_STYLE.round, quad_segs=2))
 
         # collect cuts on this level
         stair_ramp_cuts = unary_union(tuple(chain(
             chain.from_iterable(
                 chain((polygon.exterior, ), polygon.interiors)
-                for polygon in chain.from_iterable(assert_multipolygon(ramp) for ramp in chain(ramps_collect))
+                for polygon in chain.from_iterable(assert_multipolygon(ramp) for ramp in chain(ramps))
             ),
-            chain.from_iterable(assert_multilinestring(s) for s in stairs_collect),
+            chain.from_iterable(assert_multilinestring(s) for s in stairs),
         )))
         stair_ramp_cuts_prep = prepared.prep(stair_ramp_cuts)
 
@@ -179,7 +266,7 @@ class AltitudeAreaBuilder:
             assert_multilinestring(stair_ramp_cuts),
             assert_multilinestring(unary_union(tuple(chain.from_iterable(
                 chain((polygon.exterior, ), polygon.interiors)
-                for polygon in chain.from_iterable(assert_multipolygon(obstacle) for obstacle in obstacles_collect
+                for polygon in chain.from_iterable(assert_multipolygon(obstacle) for obstacle in obstacles
                                                    if stair_ramp_cuts_prep.intersects(obstacle))
             ))))
         ))
@@ -215,81 +302,11 @@ class AltitudeAreaBuilder:
         from_i = len(self.areas)
 
         # join obstacle areas into accessible areas if they are only touching one
-        logger.info(f'    - Joining trivial obstacle areas...')
-        while True:
-            index = Index()
-            for i, area in enumerate(accessible_areas):
-                index.insert(i, area.geometry)
+        obstacle_areas, index = self._join_trivial_obstacle_areas(accessible_areas, obstacle_areas)
 
-            old_obstacle_areas = obstacle_areas
-            obstacle_areas = []
-            added = False
-            for area in old_obstacle_areas:
-                matches = {i for i in index.intersection(area)  # pragma: nobranch
-                           if (accessible_areas[i].prep.touches(area) and
-                               assert_multilinestring(accessible_areas[i].geometry.intersection(area)))}  # noqa
-                if len(matches) == 1:
-                    accessible_areas[next(iter(matches))].add(area)
-                    added = True
-                else:
-                    obstacle_areas.append(area)
-
-            if not added:
-                break
-            for area in accessible_areas:
-                area.union()
-
-        del old_obstacle_areas
-
-        logger.info(f'    - Preparing interpolation graph...')
-
-        # assign areas to spaces
-        for area_i, area in enumerate(accessible_areas):
-            i = 0
-            for space_id in space_index.intersection(area.geometry):
-                if area.prep.intersects(spaces_geom[space_id]):
-                    self.space_areas[space_id].add(from_i+area_i)
-                    i += 1
-            if not i:  # pragma: nocover
-                raise ValueError(f'- Area {area_i} {area.desc} has no space')
-
-        # determine connections between areas
-        for i, area in enumerate(accessible_areas):
-            for j in (index.intersection(area.geometry) - {i}):
-                if not accessible_areas[i].prep.touches(accessible_areas[j].geometry):
-                    continue
-                if not assert_multilinestring(accessible_areas[i].geometry.intersection(accessible_areas[j].geometry)):  # noqa
-                    continue
-                self.area_connections.append((i+from_i, j+from_i))
-
-        # assign altitude markers to altitude areas
-        logger.info(f'    - Assigning altitude markers...')
-        for altitudemarker in altitudemarkers:
-            matches = {i for i in index.intersection(altitudemarker.geometry)  # pragma: nocover
-                       if accessible_areas[i].prep.intersects(unwrap_geom(altitudemarker.geometry))}
-            if len(matches) == 1:
-                this_i = next(iter(matches))+from_i
-                if this_i not in self.area_altitudes:
-                    self.area_altitudes[this_i] = float(altitudemarker.groundaltitude.altitude)
-                else:
-                    logger.warning(
-                        _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
-                          f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
-                          f'is on the same area as a different altitude marker.')
-                    )
-            elif len(matches) > 1:
-                logger.warning(
-                    _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
-                      f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
-                      f'is placed between accessible areas {matches} '
-                      f'{tuple(accessible_areas[i].geometry.representative_point() for i in matches)}')
-                )
-            else:
-                logger.warning(
-                    _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)}'
-                      f'in Space #{altitudemarker.space_id} on Level {level.short_label} '
-                      f'is on an obstacle in between altitude areas')
-                )
+        self._assign_spaces(spaces, accessible_areas, from_i)
+        self._prepare_level_graph(accessible_areas, from_i, index)
+        self._assign_altitudemarkers(accessible_areas, altitudemarkers, index, from_i, level.short_label)
 
         self.levels[level.pk] = AltitudeAreaBuilderLevel(
             areas=set(range(len(self.areas), len(self.areas) + len(accessible_areas))),
@@ -308,6 +325,10 @@ class AltitudeAreaBuilder:
         #for area in enumerate(accessible_areas, ):
         #    plot_polygon(area, ax, add_points=False, facecolor="#0000ff50", edgecolor="#0000ff")
         # plt.show()
+
+    """
+    Interpolate Areas
+    """
 
     def _interpolate_areas(self):
         # interpolate altitudes
