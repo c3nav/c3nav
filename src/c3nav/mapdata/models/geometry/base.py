@@ -13,7 +13,8 @@ from shapely.ops import unary_union
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
-from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
+from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom, \
+    comparable_mapping, snap_to_grid_and_fully_normalized
 from c3nav.mapdata.utils.json import format_geojson
 
 geometry_affecting_fields = ('height', 'width', 'access_restriction')
@@ -197,7 +198,7 @@ class CachedEffectiveGeometryMixin(models.Model):
 
             # go through all possible geometries, starting with the least restricted ones
             for geometry, access_restriction_ids in reversed(space.cached_effective_geometries):
-                point = good_representative_point(shape(geometry)).coords[0]
+                point = snap_to_grid_and_fully_normalized(good_representative_point(shape(geometry))).coords[0]
 
                 # seach whether we had this same points as a result before
                 for previous_result in point_results.get(point, []):
@@ -211,8 +212,12 @@ class CachedEffectiveGeometryMixin(models.Model):
                 results.append(item)
 
             # we need to reverse the list back to make the logic work
-            space.cached_points = list(reversed(results))
-            space.save()
+            results = list(reversed(results))
+
+            if results != space.cached_points:
+                space.cached_points = results
+                # no bulk update because that would mess up the changed_geometries logic
+                space.save()
 
     @cached_property
     def _bounds(self) -> LazyMapPermissionFilteredBounds:
@@ -236,7 +241,7 @@ class CachedEffectiveGeometryMixin(models.Model):
                 # into a list of geometries and a list of access restrictions
                 geometries, access_restrictions = zip(*obj.cached_effective_geometries)
 
-                obj.cached_bounds = CachedBounds(*(
+                new_bounds = CachedBounds(*(
                     list(MapPermissionTaggedItem.skip_redundant(
                         (MapPermissionTaggedItem(round(item[0], 2), item[1]) for item in zip(values, access_restrictions)),
                         reverse=(i > 1),  # sort in reverse for maxx/maxy
@@ -245,5 +250,9 @@ class CachedEffectiveGeometryMixin(models.Model):
                     for i, values in enumerate(zip(*(shape(geometry).bounds for geometry in geometries)))
                 ))
             else:
-                obj.cached_bounds = CachedBounds([], [], [], [])
-            obj.save()
+                new_bounds = CachedBounds([], [], [], [])
+
+            if obj.cached_bounds != new_bounds:
+                obj.cached_bounds = new_bounds
+                # no bulk update because that would mess up the changed_geometries logic
+                obj.save()

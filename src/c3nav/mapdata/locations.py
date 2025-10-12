@@ -210,9 +210,11 @@ class LocationManager:
                 "load_group_display",
             ).prefetch_related(
                 "slug_set",
-                "calculated_descendants",
+                "calculated_descendants__slug_set",
                 Prefetch("calculated_ancestors",
-                         LocationTag.objects.order_by("effective_traversal_order")),
+                         LocationTag.objects.order_by("effective_traversal_order").prefetch_related(
+                             "slug_set",
+                         )),
             ).order_by("effective_depth_first_order")
         }
 

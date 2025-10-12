@@ -23,7 +23,7 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeo
 from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.utils.cache.changes import changed_geometries
-from c3nav.mapdata.utils.geometry import (unwrap_geom)
+from c3nav.mapdata.utils.geometry import unwrap_geom, snap_to_grid_and_fully_normalized, comparable_mapping
 
 
 class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
@@ -208,7 +208,7 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
                         continue
 
                     result.append(MapPermissionTaggedItem(
-                        value=geometry,
+                        value=comparable_mapping(geometry),
                         # here we add the access restrictions of the space back in
                         access_restrictions=frozenset(selected_restrictions) | space.effective_access_restrictions,
                     ))
@@ -217,8 +217,9 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
                 logger.warning(f"Space with no effective geometry at all: {space}")
                 pass # todo: some nice warning here wrould be nice… in other places too
 
-            space.cached_effective_geometries = result
-            space.save()
+            if result != space.cached_effective_geometries:
+                space.cached_effective_geometries = result
+                space.save()
 
     @classmethod
     def recalculate_simplified_geometries(cls):
@@ -241,15 +242,18 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
 
                 # create and store item
                 item = MapPermissionTaggedItem(
-                    value=simplified_geometry,
+                    value=comparable_mapping(simplified_geometry),
                     access_restrictions=access_restriction_ids
                 )
                 results_by_area.setdefault(simplified_geometry.area, []).append(item)
                 results.append(item)
 
             # we need to reverse the list back to make the logic work
-            space.cached_simplified_geometries = list(reversed(results))
-            space.save()
+            results = list(reversed(results))
+
+            if space.cached_simplified_geometries != results:
+                space.cached_simplified_geometries = results
+                space.save()
 
     @cached_property
     def _simplified_geometries(self) -> MapPermissionGuardedTaggedValue[Polygon, GeometryCollection]:
