@@ -9,13 +9,13 @@ from c3nav.mapdata.schemas.model_base import (schema_description, LabelSettingsS
                                               DjangoID, PositionIdentifier, CustomLocationIdentifier,
                                               OptionalLocationSlugField)
 
-SubtitleField = Annotated[NonEmptyStr, APIField(
+type SubtitleField = Annotated[NonEmptyStr, APIField(
     title="subtitle (preferred language)",
     description="an automatically generated short description for this location in the " \
                 "preferred language based on the Accept-Language header.",
     examples=["near Area 51"],
 )]
-GridSquare = Annotated[
+type GridSquare = Annotated[
     Union[
         Annotated[NonEmptyStr, APIField(
             title="grid square",

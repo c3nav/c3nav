@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce, cached_property
-from itertools import chain, batched, product, groupby
+from itertools import chain, batched, product
 from operator import attrgetter, itemgetter
 from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Generator
 
@@ -416,12 +416,11 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             ) for parent_id, child_ids in children_by_parent.items()
         ))
         while last_paths:
-            paths_by_cyclic = {cyclic: tuple(paths)
-                               for cyclic, paths in groupby(last_paths, key=lambda p: p.ancestor == p.tag)}
-            for path in paths_by_cyclic.get(True, ()):
+            cyclic_paths = tuple(p for p in last_paths if p.ancestor == p.tag)
+            last_paths = tuple(p for p in last_paths if p.ancestor != p.tag)
+            for path in cyclic_paths:
                 print(f"INCONSISTENCY! Circular hierarchy! Breaking parent→child {path.parent}→{path.tag}")
                 fail = True
-            last_paths = paths_by_cyclic.get(False, ())
             expected_paths[num_hops] = last_paths
 
             num_hops += 1
@@ -486,11 +485,11 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         existing_paths_by_num_hops_and_id: dict[int, dict[int, SimpleLocationTagRelationPathSegmentTuple]] = {}
         existing_path_id_by_tuple: dict[SimpleLocationTagRelationPathSegmentTuple | None, int | None] = {None: None}
 
-        for num_hops, paths in (
-            sorted((num_hops, tuple(paths))
-                   for num_hops, paths in groupby(existing_paths_by_id.items(), key=lambda p: p[1][4]))
-        ):
-            # todo: walrus operator?
+        paths_by_num_hops: dict[int, list[tuple]] = {}
+        for id, path in existing_paths_by_id.items():
+            paths_by_num_hops.setdefault(path[4], []).append((id, path))
+
+        for num_hops, paths in sorted(paths_by_num_hops.items(), key=itemgetter(0)):
             num_hops_paths = {}
             existing_paths_by_num_hops_and_id[num_hops] = num_hops_paths
 
@@ -509,7 +508,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
         delete_ids: deque[int] = deque()
 
-        max_num_hops = max(chain(existing_paths_by_num_hops_and_id.keys(), expected_paths.keys()))
+        max_num_hops = max(chain(existing_paths_by_num_hops_and_id.keys(), expected_paths.keys()), default=0)
         for num_hops in range(max_num_hops+1):
             existing_paths_for_hops = frozenset(existing_paths_by_num_hops_and_id.get(num_hops, {}).values())
             expected_paths_for_hops = frozenset(expected_paths.get(num_hops, ()))
@@ -554,13 +553,10 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         )
         root_tag_ids = tuple(pk for pk, parents in zip(pks, num_parents) if parents == 0)
 
-        children_for_parent = {
-            parent_id: tuple(child_id for p, child_id in children)
-            for parent_id, children in groupby(
-                LocationTagAdjacency.objects.order_by("-child__priority").values_list("parent_id", "child_id"),
-                key=itemgetter(1)
-            )
-        }
+        children_for_parent: dict[int, list[int]] = {}
+        for parent_id, child_id in LocationTagAdjacency.objects.order_by("-child__priority").values_list("parent_id",
+                                                                                                         "child_id"):
+            children_for_parent.setdefault(parent_id, []).append(child_id)
 
         # depth first
         tags_in_depth_first_order: deque[int] = deque(root_tag_ids)
@@ -586,6 +582,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                 tags_in_traversal_order.append(id_)
                 add_tags(children_for_parent.get(id_, ()))
                 tags_in_priority_order.append(id_)
+        add_tags(root_tag_ids)
 
         field = models.PositiveIntegerField()
         for order_name, tag_ids in (("depth_first", tags_in_depth_first_order),
@@ -600,18 +597,23 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             )})
 
     @classmethod
-    def calculate_effective_x(cls, name: str, default=...):
+    def calculate_effective_x(cls, name: str, default=..., null=...):
         output_field = cls._meta.get_field(f"effective_{name}")
         cls.objects.annotate(**{
-            f"parent_effective_{name}": Subquery(LocationTag.objects.filter(**{
-                "calculated_descendants": OuterRef("pk"),
-                f"{name}__isnull": False,
-            }).order_by("effective_priority_order").values(name)[:1]),
+            f"parent_effective_{name}": Subquery(LocationTag.objects.filter(
+                calculated_descendants=OuterRef("pk"),
+            ).exclude(
+                **{f"{name}__isnull": True} if null is ... else {f"{name}": null},
+            ).order_by("effective_priority_order").values(name)[:1]),
             f"new_effective_{name}": (
-                Case(When(**{f"{name}__isnull": False}, then=F(name)),
-                     When(**{f"parent_effective_{name}__isnull": False}, then=F(f"parent_effective_{name}")),
-                     default=F(f"{name}") if default is ... else Value(default, output_field=output_field),
-                     output_field=output_field)
+                Case(
+                    When(condition=~Q(**({f"{name}__isnull": True} if null is ... else {f"{name}": null})),
+                         then=F(name)),
+                    When(condition=~Q(**({f"parent_effective_{name}__isnull": True} if null is ...
+                                         else {f"parent_effective_{name}": null})),
+                         then=F(f"parent_effective_{name}")),
+                    default=F(f"{name}") if default is ... else Value(default, output_field=output_field),
+                    output_field=output_field)
             )
         }).update(**{f"effective_{name}": F(f"new_effective_{name}")})
 
@@ -645,7 +647,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                                                              border=theme_color.border_color)
                     for theme_color in ancestor.theme_colors.all()
                     if (theme_color.theme_id not in tag_colors
-                        and theme_color.fill_color and theme_color.border_color)
+                        and theme_color.fill_color or theme_color.border_color)
                 })
             colors.setdefault(tuple(sorted(tag_colors.items())), set()).add(tag.pk)
 
@@ -691,9 +693,8 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     @classmethod
     def recalculate_cached_from_parents(cls):
         cls.calculate_effective_x("icon")
-        cls.calculate_effective_x("external_url_labels", "{}")
+        cls.calculate_effective_x("external_url_labels", default={}, null={})
         cls.calculate_effective_x("label_settings")
-
         cls.calculate_cached_effective_color()
         cls.calculate_cached_describing_titles()
 
@@ -1231,12 +1232,11 @@ def generate_paths_to_create(
     # get path segments to copy that have no predecessor
     # no predecessor implies: (ancestor, descendant) of its relation are (parent, child) of its adjacency
     # this is why we can use ancestor of the paths segments relation to get the parent of its adjacency
-    first_paths_by_parent: dict[TagID, tuple[RelationPathID, ...]] = {
-        parent: tuple(paths) for parent, paths in groupby(
-            next_paths_for_path_id.pop(None, ()),
-            key=lambda path_id: relations_by_id[relevant_paths_by_id[path_id].relation_id].ancestor
-        )
-    }
+    first_paths_by_parent: dict[TagID, list[RelationPathID]] = {}
+    for path_id in next_paths_for_path_id.pop(None, ()):
+        first_paths_by_parent.setdefault(
+            relations_by_id[relevant_paths_by_id[path_id].relation_id].ancestor, []
+        ).append(path_id)
 
     # copy first path segments of the child's relations and connect them to the created paths segents
     paths_to_create, path_and_ancestor = unzip_paths_to_create(*chain.from_iterable(
