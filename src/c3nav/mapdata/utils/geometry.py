@@ -1,3 +1,4 @@
+import json
 from collections import namedtuple
 from itertools import chain
 from math import ceil, log10
@@ -281,3 +282,7 @@ def merge_bounds(*bounds: "BoundsByLevelSchema") -> "BoundsByLevelSchema":
     zipped_bounds = {level_id: tuple(zip(*level_bounds)) for level_id, level_bounds in collected_bounds.items()}
     return {level_id: ((min(zipped[0]), min(zipped[1])), (max(zipped[2]), max(zipped[3])))
             for level_id, zipped in zipped_bounds.items()}
+
+
+def comparable_mapping(geometry: BaseGeometry) -> dict:
+    return json.loads(json.dumps(shapely_mapping(snap_to_grid_and_fully_normalized(geometry))))

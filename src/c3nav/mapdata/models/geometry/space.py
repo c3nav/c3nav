@@ -10,9 +10,9 @@ from django.utils.translation import gettext_lazy as _
 from django_pydantic_field.fields import SchemaField
 from pydantic_extra_types.mac_address import MacAddress
 from shapely import Polygon, MultiPolygon
-from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping, shape, Point
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, shape, Point, mapping
 
-from c3nav.api.schema import GeometriesByLevelSchema
+from c3nav.api.schema import GeometriesByLevelSchema, PointSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager, AccessRestrictionLogicMixin
@@ -21,12 +21,12 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeo
 from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem
 from c3nav.mapdata.utils.cache.changes import changed_geometries
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry import unwrap_geom, snap_to_grid_and_fully_normalized, comparable_mapping
 from c3nav.mapdata.utils.json import format_geojson
 from c3nav.routing.schemas import BeaconMeasurementDataSchema
 
 if typing.TYPE_CHECKING:
-    from c3nav.mapdata.render.theme import ThemeColorManager
+    pass
 
 
 class SpaceGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
@@ -170,15 +170,19 @@ class Area(CachedEffectiveGeometryMixin, SpaceGeometryMixin, LocationTagTargetMi
 
                 # create and store item
                 item = MapPermissionTaggedItem(
-                    value=geometry,
+                    value=comparable_mapping(geometry),
                     access_restrictions=access_restriction_ids
                 )
                 results_by_area.setdefault(geometry.area, []).append(item)
                 results.append(item)
 
             # we need to reverse the list back to make the logic work
-            area.cached_effective_geometries = list(reversed(results))
-            area.save()
+            results = list(reversed(results))
+
+            if area.cached_effective_geometries != results:
+                area.cached_effective_geometries = results
+                # no bulk update because that would mess up the changed_geometries logic
+                area.save()
 
 
 class Stair(SpaceGeometryMixin, models.Model):
@@ -359,9 +363,9 @@ class POI(SpaceGeometryMixin, LocationTagTargetMixin, AccessRestrictionMixin, mo
         return self.geometry
 
     @property
-    def cached_effective_geometries(self) -> list[MapPermissionTaggedItem[Point]]:
+    def cached_effective_geometries(self) -> list[MapPermissionTaggedItem[PointSchema]]:
         return [MapPermissionTaggedItem(
-            value=self.geometry,
+            value=comparable_mapping(self.geometry),
             access_restrictions=frozenset(self.effective_access_restrictions),
         )]
 
