@@ -5,7 +5,7 @@ import warnings
 from abc import abstractmethod, ABC
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property, lru_cache, reduce
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Generator, Iterable, \
@@ -160,10 +160,10 @@ class MapPermissionsFromUser(MapPermissionsAsSet, metaclass=CachedMapPermissions
 
 @dataclass(frozen=True)  # frozen seemed like a good idea but we could change it – if we rely on it, edit this comment
 class ManualMapPermissions(MapPermissionsAsSet):
-    access_restrictions: set[int]
-    spaces: dict[int, bool]
-    all_base_mapdata: bool
-    view_sources: bool
+    access_restrictions: set[int] = field(default_factory=set)
+    spaces: dict[int, bool] = field(default_factory=dict)
+    all_base_mapdata: bool = False
+    view_sources: bool = False
     full: bool = False
 
     @classmethod

@@ -1,4 +1,5 @@
 import logging
+import time
 from dataclasses import dataclass
 from functools import wraps
 from typing import Callable, Iterable, Optional
@@ -34,6 +35,10 @@ class MapUpdateJobConfig:
     def run(self, mapupdates: tuple[MapUpdate, ...], *, nowait=True):
         logger.info(f'Running job: {self.title}')
         MapUpdate.last_update(nocache=True)
+        from django.db import connection
+        starttime = time.time()
+        if settings.DEBUG:
+            startqueries = len(connection.queries)
         try:
             job = mapupdates[-1].jobs.create(job_type=self.key, status=MapUpdateJobStatus.RUNNING)
         except IntegrityError:
@@ -51,6 +56,11 @@ class MapUpdateJobConfig:
                 job.update_status(MapUpdateJobStatus.SUCCESS if had_effect else MapUpdateJobStatus.SKIPPED)
         if e:
             raise e
+        if settings.DEBUG:
+            logger.info(f'Ended job in {time.time() - starttime:.2f}s '
+                        f'with {len(connection.queries) - startqueries} queries.')
+        else:
+            logger.info(f'Ended job in {time.time() - starttime:.2f}s.')
 
 
 update_job_configs: dict[str, MapUpdateJobConfig] = {}

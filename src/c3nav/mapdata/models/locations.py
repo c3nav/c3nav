@@ -375,7 +375,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                 'title': l.title,  # todo: will translation be used here?
                 'can_search': l.can_search,
             }, l.effective_access_restrictions)
-            for l in sorted(self.calculated_ancestors.all(), key=attrgetter("effective_traversal_order"))
+            for l in self.calculated_ancestors.all()
         ])
 
     @cached_property
@@ -632,7 +632,8 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         for tag in cls.objects.prefetch_related(
                 Prefetch("calculated_ancestors", LocationTag.objects.order_by(
                     "effective_priority_order"
-                ).prefetch_related("theme_colors"))
+                ).prefetch_related("theme_colors")),
+                "theme_colors",
             ):
             tag_colors: ColorByTheme = {}
             for ancestor in chain((tag, ), tag.calculated_ancestors.all()):
@@ -706,7 +707,13 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     @classmethod
     def recalculate_minimum_access_restrictions(cls):
         all_minimum_access_restrictions: dict[tuple[int, ...], set[int]] = {}
-        for tag in cls.objects.prefetch_related("levels", "spaces", "areas", "pois"):
+        from c3nav.mapdata.models import Level, Space, Area, POI
+        for tag in cls.objects.prefetch_related(
+                Prefetch("levels", Level.objects.all()),
+                Prefetch("spaces", Space.objects.select_related("level")),
+                Prefetch("areas", Area.objects.select_related("space", "space__level")),
+                Prefetch("pois", POI.objects.select_related("space", "space__level")),
+        ):
             all_minimum_access_restrictions.setdefault(  # noqa
                 tuple(reduce(
                     operator.and_,
@@ -773,7 +780,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     def recalculate_points(cls):
         for obj in cls.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
             obj: LocationTag
-            obj.cached_points = [
+            new_points = [
                 # we are filtering out versions of this targets points for users who lack certain permissions,
                 list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
                     (MapPermissionTaggedItem( # add primary level to turn the xy coordinates into a location point
@@ -783,7 +790,9 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                     access_restrictions=obj.effective_access_restrictions,
                 )) for target in obj.static_targets
             ]
-            obj.save()
+            if obj.cached_points != new_points:
+                obj.cached_points = new_points
+                obj.save()
 
     @cached_property
     def _points(self) -> MapPermissionGuardedTaggedValueSequence[LocationPoint]:
@@ -823,8 +832,10 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                     # zip the collected bounds into 4 iterators of tagged items
                     for i, values in enumerate(chain(*items) for items in zip(*collected_level_bounds))
                 ))
-            obj.cached_bounds = result
-            obj.save()
+
+            if obj.cached_bounds != result:
+                obj.cached_bounds = result
+                obj.save()
 
     @cached_property
     def _bounds(self) -> dict[int, LazyMapPermissionFilteredBounds]:
@@ -904,8 +915,9 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                             target.cached_effective_geometries, tag.effective_access_restrictions
                         ))
                     )
-            tag.cached_geometries = result
-            tag.save()
+            if tag.cached_geometries != result:
+                tag.cached_geometries = result
+                tag.save()
 
     @cached_property
     def _geometries_by_level(self) -> GeometriesByLevel:
