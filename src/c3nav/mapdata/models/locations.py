@@ -565,9 +565,9 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
                                      children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
             result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
             next_tags: deque[tuple[set[int], list[int]]] = deque([(set(), root_tag_ids)])
-            print("breadth first")
+            #print("breadth first")
             while next_tags:
-                print(next_tags, children_for_parent, result)
+                #print(next_tags, children_for_parent, result)
                 ancestor_ids, tag_ids = next_tags.popleft()
                 for tag_id in tag_ids:
                     result[None].setdefault(tag_id, len(result[None]))
@@ -581,19 +581,20 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
         def calc_depth_first_post_order(root_tag_ids: list[int],
                                         children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
             result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
-            next_tags: deque[tuple[set[int], set[int], list[int]]] = deque([(set(), set(), root_tag_ids)])
-            print("depth first")
+            next_tags: deque[tuple[tuple[int, ...], int, list[int]]] = deque([((None, ), None, root_tag_ids)])
             while next_tags:
-                ancestor_ids, end_ids, tag_ids = next_tags.popleft()
+                ancestor_ids, end, tag_ids = next_tags.popleft()
                 if not tag_ids:
-                    for end_id, ancestor_id in product(end_ids, chain(ancestor_ids, (None, ))):
-                        result[ancestor_id].setdefault(end_id, len(result[ancestor_id]))
-                    continue
+                    end = len(ancestor_ids)-1 if end is None else end
+                    for i, ancestor_id in enumerate(ancestor_ids):
+                        for descendant_id in reversed(ancestor_ids[max((i, end, 1)):]):
+                            result[ancestor_id].setdefault(descendant_id, len(result[ancestor_id]))
+
 
                 for tag_id, is_end in zip(tag_ids, chain(repeat(False, len(tag_ids) - 1), (True,))):
                     next_tags.append((
-                        ancestor_ids | {tag_id},
-                        (end_ids | {tag_id}) if is_end else set(),
+                        ancestor_ids + (tag_id, ),
+                        (len(ancestor_ids)-1 if end is None else end) if is_end else None,
                         children_for_parent[tag_id]
                     ))
 
@@ -605,7 +606,6 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
             result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
             result[None] = {id_: i for i, id_ in enumerate(root_tag_ids)}
             next_tags: deque[tuple[set[int], int | None, list[int]]] = deque([(set(), None, root_tag_ids)])
-            print("depth first 2")
             while next_tags:
                 ancestor_ids, start_id, tag_ids = next_tags.popleft()
                 if start_id is not None:
@@ -644,11 +644,15 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
         leaf_tag_ids = [pk for pk, children in zip(pks, num_children) if children == 0]
 
         children_for_parent: dict[int, list[int]] = defaultdict(list)
-        parents_for_child: dict[int, list[int]] = defaultdict(list)
         for parent_id, child_id in LocationTagAdjacency.objects.order_by("-child__priority").values_list(
                 "parent_id", "child_id"
         ):
             children_for_parent[parent_id].append(child_id)
+
+        parents_for_child: dict[int, list[int]] = defaultdict(list)
+        for parent_id, child_id in LocationTagAdjacency.objects.order_by("-parent__priority").values_list(
+                "parent_id", "child_id"
+        ):
             parents_for_child[child_id].append(parent_id)
 
         downwards_orders = cls.EffectiveOrder.calculate(root_tag_ids, children_for_parent)
@@ -671,7 +675,7 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
             (
                 (f"downwards_{order_name}", cls._tuples_by_value(dict(chain.from_iterable(
                     (((ancestor, descendant), i) for descendant, i in descendants.items())
-                    for ancestor, descendants in upwards.items()
+                    for ancestor, descendants in downwards.items()
                 )))),
                 (f"upwards_{order_name}", cls._tuples_by_value(dict(chain.from_iterable(
                      (((descendant, ancestor), i) for descendant, i in descendants.items())
@@ -745,13 +749,13 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
         # collect ids for each value so we can later bulk-update
         colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
         for tag in cls.objects.prefetch_related(
-                Prefetch("upwards_relations", LocationTagRelation.objects.order_by(  # todo: just order by many to many like in https://stackoverflow.com/posts/49275360/revisions
-                    "effective_upwards_depth_first_pre_order"
-                ).prefetch_related("ancestor__theme_colors")),
+                Prefetch("calculated_ancestors", LocationTag.objects.order_by(
+                    'downwards_relations__effective_upwards_depth_first_pre_order'
+                ).prefetch_related("theme_colors")),
                 "theme_colors",
             ):
             tag_colors: ColorByTheme = {}
-            for ancestor in chain((tag, ), (relation.ancestor for relation in tag.upwards_relations.all())):
+            for ancestor in chain((tag, ), tag.calculated_ancestors.all()):
                 # add colors from this ancestor
                 if ancestor.color and 0 not in tag_colors:
                     tag_colors[0] = FillAndBorderColor(fill=ancestor.color, border=None)
@@ -774,13 +778,12 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
     def calculate_cached_describing_titles(cls):
         all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
         for tag in cls.objects.prefetch_related(
-                Prefetch("upwards_relations", LocationTagRelation.objects.order_by(  # todo: just order by many to many like in https://stackoverflow.com/posts/49275360/revisions
-                    "effective_upwards_depth_first_post_order"
+                Prefetch("calculated_ancestors", LocationTag.objects.order_by(
+                    'downwards_relations__effective_upwards_depth_first_pre_order'
                 )),
             ):
             tag_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
-            for relation in tag.upwards_relations.all():
-                ancestor = relation.ancestor
+            for ancestor in tag.calculated_ancestors.all():
                 if not (ancestor.can_describe and ancestor.titles):
                     continue
                 restrictions: frozenset[int] = (
