@@ -249,7 +249,7 @@ def legend_for_theme(request, theme_id: int):
         raise API404()
     legend_tags = LocationTag.objects.filter(in_legend=True).prefetch_related(
         Prefetch("calculated_descendants", LocationTag.objects.only("pk")),
-    ).order_by("effective_depth_first_order")
+    ).order_by("effective_depth_first_pre_order")
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
         pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),

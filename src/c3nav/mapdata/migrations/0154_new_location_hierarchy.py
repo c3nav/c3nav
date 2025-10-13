@@ -43,6 +43,12 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('ancestor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='downwards_ancestires', to='mapdata.specificlocation')),
                 ('descendant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='upwards_relations', to='mapdata.specificlocation')),
+                ('effective_downwards_breadth_first_order', models.PositiveIntegerField(default=2147483647, editable=False)),
+                ('effective_downwards_depth_first_pre_order', models.PositiveIntegerField(default=2147483647, editable=False)),
+                ('effective_downwards_depth_first_post_order', models.PositiveIntegerField(default=2147483647, editable=False)),
+                ('effective_upwards_breadth_first_order', models.PositiveIntegerField(default=2147483647, editable=False)),
+                ('effective_upwards_depth_first_pre_order', models.PositiveIntegerField(default=2147483647, editable=False)),
+                ('effective_upwards_depth_first_post_order', models.PositiveIntegerField(default=2147483647, editable=False)),
             ],
         ),
         migrations.AddField(
@@ -173,17 +179,32 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='specificlocation',
-            name='effective_depth_first_order',
+            name='effective_downwards_breadth_first_order',
             field=models.PositiveIntegerField(default=2147483647, editable=False),
         ),
         migrations.AddField(
             model_name='specificlocation',
-            name='effective_priority_order',
+            name='effective_downwards_depth_first_pre_order',
             field=models.PositiveIntegerField(default=2147483647, editable=False),
         ),
         migrations.AddField(
             model_name='specificlocation',
-            name='effective_traversal_order',
+            name='effective_downwards_depth_first_post_order',
+            field=models.PositiveIntegerField(default=2147483647, editable=False),
+        ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='effective_upwards_breadth_first_order',
+            field=models.PositiveIntegerField(default=2147483647, editable=False),
+        ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='effective_upwards_depth_first_pre_order',
+            field=models.PositiveIntegerField(default=2147483647, editable=False),
+        ),
+        migrations.AddField(
+            model_name='specificlocation',
+            name='effective_upwards_depth_first_post_order',
             field=models.PositiveIntegerField(default=2147483647, editable=False),
         ),
         migrations.AddField(
