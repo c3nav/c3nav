@@ -1,13 +1,14 @@
 import operator
 import string
+import time
 from collections import deque, defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import reduce, cached_property
-from itertools import chain, batched, product
+from itertools import chain, batched, product, repeat
 from operator import attrgetter, itemgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Generator
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Sequence, NewType, NamedTuple, Generator, Self, Iterable
 
 from django.conf import settings
 from django.core.cache import cache
@@ -107,6 +108,18 @@ CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationTagGeometry | 
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
+class LocationTagOrderMixin(models.Model):
+    class Meta:
+        abstract = True
+
+    effective_downwards_breadth_first_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_downwards_depth_first_pre_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_downwards_depth_first_post_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_upwards_breadth_first_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
+    effective_upwards_depth_first_pre_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
+    effective_upwards_depth_first_post_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
+
+
 class LocationTagAdjacency(models.Model):
     """
     A direct parent-child-relationship between two locations.
@@ -121,7 +134,7 @@ class LocationTagAdjacency(models.Model):
         )
 
 
-class LocationTagRelation(models.Model):
+class LocationTagRelation(LocationTagOrderMixin, models.Model):
     """ Automatically populated. Indicating that there is (at least) one relation path between two locations """
     ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE,
                                  related_name="downwards_ancestires")
@@ -174,7 +187,7 @@ class SimpleLocationTagRelationPathSegmentTuple(NamedTuple):
     num_hops: int
 
 
-class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
+class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
     """
@@ -246,10 +259,6 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     spaces = models.ManyToManyField('Space', related_name="tags")
     areas = models.ManyToManyField('Area', related_name="tags")
     pois = models.ManyToManyField('POI', related_name="tags")
-
-    effective_depth_first_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_priority_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_traversal_order = models.PositiveIntegerField(default=2**31-1, editable=False)
 
     effective_minimum_access_restrictions: frozenset[int] = SchemaField(schema=frozenset[int], default=frozenset)
 
@@ -390,7 +399,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         color = self.get_color(color_manager)
         if color is None:
             return None
-        return self.effective_priority_order, color
+        return self.effective_depth_first_post_order, color
 
     @classmethod
     def evaluate_location_tag_relations(cls):
@@ -540,61 +549,165 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         if fail:
             raise ValueError("verify_location_relation failed")
 
-        print("location tag relation valid")
-
         cls.recalculate_effective_order()
+
+    class EffectiveOrder(NamedTuple):
+        depth_first_pre_order: dict[int | None, dict[int, int]]
+        depth_first_post_order: dict[int | None, dict[int, int]]
+        breadth_first_order: dict[int | None, dict[int, int]]
+
+        depth_first_pre_order: dict[int | None, dict[int, int]]
+        depth_first_post_order: dict[int | None, dict[int, int]]
+        breadth_first_order: dict[int | None, dict[int, int]]
+
+        @staticmethod
+        def calc_breadth_first_order(root_tag_ids: list[int],
+                                     children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
+            result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
+            next_tags: deque[tuple[set[int], list[int]]] = deque([(set(), root_tag_ids)])
+            print("breadth first")
+            while next_tags:
+                print(next_tags, children_for_parent, result)
+                ancestor_ids, tag_ids = next_tags.popleft()
+                for tag_id in tag_ids:
+                    result[None].setdefault(tag_id, len(result[None]))
+                    for ancestor_id in ancestor_ids:
+                        result[ancestor_id].setdefault(tag_id, len(result[ancestor_id]))
+                    next_tags.append((ancestor_ids | {tag_id}, children_for_parent[tag_id]))
+
+            return result
+
+        @staticmethod
+        def calc_depth_first_post_order(root_tag_ids: list[int],
+                                        children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
+            result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
+            next_tags: deque[tuple[set[int], set[int], list[int]]] = deque([(set(), set(), root_tag_ids)])
+            print("depth first")
+            while next_tags:
+                ancestor_ids, end_ids, tag_ids = next_tags.popleft()
+                if not tag_ids:
+                    for end_id, ancestor_id in product(end_ids, chain(ancestor_ids, (None, ))):
+                        result[ancestor_id].setdefault(end_id, len(result[ancestor_id]))
+                    continue
+
+                for tag_id, is_end in zip(tag_ids, chain(repeat(False, len(tag_ids) - 1), (True,))):
+                    next_tags.append((
+                        ancestor_ids | {tag_id},
+                        (end_ids | {tag_id}) if is_end else set(),
+                        children_for_parent[tag_id]
+                    ))
+
+            return result
+
+        @staticmethod
+        def calc_depth_first_pre_order(root_tag_ids: list[int],
+                                       children_for_parent: dict[int, list[int]]):
+            result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
+            result[None] = {id_: i for i, id_ in enumerate(root_tag_ids)}
+            next_tags: deque[tuple[set[int], int | None, list[int]]] = deque([(set(), None, root_tag_ids)])
+            print("depth first 2")
+            while next_tags:
+                ancestor_ids, start_id, tag_ids = next_tags.popleft()
+                if start_id is not None:
+                    for ancestor_id in ancestor_ids:
+                        result[ancestor_id].setdefault(start_id, len(result[ancestor_id]))
+
+                for tag_id in tag_ids:
+                    next_tags.append((ancestor_ids | {tag_id}, tag_id, children_for_parent[tag_id]))
+
+            return result
+
+        @classmethod
+        def calculate(cls, root_tag_ids: list[int], children_for_parent: dict[int, list[int]]) -> Self:
+            return cls(
+                breadth_first_order=cls.calc_breadth_first_order(root_tag_ids, children_for_parent),
+                depth_first_pre_order=cls.calc_depth_first_pre_order(root_tag_ids, children_for_parent),
+                depth_first_post_order=cls.calc_depth_first_post_order(root_tag_ids, children_for_parent),
+            )
+
+    @staticmethod
+    def _tuples_by_value(tuples: dict[tuple[int, int], int]) -> dict[int, set[tuple[int, int]]]:
+        result: dict[int, set[tuple[int, int]]] = defaultdict(set)
+        for t, val in tuples:
+            result[val].add(t)
+        return result
 
     @classmethod
     def recalculate_effective_order(cls):
-        pks, priorities, num_parents = zip(
+        pks, priorities, num_parents, num_children = zip(
             *LocationTag.objects.annotate(
-                Count("parents")
-            ).values_list("pk", "priority", "parents__count").order_by("-priority")
+                Count("parents"),
+                Count("children"),
+            ).values_list("pk", "priority", "parents__count", "children__count").order_by("-priority")
         )
-        root_tag_ids = tuple(pk for pk, parents in zip(pks, num_parents) if parents == 0)
+        root_tag_ids = [pk for pk, parents in zip(pks, num_parents) if parents == 0]
+        leaf_tag_ids = [pk for pk, children in zip(pks, num_children) if children == 0]
 
-        children_for_parent: dict[int, list[int]] = {}
-        for parent_id, child_id in LocationTagAdjacency.objects.order_by("-child__priority").values_list("parent_id",
-                                                                                                         "child_id"):
-            children_for_parent.setdefault(parent_id, []).append(child_id)
+        children_for_parent: dict[int, list[int]] = defaultdict(list)
+        parents_for_child: dict[int, list[int]] = defaultdict(list)
+        for parent_id, child_id in LocationTagAdjacency.objects.order_by("-child__priority").values_list(
+                "parent_id", "child_id"
+        ):
+            children_for_parent[parent_id].append(child_id)
+            parents_for_child[child_id].append(parent_id)
 
-        # depth first
-        tags_in_depth_first_order: deque[int] = deque(root_tag_ids)
-        done_tags: set[int] = set()
-        next_tags: deque[int] = deque(root_tag_ids)
-        while next_tags:
-            tag_id = next_tags.popleft()
-            new_children = tuple(child_id for child_id in children_for_parent.get(tag_id, ())
-                                 if child_id not in done_tags)
-            done_tags.update(new_children)
-            next_tags.extend(new_children)
-            tags_in_depth_first_order.extend(new_children)
+        downwards_orders = cls.EffectiveOrder.calculate(root_tag_ids, children_for_parent)
+        upwards_orders = cls.EffectiveOrder.calculate(leaf_tag_ids, parents_for_child)
 
-        # priority first
-        tags_in_traversal_order: deque[int] = deque()
-        tags_in_priority_order: deque[int] = deque()
-        done_tags.clear()
-        def add_tags(ids: tuple[int, ...]):
-            for id_ in ids:
-                if id_ in done_tags:
-                    continue
-                done_tags.add(id_)
-                tags_in_traversal_order.append(id_)
-                add_tags(children_for_parent.get(id_, ()))
-                tags_in_priority_order.append(id_)
-        add_tags(root_tag_ids)
+        orders_by_name = ("downwards", downwards_orders), ("upwards", upwards_orders)
+        print(orders_by_name)
+        global_orders_by_name: dict[str, dict[int, int]] = dict(chain.from_iterable((
+            (
+                (f"{dir_name}_{order_name}", order)
+                for order_name, order in (
+                    ("breadth_first_order", orders.breadth_first_order.pop(None)),
+                    ("depth_first_pre_order", orders.depth_first_pre_order.pop(None)),
+                    ("depth_first_post_order", orders.depth_first_post_order.pop(None)),
+                )
+            ) for dir_name, orders in orders_by_name)
+        ))
+
+        local_orders_by_name: dict[str, dict[int, set[tuple[int, int]]]] = dict(chain.from_iterable((
+            (
+                (f"downwards_{order_name}", cls._tuples_by_value(dict(chain.from_iterable(
+                    (((ancestor, descendant), i) for descendant, i in descendants.items())
+                    for ancestor, descendants in upwards.items()
+                )))),
+                (f"upwards_{order_name}", cls._tuples_by_value(dict(chain.from_iterable(
+                     (((descendant, ancestor), i) for descendant, i in descendants.items())
+                     for ancestor, descendants in upwards.items()
+                )))),
+            ) for order_name, downwards, upwards in (
+                ("breadth_first_order", *(d.breadth_first_order for dir_name, d in orders_by_name)),
+                ("depth_first_pre_order", *(d.depth_first_pre_order for dir_name, d in orders_by_name)),
+                ("depth_first_post_order", *(d.depth_first_post_order for dir_name, d in orders_by_name)),
+            )
+        )))
 
         field = models.PositiveIntegerField()
-        for order_name, tag_ids in (("depth_first", tags_in_depth_first_order),
-                                         ("traversal", tags_in_traversal_order),
-                                         ("priority", tags_in_priority_order)):
-            LocationTag.objects.update(**{f"effective_{order_name}_order": Case(
-         *(
+        LocationTag.objects.update(**{
+            f"effective_{order_name}": Case(
+                *(
                     When(pk=tag_id, then=Value(i, output_field=field))
-                    for i, tag_id in enumerate(tag_ids)
+                    for tag_id, i in order.items()
                 ),
-                default=Value(2**31-1, output_field=field),
-            )})
+                default=Value(2 ** 31 - 1, output_field=field),
+            )
+            for order_name, order in global_orders_by_name.items()
+        })
+        print("local_orders_by_name", local_orders_by_name)
+        LocationTagRelation.objects.update(**{
+            f"effective_{order_name}": Case(
+                *(
+                    When(condition=reduce(operator.or_, (Q(ancestor_id=ancestor_id, descendant_id=descendant_id)
+                                                         for ancestor_id, descendant_id in tuples)),
+                         then=Value(i, output_field=field))
+                    for i, tuples in order.items()
+                ),
+                default=Value(2 ** 31 - 1, output_field=field),
+            )
+            for order_name, order in local_orders_by_name.items()
+        })
 
     @classmethod
     def calculate_effective_x(cls, name: str, default=..., null=...):
@@ -604,7 +717,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                 calculated_descendants=OuterRef("pk"),
             ).exclude(
                 **{f"{name}__isnull": True} if null is ... else {f"{name}": null},
-            ).order_by("effective_priority_order").values(name)[:1]),
+            ).order_by("effective_depth_first_post_order").values(name)[:1]),
             f"new_effective_{name}": (
                 Case(
                     When(condition=~Q(**({f"{name}__isnull": True} if null is ... else {f"{name}": null})),
@@ -633,7 +746,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
         for tag in cls.objects.prefetch_related(
                 Prefetch("calculated_ancestors", LocationTag.objects.order_by(
-                    "effective_priority_order"
+                    "effective_depth_first_post_order"
                 ).prefetch_related("theme_colors")),
                 "theme_colors",
             ):
@@ -661,7 +774,8 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     def calculate_cached_describing_titles(cls):
         all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
         for tag in cls.objects.prefetch_related(
-                Prefetch("calculated_ancestors", LocationTag.objects.order_by("effective_priority_order"))
+                Prefetch("calculated_ancestors",
+                         LocationTag.objects.order_by("effective_depth_first_post_order"))
             ):
             tag_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
             for ancestor in reversed(tag.calculated_ancestors.all()):
@@ -1442,7 +1556,7 @@ class LocationTagTargetMixin(models.Model):
             raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
             # return LazyMapPermissionFilteredSequence(())
         # noinspection PyUnresolvedReferences
-        return MapPermissionGuardedSequence(sorted(self.tags.all(), key=attrgetter("effective_priority_order")))
+        return MapPermissionGuardedSequence(sorted(self.tags.all(), key=attrgetter("effective_depth_first_post_order")))
 
     @property
     def title(self) -> str:
