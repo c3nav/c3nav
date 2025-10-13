@@ -41,7 +41,7 @@ class Migration(migrations.Migration):
             name='LocationTagRelation',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ancestor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='downwards_ancestires', to='mapdata.specificlocation')),
+                ('ancestor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='downwards_relations', to='mapdata.specificlocation')),
                 ('descendant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='upwards_relations', to='mapdata.specificlocation')),
                 ('effective_downwards_breadth_first_order', models.PositiveIntegerField(default=2147483647, editable=False)),
                 ('effective_downwards_depth_first_pre_order', models.PositiveIntegerField(default=2147483647, editable=False)),

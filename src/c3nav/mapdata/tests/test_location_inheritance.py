@@ -109,7 +109,6 @@ class LocationInheritanceTests(TransactionTestCase):
         tag = LocationTag.objects.create()
         tag.parents.add(parent1_tag)
         tag.parents.add(parent2_tag)
-        print(LocationTag.objects.values_list("pk", "effective_priority_order"))
         self._recalculate()
         tag.refresh_from_db()
 

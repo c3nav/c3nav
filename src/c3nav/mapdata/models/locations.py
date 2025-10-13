@@ -137,7 +137,7 @@ class LocationTagAdjacency(models.Model):
 class LocationTagRelation(LocationTagOrderMixin, models.Model):
     """ Automatically populated. Indicating that there is (at least) one relation path between two locations """
     ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE,
-                                 related_name="downwards_ancestires")
+                                 related_name="downwards_relations")
     descendant = models.ForeignKey("LocationTag", on_delete=models.CASCADE,
                                    related_name="upwards_relations")
 
@@ -628,7 +628,7 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
     @staticmethod
     def _tuples_by_value(tuples: dict[tuple[int, int], int]) -> dict[int, set[tuple[int, int]]]:
         result: dict[int, set[tuple[int, int]]] = defaultdict(set)
-        for t, val in tuples:
+        for t, val in tuples.items():
             result[val].add(t)
         return result
 
@@ -713,11 +713,11 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
     def calculate_effective_x(cls, name: str, default=..., null=...):
         output_field = cls._meta.get_field(f"effective_{name}")
         cls.objects.annotate(**{
-            f"parent_effective_{name}": Subquery(LocationTag.objects.filter(
-                calculated_descendants=OuterRef("pk"),
+            f"parent_effective_{name}": Subquery(LocationTagRelation.objects.filter(
+                descendant=OuterRef("pk"),
             ).exclude(
-                **{f"{name}__isnull": True} if null is ... else {f"{name}": null},
-            ).order_by("effective_depth_first_post_order").values(name)[:1]),
+                **{f"ancestor__{name}__isnull": True} if null is ... else {f"ancestor__{name}": null},
+            ).order_by("effective_upwards_depth_first_pre_order").values(f"ancestor__{name}")[:1]),
             f"new_effective_{name}": (
                 Case(
                     When(condition=~Q(**({f"{name}__isnull": True} if null is ... else {f"{name}": null})),
@@ -745,13 +745,13 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
         # collect ids for each value so we can later bulk-update
         colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
         for tag in cls.objects.prefetch_related(
-                Prefetch("calculated_ancestors", LocationTag.objects.order_by(
-                    "effective_depth_first_post_order"
-                ).prefetch_related("theme_colors")),
+                Prefetch("upwards_relations", LocationTagRelation.objects.order_by(  # todo: just order by many to many like in https://stackoverflow.com/posts/49275360/revisions
+                    "effective_upwards_depth_first_pre_order"
+                ).prefetch_related("ancestor__theme_colors")),
                 "theme_colors",
             ):
             tag_colors: ColorByTheme = {}
-            for ancestor in chain((tag, ), tag.calculated_ancestors.all()):
+            for ancestor in chain((tag, ), (relation.ancestor for relation in tag.upwards_relations.all())):
                 # add colors from this ancestor
                 if ancestor.color and 0 not in tag_colors:
                     tag_colors[0] = FillAndBorderColor(fill=ancestor.color, border=None)
@@ -774,11 +774,13 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
     def calculate_cached_describing_titles(cls):
         all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
         for tag in cls.objects.prefetch_related(
-                Prefetch("calculated_ancestors",
-                         LocationTag.objects.order_by("effective_depth_first_post_order"))
+                Prefetch("upwards_relations", LocationTagRelation.objects.order_by(  # todo: just order by many to many like in https://stackoverflow.com/posts/49275360/revisions
+                    "effective_upwards_depth_first_post_order"
+                )),
             ):
             tag_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
-            for ancestor in reversed(tag.calculated_ancestors.all()):
+            for relation in tag.upwards_relations.all():
+                ancestor = relation.ancestor
                 if not (ancestor.can_describe and ancestor.titles):
                     continue
                 restrictions: frozenset[int] = (
