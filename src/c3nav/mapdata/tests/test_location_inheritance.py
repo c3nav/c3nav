@@ -14,7 +14,7 @@ class LocationInheritanceTests(TransactionTestCase):
 
     def _recalculate(self):
         process.process_location_tag_relations()
-        LocationTag.recalculate_cached_from_parents()
+        process.recalculate_locationtag_cached_from_parents()
 
     def test_single_tag(self):
         tag = LocationTag.objects.create(
