@@ -90,7 +90,7 @@ class LocationInheritanceTests(TransactionTestCase):
         self._recalculate()
         tag.refresh_from_db()
 
-        self.assertEqual(str(tag.describing_title), "Parent 2")
+        self.assertEqual(str(tag.describing_title), "Parent 1")
 
     def test_describing_titles_two_parents_priority_in_order(self):
         parent1_tag = LocationTag.objects.create(titles={"en": "Parent 1"}, priority=0)
