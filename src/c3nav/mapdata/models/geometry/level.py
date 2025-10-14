@@ -359,8 +359,3 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             )(points)
 
         return np.clip(altitudes, a_min=min_altitude, a_max=max_altitude)
-
-    @classmethod
-    def recalculate(cls):
-        from c3nav.mapdata.utils.altitudes import AltitudeAreaBuilder
-        AltitudeAreaBuilder.build()

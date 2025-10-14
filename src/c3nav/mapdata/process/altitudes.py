@@ -699,3 +699,7 @@ class AltitudeAreaBuilder:
                                                                          time.time() - starttime))
         logger.info(_('%(num_modified)d modified, %(num_deleted)d deleted, %(num_created)d created.') %
                     {'num_modified': result.modified, 'num_deleted': result.deleted, 'num_created': result.created})
+
+
+def recalculate_altitudeareas():
+    AltitudeAreaBuilder.build()
