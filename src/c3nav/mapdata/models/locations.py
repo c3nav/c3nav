@@ -582,38 +582,37 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
                                         children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
             result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
             next_tags: deque[tuple[tuple[int, ...], int, list[int]]] = deque([((None, ), None, root_tag_ids)])
-            while next_tags:
-                ancestor_ids, end, tag_ids = next_tags.popleft()
-                if not tag_ids:
-                    end = len(ancestor_ids)-1 if end is None else end
-                    for i, ancestor_id in enumerate(ancestor_ids):
-                        for descendant_id in reversed(ancestor_ids[max((i, end, 1)):]):
-                            result[ancestor_id].setdefault(descendant_id, len(result[ancestor_id]))
+            # print("root_tag_ids=", root_tag_ids, "children_for_parent=", children_for_parent)
+            # print("depth first")
 
+            def add(ancestors: set, descendant_id: int):
+                new_ancestors = ancestors | {descendant_id}
+                for child_id in children_for_parent[descendant_id]:
+                    add(new_ancestors, child_id)
+                for ancestor_id in ancestors:
+                    result[ancestor_id].setdefault(descendant_id, len(result[ancestor_id]))
 
-                for tag_id, is_end in zip(tag_ids, chain(repeat(False, len(tag_ids) - 1), (True,))):
-                    next_tags.append((
-                        ancestor_ids + (tag_id, ),
-                        (len(ancestor_ids)-1 if end is None else end) if is_end else None,
-                        children_for_parent[tag_id]
-                    ))
+            start_ancestors = {None}
+            for root_id in root_tag_ids:
+                add(start_ancestors, root_id)
 
             return result
 
         @staticmethod
         def calc_depth_first_pre_order(root_tag_ids: list[int],
-                                       children_for_parent: dict[int, list[int]]):
+                                       children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
             result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
-            result[None] = {id_: i for i, id_ in enumerate(root_tag_ids)}
-            next_tags: deque[tuple[set[int], int | None, list[int]]] = deque([(set(), None, root_tag_ids)])
-            while next_tags:
-                ancestor_ids, start_id, tag_ids = next_tags.popleft()
-                if start_id is not None:
-                    for ancestor_id in ancestor_ids:
-                        result[ancestor_id].setdefault(start_id, len(result[ancestor_id]))
 
-                for tag_id in tag_ids:
-                    next_tags.append((ancestor_ids | {tag_id}, tag_id, children_for_parent[tag_id]))
+            def add(ancestors: set, descendant_id: int):
+                new_ancestors = ancestors | {descendant_id}
+                for ancestor_id in ancestors:
+                    result[ancestor_id].setdefault(descendant_id, len(result[ancestor_id]))
+                for child_id in children_for_parent[descendant_id]:
+                    add(new_ancestors, child_id)
+
+            start_ancestors = {None}
+            for root_id in root_tag_ids:
+                add(start_ancestors, root_id)
 
             return result
 
@@ -644,14 +643,18 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
         leaf_tag_ids = [pk for pk, children in zip(pks, num_children) if children == 0]
 
         children_for_parent: dict[int, list[int]] = defaultdict(list)
-        for parent_id, child_id in LocationTagAdjacency.objects.order_by("-child__priority").values_list(
-                "parent_id", "child_id"
+        for parent_id, child_id in LocationTagAdjacency.objects.order_by(
+            "-child__priority", "child_id"
+        ).values_list(
+            "parent_id", "child_id"
         ):
             children_for_parent[parent_id].append(child_id)
 
         parents_for_child: dict[int, list[int]] = defaultdict(list)
-        for parent_id, child_id in LocationTagAdjacency.objects.order_by("-parent__priority").values_list(
-                "parent_id", "child_id"
+        for parent_id, child_id in LocationTagAdjacency.objects.order_by(
+            "-parent__priority", "parent_id"
+        ).values_list(
+            "parent_id", "child_id"
         ):
             parents_for_child[child_id].append(parent_id)
 
@@ -659,7 +662,7 @@ class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, mo
         upwards_orders = cls.EffectiveOrder.calculate(leaf_tag_ids, parents_for_child)
 
         orders_by_name = ("downwards", downwards_orders), ("upwards", upwards_orders)
-        print(orders_by_name)
+        #print(orders_by_name)
         global_orders_by_name: dict[str, dict[int, int]] = dict(chain.from_iterable((
             (
                 (f"{dir_name}_{order_name}", order)
