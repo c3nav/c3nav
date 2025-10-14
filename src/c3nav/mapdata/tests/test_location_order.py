@@ -1,8 +1,8 @@
 from django.test.testcases import TransactionTestCase
 
+from c3nav.mapdata import process
 from c3nav.mapdata.models import AccessRestriction, Theme
 from c3nav.mapdata.models.locations import LocationTag, LabelSettings
-from c3nav.mapdata.render.theme import ColorManager
 
 
 class LocationInheritanceTests(TransactionTestCase):
@@ -16,7 +16,7 @@ class LocationInheritanceTests(TransactionTestCase):
         return LocationTag.objects.bulk_create([LocationTag(priority=priority) for priority in priorities])  # pragma: no branch
 
     def _recalculate(self):
-        LocationTag.evaluate_location_tag_relations()
+        process.process_location_tag_relations()
 
     def test_triple_tree_and_two_singles(self):
         parent = LocationTag.objects.create(priority=5, titles={"en": "parent"}) # 8
@@ -31,7 +31,7 @@ class LocationInheritanceTests(TransactionTestCase):
         ]
         for child in children:
             child.parents.add(parent)
-        LocationTag.evaluate_location_tag_relations()
+        self._recalculate()
 
         self.assertQuerySetEqual(
             LocationTag.objects.order_by("effective_downwards_breadth_first_order"),
