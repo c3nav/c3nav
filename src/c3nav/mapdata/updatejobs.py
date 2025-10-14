@@ -10,14 +10,13 @@ from django.utils import timezone
 
 from c3nav.mapdata import process
 from c3nav.mapdata.locations import LocationManager
-from c3nav.mapdata.models import MapUpdate, AltitudeArea, Level, Space, Area
+from c3nav.mapdata.models import MapUpdate, Level, Space, Area
 from c3nav.mapdata.models.locations import LocationTag
 from c3nav.mapdata.models.update import MapUpdateJobStatus, MapUpdateJob
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.render.renderdata import LevelRenderData
 from c3nav.mapdata.tasks import run_mapupdate_job
 from c3nav.mapdata.utils.cache.changes import changed_geometries
-from c3nav.mapdata.process import locationrelation as process_locationrelation
 
 logger = logging.getLogger('c3nav')
 
@@ -277,27 +276,27 @@ def recalculate_locationtag_cached_from_parents(mapupdates: tuple[MapUpdate, ...
 
 @register_mapupdate_job("Location tag static targets", eager=True)
 def recalculate_locationtag_static_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    process.recalculate_all_static_targets()
+    process.recalculate_locationtag_all_static_targets()
     return True
 
 
 @register_mapupdate_job("Location tag dynamic targets", eager=True)
 def recalculate_locationtag_dynamic_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
     # todo: migrate this from groups?
-    process.recalculate_all_position_secrets()
+    process.recalculate_locationtag_all_position_secrets()
     return True
 
 
 @register_mapupdate_job("Location tag target subtitles",
                         eager=True, dependencies=(recalculate_locationtag_cached_from_parents,))
 def recalculate_locationtag_target_subtitles(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    process.recalculate_target_subtitles()
+    process.recalculate_locationtag_target_subtitles()
     return True
 
 
 @register_mapupdate_job("Location tag minimum access restrictions", eager=True)
 def recalculate_locationtag_minimum_access_restrictions(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    process.recalculate_minimum_access_restrictions()
+    process.recalculate_locationtag_minimum_access_restrictions()
     return True
 
 
@@ -389,7 +388,7 @@ def recalculate_locationtag_geometries(mapupdates: tuple[MapUpdate, ...]) -> boo
         logger.info('No geometries affected.')
         return False
 
-    LocationTag.recalculate_geometries()
+    process.recalculate_locationtag_geometries()
     return True
 
 
@@ -400,7 +399,7 @@ def recalculate_locationtag_bounds(mapupdates: tuple[MapUpdate, ...]) -> bool:
         logger.info('No geometries affected.')
         return False
 
-    LocationTag.recalculate_bounds()
+    process.recalculate_locationtag_bounds()
     return True
 
 
@@ -411,7 +410,7 @@ def recalculate_locationtag_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
         logger.info('No geometries affected.')
         return False
 
-    LocationTag.recalculate_points()
+    process.recalculate_locationtag_points()
     return True
 
 
