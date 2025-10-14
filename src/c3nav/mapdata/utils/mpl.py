@@ -108,6 +108,7 @@ class MplMultipolygonPath(MplPathProxy):
         return result
 
 
+# todo: get rid of this? … and the entire file?
 def shapely_to_mpl(geometry: BaseGeometry) -> MplPathProxy:
     """
     convert a shapely Polygon or Multipolygon to a matplotlib Path

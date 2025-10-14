@@ -1,16 +1,19 @@
 import operator
+from collections import deque, defaultdict
 from functools import reduce
 from itertools import chain
 from typing import Sequence
 
 from django.conf import settings
 from django.db.models import Q
-from django.db.models.expressions import F, OuterRef, Subquery, When, Case, Value
+from django.db.models.expressions import F
+from django.db.models.expressions import OuterRef, Subquery, When, Case, Value
 from django.db.models.query import Prefetch
 from django.utils import translation
 
+from c3nav.mapdata.models.geometry.base import CachedBounds
 from c3nav.mapdata.models.locations import FillAndBorderColor, ColorByTheme, LocationTag, StaticLocationTagTarget, \
-    LocationTagRelation
+    LocationTagRelation, CachedBoundsByLevel, CachedGeometriesByLevel, MaskedLocationTagGeometry
 from c3nav.mapdata.permissions import MapPermissionTaggedItem
 
 
@@ -45,7 +48,7 @@ def _locationtag_bulk_cached_update[T](name: str, values: Sequence[tuple[set[int
     ).update(**{name: F(f"new_{name}")})
 
 
-def calculate_cached_effective_color():
+def calculate_locationtag_cached_effective_color():
     # collect ids for each value so we can later bulk-update
     colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
     for tag in LocationTag.objects.prefetch_related(
@@ -75,7 +78,7 @@ def calculate_cached_effective_color():
     )
 
 
-def calculate_cached_describing_titles():
+def calculate_locationtag_cached_describing_titles():
     all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
     for tag in LocationTag.objects.prefetch_related(
             Prefetch("calculated_ancestors", LocationTag.objects.order_by(
@@ -114,11 +117,11 @@ def recalculate_locationtag_cached_from_parents():
     calculate_locationtag_effective_x("icon")
     calculate_locationtag_effective_x("external_url_labels", default={}, null={})
     calculate_locationtag_effective_x("label_settings")
-    calculate_cached_effective_color()
-    calculate_cached_describing_titles()
+    calculate_locationtag_cached_effective_color()
+    calculate_locationtag_cached_describing_titles()
 
 
-def recalculate_minimum_access_restrictions():
+def recalculate_locationtag_minimum_access_restrictions():
     all_minimum_access_restrictions: dict[tuple[int, ...], set[int]] = {}
     from c3nav.mapdata.models import Level, Space, Area, POI
     for tag in LocationTag.objects.prefetch_related(
@@ -143,7 +146,7 @@ def recalculate_minimum_access_restrictions():
     )
 
 
-def recalculate_all_static_targets():
+def recalculate_locationtag_all_static_targets():
     all_static_target_ids: dict[tuple[tuple[tuple[str, int], frozenset[int]], ...], set[int]] = {}
     for obj in LocationTag.objects.prefetch_related("levels", "spaces__level",
                                                     "areas__space__level", "pois__space__level"):
@@ -164,7 +167,7 @@ def recalculate_all_static_targets():
     )
 
 
-def recalculate_all_position_secrets():
+def recalculate_locationtag_all_position_secrets():
     all_position_secrets: dict[tuple[str, ...], set[int]] = {}
 
     for obj in LocationTag.objects.prefetch_related("dynamic_targets"):
@@ -179,7 +182,7 @@ def recalculate_all_position_secrets():
     )
 
 
-def recalculate_target_subtitles():
+def recalculate_locationtag_target_subtitles():
     # todo: make this work better for multiple targets
     all_target_subtitles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
     for obj in LocationTag.objects.prefetch_related("levels",
@@ -210,3 +213,77 @@ def recalculate_target_subtitles():
         ),
         default=[]
     )
+
+
+def recalculate_locationtag_points():
+    for obj in LocationTag.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
+        obj: LocationTag
+        new_points = [
+            # we are filtering out versions of this targets points for users who lack certain permissions,
+            list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
+                (MapPermissionTaggedItem( # add primary level to turn the xy coordinates into a location point
+                    value=(target.primary_level_id, *item.value),
+                    access_restrictions=item.access_restrictions
+                ) for item in target.cached_points),
+                access_restrictions=obj.effective_access_restrictions,
+            )) for target in obj.static_targets
+        ]
+        if obj.cached_points != new_points:
+            obj.cached_points = new_points
+            obj.save()
+
+
+def recalculate_locationtag_bounds():
+    for obj in LocationTag.objects.prefetch_related("levels", "spaces__level",
+                                                    "areas__space__level", "pois__space__level"):
+        obj: LocationTag
+        # collect the cached bounds of all static targets, grouped by level
+        collected_bounds: dict[int, deque[CachedBounds]] = defaultdict(deque)
+        for target in obj.static_targets:
+            collected_bounds[target.primary_level_id].append(target.cached_bounds)
+
+        result: CachedBoundsByLevel = {}
+        for level_id, collected_level_bounds in collected_bounds.items():
+            result[level_id] = CachedBounds(*(
+                list(MapPermissionTaggedItem.skip_redundant(values, reverse=(i > 1)))  # sort reverse for maxx/maxy
+                # zip the collected bounds into 4 iterators of tagged items
+                for i, values in enumerate(chain(*items) for items in zip(*collected_level_bounds))
+            ))
+
+        if obj.cached_bounds != result:
+            obj.cached_bounds = result
+            obj.save()
+
+
+def recalculate_locationtag_geometries():
+    for tag in LocationTag.objects.prefetch_related("levels", "spaces__level", "areas__space__level",
+                                                    "pois__space__level", "levels__tags", "spaces__tags",
+                                                    "areas__tags", "pois__tags",):
+        tag: LocationTag
+        result: CachedGeometriesByLevel = {}
+        for target in tag.static_targets:
+            try:
+                mask = not target.base_mapdata_accessible
+            except AttributeError:
+                mask = False
+            # we are filtering out versions of this target's geometries for users who lack certain permissions,
+            # because being able to see this tag implies certain permissions
+            if mask:
+                result.setdefault(target.primary_level_id, []).append(MaskedLocationTagGeometry(
+                    geometry=list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
+                        target.cached_effective_geometries, tag.effective_access_restrictions
+                    )),
+                    masked_geometry=list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
+                        target.cached_simplified_geometries, tag.effective_access_restrictions
+                    )),
+                    space_id=target.id,
+                ))
+            else:
+                result.setdefault(target.primary_level_id, []).append(
+                    list(MapPermissionTaggedItem.add_restrictions_and_skip_redundant(
+                        target.cached_effective_geometries, tag.effective_access_restrictions
+                    ))
+                )
+        if tag.cached_geometries != result:
+            tag.cached_geometries = result
+            tag.save()
