@@ -271,33 +271,33 @@ def process_locationtag_relations(mapupdates: tuple[MapUpdate, ...]) -> bool:
 @register_mapupdate_job("Location tag cached from parents",
                         eager=True, dependencies=(process_locationtag_relations,))
 def recalculate_locationtag_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationTag.recalculate_cached_from_parents()
+    process.recalculate_locationtag_cached_from_parents()
     return True
 
 
 @register_mapupdate_job("Location tag static targets", eager=True)
 def recalculate_locationtag_static_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationTag.recalculate_all_static_targets()
+    process.recalculate_all_static_targets()
     return True
 
 
 @register_mapupdate_job("Location tag dynamic targets", eager=True)
 def recalculate_locationtag_dynamic_targets(mapupdates: tuple[MapUpdate, ...]) -> bool:
     # todo: migrate this from groups?
-    LocationTag.recalculate_all_position_secrets()
+    process.recalculate_all_position_secrets()
     return True
 
 
 @register_mapupdate_job("Location tag target subtitles",
                         eager=True, dependencies=(recalculate_locationtag_cached_from_parents,))
 def recalculate_locationtag_target_subtitles(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationTag.recalculate_target_subtitles()
+    process.recalculate_target_subtitles()
     return True
 
 
 @register_mapupdate_job("Location tag minimum access restrictions", eager=True)
 def recalculate_locationtag_minimum_access_restrictions(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationTag.recalculate_minimum_access_restrictions()
+    process.recalculate_minimum_access_restrictions()
     return True
 
 
