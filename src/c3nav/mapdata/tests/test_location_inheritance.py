@@ -1,5 +1,6 @@
 from django.test.testcases import TransactionTestCase
 
+from c3nav.mapdata import process
 from c3nav.mapdata.models import AccessRestriction, Theme
 from c3nav.mapdata.models.locations import LocationTag, LabelSettings
 from c3nav.mapdata.render.theme import ColorManager
@@ -12,7 +13,7 @@ class LocationInheritanceTests(TransactionTestCase):
         self.theme = Theme.objects.create(description="MyTheme")
 
     def _recalculate(self):
-        LocationTag.evaluate_location_tag_relations()
+        process.process_location_tag_relations()
         LocationTag.recalculate_cached_from_parents()
 
     def test_single_tag(self):

@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction, DatabaseError
 from django.utils import timezone
 
+from c3nav.mapdata import process
 from c3nav.mapdata.locations import LocationManager
 from c3nav.mapdata.models import MapUpdate, AltitudeArea, Level, Space, Area
 from c3nav.mapdata.models.locations import LocationTag
@@ -16,6 +17,7 @@ from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.render.renderdata import LevelRenderData
 from c3nav.mapdata.tasks import run_mapupdate_job
 from c3nav.mapdata.utils.cache.changes import changed_geometries
+from c3nav.mapdata.process import locationrelation as process_locationrelation
 
 logger = logging.getLogger('c3nav')
 
@@ -260,14 +262,14 @@ def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
 
 
 # todo: make this a transaction?? is it already?
-@register_mapupdate_job("evaluate location relations", eager=True, dependencies=set())
-def evaluate_locationtag_relations(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationTag.evaluate_location_tag_relations()
+@register_mapupdate_job("process location relations", eager=True, dependencies=set())
+def process_locationtag_relations(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    process.process_location_tag_relations()
     return True
 
 
 @register_mapupdate_job("Location tag cached from parents",
-                        eager=True, dependencies=(evaluate_locationtag_relations,))
+                        eager=True, dependencies=(process_locationtag_relations,))
 def recalculate_locationtag_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
     LocationTag.recalculate_cached_from_parents()
     return True
@@ -442,7 +444,7 @@ def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
 
     logger.info('Recalculating altitude areas...')
 
-    AltitudeArea.recalculate()
+    process.recalculate_altitudeareas()
 
     logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
 
