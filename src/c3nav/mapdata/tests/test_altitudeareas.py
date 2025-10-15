@@ -10,6 +10,7 @@ from c3nav.mapdata.models import AltitudeArea, Level, Space, Stair, AltitudeMark
     LineObstacle, AccessRestriction
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint, Building
 from c3nav.mapdata.models.geometry.space import Column, Hole, Ramp
+from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
@@ -46,14 +47,15 @@ class PolygonCuttingTests(TransactionTestCase):
         self.restriction_1 = AccessRestriction.objects.create(titles={"en": "Restriction 1"})
 
     def _assertAltitudeAreas(self, expected: set[ExpectedAltitudeArea]) -> tuple[int, ...]:
+        self._recalculate()
         actual = {ExpectedAltitudeArea.from_altitudearea(area): area.pk    # pragma: no branch
                   for area in AltitudeArea.objects.all()}
         self.assertSetEqual(set(actual), expected)
         return tuple(actual.values())  # noqa
 
-    def test_no_data(self):
-        process.recalculate_altitudeareas()
-        self.assertFalse(AltitudeArea.objects.exists())
+    def _recalculate(self):
+        with active_map_permissions.disable_access_checks():  # todo: have the permissions thing be part of the tasks?
+            process.recalculate_altitudeareas()
 
     def _create_level(self, altitude: Decimal = None) -> Level:
         if altitude is None:  # pragma: no branch
@@ -71,22 +73,23 @@ class PolygonCuttingTests(TransactionTestCase):
             outside=outside,
         )
 
+    def test_no_data(self):
+        self._assertAltitudeAreas(set())
+
     def test_level_no_spaces(self):
         self._create_level()
-        process.recalculate_altitudeareas()
         self._assertAltitudeAreas(set())
 
     def test_one_space_filled_with_hole(self):
         level = self._create_level()
         space = self._create_space(level)
         Hole.objects.create(space=space, geometry=box(-10, -10, 110, 110))
-        process.recalculate_altitudeareas()
         self._assertAltitudeAreas(set())
 
     def test_one_space_no_marker(self):
         level = self._create_level()
         space = self._create_space(level)
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, geometry=space.geometry, altitude=self.altitude)
         })
@@ -95,7 +98,7 @@ class PolygonCuttingTests(TransactionTestCase):
         level = self._create_level()
         space = self._create_space(level)
         Stair.objects.create(space=space, geometry=LineString([(50, -1), (50, 101)]))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, geometry=space.geometry, altitude=self.altitude)
         })
@@ -110,7 +113,6 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(80, 50),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
 
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 30, 100)),
@@ -129,7 +131,6 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
 
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 50, 50)),
@@ -149,7 +150,6 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(110, 50),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
 
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100)),
@@ -165,7 +165,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(95, 95),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 40, 100)),
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.50"), geometry=box(40, 0, 60, 100)),
@@ -181,7 +181,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"),
                                      geometry=Polygon([(0, 0), (50, 0), (50, 49), (49, 49), (49, 100), (0, 100)])),
@@ -198,7 +198,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(
                 level=level, altitude=Decimal("1.00"),
@@ -219,7 +219,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=box(0, 0, 100, 100)),
         })
@@ -233,7 +233,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 50, 100)),
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=box(50, 0, 100, 100)),
@@ -249,7 +249,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 40, 100)),
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.50"), geometry=box(40, 0, 60, 100)),
@@ -265,7 +265,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(60, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100)),
         })
@@ -277,7 +277,7 @@ class PolygonCuttingTests(TransactionTestCase):
         LineObstacle.objects.create(space=space, geometry=LineString([(50, 49), (50, 101)]), width=0.2)
         AltitudeMarker.objects.create(space=space, geometry=Point(50.05, 70),
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=self.altitude, geometry=box(0, 0, 100, 100)),
         })
@@ -297,7 +297,7 @@ class PolygonCuttingTests(TransactionTestCase):
         AltitudeMarker.objects.create(space=space, geometry=Point(-20, 5), groundaltitude=altitude1)
         AltitudeMarker.objects.create(space=space, geometry=Point(20, 5), groundaltitude=altitude1)
         AltitudeMarker.objects.create(space=space, geometry=Point(0, 25), groundaltitude=altitude2)
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=MultiPolygon((
                 box(-25, 0, -15, 10), box(15, 0, 25, 10)
@@ -319,7 +319,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space2, geometry=Point(250, 70),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100)),
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=MultiPolygon((box(200, 0, 300, 100),
@@ -335,7 +335,7 @@ class PolygonCuttingTests(TransactionTestCase):
         )
         AltitudeMarker.objects.create(space=space, geometry=Point(5, 5),
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=self.altitude,
                                      geometry=Polygon([(0, 10), (10, 10), (10, 0), (100, 0), (100, 100), (0, 100)])),
@@ -360,7 +360,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space2, geometry=Point(50, 50),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"),
                                      geometry=box(0, 0, 100, 100).difference(box(40, 40, 60, 60))),
@@ -387,7 +387,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(50, 50),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=box(0, 0, 100, 100)),
         })
@@ -411,7 +411,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space2, geometry=Point(50, 50),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100).difference(box(40, 40, 60, 60))),
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=box(45, 45, 55, 55)),
@@ -425,7 +425,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space2, geometry=Point(100, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("2.00"), geometry=box(0, 0, 110, 100)),
         })
@@ -441,7 +441,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(1, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="3", altitude=Decimal("3.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("3.00"), geometry=box(0, 0, 10, 100)),
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(10, 0, 20, 100)),
@@ -464,7 +464,7 @@ class PolygonCuttingTests(TransactionTestCase):
         Ramp.objects.create(space=space, geometry=box(20, -1, 101, 100))
         AltitudeMarker.objects.create(space=space, geometry=Point(10, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100)),
         })
@@ -477,7 +477,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="1a", altitude=Decimal("1.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 10),
                                       groundaltitude=GroundAltitude.objects.create(name="1b", altitude=Decimal("1.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 100, 100)),
         })
@@ -492,7 +492,7 @@ class PolygonCuttingTests(TransactionTestCase):
                                       groundaltitude=GroundAltitude.objects.create(name="2", altitude=Decimal("2.00")))
         AltitudeMarker.objects.create(space=space, geometry=Point(90, 90),
                                       groundaltitude=GroundAltitude.objects.create(name="3", altitude=Decimal("3.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=box(0, 0, 20, 100)),
             ExpectedAltitudeArea.new(
@@ -511,7 +511,7 @@ class PolygonCuttingTests(TransactionTestCase):
         level = self._create_level()
         space = self._create_space(level)
         Ramp.objects.create(space=space, geometry=box(-1, -1, 101, 100))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=self.altitude, geometry=box(0, 0, 100, 100)),
         })
@@ -524,7 +524,7 @@ class PolygonCuttingTests(TransactionTestCase):
         space2 = Space.objects.create(level=level, geometry=space2_polygon)
         AltitudeMarker.objects.create(space=space2, geometry=Point(-6, -6),
                                       groundaltitude=GroundAltitude.objects.create(name="1", altitude=Decimal("1.00")))
-        process.recalculate_altitudeareas()
+
         self._assertAltitudeAreas({
             ExpectedAltitudeArea.new(level=level, altitude=Decimal("1.00"), geometry=space2_polygon),
             ExpectedAltitudeArea.new(level=level, altitude=self.altitude, geometry=box(0, 0, 100, 100)),
