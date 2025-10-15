@@ -5,6 +5,7 @@ from django.test.testcases import TransactionTestCase
 from c3nav.mapdata import process
 from c3nav.mapdata.models import AccessRestriction, Theme
 from c3nav.mapdata.models.locations import LocationTag, LabelSettings
+from c3nav.mapdata.permissions import active_map_permissions
 
 
 class LocationTagDirectionOrders(NamedTuple):
@@ -45,7 +46,8 @@ class LocationTagOrderTests(TransactionTestCase):
         ))
 
     def assertLocationOrder(self, expected: ExpectedLocationTagOrderResult):
-        process.process_location_tag_relations()
+        with active_map_permissions.disable_access_checks():  # todo: have the permissions thing be part of the tasks?
+            process.process_location_tag_relations()
         for direction in ("downwards", "upwards"):
             for order_label in ("breadth_first_order", "depth_first_pre_order", "depth_first_post_order"):
                 self.assertQuerySetEqual(
@@ -95,6 +97,38 @@ class LocationTagOrderTests(TransactionTestCase):
             },
             descendants={
                 parent: LocationTagDirectionOrders.all((children[0], children[2], children[1])),
+            },
+        ))
+
+    def test_two_lines(self):
+        r"""
+        parent(1)  parent(0)
+            |          |
+         child(2)   child(3)
+        """
+        parents = self._create_tags("parent", (1, 0))
+        children = self._create_tags("child", (2, 3))
+        for parent, child in zip(parents, children):
+            child.parents.add(parent)
+
+        self.assertLocationOrder(ExpectedLocationTagOrderResult(
+            downwards=LocationTagDirectionOrders(
+                breadth_first_order=(parents[0], parents[1], children[0], children[1]),
+                depth_first_pre_order=(parents[0], children[0], parents[1], children[1]),
+                depth_first_post_order=(children[0], parents[0], children[1], parents[1]),
+            ),
+            upwards=LocationTagDirectionOrders(
+                breadth_first_order=(children[1], children[0], parents[1], parents[0]),
+                depth_first_pre_order=(children[1], parents[1], children[0], parents[0]),
+                depth_first_post_order=(parents[1], children[1], parents[0], children[0]),
+            ),
+            ancestors={
+                children[0]: LocationTagDirectionOrders.all((parents[0],)),
+                children[1]: LocationTagDirectionOrders.all((parents[1],)),
+            },
+            descendants={
+                parents[0]: LocationTagDirectionOrders.all((children[0],)),
+                parents[1]: LocationTagDirectionOrders.all((children[1],)),
             },
         ))
 

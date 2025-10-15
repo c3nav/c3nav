@@ -47,7 +47,6 @@ def _locationtag_bulk_cached_update[T](name: str, values: Sequence[tuple[set[int
         )}
     ).update(**{name: F(f"new_{name}")})
 
-
 def calculate_locationtag_cached_effective_color():
     # collect ids for each value so we can later bulk-update
     colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
@@ -82,7 +81,7 @@ def calculate_locationtag_cached_describing_titles():
     all_describing_titles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
     for tag in LocationTag.objects.prefetch_related(
             Prefetch("calculated_ancestors", LocationTag.objects.order_by(
-                'downwards_relations__effective_upwards_depth_first_pre_order'
+                "effective_downwards_depth_first_post_order"
             )),
         ):
         tag_describing_titles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
