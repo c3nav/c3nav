@@ -92,7 +92,7 @@ def calculate_locationtag_cached_describing_titles():
                 frozenset((ancestor.access_restriction_id,)) if ancestor.access_restriction_id else frozenset()
             )
             titles: tuple[tuple[str, str], ...] = tuple(ancestor.titles.items())  # noqa
-            if not restrictions or all((restrictions-other_restrictions)
+            if not restrictions or all((restrictions-other_restrictions)  # pragma: nobranch
                                        for titles, other_restrictions in tag_describing_titles):
                 # new restriction set was not covered by previous ones
                 tag_describing_titles.append((titles, restrictions))
