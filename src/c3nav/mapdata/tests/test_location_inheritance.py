@@ -3,6 +3,7 @@ from django.test.testcases import TransactionTestCase
 from c3nav.mapdata import process
 from c3nav.mapdata.models import AccessRestriction, Theme
 from c3nav.mapdata.models.locations import LocationTag, LabelSettings
+from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
 from c3nav.mapdata.render.theme import ColorManager
 
 
@@ -13,8 +14,9 @@ class LocationInheritanceTests(TransactionTestCase):
         self.theme = Theme.objects.create(description="MyTheme")
 
     def _recalculate(self):
-        process.process_location_tag_relations()
-        process.recalculate_locationtag_cached_from_parents()
+        with active_map_permissions.disable_access_checks():  # todo: have the permissions thing be part of the tasks?
+            process.process_location_tag_relations()
+            process.recalculate_locationtag_cached_from_parents()
 
     def test_single_tag(self):
         tag = LocationTag.objects.create(
@@ -114,3 +116,26 @@ class LocationInheritanceTests(TransactionTestCase):
         tag.refresh_from_db()
 
         self.assertEqual(str(tag.describing_title), "Parent 1")
+
+    def test_describing_titles_two_level_tree_with_permissions(self):
+        parent1_tag = LocationTag.objects.create(titles={"en": "Parent 1"}, priority=1)
+        parent2_tag = LocationTag.objects.create(titles={"de": "Parent 2"}, priority=0)
+        child1_tag = LocationTag.objects.create(titles={"de": "Child 1"}, priority=2,
+                                                access_restriction=self.access_restriction)
+        child2_tag = LocationTag.objects.create(titles={"de": "Child 2"}, priority=3)
+        child1_tag.parents.add(parent1_tag)
+        child2_tag.parents.add(parent2_tag)
+        tag = LocationTag.objects.create()
+        tag.parents.add(child1_tag)
+        tag.parents.add(child2_tag)
+        self._recalculate()
+
+        with active_map_permissions.override(ManualMapPermissions(access_restrictions={self.access_restriction.pk})):
+            tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+            self.assertEqual(str(tag.describing_title), "Child 1",
+                             msg="Describing title with access permission doesn't match")
+
+        with active_map_permissions.override(ManualMapPermissions()):
+            tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+            self.assertEqual(str(tag.describing_title), "Parent 1",
+                             msg="Describing title without access permission doesn't match")
