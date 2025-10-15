@@ -12,6 +12,14 @@ class LocationTagDirectionOrders(NamedTuple):
     depth_first_pre_order: tuple[LocationTag, ...]
     depth_first_post_order: tuple[LocationTag, ...]
 
+    @classmethod
+    def none(cls):
+        return cls((), (), ())
+
+    @classmethod
+    def all(cls, order: tuple[LocationTag, ...]):
+        return cls(order, order, order)
+
 
 class ExpectedLocationTagOrderResult(NamedTuple):
     upwards: LocationTagDirectionOrders
@@ -46,14 +54,15 @@ class LocationTagOrderTests(TransactionTestCase):
                     msg=f"{direction} {order_label.replace("_", " ")} doesn't match"
                 )
 
-        for relation, direction in (("ancestors", "upwards_relations__effective_downwards_"),
-                                    ("descendants", "downwards_relations__effective_upwards_")):
+        for relation, direction in (("ancestors", "downwards_relations__effective_upwards"),
+                                    ("descendants", "upwards_relations__effective_downwards")):
             for tag, orders in getattr(expected, relation).items():
                 for order_label in ("breadth_first_order", "depth_first_pre_order", "depth_first_post_order"):
+                    #print("order_by", f'{direction}_{order_label}')
                     self.assertQuerySetEqual(
                         getattr(tag, f"calculated_{relation}").order_by(f'{direction}_{order_label}'),
                         getattr(orders, order_label),
-                        msg=f"{tag} {relation} {order_label.replace("_", " ")} doesn't match"
+                        msg=f"{tag!r} {relation} {order_label.replace("_", " ")} doesn't match: ()"
                     )
 
     def test_triple_tree_and_two_singles(self):
@@ -80,5 +89,7 @@ class LocationTagOrderTests(TransactionTestCase):
                 depth_first_post_order=(singles[1], parent, children[0], singles[0], children[2], children[1]),
             ),
             ancestors={},
-            descendants={},
+            descendants={
+                parent: LocationTagDirectionOrders.all((children[0], children[2], children[1])),
+            },
         ))
