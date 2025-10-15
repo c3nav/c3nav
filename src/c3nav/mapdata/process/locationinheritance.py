@@ -20,11 +20,11 @@ from c3nav.mapdata.permissions import MapPermissionTaggedItem
 def calculate_locationtag_effective_x(name: str, default=..., null=...):
     output_field = LocationTag._meta.get_field(f"effective_{name}")
     LocationTag.objects.annotate(**{
-        f"parent_effective_{name}": Subquery(LocationTagRelation.objects.filter(
-            descendant=OuterRef("pk"),
+        f"parent_effective_{name}": Subquery(LocationTag.objects.filter(
+            calculated_descendants=OuterRef("pk"),
         ).exclude(
-            **{f"ancestor__{name}__isnull": True} if null is ... else {f"ancestor__{name}": null},
-        ).order_by("effective_upwards_depth_first_pre_order").values(f"ancestor__{name}")[:1]),
+            **{f"{name}__isnull": True} if null is ... else {f"{name}": null},
+        ).order_by("effective_downwards_depth_first_post_order").values(f"{name}")[:1]),
         f"new_effective_{name}": (
             Case(
                 When(condition=~Q(**({f"{name}__isnull": True} if null is ... else {f"{name}": null})),
@@ -47,12 +47,13 @@ def _locationtag_bulk_cached_update[T](name: str, values: Sequence[tuple[set[int
         )}
     ).update(**{name: F(f"new_{name}")})
 
+
 def calculate_locationtag_cached_effective_color():
     # collect ids for each value so we can later bulk-update
     colors: dict[tuple[tuple[int, FillAndBorderColor], ...], set[int]] = {}
     for tag in LocationTag.objects.prefetch_related(
             Prefetch("calculated_ancestors", LocationTag.objects.order_by(
-                'downwards_relations__effective_upwards_depth_first_pre_order'
+                "effective_downwards_depth_first_post_order"
             ).prefetch_related("theme_colors")),
             "theme_colors",
         ):

@@ -71,6 +71,71 @@ class LocationInheritanceTests(TransactionTestCase):
         self.assertEqual(tag.cached_describing_titles, [])
         self.assertEqual(str(tag.describing_title), "")
 
+    def test_complex_inheritance(self):
+        label_settings = LabelSettings.objects.bulk_create([LabelSettings() for i in range(5)])
+        parent1_tag, parent2_tag, child1_tag, child2_tag = tuple(
+            LocationTag.objects.create(
+                icon=f"{label}icon",
+                external_url_labels={"en": f"{label}urllabel"},
+                label_settings=label_settings[i],
+                color=f"{label}color",
+                access_restriction=access_restriction,
+            ) for i, (label, access_restriction) in enumerate((("parent1", None),
+                                                               ("parent2", None),
+                                                               ("child1", self.access_restriction),
+                                                               ("child2", None)))
+        )
+        child1_tag.parents.add(parent1_tag)
+        child2_tag.parents.add(parent2_tag)
+
+        tag = LocationTag.objects.create()
+        tag.parents.add(child1_tag)
+        tag.parents.add(child2_tag)
+        self._recalculate()
+
+        with active_map_permissions.override(ManualMapPermissions(access_restrictions={self.access_restriction.pk})):
+            tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+            self.assertEqual(tag.effective_icon, "child1icon")
+            self.assertEqual(tag.effective_external_url_labels, {"en": "child1urllabel"})
+            self.assertEqual(tag.effective_label_settings_id, label_settings[2].pk)
+            self.assertEqual(tag.get_color(ColorManager.for_theme(theme=None)), "child1color")
+
+        # todo: feature for the future?
+        #with active_map_permissions.override(ManualMapPermissions()):
+        #    tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+        #    self.assertEqual(tag.effective_icon, "parent1icon")
+        #    self.assertEqual(tag.effective_external_url_labels, {"en": "parent1urllabel"})
+        #    self.assertEqual(tag.effective_label_settings_id, label_settings[0].pk)
+        #    self.assertEqual(tag.get_color(ColorManager.for_theme(theme=None)), "parent1color")
+
+        tag.icon = "newicon"
+        tag.save()
+        self._recalculate()
+        with active_map_permissions.override(ManualMapPermissions()):
+            tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+            self.assertEqual(tag.effective_icon, "newicon")
+
+        tag.external_url_labels = {"en": "newlabel"}
+        tag.save()
+        self._recalculate()
+        with active_map_permissions.override(ManualMapPermissions()):
+            tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+            self.assertEqual(tag.effective_external_url_labels, {"en": "newlabel"})
+
+        tag.label_settings = label_settings[4]
+        tag.save()
+        self._recalculate()
+        with active_map_permissions.override(ManualMapPermissions()):
+            tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+            self.assertEqual(tag.effective_label_settings_id, label_settings[4].pk)
+
+        tag.color = "newcolor"
+        tag.save()
+        self._recalculate()
+        with active_map_permissions.override(ManualMapPermissions()):
+            tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
+            self.assertEqual(tag.get_color(ColorManager.for_theme(theme=None)), "newcolor")
+
     """
     Describing titles
     """
