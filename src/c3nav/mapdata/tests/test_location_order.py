@@ -88,8 +88,69 @@ class LocationTagOrderTests(TransactionTestCase):
                 depth_first_pre_order=(singles[1], children[0], parent, singles[0], children[2], children[1]),
                 depth_first_post_order=(singles[1], parent, children[0], singles[0], children[2], children[1]),
             ),
-            ancestors={},
+            ancestors={
+                children[0]: LocationTagDirectionOrders.all((parent,)),
+                children[1]: LocationTagDirectionOrders.all((parent,)),
+                children[2]: LocationTagDirectionOrders.all((parent,)),
+            },
             descendants={
                 parent: LocationTagDirectionOrders.all((children[0], children[2], children[1])),
+            },
+        ))
+
+    def test_quad_and_two_singles(self):
+        r"""
+                 sup(6)
+         --------/  / \
+        /          /   \
+        |  parent(4)   parent(5)
+         \          \ /
+          \      ----+----
+           \    /    |    \
+        child(7) child(1)  child(2)
+        """
+        sup = self._create_tag("superparent", 6)
+        parents = self._create_tags("parent", (4, 5))
+        children = self._create_tags("child", (7, 1, 2))
+        for parent in parents:
+            parent.parents.add(sup)
+            for child in children:
+                child.parents.add(parent)
+        children[0].parents.add(sup)
+
+        self.assertLocationOrder(ExpectedLocationTagOrderResult(
+            downwards=LocationTagDirectionOrders(
+                breadth_first_order=(sup, children[0], parents[1], parents[0], children[2], children[1]),
+                depth_first_pre_order=(sup, children[0], parents[1], children[2], children[1], parents[0]),
+                depth_first_post_order=(children[0], children[2], children[1], parents[1], parents[0], sup),
+            ),
+            upwards=LocationTagDirectionOrders(
+                breadth_first_order=(children[0], children[2], children[1], sup, parents[1], parents[0]),
+                depth_first_pre_order=(children[0], sup, parents[1], parents[0], children[2], children[1]),
+                depth_first_post_order=(sup, parents[1], parents[0], children[0], children[2], children[1]),
+            ),
+            ancestors={
+                parents[0]: LocationTagDirectionOrders.all((sup,)),
+                parents[1]: LocationTagDirectionOrders.all((sup,)),
+                children[0]: LocationTagDirectionOrders.all((sup, parents[1], parents[0])),
+                children[1]: LocationTagDirectionOrders(
+                    breadth_first_order=(parents[1], parents[0], sup),
+                    depth_first_pre_order=(parents[1], sup, parents[0]),
+                    depth_first_post_order = (sup, parents[1], parents[0]),
+                ),
+                children[2]: LocationTagDirectionOrders(
+                    breadth_first_order=(parents[1], parents[0], sup),
+                    depth_first_pre_order=(parents[1], sup, parents[0]),
+                    depth_first_post_order=(sup, parents[1], parents[0]),
+                ),
+            },
+            descendants={
+                sup: LocationTagDirectionOrders(
+                    breadth_first_order=(children[0], parents[1], parents[0], children[2], children[1]),
+                    depth_first_pre_order=(children[0], parents[1], children[2], children[1], parents[0]),
+                    depth_first_post_order=(children[0], children[2], children[1], parents[1], parents[0]),
+                ),
+                parents[0]: LocationTagDirectionOrders.all((children[0], children[2], children[1])),
+                parents[1]: LocationTagDirectionOrders.all((children[0], children[2], children[1])),
             },
         ))
