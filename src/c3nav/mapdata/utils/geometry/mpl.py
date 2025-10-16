@@ -10,6 +10,9 @@ from shapely.geometry.base import BaseGeometry
 from c3nav.mapdata.utils.geometry.inspect import assert_multipolygon
 
 
+# todo: get rid of this file?
+
+
 class MplPathProxy(ABC):
     @abstractmethod
     def intersects_path(self, path: Path, filled: bool = False) -> bool:
