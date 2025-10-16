@@ -11,7 +11,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from c3nav.mapdata.render.geometry.mesh import Mesh
-from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.geometry.inspect import assert_multipolygon
 from c3nav.mapdata.utils.mesh import triangulate_polygon
 
 
@@ -55,7 +55,7 @@ class HybridGeometry:
         """
         if isinstance(geom, (LineString, MultiLineString)):
             return HybridGeometry(geom, ())
-        from c3nav.mapdata.utils.mpl import shapely_to_mpl  # moved in here to save memory
+        from c3nav.mapdata.utils.geometry.mpl import shapely_to_mpl  # moved in here to save memory
         faces = tuple(
             set(np.argwhere(shapely_to_mpl(subgeom).contains_points(face_centers)).flatten())
             for subgeom in assert_multipolygon(geom)

@@ -17,7 +17,8 @@ from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, 
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.multipoint import MultiPoint
 
-from c3nav.mapdata.utils.geometry import WrappedGeometry, snap_to_grid_and_fully_normalized, unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import WrappedGeometry, unwrap_geom
+from c3nav.mapdata.utils.geometry.modify import snap_to_grid_and_fully_normalized
 from c3nav.mapdata.utils.json import format_geojson
 
 logger = logging.getLogger('c3nav')

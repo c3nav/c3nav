@@ -13,8 +13,9 @@ from shapely.ops import unary_union
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema
-from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom, \
-    comparable_mapping, snap_to_grid_and_fully_normalized
+from c3nav.mapdata.utils.geometry.modify import assert_multipolygon, snap_to_grid_and_fully_normalized
+from c3nav.mapdata.utils.geometry.generaty import good_representative_point
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom, smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
 geometry_affecting_fields = ('height', 'width', 'access_restriction')

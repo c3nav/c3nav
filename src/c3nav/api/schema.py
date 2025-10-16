@@ -14,7 +14,7 @@ from pydantic.functional_validators import ModelWrapValidatorHandler
 from pydantic_core.core_schema import ValidationInfo
 
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.utils.geometry import smart_mapping
+from c3nav.mapdata.utils.geometry.wrapped import smart_mapping
 
 
 def make_serializable(values: Any):

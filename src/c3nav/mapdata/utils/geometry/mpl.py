@@ -7,7 +7,7 @@ from matplotlib.path import Path
 from shapely.geometry import GeometryCollection, LinearRing, MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 
-from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.geometry.inspect import assert_multipolygon
 
 
 class MplPathProxy(ABC):

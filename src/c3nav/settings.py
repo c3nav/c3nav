@@ -19,7 +19,7 @@ from pyproj import Proj, Transformer
 
 from c3nav import __version__ as c3nav_version
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.nocutils import NocLayersSchema
+from c3nav.mapdata.utils.noc import NocLayersSchema
 from c3nav.utils.config import C3navConfigParser
 from c3nav.utils.environ import Env
 

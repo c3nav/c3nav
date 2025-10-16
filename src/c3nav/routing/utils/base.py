@@ -1,6 +1,6 @@
 from shapely.geometry import Polygon
 
-from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.geometry.inspect import assert_multipolygon
 
 
 def get_nearest_point(polygon, point):

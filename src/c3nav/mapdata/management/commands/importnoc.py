@@ -10,7 +10,7 @@ from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mapdata.utils.cache.changes import changed_geometries
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 
 
 class NocImportItem(BaseModel):

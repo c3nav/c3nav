@@ -45,7 +45,7 @@ from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema,
     DjangoCompatibleLocationPoint
 from c3nav.mapdata.utils.cache.proxied import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
-from c3nav.mapdata.utils.geometry import merge_bounds
+from c3nav.mapdata.utils.geometry.modify import merge_bounds
 
 if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager  # noqa

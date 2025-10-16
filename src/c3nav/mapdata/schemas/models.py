@@ -13,7 +13,7 @@ from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSc
                                               WithPolygonGeometrySchema, WithSpaceSchema, schema_description,
                                               WithGeometrySchema, LocationPoint, BoundsByLevelSchema,
                                               OptionalLocationSlugField)
-from c3nav.mapdata.utils.geometry import smart_mapping
+from c3nav.mapdata.utils.geometry.wrapped import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
 

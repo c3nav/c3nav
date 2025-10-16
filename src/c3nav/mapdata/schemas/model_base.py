@@ -7,7 +7,7 @@ from pydantic import PositiveInt
 
 from c3nav.api.schema import BaseSchema, LineStringSchema, PointSchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.utils.geometry import smart_mapping
+from c3nav.mapdata.utils.geometry.wrapped import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
 if TYPE_CHECKING:

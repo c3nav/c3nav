@@ -26,7 +26,7 @@ from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
 from c3nav.mapdata.utils.cors import allow_cors
-from c3nav.mapdata.utils.geometry import merge_bounds
+from c3nav.mapdata.utils.geometry.modify import merge_bounds
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
 
@@ -193,7 +193,9 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
         level_id, bbox = max(boxes.items(), key=lambda item: item[1].area)
         geometries = [bbox]
 
-    from c3nav.mapdata.utils.geometry import unwrap_geom
+    cache_package = CachePackage.open_cached()
+
+    from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
     geometries = [geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry) for geometry in
                   geometries]
 
@@ -232,7 +234,7 @@ def preview_route(request, slug, slug2, ext: Union[Literal["png"], Literal["webp
     from c3nav.routing.exceptions import LocationUnreachable
     from c3nav.routing.exceptions import NoRouteFound
     from c3nav.site.views import check_location
-    from c3nav.mapdata.utils.geometry import unwrap_geom
+    from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
     origin = check_location(slug, None)
     destination = check_location(slug2, None)
     if origin is None or destination is None:

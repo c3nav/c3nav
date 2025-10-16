@@ -10,7 +10,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.render.engines import register_engine
 from c3nav.mapdata.render.engines.base3d import Base3DEngine
 from c3nav.mapdata.render.utils import get_full_levels, get_main_levels
-from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.geometry.inspect import assert_multipolygon
 
 
 class AbstractOpenScadElem(ABC):

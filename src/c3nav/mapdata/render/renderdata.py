@@ -17,7 +17,8 @@ from c3nav.mapdata.models.theme import Theme
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, SingleLevelGeometries, CompositeLevelGeometries
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 from c3nav.mapdata.utils.cache.package import CachePackage
-from c3nav.mapdata.utils.geometry import get_rings, unwrap_geom
+from c3nav.mapdata.utils.geometry.inspect import get_rings
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 
 try:
     from asgiref.local import Local as LocalContext

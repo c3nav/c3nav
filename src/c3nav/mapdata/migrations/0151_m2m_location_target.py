@@ -3,7 +3,7 @@
 from django.db import migrations, models
 from shapely import contains, convex_hull
 
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 
 
 def make_location_target_m2m(apps, model_name):

@@ -9,6 +9,7 @@ class Command(BaseCommand):
     help = 'clean-up/fix all geometries in the database'
 
     def handle(self, *args, **options):
+        # todo: get rid of this, question mark?
         with transaction.atomic():
             for model in get_submodels(GeometryMixin):
                 for instance in model.objects.all():

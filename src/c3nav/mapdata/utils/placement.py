@@ -4,7 +4,7 @@ from shapely import Point, distance
 from shapely.ops import unary_union, nearest_points
 
 from c3nav.mapdata.models import Level, Space
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 from c3nav.routing.router import RouterRestrictionSet
 
 

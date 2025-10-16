@@ -15,7 +15,8 @@ from c3nav.mapdata.render.geometry.altitudearea import AltitudeAreaGeometries
 from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 from c3nav.mapdata.render.geometry.mesh import Mesh
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected
-from c3nav.mapdata.utils.geometry import get_rings, unwrap_geom
+from c3nav.mapdata.utils.geometry.inspect import get_rings
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 from c3nav.mapdata.utils.mesh import triangulate_rings
 
 if typing.TYPE_CHECKING:
