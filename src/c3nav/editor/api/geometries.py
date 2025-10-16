@@ -11,7 +11,7 @@ from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.mapdata.models import Level, Space, GraphNode, Door, Building, GraphEdge, DataOverlayFeature
 from c3nav.mapdata.models.geometry.space import Column, Hole, AltitudeMarker, BeaconMeasurement, RangingBeacon
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 
 
 def _get_geometries_for_one_level(level):

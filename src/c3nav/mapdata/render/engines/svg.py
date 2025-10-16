@@ -15,7 +15,7 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.inspect import unwrap_geom
 
 if settings.SVG_RENDERER == 'rsvg':
     try:

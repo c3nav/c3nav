@@ -8,7 +8,7 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestriction
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
-from c3nav.mapdata.utils.geometry import smart_mapping
+from c3nav.mapdata.utils.geometry.wrapped import smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
 

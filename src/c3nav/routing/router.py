@@ -21,14 +21,16 @@ from c3nav.mapdata.locations import CustomLocation, LocationManager
 from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, Space, WayType
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription, Area
-from c3nav.mapdata.models.locations import LocationTag, LocationTagRelation
+from c3nav.mapdata.models.locations import LocationTag
 from c3nav.mapdata.permissions import active_map_permissions
 from c3nav.mapdata.schemas.locations import LocationProtocol
 from c3nav.mapdata.schemas.model_base import LocationPoint
 from c3nav.mapdata.utils.cache.proxied import versioned_cache
 from c3nav.mapdata.utils.cache.types import MapUpdateTuple
-from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
-from c3nav.mapdata.utils.index import Index
+from c3nav.mapdata.utils.geometry.generaty import good_representative_point
+from c3nav.mapdata.utils.geometry.inspect import assert_multipolygon, get_rings
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
+from c3nav.mapdata.utils.geometry.index import Index
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.models import RouteOptions
 from c3nav.routing.route import Route, RouteLocation

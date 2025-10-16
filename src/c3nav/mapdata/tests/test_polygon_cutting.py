@@ -3,7 +3,7 @@ from typing import Union
 from django.test.testcases import TestCase
 from shapely import Polygon, LineString, GeometryCollection, MultiPolygon, normalize
 
-from c3nav.mapdata.utils.geometry import cut_polygons_with_lines
+from c3nav.mapdata.utils.geometry.generaty import cut_polygons_with_lines
 
 
 class PolygonCuttingTests(TestCase):

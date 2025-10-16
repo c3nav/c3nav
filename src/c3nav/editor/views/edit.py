@@ -29,7 +29,7 @@ from c3nav.mapdata.models import Level, Space, GraphNode, GraphEdge, Door, Area,
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.locations import LocationTag, LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissionsFromRequest, active_map_permissions
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
 
