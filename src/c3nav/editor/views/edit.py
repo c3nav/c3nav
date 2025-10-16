@@ -405,7 +405,11 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             "access_restriction_select": True,
         })
 
-    return render(request, 'editor/edit.html', ctx)
+    if request.path.endswith("staircase"):
+        ctx["space"] = space_id
+        return render(request, 'editor/create_staircase.html', ctx)
+    else:
+        return render(request, 'editor/edit.html', ctx)
 
 
 def get_visible_spaces(request):

@@ -20,6 +20,11 @@
     <a class="btn btn-default btn-xs" accesskey="n" href="{{ create_url }}">
         <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New {{ model_title }}{% endblocktrans %}
     </a>
+    {% if model_title == "Stair" %}
+        <a class="btn btn-default btn-xs" accesskey="n" href="/editor/spaces/{{ space.id }}/staircase">
+            <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New staircase{% endblocktrans %}
+        </a>
+    {% endif %}
 {% endif %}
 
 {% if explicit_edit %}
