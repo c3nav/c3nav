@@ -1662,7 +1662,7 @@ editor = {
             mobileclient.scanNow();
         }
     },
-    
+
     // Staircase editing functionality
 
     _setup_staircase_editing: function() {
