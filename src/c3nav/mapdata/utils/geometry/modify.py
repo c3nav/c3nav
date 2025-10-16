@@ -1,154 +1,17 @@
 import json
-from collections import namedtuple
 from itertools import chain
-from math import ceil, log10
 from typing import Union, TYPE_CHECKING, Iterable, overload
 
-from django.utils.functional import cached_property
-from shapely import line_merge, prepared, simplify, normalize, set_precision, make_valid
+from shapely import simplify, normalize, set_precision, make_valid
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.geometry import mapping as shapely_mapping
-from shapely.geometry import shape as shapely_shape
-from shapely.geometry.base import BaseGeometry, JOIN_STYLE
-from shapely.ops import polygonize, unary_union
+from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
+
+from c3nav.mapdata.utils.geometry.inspect import assert_multipolygon, assert_multilinestring
 
 if TYPE_CHECKING:
     pass
-
-
-class WrappedGeometry:
-    wrapped_geojson = None
-
-    def __init__(self, geojson):
-        self.wrapped_geojson = geojson
-
-    @cached_property
-    def wrapped_geom(self):
-        if not self.wrapped_geojson or not self.wrapped_geojson.get('coordinates', ()):
-            return GeometryCollection()
-        return shapely_shape(self.wrapped_geojson)
-
-    def __getattr__(self, name):
-        return getattr(self.wrapped_geom, name)
-
-    @property
-    def __class__(self):
-        return self.wrapped_geom.__class__
-
-    def __reduce__(self):
-        return WrappedGeometry, (self.wrapped_geojson, )
-
-
-def unwrap_geom(geometry):
-    return geometry.wrapped_geom if isinstance(geometry, WrappedGeometry) else geometry
-
-
-def smart_mapping(geometry):
-    if hasattr(geometry, 'wrapped_geojson'):
-        return geometry.wrapped_geojson
-    return shapely_mapping(geometry)
-
-
-def assert_multipolygon(geometry: Union[Polygon, MultiPolygon, GeometryCollection, Iterable]) -> list[Polygon]:
-    """
-    given a Polygon or a MultiPolygon, return a list of Polygons
-    :param geometry: a Polygon or a MultiPolygon
-    :return: a list of Polygons
-    """
-    if not isinstance(geometry, BaseGeometry):
-        geometry = GeometryCollection(tuple(geometry))
-    if geometry.is_empty:
-        return []
-    if isinstance(geometry, Polygon):
-        return [geometry]
-    if not hasattr(geometry, "geoms"):
-        return []
-    return [geom for geom in geometry.geoms if isinstance(geom, Polygon)]
-
-
-def assert_multilinestring(geometry: Union[LineString, MultiLineString, GeometryCollection, Iterable]) -> list[LineString]:
-    """
-    given a LineString or MultiLineString, return a list of LineStrings
-    :param geometry: a LineString or a MultiLineString
-    :return: a list of LineStrings
-    """
-    if not isinstance(geometry, BaseGeometry):
-        geometry = GeometryCollection(tuple(geometry))
-    if geometry.is_empty:
-        return []
-    if isinstance(geometry, LineString):
-        return [geometry]
-    if not hasattr(geometry, "geoms"):
-        return []
-    return [geom for geom in geometry.geoms if isinstance(geom, LineString)]
-
-
-def good_representative_point(geometry) -> Point:
-    if isinstance(geometry, Point):
-        return geometry
-    c = geometry.centroid
-    if not isinstance(geometry, (Polygon, MultiPolygon)):
-        return geometry.representative_point()
-    for polygon in assert_multipolygon(geometry):
-        if Polygon(polygon.exterior.coords).contains(c):
-            return c
-    x1, y1, x2, y2 = geometry.bounds
-    lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(unwrap_geom(geometry)))) +
-             tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(unwrap_geom(geometry)))))
-    return min(lines, key=lambda line: (line.distance(c), line.length),
-               default=geometry.representative_point()).centroid
-
-
-def get_rings(geometry):
-    if isinstance(geometry, Polygon):
-        return chain((geometry.exterior, ), geometry.interiors)
-    try:
-        geoms = geometry.geoms
-    except AttributeError:
-        pass
-    else:
-        return chain(*(get_rings(geom) for geom in geoms))
-
-    if isinstance(geometry, LinearRing):
-        return (geometry, )
-
-    return ()
-
-
-cutpoint = namedtuple('cutpoint', ('point', 'polygon', 'ring'))
-
-
-def calculate_precision(geometry: BaseGeometry):
-    if geometry.is_empty:
-        return 10 ** -14
-    return 10 ** (-14 + int(ceil(log10(max((abs(i) for i in geometry.bounds), default=1)))))
-
-
-def cut_polygons_with_lines(polygon: Union[Polygon, MultiPolygon, GeometryCollection],
-                            lines: list[LineString]) -> tuple[Union[Polygon, MultiPolygon], ...]:
-    precision = calculate_precision(polygon)
-    polygon_prep = prepared.prep(polygon.buffer(precision, join_style=JOIN_STYLE.round, quad_segs=2))
-    polygons = []
-    holes = []
-    for item in polygonize([
-        line for line in assert_multilinestring(unary_union(line_merge((  # noqa
-            *chain.from_iterable((p.exterior, *p.interiors) for p in assert_multipolygon(polygon)),
-            *lines,
-        ))))
-        if polygon_prep.covers(line)
-    ]):
-        if polygon_prep.covers(item):
-            polygons.append(item)
-        else:
-            holes.append(item)
-
-    polygons_prep = [prepared.prep(polygon.buffer(precision*2, join_style=JOIN_STYLE.round, quad_segs=2))
-                     for polygon in polygons]
-    return tuple(
-        remove_redundant_points_polygon(
-            polygon.difference(unary_union([hole for hole in holes if polygons_prep[i].covers(hole)])),
-        ) for i, polygon in enumerate(polygons)
-    )
 
 
 def _remove_redundant_points_coords_linearring(ring: LinearRing) -> list[tuple[float, ...]]:

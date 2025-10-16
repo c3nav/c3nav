@@ -6,21 +6,22 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from itertools import chain
 from operator import attrgetter
-from typing import Union, Optional, Any
+from typing import Union, Optional
 
 import numpy as np
 from django.utils.translation import gettext_lazy as _
 from shapely import prepared
 from shapely.geometry import JOIN_STYLE, LineString, MultiLineString, MultiPolygon, Polygon, GeometryCollection
-from shapely.ops import unary_union
 from shapely.geometry.base import BaseGeometry
+from shapely.ops import unary_union
 
 from c3nav.mapdata.models import Level, AltitudeMarker
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint, AltitudeArea
-from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, unwrap_geom,
-                                          cut_polygons_with_lines, snap_to_grid_and_fully_normalized,
-                                          calculate_precision)
-from c3nav.mapdata.utils.index import Index
+from c3nav.mapdata.utils.geometry.modify import snap_to_grid_and_fully_normalized
+from c3nav.mapdata.utils.geometry.generaty import cut_polygons_with_lines
+from c3nav.mapdata.utils.geometry.index import Index
+from c3nav.mapdata.utils.geometry.inspect import assert_multilinestring, assert_multipolygon, calculate_precision
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 
 logger = logging.getLogger('c3nav')
 

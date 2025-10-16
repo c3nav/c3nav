@@ -17,7 +17,7 @@ from shapely import Point
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.utils.cache.types import MapUpdateTuple
 from c3nav.mapdata.permissions import active_map_permissions
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 from c3nav.mapdata.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons

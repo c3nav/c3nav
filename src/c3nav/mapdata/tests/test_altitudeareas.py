@@ -11,7 +11,7 @@ from c3nav.mapdata.models import AltitudeArea, Level, Space, Stair, AltitudeMark
 from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint, Building
 from c3nav.mapdata.models.geometry.space import Column, Hole, Ramp
 from c3nav.mapdata.permissions import active_map_permissions
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 
 
 class ExpectedAltitudeArea(NamedTuple):

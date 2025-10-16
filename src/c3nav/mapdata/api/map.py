@@ -32,7 +32,7 @@ from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemS
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationIdentifier, PositionIdentifier
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import WithBoundsSchema, MapSettingsSchema
-from c3nav.mapdata.utils.geometry import unwrap_geom
+from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])

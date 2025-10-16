@@ -36,6 +36,7 @@ def json_encoder_reindent(method, data, *args, **kwargs):
 
 
 def format_geojson(data):
+    # todo: get rid of all of this
     coordinates = data.get('coordinates', None)
     if coordinates is not None:
         if data['type'] == 'Point':
@@ -61,7 +62,3 @@ def format_geojson(data):
     }
 
 
-def check_ring(coordinates):
-    # check if this is a valid ring
-    # that measn it has at least 3 points (or 4 if the first and last one are identical)
-    return len(coordinates) >= (4 if coordinates[0] == coordinates[-1] else 3)
