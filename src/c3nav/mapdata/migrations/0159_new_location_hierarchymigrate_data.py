@@ -17,7 +17,6 @@ def migrate_location_hierarchy(apps, model_name):
     LocationGroupCategory = apps.get_model('mapdata', 'LocationGroupCategory')
     LocationTagAdjacency = apps.get_model('mapdata', 'LocationTagAdjacency')
     LocationTagRelation = apps.get_model('mapdata', 'LocationTagRelation')
-    LocationTagRelationPathSegment = apps.get_model('mapdata', 'LocationTagRelationPathSegment')
 
     Report = apps.get_model('mapdata', 'Report')
     ThemeLocationGroupBackgroundColor = apps.get_model('mapdata', 'ThemeLocationGroupBackgroundColor')
@@ -124,32 +123,26 @@ def migrate_location_hierarchy(apps, model_name):
         (parent, child): pk
         for pk, parent, child in LocationTagAdjacency.objects.values_list("pk", "parent_id", "child_id")
     }
-    relations_to_create = (*direct_relations, *indirect_relations.keys())
-    relation_id_lookup = {
+
+    direct_relation_lookup = {
         (relation.ancestor_id, relation.descendant_id): relation.id
         for relation in LocationTagRelation.objects.bulk_create((
-            LocationTagRelation(ancestor_id=ancestor, descendant_id=descendant)
-            for ancestor, descendant in relations_to_create
-        ))
-    }
-
-    direct_relation_path_id_lookup = {
-        path.relation_id: path.id
-        for path in LocationTagRelationPathSegment.objects.bulk_create((
-            LocationTagRelationPathSegment(
-                prev_path=None,
+            LocationTagRelation(
+                prev_relation_id=None,
                 adjacency_id=adjacency_id_lookup[(ancestor_id, descendant_id)],
-                relation_id=relation_id,
+                ancestor_id=ancestor_id,
+                descendant_id=descendant_id,
                 num_hops=0,
-            ) for (ancestor_id, descendant_id), relation_id in tuple(relation_id_lookup.items())[:len(direct_relations)]
+            ) for ancestor_id, descendant_id in direct_relations
         ))
     }
-    LocationTagRelationPathSegment.objects.bulk_create(chain.from_iterable((
+    LocationTagRelation.objects.bulk_create(chain.from_iterable((
         (
-            LocationTagRelationPathSegment(
-                prev_path_id=direct_relation_path_id_lookup[relation_id_lookup[(intermediate_id, descendant_id)]],
+            LocationTagRelation(
+                prev_relation_id=direct_relation_lookup[(intermediate_id, descendant_id)],
                 adjacency_id=adjacency_id_lookup[(intermediate_id, descendant_id)],
-                relation_id=relation_id_lookup[(ancestor_id, descendant_id)],
+                ancestor_id=ancestor_id,
+                descendant_id=descendant_id,
                 num_hops=1,
             ) for intermediate_id in intermediate_ids
         )

@@ -10,8 +10,8 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.db.models.expressions import F, When, Case, Value
 
-from c3nav.mapdata.models.locations import LocationTagAdjacency, SimpleLocationTagRelationPathSegmentTuple, \
-    LocationTagRelation, LocationTagRelationPathSegment, LocationTag
+from c3nav.mapdata.models.locations import LocationTagAdjacency, LocationTagRelation,LocationTag
+from c3nav.mapdata.utils.relationpaths import SimpleLocationTagRelationTuple
 
 
 class EffectiveLocationTagOrders(NamedTuple):
@@ -101,136 +101,106 @@ def process_location_tag_relations():
     fail = False
 
     # create ancestors
-    expected_paths: dict[int, tuple[SimpleLocationTagRelationPathSegmentTuple, ...]] = {}
+    expected_relations: dict[int, tuple[SimpleLocationTagRelationTuple, ...]] = {}
     num_hops = 0
-    last_paths: tuple[SimpleLocationTagRelationPathSegmentTuple, ...] = tuple(chain.from_iterable(
+    last_relations: tuple[SimpleLocationTagRelationTuple, ...] = tuple(chain.from_iterable(
         (
-            SimpleLocationTagRelationPathSegmentTuple(ancestor=parent_id, parent=parent_id, tag=child_id,
-                                                      prev=None, num_hops=0)
+            SimpleLocationTagRelationTuple(ancestor=parent_id, parent=parent_id, tag=child_id,
+                                           prev=None, num_hops=0)
             for child_id in child_ids
         ) for parent_id, child_ids in children_by_parent.items()
     ))
-    while last_paths:
-        cyclic_paths = tuple(p for p in last_paths if p.ancestor == p.tag)
-        last_paths = tuple(p for p in last_paths if p.ancestor != p.tag)
-        for path in cyclic_paths:
-            print(f"INCONSISTENCY! Circular hierarchy! Breaking parent→child {path.parent}→{path.tag}")
+    while last_relations:
+        cyclic_relations = tuple(p for p in last_relations if p.ancestor == p.tag)
+        last_relations = tuple(p for p in last_relations if p.ancestor != p.tag)
+        for relation in cyclic_relations:
+            print(f"INCONSISTENCY! Circular hierarchy! Breaking parent→child {relation.parent}→{relation.tag}")
             fail = True
-        expected_paths[num_hops] = last_paths
+        expected_relations[num_hops] = last_relations
 
         num_hops += 1
-        last_paths = tuple(chain.from_iterable(
+        last_relations = tuple(chain.from_iterable(
             (
-                SimpleLocationTagRelationPathSegmentTuple(ancestor=prev.ancestor, parent=prev.tag, tag=child_id,
-                                                          prev=prev, num_hops=num_hops)
+                SimpleLocationTagRelationTuple(ancestor=prev.ancestor, parent=prev.tag, tag=child_id,
+                                               prev=prev, num_hops=num_hops)
                 for child_id in child_ids
-            ) for prev, child_ids in zip(last_paths, (children_by_parent.get(path.tag, frozenset()) for path in last_paths))
+            ) for prev, child_ids in zip(last_relations, (children_by_parent.get(relation.tag, frozenset())
+                                                          for relation in last_relations))
         ))
 
-    expected_relations = {(path.ancestor, path.tag) for path in chain.from_iterable(expected_paths.values())}
-    relation_ids = {
-        (ancestor_id, descendant_id): pk
-        for pk, ancestor_id, descendant_id in LocationTagRelation.objects.values_list("pk", "ancestor_id", "descendant_id")
-    }
-    existing_relations = set(relation_ids.keys())
-
-    missing_relations = expected_relations - existing_relations
-    if missing_relations:
-        print("INCONSISTENCY: Missing relations, creating:", missing_relations)
-        fail = True
-        relation_ids.update({
-            relation.pk: (relation.ancestor_id, relation.descendant_id)
-            for relation in LocationTagRelation.objects.bulk_create((
-                LocationTagRelation(
-                    ancestor_id=ancestor_id,
-                    descendant_id=descendant_id,
-                ) for ancestor_id, descendant_id in missing_relations
-            ))
-        })
-
-    extra_relations = existing_relations - expected_relations
-    if extra_relations:
-        print("INCONSISTENCY: Extra relations, deleting:", missing_relations)
-        fail = True
-        LocationTagRelation.objects.filter(
-            pk__in=(relation_ids[extra_relation] for extra_relation in extra_relations)
-        ).delete()
-        for extra_relation in missing_relations:
-            del relation_ids[extra_relation]
-
-    num_deleted, num_deleted_per_model = LocationTagRelationPathSegment.objects.exclude(
+    num_deleted, num_deleted_per_model = LocationTagRelation.objects.exclude(
         # exclude things where things make sense
-        Q(adjacency__child=F("relation__descendant")) & (
-            (Q(prev_path__isnull=True) | (Q(adjacency__parent=F("prev_path__adjacency__child"))
-                                          & Q(relation__ancestor=F("prev_path__relation__ancestor"))
-                                          & Q(num_hops=F("prev_path__num_hops")+1)))
-            | (Q(prev_path__isnull=False) | Q(adjacency__parent=F("relation__ancestor")))
+        Q(adjacency__child=F("descendant")) & (
+            (Q(prev_relation__isnull=True) | (Q(adjacency__parent=F("prev_relation__adjacency__child"))
+                                             & Q(ancestor=F("prev_relation__ancestor"))
+                                             & Q(num_hops=F("prev_relation__num_hops")+1)))
+            | (Q(prev_relation__isnull=False) | Q(adjacency__parent=F("ancestor")))
         )
     ).delete()
     if num_deleted:
-        print("INCONSISTENCY: Invalid paths that don't fit modeling constraints, deleting", num_deleted, "of them")
+        print("INCONSISTENCY: Invalid relations that don't fit modeling constraints, deleting", num_deleted, "of them")
         fail = True
 
-    existing_paths_by_id = {
-        pk: fields for pk, *fields in LocationTagRelationPathSegment.objects.values_list(
-            "pk", "prev_path_id", "relation__ancestor_id",
-            "adjacency__parent_id", "adjacency__child_id", "num_hops",
+    existing_relations_by_id = {
+        pk: fields for pk, *fields in LocationTagRelation.objects.values_list(
+            "pk", "prev_relation_id", "ancestor_id", "parent_id", "adjacency__child_id", "num_hops",
         )
     }
-    existing_paths_by_num_hops_and_id: dict[int, dict[int, SimpleLocationTagRelationPathSegmentTuple]] = {}
-    existing_path_id_by_tuple: dict[SimpleLocationTagRelationPathSegmentTuple | None, int | None] = {None: None}
+    existing_relations_by_num_hops_and_id: dict[int, dict[int, SimpleLocationTagRelationTuple]] = {}
+    existing_relation_id_by_tuple: dict[SimpleLocationTagRelationTuple | None, int | None] = {None: None}
 
-    paths_by_num_hops: dict[int, list[tuple]] = {}
-    for id, path in existing_paths_by_id.items():
-        paths_by_num_hops.setdefault(path[4], []).append((id, path))
+    relations_by_num_hops: dict[int, list[tuple]] = {}
+    for id, relation in existing_relations_by_id.items():
+        relations_by_num_hops.setdefault(relation[4], []).append((id, relation))
 
-    for num_hops, paths in sorted(paths_by_num_hops.items(), key=itemgetter(0)):
-        num_hops_paths = {}
-        existing_paths_by_num_hops_and_id[num_hops] = num_hops_paths
+    for num_hops, relations in sorted(relations_by_num_hops.items(), key=itemgetter(0)):
+        num_hops_relations = {}
+        existing_relations_by_num_hops_and_id[num_hops] = num_hops_relations
 
-        last_num_hops_paths = {} if num_hops == 0 else existing_paths_by_num_hops_and_id.get(num_hops - 1, {})
+        last_num_hops_relations = {} if num_hops == 0 else existing_relations_by_num_hops_and_id.get(num_hops - 1, {})
 
-        for pk, (prev_path_id, ancestor_id, parent_id, child_id, n) in paths:
-            t = SimpleLocationTagRelationPathSegmentTuple(
-                prev=None if prev_path_id is None else last_num_hops_paths[prev_path_id],
+        for pk, (prev_relation_id, ancestor_id, parent_id, child_id, n) in relations:
+            t = SimpleLocationTagRelationTuple(
+                prev=None if prev_relation_id is None else last_num_hops_relations[prev_relation_id],
                 ancestor=ancestor_id,
                 parent=parent_id,
                 tag=child_id,
                 num_hops=num_hops,
             )
-            num_hops_paths[pk] = t
-            existing_path_id_by_tuple[t] = pk
+            num_hops_relations[pk] = t
+            existing_relation_id_by_tuple[t] = pk
 
     delete_ids: deque[int] = deque()
 
-    max_num_hops = max(chain(existing_paths_by_num_hops_and_id.keys(), expected_paths.keys()), default=0)
+    max_num_hops = max(chain(existing_relations_by_num_hops_and_id.keys(), expected_relations.keys()), default=0)
     for num_hops in range(max_num_hops+1):
-        existing_paths_for_hops = frozenset(existing_paths_by_num_hops_and_id.get(num_hops, {}).values())
-        expected_paths_for_hops = frozenset(expected_paths.get(num_hops, ()))
+        existing_relations_for_hops = frozenset(existing_relations_by_num_hops_and_id.get(num_hops, {}).values())
+        expected_relations_for_hops = frozenset(expected_relations.get(num_hops, ()))
 
-        missing_paths = tuple(expected_paths_for_hops - existing_paths_for_hops)
+        missing_relations = tuple(expected_relations_for_hops - existing_relations_for_hops)
         if missing_relations:
-            print("INCONSISTENCY: Missing paths, creating:", missing_paths)
+            print("INCONSISTENCY: Missing relations, creating:", missing_relations)
             fail = True
-            existing_path_id_by_tuple.update(
-                dict(zip(missing_paths, (created_path.pk for created_path in LocationTagRelationPathSegment.objects.bulk_create((
-                    LocationTagRelationPathSegment(
-                        prev_path=existing_path_id_by_tuple[missing_path.prev],
-                        adjacency=adjacency_ids[(missing_path.parent, missing_path.tag)],
-                        relation=relation_ids[(missing_path.ancestor, missing_path.tag)],
+            existing_relation_id_by_tuple.update(
+                dict(zip(missing_relations, (created_relation.pk for created_relation in LocationTagRelation.objects.bulk_create((
+                    LocationTagRelation(
+                        prev_relation_id=existing_relation_id_by_tuple[missing_relation.prev],
+                        adjacency=adjacency_ids[(missing_relation.parent, missing_relation.tag)],
+                        ancestor_id=missing_relation.ancestor,
+                        descendant_id=missing_relation.tag,
                         num_hops=num_hops,
-                    ) for missing_path in missing_paths
+                    ) for missing_relation in missing_relations
                 )))))
             )
 
-        extra_paths = existing_paths_for_hops - expected_paths_for_hops
+        extra_relations = existing_relations_for_hops - expected_relations_for_hops
         if extra_relations:
-            print("INCONSISTENCY: Extra paths, deleting:", extra_paths)
-            delete_ids.extend(existing_path_id_by_tuple[extra_path] for extra_path in extra_paths)
+            print("INCONSISTENCY: Extra relations, deleting:", extra_relations)
+            delete_ids.extend(existing_relation_id_by_tuple[extra_relation] for extra_relation in extra_relations)
             fail = True
 
     if delete_ids:
-        LocationTagRelationPathSegment.objects.filter(pk__in=delete_ids).delete()
+        LocationTagRelation.objects.filter(pk__in=delete_ids).delete()
 
     if fail:
         raise ValueError("verify_location_relation failed")

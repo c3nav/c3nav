@@ -50,12 +50,6 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(condition=models.Q(('redirect', False)), fields=('target',),
                                                name='unique_non_redirect_slugs'),
         ),
-        migrations.AddField(
-            model_name='LocationTagRelation',
-            name='first_adjacencies',
-            field=models.ManyToManyField(related_name='provides_relations', through='mapdata.LocationTagRelationPathSegment',
-                                         to='mapdata.LocationTagAdjacency'),
-        ),
         migrations.RemoveField(
             model_name='area',
             name='load_group_contribute',
