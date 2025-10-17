@@ -4,8 +4,7 @@ from django.db.models.expressions import F
 from django.db.models.query_utils import Q
 from django.test.testcases import TransactionTestCase
 
-from c3nav.mapdata.models.locations import LocationTag, LocationTagRelationPathSegment, LocationTagRelation, \
-    CircularyHierarchyError
+from c3nav.mapdata.models.locations import LocationTag, LocationTagRelation, CircularyHierarchyError
 
 class AncestorDescendantTuple(NamedTuple):
     ancestor: int
@@ -27,40 +26,40 @@ class LocationHierarchyTests(TransactionTestCase):
         :param state: a set of ancestry paths for every AncestorDescendantTuple
         :param msg: message to fail with if the hierarchy state doesn't match
         """
-        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
-            "prev_path", "adjacency", "relation"
+        self.assertQuerySetEqual(LocationTagRelation.objects.select_related(
+            "prev_relation", "adjacency"
         ).exclude(
-            adjacency__child=F("relation__descendant")
-        ), [], msg="Found relation path segment where adjacency child doesn't match relation descendant")
+            adjacency__child=F("descendant")
+        ), [], msg="Found relation where adjacency child doesn't match relation descendant")
 
-        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
-            "prev_path", "adjacency", "relation"
+        self.assertQuerySetEqual(LocationTagRelation.objects.select_related(
+            "prev_relation", "adjacency"
         ).exclude(
-            Q(prev_path__isnull=True, num_hops=0) | Q(prev_path__num_hops=F("num_hops")-1)
-        ), [], msg="Found relation path segment with num_hops not matching prev_path")
+            Q(prev_relation__isnull=True, num_hops=0) | Q(prev_relation__num_hops=F("num_hops")-1)
+        ), [], msg="Found relation with num_hops not matching prev_path")
 
-        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
-            "prev_path", "adjacency", "relation"
+        self.assertQuerySetEqual(LocationTagRelation.objects.select_related(
+            "prev_relation", "adjacency"
         ).exclude(
-            Q(prev_path__isnull=True) | Q(relation__ancestor=F("prev_path__relation__ancestor"))
-        ), [], msg="Found relation path segment with different relation ancestor than its prev_path")
+            Q(prev_relation__isnull=True) | Q(ancestor=F("prev_relation__ancestor"))
+        ), [], msg="Found relation with different relation ancestor than its prev_path")
 
-        self.assertQuerySetEqual(LocationTagRelationPathSegment.objects.select_related(
-            "prev_path", "adjacency", "relation"
+        self.assertQuerySetEqual(LocationTagRelation.objects.select_related(
+            "prev_relation", "adjacency"
         ).exclude(
-            Q(prev_path__isnull=True) | Q(adjacency__parent=F("prev_path__adjacency__child"))
-        ), [], msg="Found relation path segment where adjacency parent doesn't match prev_path's adjacency child")
+            Q(prev_relation__isnull=True) | Q(adjacency__parent=F("prev_relation__adjacency__child"))
+        ), [], msg="Found relation where adjacency parent doesn't match prev_relation's adjacency child")
 
         relation_lookup: dict[tuple[int, int], set[tuple[int, ...]]] = {    # pragma: no branch
             rel: set() for rel in LocationTagRelation.objects.values_list("ancestor_id", "descendant_id")
         }
-        path_chains: dict[int | None, tuple[int, ...]] = {None: ()}
+        relation_chains: dict[int | None, tuple[int, ...]] = {None: ()}
 
-        for path_id, prev_path_id, ancestor, descendant in LocationTagRelationPathSegment.objects.values_list(
-                "pk", "prev_path_id", "relation__ancestor", "relation__descendant"
+        for relation_id, prev_relation_id, ancestor, descendant in LocationTagRelation.objects.values_list(
+                "pk", "prev_relation_id", "ancestor", "descendant"
         ).order_by("num_hops"):
-            path_chains[path_id] = (prev_path_chain := path_chains[prev_path_id]) + (descendant, )
-            relation_lookup[AncestorDescendantTuple(ancestor, descendant)].add(prev_path_chain)
+            relation_chains[relation_id] = (prev_relation_chain := relation_chains[prev_relation_id]) + (descendant, )
+            relation_lookup[AncestorDescendantTuple(ancestor, descendant)].add(prev_relation_chain)
 
         self.assertDictEqual(state, relation_lookup, msg)
 
