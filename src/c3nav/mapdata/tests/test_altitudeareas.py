@@ -41,6 +41,7 @@ class ExpectedAltitudeArea(NamedTuple):
 
 
 class PolygonCuttingTests(TransactionTestCase):
+    # todo: count queries
     altitude = Decimal("13.70")
 
     def setUp(self):

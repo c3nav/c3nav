@@ -18,6 +18,7 @@ type UpdateRelationFunc = Callable[[LocationTag, LocationTag], None]
 
 
 class LocationHierarchyTests(TransactionTestCase):
+    # todo: count queries
     def _create_tags(self, num: int):
         return LocationTag.objects.bulk_create([LocationTag() for i in range(num)])  # pragma: no branch
 
