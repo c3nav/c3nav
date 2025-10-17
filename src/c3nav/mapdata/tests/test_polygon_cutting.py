@@ -7,6 +7,7 @@ from c3nav.mapdata.utils.geometry.generaty import cut_polygons_with_lines
 
 
 class PolygonCuttingTests(TestCase):
+    # todo: count queries
     def _assertCutResult(self,
                          polygons: Union[Polygon, MultiPolygon, GeometryCollection], lines: list[LineString],
                          expected_result: tuple[Union[Polygon, MultiPolygon], ...]):

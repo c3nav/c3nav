@@ -30,6 +30,7 @@ class ExpectedLocationTagOrderResult(NamedTuple):
 
 
 class LocationTagOrderTests(TransactionTestCase):
+    # todo: count queries
     def setUp(self):
         LocationTag.objects.all().delete()
         self.access_restriction = AccessRestriction.objects.create(titles={"en": "Restriction 1"})

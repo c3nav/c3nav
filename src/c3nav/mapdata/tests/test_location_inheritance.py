@@ -8,6 +8,7 @@ from c3nav.mapdata.render.theme import ColorManager
 
 
 class LocationInheritanceTests(TransactionTestCase):
+    # todo: count queries
     def setUp(self):
         self.access_restriction = AccessRestriction.objects.create(titles={"en": "Restriction 1"})
         self.label_settings = LabelSettings.objects.create()
