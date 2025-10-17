@@ -5,14 +5,13 @@ from decimal import Decimal
 from functools import cached_property
 from itertools import chain, batched
 from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, NamedTuple
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.aggregates import Count
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.db.models.expressions import F
 from django.db.models.signals import m2m_changed
@@ -42,7 +41,6 @@ from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema,
 from c3nav.mapdata.utils.cache.proxied import per_request_cache
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.geometry.modify import merge_bounds
-
 
 if TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager
@@ -131,56 +129,30 @@ class LocationTagAdjacency(models.Model):
 
 
 class LocationTagRelation(LocationTagOrderMixin, models.Model):
-    """ Automatically populated. Indicating that there is (at least) one relation path between two locations """
-    ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE,
-                                 related_name="downwards_relations")
-    descendant = models.ForeignKey("LocationTag", on_delete=models.CASCADE,
-                                   related_name="upwards_relations")
-
-    # look, this field is genuinely just for fun, cause we can, probably not useful
-    first_adjacencies = models.ManyToManyField("LocationTagAdjacency", related_name="provides_relations",
-                                               through="LocationTagRelationPathSegment")
-
-    class Meta:
-        constraints = (
-            # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
-            UniqueConstraint(fields=("ancestor", "descendant"), name="unique_location_tag_relation"),
-            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_tag_relation"),
-        )
-
-
-class LocationTagRelationPathSegment(models.Model):
-    """ Automatically populated. One relation path for the given relation, ending with the given adjacency. """
-    prev_path = models.ForeignKey("self", on_delete=models.CASCADE, related_name="+", null=True)
-    adjacency = models.ForeignKey("LocationTagAdjacency", on_delete=models.CASCADE, related_name="+")
-    relation = models.ForeignKey("LocationTagRelation", on_delete=models.CASCADE, related_name="paths")
+    """ Automatically populated """
+    ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="downwards_relations")
+    descendant = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="upwards_relations")
+    adjacency = models.ForeignKey("LocationTagAdjacency", on_delete=models.CASCADE, related_name="upwards_relations")
+    prev_relation = models.ForeignKey("self", on_delete=models.CASCADE, related_name="next_relations", null=True)
+    access_restrictions = models.ManyToManyField("AccessRestriction", related_name="+")
     # rename to num_predecessors?
     num_hops = models.PositiveSmallIntegerField(db_index=True)
 
     class Meta:
         constraints = (
             # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
-            UniqueConstraint(fields=("prev_path", "adjacency"), name="relation_path_unique_prev_path_adjacency"),
-            UniqueConstraint(fields=("prev_path", "relation"), name="relation_path_unique_prev_path_relation"),
-            CheckConstraint(check=Q(prev_path__isnull=True, num_hops=0) |
-                                  Q(prev_path__isnull=False, num_hops__gt=0), name="relation_path_enforce_num_hops"),
+            UniqueConstraint(fields=("prev_relation", "descendant"), name="unique_prev_relation_descendant"),
+            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_tag_relation"),
+            CheckConstraint(check=Q(prev_relation__isnull=True, num_hops=0) |
+                                  Q(prev_relation__isnull=False, num_hops__gt=0), name="relation_enforce_num_hops"),
         )
 
     def __str__(self):
         return (f"{self.pk}: num_hops={self.num_hops} "
-                f"prev_path={self.prev_path if "prev_path" in self._state.fields_cache else self.prev_path_id !r}" +
-                (f" ancestor={self.relation.ancestor_id} descendant={self.relation.descendant_id}"
-                 if "relation" in self._state.fields_cache else f" relation={self.relation_id}") +
+                f"prev_relation={self._state.fields_cache.get('prev_relation', self.prev_relation_id)!r}" +
+                f" ancestor={self.ancestor_id} descendant={self.descendant_id}" +
                 (f" parent={self.adjacency.parent_id} child={self.adjacency.child_id}"
                  if "adjacency" in self._state.fields_cache else f" adjacency={self.adjacency_id}"))
-
-
-class SimpleLocationTagRelationPathSegmentTuple(NamedTuple):
-    prev: Optional["SimpleLocationTagRelationPathSegmentTuple"]
-    ancestor: int | None
-    parent: int
-    tag: int
-    num_hops: int
 
 
 class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, models.Model):
@@ -658,8 +630,8 @@ def locationtag_parents_removed(instance: LocationTag, pk_set: set[int]):
     """
     parents were removed from the location
     """
-    # get removed adjacencies, this is why we do this before
-    LocationTagRelation.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
+    # get removed adjacencies, this is why we do this before  … todo get rid of this. could we do it after then?
+    #LocationTagRelation.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
     instance.register_changed_geometries(force=True)
@@ -673,7 +645,8 @@ def locationtag_children_removed(instance: LocationTag, pk_set: set[int] = None)
         # todo: this is a hack, can be done nicer
         pk_set = set(LocationTagRelation.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
 
-    LocationTagRelation.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
+    # todo: ged rid of this… could we do it after then?
+    # LocationTagRelation.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
 
     # notify changed geometries… todo: this should definitely use the descendants thing
     for obj in LocationTag.objects.filter(pk__in=pk_set):

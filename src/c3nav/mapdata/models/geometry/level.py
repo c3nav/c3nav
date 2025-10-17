@@ -23,8 +23,8 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeo
 from c3nav.mapdata.models.locations import LocationTagTargetMixin
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
 from c3nav.mapdata.utils.cache.changes import changed_geometries
+from c3nav.mapdata.utils.geometry.modify import comparable_mapping
 from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
-from c3nav.mapdata.utils.geometry.modify import snap_to_grid_and_fully_normalized, comparable_mapping
 
 
 class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Model):
