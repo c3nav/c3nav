@@ -18,7 +18,7 @@ type AffectedAdjacenciesLookup = dict[TagID, AdjacencyID]
 
 class LocationTagRelationTuple(NamedTuple):
     prev_relation_id: RelationID | None
-    adjacency_id: AdjacencyID
+    adjacency_id: AdjacencyID | None
     ancestor_id: TagID
     descendant_id: TagID
     num_hops: int
@@ -27,7 +27,7 @@ class LocationTagRelationTuple(NamedTuple):
 class SimpleLocationTagRelationTuple(NamedTuple):
     prev: Optional["SimpleLocationTagRelationTuple"]
     ancestor: int | None
-    parent: int
+    parent: int | None
     tag: int
     num_hops: int
 
