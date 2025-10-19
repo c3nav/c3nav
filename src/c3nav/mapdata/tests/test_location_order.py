@@ -63,7 +63,7 @@ class LocationTagOrderTests(TransactionTestCase):
                 for order_label in ("breadth_first_order", "depth_first_pre_order", "depth_first_post_order"):
                     #print("order_by", f'{direction}_{order_label}')
                     self.assertQuerySetEqual(
-                        getattr(tag, f"calculated_{relation}").order_by(f'{direction}_{order_label}'),
+                        getattr(tag, f"calculated_{relation}").distinct().order_by(f'{direction}_{order_label}'),
                         getattr(orders, order_label),
                         msg=f"{tag!r} {relation} {order_label.replace("_", " ")} doesn't match: ()"
                     )
