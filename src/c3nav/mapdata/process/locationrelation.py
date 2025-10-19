@@ -143,7 +143,7 @@ def process_location_tag_relations():
 
     existing_relations_by_id = {
         pk: fields for pk, *fields in LocationTagRelation.objects.values_list(
-            "pk", "prev_relation_id", "ancestor_id", "parent_id", "adjacency__child_id", "num_hops",
+            "pk", "prev_relation_id", "ancestor_id", "adjacency__parent_id", "adjacency__child_id", "num_hops",
         )
     }
     existing_relations_by_num_hops_and_id: dict[int, dict[int, SimpleLocationTagRelationTuple]] = {}
@@ -217,6 +217,7 @@ def _tuples_by_value(tuples: dict[tuple[int, int], int]) -> dict[int, set[tuple[
 
 
 def recalculate_locationtag_effective_order():
+    # todo: look, location order isn't correct now that we have locations more than once etc
     pks, priorities, num_parents, num_children = zip(
         *LocationTag.objects.annotate(
             Count("parents"),

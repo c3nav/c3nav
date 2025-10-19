@@ -94,7 +94,7 @@ def generate_relations_to_create(
             )
         ))
     ))
-    if any((ancestor == descendant) for ancestor, descendant in relations_to_create):
+    if any((ancestor == descendant) for ancestor, descendant in relations):
         raise CircularyHierarchyError("Circular relations are now allowed")
     created_relations = yield relations_to_create
 
