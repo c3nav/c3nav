@@ -130,9 +130,9 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('num_hops', models.PositiveSmallIntegerField(db_index=True)),
-                ('ancestor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='downwards_relations', to='mapdata.specificlocation')),
+                ('ancestor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='downwards_relations', to='mapdata.specificlocation', null=True)),
                 ('descendant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='upwards_relations', to='mapdata.specificlocation')),
-                ('adjacency', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='upwards_relations', to='mapdata.locationtagadjacency')),
+                ('adjacency', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='upwards_relations', to='mapdata.locationtagadjacency', null=True)),
                 ('prev_relation', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='next_relations', to='mapdata.locationtagrelation')),
                 ('access_restrictions', models.ManyToManyField(related_name='+', to='mapdata.accessrestriction')),
                 ('effective_downwards_breadth_first_order', models.PositiveIntegerField(default=2147483647, editable=False)),
@@ -146,7 +146,8 @@ class Migration(migrations.Migration):
                 'constraints': [
                     models.UniqueConstraint(fields=('prev_relation', 'descendant'), name='unique_prev_relation_descendant'),
                     models.CheckConstraint(condition=models.Q(('ancestor', models.F('descendant')), _negated=True), name='no_circular_location_tag_relation'),
-                    models.CheckConstraint(condition=models.Q(models.Q(('num_hops', 0), ('prev_relation__isnull', True)), models.Q(('num_hops__gt', 0), ('prev_relation__isnull', False)), _connector='OR'), name='relation_enforce_num_hops'),
+                    models.CheckConstraint(condition=models.Q(models.Q(('num_hops', 0), ('prev_relation__isnull', True)), models.Q(('num_hops__gt', 0), ('prev_relation__isnull', False)), _connector='OR'), name='relation_enforce_num_hops_prev'),
+                    models.CheckConstraint(condition=models.Q(models.Q(('adjacency__isnull', True), ('ancestor__isnull', True), ('num_hops', 0)), ('adjacency__isnull', False), _connector='OR'), name='relation_enforce_adjacency'),
                 ],
             },
         ),
@@ -162,36 +163,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='specificlocation',
             name='effective_order',
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='effective_downwards_breadth_first_order',
-            field=models.PositiveIntegerField(default=2147483647, editable=False),
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='effective_downwards_depth_first_pre_order',
-            field=models.PositiveIntegerField(default=2147483647, editable=False),
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='effective_downwards_depth_first_post_order',
-            field=models.PositiveIntegerField(default=2147483647, editable=False),
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='effective_upwards_breadth_first_order',
-            field=models.PositiveIntegerField(default=2147483647, editable=False),
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='effective_upwards_depth_first_pre_order',
-            field=models.PositiveIntegerField(default=2147483647, editable=False),
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='effective_upwards_depth_first_post_order',
-            field=models.PositiveIntegerField(default=2147483647, editable=False),
         ),
         migrations.AddField(
             model_name='specificlocation',
