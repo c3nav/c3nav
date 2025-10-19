@@ -1,6 +1,4 @@
-import operator
 from collections import deque, defaultdict
-from functools import reduce
 from itertools import chain
 from operator import itemgetter
 from typing import NamedTuple, Self
@@ -10,52 +8,50 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.db.models.expressions import F, When, Case, Value
 
-from c3nav.mapdata.models.locations import LocationTagAdjacency, LocationTagRelation,LocationTag
+from c3nav.mapdata.models.locations import LocationTagAdjacency, LocationTagRelation, LocationTag
 from c3nav.mapdata.utils.relationpaths import SimpleLocationTagRelationTuple
+
+type AbsoluteAncestorTuple = tuple[None, int, ...] | tuple[None, ]
+type RelativeAncestorTuple = tuple[int, ...]
+type AncestorTuple = AbsoluteAncestorTuple | RelativeAncestorTuple
+type TagOrderResult = dict[None | int, dict[AncestorTuple, int]]
 
 
 class EffectiveLocationTagOrders(NamedTuple):
-    depth_first_pre_order: dict[int | None, dict[int, int]]
-    depth_first_post_order: dict[int | None, dict[int, int]]
-    breadth_first_order: dict[int | None, dict[int, int]]
-
-    depth_first_pre_order: dict[int | None, dict[int, int]]
-    depth_first_post_order: dict[int | None, dict[int, int]]
-    breadth_first_order: dict[int | None, dict[int, int]]
+    depth_first_pre_order: TagOrderResult
+    depth_first_post_order: TagOrderResult
+    breadth_first_order: TagOrderResult
 
     @staticmethod
     def calc_breadth_first_order(root_tag_ids: list[int],
-                                 children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
-        result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
-        next_tags: deque[tuple[set[int], list[int]]] = deque([(set(), root_tag_ids)])
-        #print("breadth first")
+                                 children_for_parent: dict[int, list[int]]) -> TagOrderResult:
+        result: TagOrderResult = defaultdict(dict)
+        next_tags: deque[tuple[AbsoluteAncestorTuple, list[int]]] = deque([((None, ), root_tag_ids)])
+
         while next_tags:
-            #print(next_tags, children_for_parent, result)
-            ancestor_ids, tag_ids = next_tags.popleft()
-            for tag_id in tag_ids:
-                result[None].setdefault(tag_id, len(result[None]))
-                for ancestor_id in ancestor_ids:
-                    result[ancestor_id].setdefault(tag_id, len(result[ancestor_id]))
-                next_tags.append((ancestor_ids | {tag_id}, children_for_parent[tag_id]))
+            ancestors, children = next_tags.popleft()
+            for tag_id in children:
+                for i, ancestor in enumerate(ancestors):
+                    result[ancestor].setdefault(ancestors[i:] + (tag_id, ), len(result[ancestor]))
+                # noinspection PyTypeChecker
+                next_tags.append((ancestors + (tag_id, ), children_for_parent[tag_id]))
 
         return result
 
     @staticmethod
     def calc_depth_first_post_order(root_tag_ids: list[int],
-                                    children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
-        result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
-        next_tags: deque[tuple[tuple[int, ...], int, list[int]]] = deque([((None, ), None, root_tag_ids)])
-        # print("root_tag_ids=", root_tag_ids, "children_for_parent=", children_for_parent)
-        # print("depth first")
+                                    children_for_parent: dict[int, list[int]]) -> TagOrderResult:
+        result: TagOrderResult = defaultdict(dict)
 
-        def add(ancestors: set, descendant_id: int):
-            new_ancestors = ancestors | {descendant_id}
+        def add(ancestors: AbsoluteAncestorTuple, descendant_id: int):
+            new_ancestors = ancestors + (descendant_id, )
             for child_id in children_for_parent[descendant_id]:
+                # noinspection PyTypeChecker
                 add(new_ancestors, child_id)
-            for ancestor_id in ancestors:
-                result[ancestor_id].setdefault(descendant_id, len(result[ancestor_id]))
+            for i, ancestor in enumerate(ancestors):
+                result[ancestor].setdefault(ancestors[i:] + (descendant_id, ), len(result[ancestor]))
 
-        start_ancestors = {None}
+        start_ancestors = (None, )
         for root_id in root_tag_ids:
             add(start_ancestors, root_id)
 
@@ -63,17 +59,18 @@ class EffectiveLocationTagOrders(NamedTuple):
 
     @staticmethod
     def calc_depth_first_pre_order(root_tag_ids: list[int],
-                                   children_for_parent: dict[int, list[int]]) -> dict[int | None, dict[int, int]]:
-        result: dict[int | None, dict[int, int]] = defaultdict(dict)  # dict to maintain insertion order
+                                   children_for_parent: dict[int, list[int]]) -> TagOrderResult:
+        result: TagOrderResult = defaultdict(dict)
 
-        def add(ancestors: set, descendant_id: int):
-            new_ancestors = ancestors | {descendant_id}
-            for ancestor_id in ancestors:
-                result[ancestor_id].setdefault(descendant_id, len(result[ancestor_id]))
+        def add(ancestors: AbsoluteAncestorTuple, descendant_id: int):
+            new_ancestors = ancestors + (descendant_id,)
+            for i, ancestor in enumerate(ancestors):
+                result[ancestor].setdefault(ancestors[i:] + (descendant_id,), len(result[ancestor]))
             for child_id in children_for_parent[descendant_id]:
+                # noinspection PyTypeChecker
                 add(new_ancestors, child_id)
 
-        start_ancestors = {None}
+        start_ancestors = (None, )
         for root_id in root_tag_ids:
             add(start_ancestors, root_id)
 
@@ -103,12 +100,18 @@ def process_location_tag_relations():
     # create ancestors
     expected_relations: dict[int, tuple[SimpleLocationTagRelationTuple, ...]] = {}
     num_hops = 0
-    last_relations: tuple[SimpleLocationTagRelationTuple, ...] = tuple(chain.from_iterable(
+    last_relations: tuple[SimpleLocationTagRelationTuple, ...] = tuple(chain(
+        chain.from_iterable(
+            (
+                SimpleLocationTagRelationTuple(ancestor=parent_id, parent=parent_id, tag=child_id,
+                                               prev=None, num_hops=0)
+                for child_id in child_ids
+            ) for parent_id, child_ids in children_by_parent.items()
+        ),
         (
-            SimpleLocationTagRelationTuple(ancestor=parent_id, parent=parent_id, tag=child_id,
-                                           prev=None, num_hops=0)
-            for child_id in child_ids
-        ) for parent_id, child_ids in children_by_parent.items()
+            SimpleLocationTagRelationTuple(ancestor=None, parent=None, tag=pk, prev=None, num_hops=0)
+            for pk in LocationTag.objects.values_list("pk", flat=True)
+        )
     ))
     while last_relations:
         cyclic_relations = tuple(p for p in last_relations if p.ancestor == p.tag)
@@ -172,6 +175,8 @@ def process_location_tag_relations():
 
     delete_ids: deque[int] = deque()
 
+    # todo: check that prev path id is always correct
+
     max_num_hops = max(chain(existing_relations_by_num_hops_and_id.keys(), expected_relations.keys()), default=0)
     for num_hops in range(max_num_hops+1):
         existing_relations_for_hops = frozenset(existing_relations_by_num_hops_and_id.get(num_hops, {}).values())
@@ -222,7 +227,7 @@ def recalculate_locationtag_effective_order():
         *LocationTag.objects.annotate(
             Count("parents"),
             Count("children"),
-        ).values_list("pk", "priority", "parents__count", "children__count").order_by("-priority")
+        ).select_for_update().values_list("pk", "priority", "parents__count", "children__count").order_by("-priority")
     )
     root_tag_ids = [pk for pk, parents in zip(pks, num_parents) if parents == 0]
     leaf_tag_ids = [pk for pk, children in zip(pks, num_children) if children == 0]
@@ -232,7 +237,7 @@ def recalculate_locationtag_effective_order():
         "-child__priority", "child_id"
     ).values_list(
         "parent_id", "child_id"
-    ):
+    ).select_for_update():
         children_for_parent[parent_id].append(child_id)
 
     parents_for_child: dict[int, list[int]] = defaultdict(list)
@@ -246,22 +251,8 @@ def recalculate_locationtag_effective_order():
     downwards_orders = EffectiveLocationTagOrders.calculate(root_tag_ids, children_for_parent)
     upwards_orders =  EffectiveLocationTagOrders.calculate(leaf_tag_ids, parents_for_child)
 
-    orders_by_name = ("downwards", downwards_orders), ("upwards", upwards_orders)
-    #print(orders_by_name)
-    global_orders_by_name: dict[str, dict[int, int]] = dict(chain.from_iterable((
-        (
-            (f"{dir_name}_{order_name}", order)
-            for order_name, order in (
-                ("breadth_first_order", orders.breadth_first_order.pop(None)),
-                ("depth_first_pre_order", orders.depth_first_pre_order.pop(None)),
-                ("depth_first_post_order", orders.depth_first_post_order.pop(None)),
-            )
-        ) for dir_name, orders in orders_by_name)
-    ))
-    #from pprint import pprint
-    #pprint(global_orders_by_name)
-
-    local_orders_by_name: dict[str, dict[int, set[tuple[int, int]]]] = dict(chain.from_iterable((
+    order_directions = ("downwards", downwards_orders), ("upwards", upwards_orders)
+    local_orders_by_name: dict[str, dict[int, set[AncestorTuple]]] = dict(chain.from_iterable((
         (
             (f"downwards_{order_name}", _tuples_by_value(dict(chain.from_iterable(
                 (((ancestor, descendant), i) for descendant, i in descendants.items())
@@ -272,31 +263,27 @@ def recalculate_locationtag_effective_order():
                  for ancestor, descendants in upwards.items()
             )))),
         ) for order_name, downwards, upwards in (
-            ("breadth_first_order", *(d.breadth_first_order for dir_name, d in orders_by_name)),
-            ("depth_first_pre_order", *(d.depth_first_pre_order for dir_name, d in orders_by_name)),
-            ("depth_first_post_order", *(d.depth_first_post_order for dir_name, d in orders_by_name)),
+            ("breadth_first_order", *(d.breadth_first_order for dir_name, d in order_directions)),
+            ("depth_first_pre_order", *(d.depth_first_pre_order for dir_name, d in order_directions)),
+            ("depth_first_post_order", *(d.depth_first_post_order for dir_name, d in order_directions)),
         )
     )))
 
+    relation_by_id: dict[int, AncestorTuple] = {}
+    relation_by_path: dict[AncestorTuple, int] = {}
+    for pk, prev_id, ancestor_id, descendant_id in LocationTagRelation.objects.order_by("num_hops").values_list(
+            "pk", "prev_relation_id", "ancestor_id", "descendant_id", flat=True,
+    ):
+        path: AncestorTuple = relation_by_id.get(prev_id, (ancestor_id, )) + (descendant_id, )  # noqa
+        relation_by_id[pk] = path
+        relation_by_path[path] = pk
+
     field = models.PositiveIntegerField()
-    LocationTag.objects.update(**{
-        f"effective_{order_name}": Case(
-            *(
-                When(pk=tag_id, then=Value(i, output_field=field))
-                for tag_id, i in order.items()
-            ),
-            default=Value(2 ** 31 - 1, output_field=field),
-        )
-        for order_name, order in global_orders_by_name.items()
-    })
-    print("local_orders_by_name", local_orders_by_name)
     LocationTagRelation.objects.update(**{
         f"effective_{order_name}": Case(
             *(
-                When(condition=reduce(operator.or_, (Q(ancestor_id=ancestor_id, descendant_id=descendant_id)
-                                                     for ancestor_id, descendant_id in tuples)),
-                     then=Value(i, output_field=field))
-                for i, tuples in order.items()
+                When(pk__in={relation_by_path[path] for path in path}, then=Value(i, output_field=field))
+                for i, path in order.items()
             ),
             default=Value(2 ** 31 - 1, output_field=field),
         )

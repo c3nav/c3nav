@@ -124,6 +124,18 @@ def migrate_location_hierarchy(apps, model_name):
         for pk, parent, child in LocationTagAdjacency.objects.values_list("pk", "parent_id", "child_id")
     }
 
+    root_relations_lookup = {
+        relation.descendant_id: relation.id
+        for relation in LocationTagRelation.objects.bulk_create((
+            LocationTagRelation(
+                prev_relation_id=None,
+                adjacency_id=None,
+                ancestor_id=None,
+                descendant_id=pk,
+                num_hops=0,
+            ) for pk in SpecificLocation.objects.values_list("pk", flat=True)
+        ))
+    }
     direct_relation_lookup = {
         (relation.ancestor_id, relation.descendant_id): relation.id
         for relation in LocationTagRelation.objects.bulk_create((
@@ -136,17 +148,37 @@ def migrate_location_hierarchy(apps, model_name):
             ) for ancestor_id, descendant_id in direct_relations
         ))
     }
-    LocationTagRelation.objects.bulk_create(chain.from_iterable((
-        (
+    direct_root_relation_lookup = {
+        (relation.prev_relation_id, relation.descendant_id): relation.id
+        for relation in LocationTagRelation.objects.bulk_create((
             LocationTagRelation(
-                prev_relation_id=direct_relation_lookup[(intermediate_id, descendant_id)],
-                adjacency_id=adjacency_id_lookup[(intermediate_id, descendant_id)],
-                ancestor_id=ancestor_id,
+                prev_relation_id=root_relations_lookup[ancestor_id],
+                adjacency_id=adjacency_id_lookup[(ancestor_id, descendant_id)],
+                ancestor_id=None,
                 descendant_id=descendant_id,
                 num_hops=1,
+            ) for ancestor_id, descendant_id in direct_relations
+        ))
+    }
+    LocationTagRelation.objects.bulk_create(chain.from_iterable((
+        chain.from_iterable((
+            (
+                LocationTagRelation(
+                    prev_relation_id=direct_relation_lookup[(ancestor_id, intermediate_id)],
+                    adjacency_id=adjacency_id_lookup[(intermediate_id, descendant_id)],
+                    ancestor_id=ancestor_id,
+                    descendant_id=descendant_id,
+                    num_hops=1,
+                ),
+                LocationTagRelation(
+                    prev_relation_id=direct_root_relation_lookup[(root_relations_lookup[ancestor_id], intermediate_id)],
+                    adjacency_id=adjacency_id_lookup[(intermediate_id, descendant_id)],
+                    ancestor_id=None,
+                    descendant_id=descendant_id,
+                    num_hops=2,
+                )
             ) for intermediate_id in intermediate_ids
-        )
-        for (ancestor_id, descendant_id), intermediate_ids in indirect_relations.items()
+        )) for (ancestor_id, descendant_id), intermediate_ids in indirect_relations.items()
     )))
 
     Area = apps.get_model('mapdata', 'Area')

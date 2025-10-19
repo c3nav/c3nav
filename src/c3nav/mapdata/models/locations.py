@@ -102,18 +102,6 @@ CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationTagGeometry | 
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 
-class LocationTagOrderMixin(models.Model):
-    class Meta:
-        abstract = True
-
-    effective_downwards_breadth_first_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_downwards_depth_first_pre_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_downwards_depth_first_post_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_upwards_breadth_first_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
-    effective_upwards_depth_first_pre_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
-    effective_upwards_depth_first_post_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
-
-
 class LocationTagAdjacency(models.Model):
     """
     A direct parent-child-relationship between two locations.
@@ -128,15 +116,24 @@ class LocationTagAdjacency(models.Model):
         )
 
 
-class LocationTagRelation(LocationTagOrderMixin, models.Model):
+class LocationTagRelation(models.Model):
     """ Automatically populated """
-    ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="downwards_relations")
+    ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="downwards_relations",
+                                 null=True)
     descendant = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="upwards_relations")
-    adjacency = models.ForeignKey("LocationTagAdjacency", on_delete=models.CASCADE, related_name="upwards_relations")
+    adjacency = models.ForeignKey("LocationTagAdjacency", on_delete=models.CASCADE, related_name="upwards_relations",
+                                  null=True)
     prev_relation = models.ForeignKey("self", on_delete=models.CASCADE, related_name="next_relations", null=True)
     access_restrictions = models.ManyToManyField("AccessRestriction", related_name="+")
     # rename to num_predecessors?
     num_hops = models.PositiveSmallIntegerField(db_index=True)
+
+    effective_downwards_breadth_first_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_downwards_depth_first_pre_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_downwards_depth_first_post_order = models.PositiveIntegerField(default=2**31-1, editable=False)
+    effective_upwards_breadth_first_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
+    effective_upwards_depth_first_pre_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
+    effective_upwards_depth_first_post_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
 
     class Meta:
         constraints = (
@@ -144,7 +141,11 @@ class LocationTagRelation(LocationTagOrderMixin, models.Model):
             UniqueConstraint(fields=("prev_relation", "descendant"), name="unique_prev_relation_descendant"),
             CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_tag_relation"),
             CheckConstraint(check=Q(prev_relation__isnull=True, num_hops=0) |
-                                  Q(prev_relation__isnull=False, num_hops__gt=0), name="relation_enforce_num_hops"),
+                                  Q(prev_relation__isnull=False, num_hops__gt=0),
+                            name="relation_enforce_num_hops_prev"),
+            CheckConstraint(check=Q(adjacency__isnull=True, ancestor__isnull=True, num_hops=0) |
+                                  Q(adjacency__isnull=False),
+                            name="relation_enforce_num_hops_adjacency"),
         )
 
     def __str__(self):
@@ -155,7 +156,7 @@ class LocationTagRelation(LocationTagOrderMixin, models.Model):
                  if "adjacency" in self._state.fields_cache else f" adjacency={self.adjacency_id}"))
 
 
-class LocationTag(LocationTagOrderMixin, AccessRestrictionMixin, TitledMixin, models.Model):
+class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     """
     Implements :py:class:`c3nav.mapdata.schemas.locations.ListedLocationProtocol`.
     """
