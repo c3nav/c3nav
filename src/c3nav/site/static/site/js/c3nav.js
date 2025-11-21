@@ -2348,6 +2348,7 @@ c3nav = {
         }
     },
     _c3BeaconUuuid: "a142621a-2f42-09b3-245b-e1ac6356e9b0",
+    _maxBLEAdvertisements: 128,
     _receivedBLEAdvertisements: [],
     _BLEreportingInterval: null,
     startBLEScanning: function () {
@@ -2388,9 +2389,9 @@ c3nav = {
 
         ratio = rssi*1.0/txPower;
         if (ratio < 1.0)
-            distance =  math.pow(ratio,10);
+            distance =  Math.pow(ratio,10);
         else
-            distance =  (0.89976) * math.pow(ratio,7.7095) + 0.111;
+            distance =  (0.89976) * Math.pow(ratio,7.7095) + 0.111;
         
         return distance;
     },
@@ -2446,7 +2447,7 @@ c3nav = {
                 
                 // Housekeeping
                 if (c3Nav._receivedBLEAdvertisements.length > 128)
-                    c3nav._receivedBLEAdvertisements = [];
+                    c3nav._receivedBLEAdvertisements = c3nav._receivedBLEAdvertisements.slice((-1 * _maxBLEAdvertisements / 2));
 
                 if (c3nav._bleScan && !c3nav._bleScan.active)
                     c3nav.startBLEScanning();
