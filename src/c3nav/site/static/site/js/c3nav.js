@@ -2363,13 +2363,8 @@ c3nav = {
             navigator.bluetooth.getAvailability().then((available) => {
                 if (available && navigator.userActivation.isActive) {
                     c3nav._bleScan = navigator.bluetooth.requestLEScan({
-                        filters: [{
-                          manufacturerData: [{
-                            companyIdentifier: 0x004C,
-                            dataPrefix: new Uint8Array([0x02, 0x15])
-                           }]
-                        }],
-                        keepRepeatedDevices: true
+                        keepRepeatedDevices: true,
+                        acceptAllAdvertisements: true // iBeacons are non-connectable, can't filter directly
                     });
                     navigator.bluetooth.addEventListener('advertisementreceived', c3nav._handleBLEAdvertisement);
                 }
@@ -2395,32 +2390,63 @@ c3nav = {
         
         return distance;
     },
-    _handleBLEAdvertisement: function (event) {        
-        if (!event.manufacturerData || !event.manufacturerData.has(0x004C))
-            return;
-
-        // APPL MFC
-        var beaconData = event.manufacturerData.get(0x004C);
-        // Check iBeacon magic headers
-        if (beaconData.byteLength != 23 || beaconData.getUint16(0, false) !== 0x0215) {
+    _bytesToUUID: function (bytes) {
+        const hex = bytes.map(b => b.toString(16).padStart(2, "0")).join("");
+        return (
+            hex.substring(0, 8) + "-" +
+            hex.substring(8, 12) + "-" +
+            hex.substring(12, 16) + "-" +
+            hex.substring(16, 20) + "-" +
+            hex.substring(20)
+        );
+    },
+    _handleBLEAdvertisement: function (event) {       
+        // Check for Apple Manufacturer Data (0x004C)
+        if (!event.manufacturerData || !event.manufacturerData.has(0x004C)) {
             return;
         }
 
-        var _uuidArray = new Uint8Array(beaconData.buffer, 2, 16);
-        var _uuid = Buffer.from(_uuidArray).toString('utf-8');
+        const beaconData = event.manufacturerData.get(0x004C);
+
+        // iBeacon frames are at least 23 bytes long
+        if (beaconData.byteLength < 23) {
+            return;
+        }
+        const beaconView = new DataView(beaconData.buffer);
+
+        // Format of iBeacon manufacturer data:
+        // Byte 0-1: Company ID (0x004C)
+        // Byte 2: Type (0x02)
+        // Byte 3: Length (0x15)
+        // Byte 4-19: UUID
+        // Byte 20-21: Major
+        // Byte 22-23: Minor
+        // Byte 24: Tx Power
+
+        // Validate iBeacon prefix (0x02 0x15)
+        if (beaconView.getUint8(0) !== 0x02 || beaconView.getUint8(1) !== 0x15) return;
+
+        // Extract UUID
+        const uuidBytes = [];
+        for (let i = 2; i < 18; i++) uuidBytes.push(beaconView.getUint8(i));
+
+        const _uuid = bytesToUUID(uuidBytes);
+
         // Not our beacons
         if (_uuid != c3nav._c3BeaconUuuid)
             return;
-        var _rssi = event.rssi;
-        var _timestamp = event.timeStamp;
-        var _major = beaconData.getUint16(18, false);
-        var _minor = beaconData.getUint16(20, false);
-        var _txPower = -beaconData.getInt8(22);
-        var _pathLoss = (_txPower - _rssi);
-        var _distance = c3nav._calciBeaconDistance(_txPower, _rssi);
-        var _lastSeen = _timestamp;
+
+        const _rssi = event.rssi;
+        const _timestamp = event.timeStamp;
+        const _major = beaconView.getUint16(18, false);
+        const _minor = beaconView.getUint16(20, false);
+        const _txPower = -beaconView.getInt8(22);
+
+        const _pathLoss = (_txPower - _rssi);
+        const _distance = c3nav._calciBeaconDistance(_txPower, _rssi);
+        const _lastSeen = _timestamp;
         var _lastSeenBeacons = c3nav._receivedBLEAdvertisements.filter(obj => {
-            return obj.uuid == uuid
+            return obj.uuid == _uuid
         }).sort(
             (a, b) => b.timestamp - a.timestamp
         );
