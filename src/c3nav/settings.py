@@ -549,6 +549,7 @@ COMPRESS_CSS_HASHING_METHOD = 'content'
 
 HEADER_LOGO = config.get('c3nav', 'header_logo', fallback=None)
 HEADER_LOGO_MASK_MODE = config.get('c3nav', 'header_logo_mask_mode', fallback=None)
+HEADER_LOGO_ANIM = config.get('c3nav', 'header_logo_anim', fallback=None)
 FAVICON = config.get('c3nav', 'favicon', fallback=None)
 FAVICON_PACKAGE = config.get('c3nav', 'favicon_package', fallback=None)
 

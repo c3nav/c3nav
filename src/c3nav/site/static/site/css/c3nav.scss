@@ -120,6 +120,16 @@ header #user:hover {
     color: var(--color-header-text-hover);
 }
 
+header #c3nav-logo-canvas {
+    width: 170px;
+    height: 60px;
+    position: fixed;
+    top: 0px;
+    left: 10px;
+    z-index: -1;
+    visibility: hidden;
+}
+
 input, textarea, select {
     font-family: inherit;
     color: inherit;

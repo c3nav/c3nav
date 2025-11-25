@@ -6,6 +6,7 @@ from django.core.files.storage import FileSystemStorage
 
 logo_paths = {
     'header_logo': settings.HEADER_LOGO,
+    'header_logo_anim': settings.HEADER_LOGO_ANIM,
     'favicon': settings.FAVICON,
 }
 
