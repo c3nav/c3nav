@@ -20,17 +20,12 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='locationgroup',
-            name='effective_order',
+            name='effective_order',  # todo: get rid of all the stupid effective_order stuff
             field=models.PositiveIntegerField(default=2147483647),
         ),
         migrations.AddField(
             model_name='specificlocation',
             name='effective_order',
             field=models.PositiveIntegerField(default=2147483647, editable=False),
-        ),
-        migrations.AddField(
-            model_name='specificlocation',
-            name='effective_icon',
-            field=models.CharField(editable=False, max_length=32, null=True, verbose_name='icon'),
         ),
     ]

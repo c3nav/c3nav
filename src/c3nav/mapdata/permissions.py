@@ -3,6 +3,7 @@ import sys
 import traceback
 import warnings
 from abc import abstractmethod, ABC
+from collections import deque
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -458,6 +459,7 @@ class BaseMapPermissionGuardedSequence[T](Sequence[T], BaseMapPermissionGuarded[
 
 
 class MapPermissionGuardedSequence[T: AccessRestrictionLogicMixin](BaseMapPermissionGuardedSequence[T]):
+    # todo: don't forget to make sure this works with LocationTag as well
     """
     Wraps a sequence of AccessRestrictionLogicMixin objects.
     Acts like a sequence (like list, tuple, ...) but will filter objects based on the active map permissions.
