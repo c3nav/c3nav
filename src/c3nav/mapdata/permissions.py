@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 import sys
 import traceback
@@ -10,7 +12,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property, lru_cache, reduce
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Generator, Iterable, \
-    overload, TypeAlias
+    overload, TypeAlias, Union, Optional
 
 from django.apps.registry import apps
 from django.contrib.auth.models import User
@@ -34,6 +36,182 @@ class SpacePermission(NamedTuple):
 
 
 PermissionsAsSet: TypeAlias = frozenset[FullAccessTo | SpacePermission | int]
+
+
+class AccessRestrictionsEval(ABC):
+    @abstractmethod
+    def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
+        pass
+
+    @abstractmethod
+    def __or__(self, other) -> AccessRestrictionsEval:
+        pass
+
+    @abstractmethod
+    def __and__(self, other) -> AccessRestrictionsEval:
+        pass
+
+    @abstractmethod
+    def __sub__(self, other: frozenset[int]) -> AccessRestrictionsEval:
+        pass
+
+
+class NoAccessRestrictionsCls(AccessRestrictionsEval):
+    def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
+        return True
+
+    def __or__(self, other: AccessRestrictionsEval) -> NoAccessRestrictionsCls:
+        return self
+
+    def __and__[T: AccessRestrictionsEval](self, other: T) -> T:
+        return other
+
+    def __sub__(self, other: frozenset[int]) -> NoAccessRestrictionsCls:
+        return self
+
+
+NoAccessRestrictions = NoAccessRestrictionsCls()
+
+
+class AccessRestrictionsAllIDs(AccessRestrictionsEval, NamedTuple):
+    access_restrictions: frozenset[int]
+
+    def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
+        return not bool(self.access_restrictions - permissions_as_set)
+
+    def __or__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
+        if isinstance(other, AccessRestrictionsAllIDs):
+            if other.access_restrictions <= self.access_restrictions:
+                return other
+            if self.access_restrictions <= other.access_restrictions:
+                return self
+            return AccessRestrictionsOr(children=frozenset((self, other)))
+
+        return other | self
+
+    def __and__[T: AccessRestrictionsEval](self, other: T) -> T:
+        if isinstance(other, AccessRestrictionsAllIDs):
+            if other.access_restrictions <= self.access_restrictions:
+                return self
+            if self.access_restrictions <= other.access_restrictions:
+                return other
+            return AccessRestrictionsAllIDs(self.access_restrictions | other.access_restrictions)
+
+        return other & self
+
+    def __sub__(self, other: frozenset[int]) -> Union[AccessRestrictionsAllIDs, NoAccessRestrictionsCls]:
+        new_ids = self.access_restrictions - other
+        if not new_ids:
+            return NoAccessRestrictions
+        return AccessRestrictionsAllIDs(new_ids)
+
+
+# todo: check that all access restrictions, even the ones from the location groups, actually go into the map renderer
+
+
+class AccessRestrictionsOr(AccessRestrictionsEval, NamedTuple):
+    children: frozenset[AccessRestrictionsAllIDs]
+
+    def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
+        return any(child.can_see(permissions_as_set) for child in self.children)
+
+    def __or__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
+        if isinstance(other, AccessRestrictionsAllIDs):
+            if not any((child.access_restrictions <= other.access_restrictions) for child in self.children):
+                return AccessRestrictionsOr(self.children | {other})
+            return self
+        if isinstance(other, AccessRestrictionsOr):
+            new_sets = tuple(
+                other_child for other_child in other.children
+                if not any((child.access_restrictions <= other_child.access_restrictions) for child in self.children)
+            )
+            if new_sets:
+                return AccessRestrictionsOr(self.children | frozenset(new_sets))
+            return self
+        raise ValueError
+
+    def __and__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
+        if isinstance(other, AccessRestrictionsAllIDs):
+            new_children = frozenset((child | other) for child in self.children)
+            if len(new_children) == 1:
+                return next(iter(new_children))
+        if isinstance(other, AccessRestrictionsOr):
+            return AccessRestrictionsAnd(or_children=frozenset((self, other)))
+
+        return other & self
+
+    def __sub__(self, other: frozenset[int]) -> AccessRestrictionsEval:
+        new_children = frozenset(new_child for new_child in ((child - other) for child in self.children)
+                                 if isinstance(new_child, AccessRestrictionsAllIDs))
+        if not new_children:
+            return NoAccessRestrictions
+        if len(new_children) == 1:
+            return next(iter(new_children))
+        return AccessRestrictionsOr(new_children)
+
+
+class AccessRestrictionsAnd(AccessRestrictionsEval, NamedTuple):
+    id_child: Optional[AccessRestrictionsAllIDs] = None
+    or_children: frozenset[AccessRestrictionsOr] = frozenset()
+
+    def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
+        return (
+            True if self.id_child is None else self.id_child.can_see(permissions_as_set)
+            and all(child.can_see(permissions_as_set) for child in self.or_children)
+        )
+
+    def __or__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
+        raise ValueError
+
+    def __and__[T: AccessRestrictionsEval](self, other: T) -> T:
+        if isinstance(other, AccessRestrictionsAllIDs):
+            return AccessRestrictionsAnd(
+                id_child=other if self.id_child is None else (self.id_child & other),
+                or_children=self.or_children,
+            )
+        if isinstance(other, AccessRestrictionsOr):
+            return AccessRestrictionsAnd(
+                id_child=self.id_child,
+                or_children=self.or_children | {other},
+            )
+        if isinstance(other, AccessRestrictionsAnd):
+            return AccessRestrictionsAnd(
+                id_child=(other if self.id_child is None
+                          else (self.id_child if other.id_child is None else (self.id_child & other.id_child))),
+                or_children=self.or_children | {other.or_children},
+            )
+        if isinstance(other, NoAccessRestrictionsCls):
+            return other & self
+        raise ValueError
+
+    def __sub__(self, other: frozenset[int]) -> AccessRestrictionsEval:
+        new_id_child = (self.id_child or NoAccessRestrictions) - other
+        new_or_children = deque()
+
+        full_other = (
+            other if isinstance(new_id_child, NoAccessRestrictionsCls) else other | new_id_child.access_restrictions
+        )
+
+        for or_child in self.or_children:
+            new_or_child = or_child - full_other
+            if isinstance(new_or_child, AccessRestrictionsOr):
+                new_or_children.append(new_or_child)
+            elif isinstance(new_or_child, AccessRestrictionsAllIDs):
+                new_id_child &= new_or_child
+
+        new_or_children = frozenset(new_or_children)
+
+        if not new_or_children:
+            return new_id_child
+
+        if isinstance(new_id_child, NoAccessRestrictionsCls):
+            if not new_or_children:
+                return NoAccessRestrictions
+            if len(new_or_children) == 1:
+                return next(iter(new_or_children))
+            new_id_child = None
+
+        return AccessRestrictionsAnd(new_id_child, new_or_children)
 
 
 class MapPermissions(Protocol):
