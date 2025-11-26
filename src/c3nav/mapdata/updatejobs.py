@@ -260,17 +260,10 @@ def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
         run_mapupdate_job.delay(job_type=job_type)
 
 
-# todo: make this a transaction?? is it already?
-@register_mapupdate_job("process location relations", eager=True, dependencies=set())
-def process_locationtag_relations(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    process.process_location_tag_relations()
-    return True
-
-
-@register_mapupdate_job("Location tag cached from parents",
-                        eager=True, dependencies=(process_locationtag_relations,))
-def recalculate_locationtag_cached_from_parents(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    process.recalculate_locationtag_cached_from_parents()
+# todo: make this a transaction?? is it already? rename?
+@register_mapupdate_job("Location tag inheritance", eager=True)
+def recalculate_locationtag_effective_inherited_values(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    process.recalculate_locationtag_effective_inherited_values()
     return True
 
 
@@ -288,7 +281,7 @@ def recalculate_locationtag_dynamic_targets(mapupdates: tuple[MapUpdate, ...]) -
 
 
 @register_mapupdate_job("Location tag target subtitles",
-                        eager=True, dependencies=(recalculate_locationtag_cached_from_parents,))
+                        eager=True, dependencies=(recalculate_locationtag_effective_inherited_values,))
 def recalculate_locationtag_target_subtitles(mapupdates: tuple[MapUpdate, ...]) -> bool:
     process.recalculate_locationtag_target_subtitles()
     return True
@@ -429,7 +422,7 @@ def recalculate_locationtag_final(mapupdates: tuple[MapUpdate, ...]) -> bool:
 @register_mapupdate_job("geometries",
                         dependencies=(recalculate_space_effective_geometries,
                                       recalculate_area_effective_geometries,
-                                      recalculate_locationtag_cached_from_parents,
+                                      recalculate_locationtag_effective_inherited_values,
                                       recalculate_locationtag_final,))
 def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
