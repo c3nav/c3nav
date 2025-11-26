@@ -1,11 +1,11 @@
 import string
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import cached_property
 from itertools import chain, batched
-from operator import attrgetter
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable
 
 from django.conf import settings
 from django.core.cache import cache
@@ -13,7 +13,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
-from django.db.models.expressions import F
+from django.db.models.expressions import F, OuterRef, Exists
 from django.db.models.signals import m2m_changed
 from django.db.utils import IntegrityError
 from django.dispatch.dispatcher import receiver
@@ -29,7 +29,7 @@ from shapely.geometry import shape
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel, PointSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
@@ -43,9 +43,9 @@ from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.geometry.modify import merge_bounds
 
 if TYPE_CHECKING:
-    from c3nav.mapdata.render.theme import ThemeColorManager
-    from c3nav.mapdata.models import Level, Space, Area, POI
-    from c3nav.mapdata.locations import CustomLocation
+    from c3nav.mapdata.render.theme import ThemeColorManager  # noqa
+    from c3nav.mapdata.models import Level, Space, Area, POI  # noqa
+    from c3nav.mapdata.locations import CustomLocation  # noqa
 
 
 validate_slug = RegexValidator(
@@ -82,7 +82,9 @@ class FillAndBorderColor:
     border: str | None
 
 
-ColorByTheme: TypeAlias = dict[int, FillAndBorderColor]
+ColorByTheme: TypeAlias = dict[int, list[MapPermissionTaggedItem[FillAndBorderColor]]]
+CachedStrings: TypeAlias = list[MapPermissionTaggedItem[str]]
+CachedIDs: TypeAlias = list[MapPermissionTaggedItem[str]]
 CachedTitles: TypeAlias = list[MapPermissionTaggedItem[dict[str, str]]]
 CachedLocationTargetIDs: TypeAlias = list[MapPermissionTaggedItem[tuple[str, int]]]
 
@@ -101,6 +103,8 @@ CachedBoundsByLevel: TypeAlias = dict[int, CachedBounds]
 CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationTagGeometry | TaggedLocationGeometries]]
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
+CachedIDs: TypeAlias = list[MapPermissionTaggedItem[int]]
+
 
 class LocationTagAdjacency(models.Model):
     """
@@ -116,44 +120,24 @@ class LocationTagAdjacency(models.Model):
         )
 
 
-class LocationTagRelation(models.Model):
-    """ Automatically populated """
-    ancestor = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="downwards_relations",
-                                 null=True)
-    descendant = models.ForeignKey("LocationTag", on_delete=models.CASCADE, related_name="upwards_relations")
-    adjacency = models.ForeignKey("LocationTagAdjacency", on_delete=models.CASCADE, related_name="upwards_relations",
-                                  null=True)
-    prev_relation = models.ForeignKey("self", on_delete=models.CASCADE, related_name="next_relations", null=True)
-    access_restrictions = models.ManyToManyField("AccessRestriction", related_name="+")
-    # rename to num_predecessors?
-    num_hops = models.PositiveSmallIntegerField(db_index=True)
+class LocationTagManager(UseQForPermissionsManager):
+    def get_queryset(self):
+        return super().get_queryset().select_related("inherited")
 
-    effective_downwards_breadth_first_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_downwards_depth_first_pre_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_downwards_depth_first_post_order = models.PositiveIntegerField(default=2**31-1, editable=False)
-    effective_upwards_breadth_first_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
-    effective_upwards_depth_first_pre_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
-    effective_upwards_depth_first_post_order = models.PositiveIntegerField(default=2 ** 31 - 1, editable=False)
+    def without_inherited(self):
+        return super().get_queryset()
 
-    class Meta:
-        constraints = (
-            # todo: wouldn't it be nice to actual declare multi-field foreign key constraints here, manually?
-            UniqueConstraint(fields=("prev_relation", "descendant"), name="unique_prev_relation_descendant"),
-            CheckConstraint(check=~Q(ancestor=F("descendant")), name="no_circular_location_tag_relation"),
-            CheckConstraint(check=Q(prev_relation__isnull=True, num_hops=0) |
-                                  Q(prev_relation__isnull=False, num_hops__gt=0),
-                            name="relation_enforce_num_hops_prev"),
-            CheckConstraint(check=Q(adjacency__isnull=True, ancestor__isnull=True, num_hops=0) |
-                                  Q(adjacency__isnull=False),
-                            name="relation_enforce_num_hops_adjacency"),
-        )
+    def bulk_create(self, *args, **kwargs):
+        with transaction.atomic():
+            results = super().bulk_create(*args, **kwargs)
+            self.model._post_save((instance.pk for instance in results))
+        return results
 
-    def __str__(self):
-        return (f"{self.pk}: num_hops={self.num_hops} "
-                f"prev_relation={self._state.fields_cache.get('prev_relation', self.prev_relation_id)!r}" +
-                f" ancestor={self.ancestor_id} descendant={self.descendant_id}" +
-                (f" parent={self.adjacency.parent_id} child={self.adjacency.child_id}"
-                 if "adjacency" in self._state.fields_cache else f" adjacency={self.adjacency_id}"))
+    def create(self, **kwargs):
+        with transaction.atomic():
+            result = super().create(**kwargs)
+            self.model._post_save((result.pk, ))
+        return result
 
 
 class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
@@ -210,8 +194,10 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,
                                        unique=True,
                                        help_text=_('import hub locations of this type as children of this location'))
+
     external_url_label = I18nField(_('external URL label'), plural_name='external_url_labels', blank=True,
                                    fallback_any=True, fallback_value="")
+    external_url_labels: dict[str, str]
 
     load_group_contribute = models.ForeignKey("LoadGroup", on_delete=models.SET_NULL, null=True, blank=True,
                                               verbose_name=_('contribute to load group'))
@@ -220,9 +206,6 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     parents = models.ManyToManyField("self", related_name="children", symmetrical=False,
                                               through="LocationTagAdjacency", through_fields=("child", "parent"))
-    calculated_ancestors = models.ManyToManyField("self", related_name="calculated_descendants", symmetrical=False,
-                                                  through="LocationTagRelation", through_fields=("descendant", "ancestor"),
-                                                  editable=False)
 
     levels = models.ManyToManyField('Level', related_name="tags")
     spaces = models.ManyToManyField('Space', related_name="tags")
@@ -231,21 +214,14 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     effective_minimum_access_restrictions: frozenset[int] = SchemaField(schema=frozenset[int], default=frozenset)
 
-    effective_icon = models.CharField(_('icon'), max_length=32, null=True, editable=False)
-    effective_label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, editable=False,
-                                                 related_name='+', on_delete=models.CASCADE)
-    effective_external_url_label = I18nField(_('external URL label'), null=True, editable=False,
-                                             fallback_any=True, fallback_value="",
-                                             plural_name='effective_external_url_labels')
-    cached_effective_colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
-    cached_describing_titles: CachedTitles = SchemaField(schema=CachedTitles, default=list)
-
     cached_geometries: CachedGeometriesByLevel = SchemaField(schema=CachedGeometriesByLevel, null=True)
     cached_points: CachedLocationPoints = SchemaField(schema=CachedLocationPoints, null=True)
     cached_bounds: CachedBoundsByLevel = SchemaField(schema=CachedBoundsByLevel, null=True)
     cached_target_subtitles: CachedTitles = SchemaField(schema=CachedTitles, default=list)
     cached_all_static_targets: CachedLocationTargetIDs = SchemaField(schema=CachedLocationTargetIDs, default=list)
     cached_all_position_secrets: list[str] = SchemaField(schema=list[str], default=list)
+
+    objects = LocationTagManager()
 
     class Meta:
         verbose_name = _('Location Tag')
@@ -360,26 +336,91 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     def dynamic(self) -> int:
         return len(self.cached_all_position_secrets)
 
-    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        color = self.cached_effective_colors.get(color_manager.theme_id, None)
-        return None if color is None else color.fill
-
-    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
-        color = self.get_color(color_manager)
-        if color is None:
-            return None
-        return self.effective_depth_first_post_order, color
+    @property
+    def _has_inherited(self):
+        with suppress(AttributeError):
+            self.inherited
+        return "inherited" in self._state.fields_cache
 
     @cached_property
-    def describing_title(self) -> str:
+    def effective_icon(self) -> str | None:
+        if not self._has_inherited:  # todo: test that no inherited still works
+            return self.icon
+        return MapPermissionGuardedTaggedValue(self.inherited.icon, default=None).get()
+
+    @cached_property
+    def effective_label_settings_id(self) -> int | None:
+        if not self._has_inherited:
+            return self.label_settings_id
+        return MapPermissionGuardedTaggedValue(self.inherited.label_settings_id, default=self.label_settings_id).get()
+
+    @property
+    def effective_external_url_labels(self) -> dict:
+        if not self._has_inherited:
+            return self.external_url_label
+        return MapPermissionGuardedTaggedValue(self.inherited.external_url_label, default=self.external_url_labels).get()
+
+    @cached_property
+    def effective_external_url_label(self) -> str:
+        # todo: remove duplicate code here
+        if not self._has_inherited:
+            return lazy_get_i18n_value(self.external_url_label,
+                                       fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value="")
         return lazy_get_i18n_value(
-            lazy(MapPermissionGuardedTaggedValue(self.cached_describing_titles, default={}).get, dict)(),
+            lazy(MapPermissionGuardedTaggedValue(self.inherited.external_url_label,
+                                                 default=self.external_url_labels).get, dict)(),
             fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value=""
         )
 
+    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
+        if not self._has_inherited:
+            return None
+        color = MapPermissionGuardedTaggedValue(
+            self.inherited.colors.get(color_manager.theme_id, {}), default=None
+        ).get()
+        return None if color is None else color.fill
+
+    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
+        # todo: where is this used? get rid of it!
+        color = self.get_color(color_manager)
+        if color is None:
+            return None
+        return 0, color
+
+    @property
+    def describing_titles(self) -> dict:
+        if not self._has_inherited:
+            return {}
+        return MapPermissionGuardedTaggedValue(self.inherited.describing_title, default={}).get()
+
     @cached_property
-    def effective_access_restrictions(self) -> frozenset[int]:
-        return super().effective_access_restrictions | self.effective_minimum_access_restrictions
+    def describing_title(self) -> str:
+        # todo: remove duplicate code here
+        if not self._has_inherited:
+            return ""
+        return lazy_get_i18n_value(
+            lazy(MapPermissionGuardedTaggedValue(self.inherited.describing_title, default={}).get, dict)(),
+            fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value=""
+        )
+
+    @classmethod
+    def q_for_permissions(cls, permissions: "MapPermissions", prefix=''):
+        return (
+            super().q_for_permissions(permissions, prefix) &
+            (Q() if permissions.full else (
+                #Q(effective_access_restriction_sets__isnull=True) | (
+                (~Exists(LocationTagEffectiveAccessRestrictionSet.objects.filter(tag=OuterRef("pk")))) | (
+                    Q() if not permissions.access_restrictions else
+                    Exists(LocationTagEffectiveAccessRestrictionSet.objects.filter(
+                        Q(tag=OuterRef("pk")) & ~Exists(
+                            LocationTagEffectiveAccessRestrictionSet.access_restrictions.through.objects.filter(
+                                locationtageffectiveaccessrestrictionset=OuterRef("pk")
+                            ).exclude(accessrestriction__in=permissions.access_restrictions)
+                        )
+                    )
+                ))
+            ))
+        )
 
     @cached_property
     def _all_static_target_ids(self) -> MapPermissionGuardedTaggedSequence[tuple[str, int]]:
@@ -597,7 +638,13 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     def save(self, *args, **kwargs):
         self.pre_save_changed_geometries()
-        super().save(*args, **kwargs)
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            self._post_save((self.pk, ))
+
+    @classmethod
+    def _post_save(cls, pks: Iterable[int]):
+        pass
 
     def pre_delete_changed_geometries(self):
         self.register_changed_geometries(force=True)
@@ -607,23 +654,45 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         super().delete(*args, **kwargs)
 
 
-@receiver(m2m_changed, sender=LocationTag.parents.through)
-def locationtag_adjacency_changed(sender, instance: LocationTag, pk_set: set[int], action: str, reverse: bool, **kwargs):
-    from c3nav.mapdata.utils.relationpaths import handle_locationtag_adjacency_added
-    match (action, reverse):
-        case ("post_add", False):
-            # new parents were added to the tag
-            handle_locationtag_adjacency_added({(pk, instance.pk) for pk in pk_set})
-        case ("post_add", True):
-            # new children were added to the tag
-            handle_locationtag_adjacency_added({(instance.pk, pk) for pk in pk_set})
-        case ("post_remove" | "post_clear", False):
-            locationtag_parents_removed(instance=instance, pk_set=pk_set)
-        case ("post_remove" | "post_clear", True):
-            locationtag_children_removed(instance=instance, pk_set=pk_set)
+class LocationTagEffectiveAccessRestrictionSet(models.Model):
+    tag = models.ForeignKey(LocationTag, on_delete=models.CASCADE, related_name="effective_access_restriction_sets")
+    access_restrictions = models.ManyToManyField("AccessRestriction", related_name="+")
 
 
-class CircularyHierarchyError(IntegrityError):
+class LocationTagInheritedValues(models.Model):
+    tag = models.OneToOneField(LocationTag, on_delete=models.CASCADE, related_name="inherited")
+    icon: CachedStrings = SchemaField(schema=CachedStrings, default=list)
+    label_settings_id: CachedIDs = SchemaField(schema=CachedIDs, default=list)
+    external_url_label: CachedTitles = SchemaField(schema=CachedTitles, default=list)
+    describing_title: CachedTitles = SchemaField(schema=CachedTitles, default=list)
+    colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
+
+    class Meta:
+        verbose_name = _('Location Tag Inherited Values')
+        verbose_name_plural = _('Location Tags Inherited Values')
+
+
+class LocationTagTargetInheritedValues(models.Model):
+    level = models.OneToOneField('Level', related_name="inherited", null=True, on_delete=models.CASCADE)
+    space = models.OneToOneField('Space', related_name="inherited", null=True, on_delete=models.CASCADE)
+    area = models.OneToOneField('Area', related_name="inherited", null=True, on_delete=models.CASCADE)
+    poi = models.OneToOneField('POI', related_name="inherited", null=True, on_delete=models.CASCADE)
+    tags: CachedIDs = SchemaField(schema=CachedIDs, default=list)
+
+    class Meta:
+        verbose_name = _('Location Tag Target Inherited Values')
+        verbose_name_plural = _('Location Tag Targets Inherited Values')
+        constraints = (
+            CheckConstraint(check=(
+                Q(level__isnull=False, space__isnull=True, area__isnull=True, poi__isnull=True)
+                | Q(level__isnull=True, space__isnull=False, area__isnull=True, poi__isnull=True)
+                | Q(level__isnull=True, space__isnull=True, area__isnull=False, poi__isnull=True)
+                | Q(level__isnull=True, space__isnull=True, area__isnull=True, poi__isnull=False)
+            ), name="target_inherited_values_has_unique_target"),
+        )
+
+
+class CircularHierarchyError(IntegrityError):
     pass
 
 
@@ -643,8 +712,8 @@ def locationtag_children_removed(instance: LocationTag, pk_set: set[int] = None)
     children were removed from the location
     """
     if pk_set is None:
-        # todo: this is a hack, can be done nicer
-        pk_set = set(LocationTagRelation.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
+        # todo: this is a hack, can be done nicer… todo get rid of this anyways
+        pass #pk_set = set(LocationTagRelation.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
 
     # todo: ged rid of this… could we do it after then?
     # LocationTagRelation.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
@@ -681,6 +750,12 @@ class LocationTagTargetMixin(models.Model):
     class Meta:
         abstract = True
 
+    @property
+    def _has_inherited(self):
+        with suppress(AttributeError):
+            self.inherited
+        return "inherited" in self._state.fields_cache
+
     @cached_property
     def sorted_tags(self) -> MapPermissionGuardedSequence[LocationTag]:
         """
@@ -688,13 +763,19 @@ class LocationTagTargetMixin(models.Model):
         """
         if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
             raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
-            # return LazyMapPermissionFilteredSequence(())
-        # noinspection PyUnresolvedReferences
-        return MapPermissionGuardedSequence(sorted(self.tags.all(), key=attrgetter("effective_depth_first_post_order")))
+        if not self._has_inherited:
+            raise ValueError(f'Accessing sorted_tags on {self} despite no select_related for inherited.')
+
+        tags_by_id = {tag.pk: tag for tag in self.tags.all()}
+        return MapPermissionGuardedSequence(
+            tuple(tag for tag in (
+                tags_by_id.get(tag_id) for tag_id in set(MapPermissionGuardedTaggedSequence(self.inherited.tags))
+            ) if tag is not None)
+        )
 
     @property
     def title(self) -> str:
-        # todo: precalculate
+        # todo: precalculate?
         return self.sorted_tags[0].title if self.sorted_tags else str(self)
 
     @property

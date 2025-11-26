@@ -1,6 +1,6 @@
 import pickle
 import uuid
-from collections import namedtuple
+from collections import namedtuple, deque
 from datetime import timedelta
 from functools import cached_property
 from typing import Sequence, TYPE_CHECKING, Optional
@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.db import models, transaction
 from django.db.models import CheckConstraint, Q
 from django.utils import timezone
+from django.core import checks
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
@@ -417,6 +418,25 @@ class AccessPermission(models.Model):
             transaction.on_commit(lambda: versioned_per_request_cache.delete(self.access_permission_key))
 
 
+@checks.register()
+def check_access_restriction_logic_managers(app_configs, **kwargs):
+    errors = []
+    subclasses = deque((AccessRestrictionLogicMixin, ))
+    while subclasses:
+        subclass = subclasses.popleft()
+        subclasses.extend(subclass.__subclasses__())
+        if not subclass._meta.abstract and not isinstance(subclass._default_manager, UseQForPermissionsManager):
+            errors.append(
+                checks.Error(
+                    'AccessRestrictionLogicMixin subclasses may only set _default_manager '
+                    'to instances of subclasses of UseQForPermissionsManager.',
+                    obj=subclass,
+                    id='c3nav.mapdata.E003',
+                )
+            )
+    return errors
+
+
 class AccessRestrictionLogicMixin(models.Model):
     objects = UseQForPermissionsManager()
 
@@ -433,6 +453,7 @@ class AccessRestrictionLogicMixin(models.Model):
 
 
 class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):
+    # todo: remove this from location tag targets
     access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
                                            verbose_name=_('Access Restriction'), on_delete=models.PROTECT)
 
