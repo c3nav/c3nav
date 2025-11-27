@@ -19,7 +19,7 @@ from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.utils.cache.proxied import versioned_per_request_cache
 
 if TYPE_CHECKING:
-    from c3nav.mapdata.permissions import MapPermissions
+    from c3nav.mapdata.permissions import AccessRestrictionsEval, MapPermissions  # noqa
 
 
 class UseQForPermissionsManager(models.Manager):
@@ -451,8 +451,9 @@ class AccessRestrictionLogicMixin(models.Model):
         return Q()
 
     @cached_property
-    def effective_access_restrictions(self) -> frozenset[int]:
-        return frozenset()
+    def effective_access_restrictions(self) -> "AccessRestrictionsEval":
+        from c3nav.mapdata.permissions import NoAccessRestrictions
+        raise NoAccessRestrictions
 
 
 class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):
@@ -472,8 +473,6 @@ class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):
         )
 
     @cached_property
-    def effective_access_restrictions(self) -> frozenset[int]:
-        return (
-            super().effective_access_restrictions |
-            ({self.access_restriction_id} if self.access_restriction_id else set())
-        )
+    def effective_access_restrictions(self) -> "AccessRestrictionsEval":
+        from c3nav.mapdata.permissions import AccessRestrictionsOneID
+        return super().effective_access_restrictions | AccessRestrictionsOneID.build(self.access_restriction_id)

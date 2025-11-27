@@ -14,7 +14,8 @@ from c3nav.mapdata.models.geometry.base import CachedBounds
 from c3nav.mapdata.models.locations import FillAndBorderColor, LocationTag, StaticLocationTagTarget, \
     CachedBoundsByLevel, CachedGeometriesByLevel, MaskedLocationTagGeometry, LocationTagInheritedValues, \
     CircularHierarchyError, LocationTagEffectiveAccessRestrictionSet, LocationTagTargetInheritedValues
-from c3nav.mapdata.permissions import MapPermissionTaggedItem
+from c3nav.mapdata.permissions import MapPermissionTaggedItem, AccessRestrictionsAllIDs, PermissionsAsSet, \
+    AccessRestrictionsEval, NoAccessRestrictions, AccessRestrictionsOneID
 
 
 @dataclass
@@ -24,7 +25,7 @@ class InheritedValues:
     external_url_label: dict | None = None
     describing_title: dict | None = None
     colors: dict[int, FillAndBorderColor] | None = None
-    access_restrictions: frozenset[int] = frozenset()
+    access_restrictions: AccessRestrictionsEval = NoAccessRestrictions
 
 
 class MultipleInheritedValues(NamedTuple):
@@ -36,8 +37,8 @@ class MultipleInheritedValues(NamedTuple):
 
     @staticmethod
     def _append[T](self_items: tuple[MapPermissionTaggedItem[T], ...],
-                   value: T, access_restrictions: frozenset[int]) -> tuple[MapPermissionTaggedItem[T], ...]:
-        if value is None or any((item.access_restrictions <= access_restrictions) for item in self_items):
+                   value: T, access_restrictions: AccessRestrictionsEval) -> tuple[MapPermissionTaggedItem[T], ...]:
+        if value is None or any((access_restrictions <= item.access_restrictions) for item in self_items):
             return self_items
         return (
             *self_items,
@@ -80,7 +81,7 @@ def recalculate_locationtag_effective_inherited_values():
             next_tags.append((tag.pk, frozenset({tag.pk}), InheritedValues()))
 
     result_for_tags: dict[int, MultipleInheritedValues] = {}
-    restriction_sets_for_tags: dict[int, set[frozenset[int]]] = {}
+    restrictions_for_tags: dict[int, AccessRestrictionsEval] = {}
     public_tags: set[int] = set()
     not_done_tags = set(tags_by_id.keys())
 
@@ -95,17 +96,19 @@ def recalculate_locationtag_effective_inherited_values():
         not_done_tags.discard(tag_id)
 
         access_restrictions = (
-            values_so_far.access_restrictions |
-            set(() if tag.access_restriction_id is None else (tag.access_restriction_id, ))
+            values_so_far.access_restrictions &
+            AccessRestrictionsOneID.build(tag.access_restriction_id)
         )
+        print(tag_id, access_restrictions, tag.icon)
 
         if not access_restrictions:
             public_tags.add(tag_id)
-            restriction_sets_for_tags.pop(tag_id, None)
+            restrictions_for_tags.pop(tag_id, None)
         elif tag_id not in public_tags:
-            restrictions_so_far = restriction_sets_for_tags.setdefault(tag_id, set())
-            if not any((one_restriction < access_restrictions) for one_restriction in restrictions_so_far):
-                restrictions_so_far.add(access_restrictions)
+            restrictions_so_far = restrictions_for_tags.setdefault(tag_id, None)
+            restrictions_for_tags[tag_id] = (
+                access_restrictions if restrictions_so_far is None else (restrictions_so_far | access_restrictions)
+            )
 
         values_so_far = dataclass_replace(
             values_so_far,
@@ -209,8 +212,8 @@ def recalculate_locationtag_effective_inherited_values():
 
     remaining_set_ids: set[int] = set(existing_restriction_set_id_to_tag.keys())
     sets_to_create: deque[tuple[int, frozenset[int]]] = deque()
-    for tag_id, expected_restriction_sets in restriction_sets_for_tags.items():
-        for expected_set in expected_restriction_sets:
+    for tag_id, expected_restrictions in restrictions_for_tags.items():
+        for expected_set in expected_restrictions.flatten():
             set_id = set_by_tag_and_restrictions.get((tag_id, expected_set), None)
             if set_id is None:
                 sets_to_create.append((tag_id, expected_set))
@@ -260,7 +263,7 @@ def recalculate_locationtag_minimum_access_restrictions():
         all_minimum_access_restrictions.setdefault(  # noqa
             tuple(reduce(
                 operator.and_,
-                (target.effective_access_restrictions for target in tag.static_targets),
+                (target.effective_access_restrictions.minimum_permissions for target in tag.static_targets),
             )) if tag.static_targets else (), set()
         ).add(tag.pk)
     _locationtag_bulk_cached_update(
@@ -274,7 +277,7 @@ def recalculate_locationtag_minimum_access_restrictions():
 
 
 def recalculate_locationtag_all_static_targets():
-    all_static_target_ids: dict[tuple[tuple[tuple[str, int], frozenset[int]], ...], set[int]] = {}
+    all_static_target_ids: dict[tuple[tuple[tuple[str, int], AccessRestrictionsEval], ...], set[int]] = {}
     for obj in LocationTag.objects.prefetch_related("levels", "spaces__level",
                                                     "areas__space__level", "pois__space__level"):
         all_static_target_ids.setdefault(tuple(sorted(
@@ -311,13 +314,13 @@ def recalculate_locationtag_all_position_secrets():
 
 def recalculate_locationtag_target_subtitles():
     # todo: make this work better for multiple targets
-    all_target_subtitles: dict[tuple[tuple[tuple[tuple[str, str], ...], frozenset[int]], ...], set[int]] = {}
+    all_target_subtitles: dict[tuple[tuple[tuple[tuple[str, str], ...], AccessRestrictionsEval], ...], set[int]] = {}
     for obj in LocationTag.objects.prefetch_related("levels",
                                             "spaces__level", "spaces__tags", "spaces__level__tags",
                                             "areas__space__tags", "areas__space__level__tags",
                                             "pois__space__tags", "pois__space__level", "dynamic_targets"):
         obj: LocationTag
-        tag_target_subtitles: list[tuple[tuple[tuple[str, str], ...], frozenset[int]]] = []
+        tag_target_subtitles: list[tuple[tuple[tuple[str, str], ...], AccessRestrictionsEval]] = []
         static_targets: tuple[StaticLocationTagTarget, ...] = tuple(obj.static_targets)
         if len(static_targets) + len(obj.dynamic_targets.all()) == 1:
             main_static_target = static_targets[0]

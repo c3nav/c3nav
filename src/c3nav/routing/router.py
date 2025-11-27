@@ -855,13 +855,8 @@ class RouterLocation:
     def can_see(self, restrictions: "RouterRestrictionSet") -> bool:
         # todo: implement this differently, obviously
         return (
-            (
-                not self.effective_access_restrictions
-                or not any((restriction in restrictions) for restriction in self.effective_access_restrictions)
-            ) and (
-                not self.targets
-                or any(target.can_see(restrictions) for target in self.targets)
-            )
+            self.effective_access_restrictions.can_see(frozenset(restrictions.restrictions))
+            and (not self.targets or any(target.can_see(restrictions) for target in self.targets))
         )
 
     def __getattr__(self, name):

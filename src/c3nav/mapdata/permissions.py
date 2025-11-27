@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import operator
 import sys
 import traceback
@@ -11,11 +9,14 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property, lru_cache, reduce
+from itertools import product
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Generator, Iterable, \
-    overload, TypeAlias, Union, Optional
+    overload, TypeAlias, Union, Optional, Self, Annotated
 
 from django.apps.registry import apps
 from django.contrib.auth.models import User
+from pydantic_core import CoreSchema, core_schema
+from pydantic import PlainSerializer, PlainValidator
 
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
 from c3nav.mapdata.utils.cache.compress import compress_sorted_list_of_int
@@ -41,43 +42,141 @@ PermissionsAsSet: TypeAlias = frozenset[FullAccessTo | SpacePermission | int]
 class AccessRestrictionsEval(ABC):
     @abstractmethod
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
-    def __or__(self, other) -> AccessRestrictionsEval:
-        pass
+    def __or__(self, other) -> Self:
+        raise NotImplementedError
 
     @abstractmethod
-    def __and__(self, other) -> AccessRestrictionsEval:
-        pass
+    def __and__(self, other) -> Self:
+        raise NotImplementedError
 
     @abstractmethod
-    def __sub__(self, other: frozenset[int]) -> AccessRestrictionsEval:
-        pass
+    def __sub__(self, other: frozenset[int]) -> Self:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def relevant_permissions(self) -> frozenset[int]:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def minimum_permissions(self) -> frozenset[int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def simplify(self) -> Self:
+        raise NotImplementedError
+
+    @abstractmethod
+    def flatten(self) -> frozenset[PermissionsAsSet]:
+        raise NotImplementedError
+
+    def __le__(self, other: Self) -> bool:
+        """
+        Does this eval imply the other one (so if this one applies, the other always will too)
+        """
+        if other.minimum_permissions - self.minimum_permissions:
+            return False
+
+        relevant_self = self - (self.relevant_permissions - other.relevant_permissions)
+        return all(other.can_see(option) for option in relevant_self.simplify().flatten())
+
+    def __ge__(self, other: Self) -> bool:
+        """
+        Does the other eval imply this one (so if the other one applies, this one always wil too)
+        """
+        return other <= self
 
 
+# todo: this is so dumb! get pydantic to serialize this properly and more simply. it works for now but this is silly
+
+
+@dataclass(frozen=True, slots=True, repr=False)
 class NoAccessRestrictionsCls(AccessRestrictionsEval):
+    none: None = None
+
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
         return True
 
-    def __or__(self, other: AccessRestrictionsEval) -> NoAccessRestrictionsCls:
+    def __or__(self, other: AccessRestrictionsEval) -> Self:
         return self
 
     def __and__[T: AccessRestrictionsEval](self, other: T) -> T:
         return other
 
-    def __sub__(self, other: frozenset[int]) -> NoAccessRestrictionsCls:
+    def __sub__(self, other: frozenset[int]) -> Self:
         return self
+
+    @property
+    def relevant_permissions(self) -> frozenset[int]:
+        return frozenset()
+
+    @property
+    def minimum_permissions(self) -> frozenset[int]:
+        return frozenset()
+
+    def simplify(self) -> Self:
+        return self
+
+    def flatten(self) -> frozenset[PermissionsAsSet]:
+        return frozenset()
+
+    def __repr__(self):
+        return "NoAccessRestrictions"
+
+    @classmethod
+    def _validate(cls, value: Any, *args, **kwargs) -> Self:
+        return NoAccessRestrictions
+
+    @classmethod
+    def _serialize(cls, value: Any, *args, **kwargs) -> str:
+        return "null"
+
+    """
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler) -> CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls._validate,
+            core_schema.union_schema([
+                core_schema.is_instance_schema(NoAccessRestrictionsCls),
+                core_schema.str_schema(),
+            ]),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                cls._serialize, return_schema=core_schema.str_schema(),
+            ),
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+            cls, _core_schema: core_schema.CoreSchema, handler
+    ):
+        return handler(core_schema.str_schema())
+    """
+
 
 
 NoAccessRestrictions = NoAccessRestrictionsCls()
 
 
-class AccessRestrictionsAllIDs(AccessRestrictionsEval, NamedTuple):
+class AccessRestrictionsOneID:
+    @classmethod
+    def build(cls, access_restriction: int | None) -> Union[NoAccessRestrictionsCls, "AccessRestrictionsAllIDs"]:
+        if access_restriction is None:
+            return NoAccessRestrictions
+        return AccessRestrictionsAllIDs(frozenset((access_restriction, )))
+
+
+@dataclass(frozen=True, slots=True)
+class AccessRestrictionsAllIDs(AccessRestrictionsEval):
     access_restrictions: frozenset[int]
 
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
         return not bool(self.access_restrictions - permissions_as_set)
+
+    # todo: add overload stubs
 
     def __or__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
         if isinstance(other, AccessRestrictionsAllIDs):
@@ -99,25 +198,60 @@ class AccessRestrictionsAllIDs(AccessRestrictionsEval, NamedTuple):
 
         return other & self
 
-    def __sub__(self, other: frozenset[int]) -> Union[AccessRestrictionsAllIDs, NoAccessRestrictionsCls]:
+    def __sub__(self, other: frozenset[int]) -> Union[Self, NoAccessRestrictionsCls]:
         new_ids = self.access_restrictions - other
         if not new_ids:
             return NoAccessRestrictions
+        if new_ids == self.access_restrictions:
+            return self
         return AccessRestrictionsAllIDs(new_ids)
+
+    @classmethod
+    def build(cls, access_restrictions: Iterable[int]) -> Union[NoAccessRestrictionsCls, Self]:
+        access_restrictions = frozenset(access_restrictions)
+        if not access_restrictions:
+            return NoAccessRestrictions
+        return cls(access_restrictions)
+
+    @property
+    def relevant_permissions(self) -> frozenset[int]:
+        return self.access_restrictions
+
+    @property
+    def minimum_permissions(self) -> frozenset[int]:
+        return self.access_restrictions
+
+    def simplify(self) -> Self:
+        return self
+
+    def flatten(self) -> frozenset[PermissionsAsSet]:
+        return frozenset((self.access_restrictions, ))
+
+    @classmethod
+    def _validate(cls, value: Sequence[int]) -> Self:
+        return cls(frozenset(value))
+
+    @classmethod
+    def _serialize(cls, value: Self) -> list[int]:
+        return list(value.access_restrictions)
 
 
 # todo: check that all access restrictions, even the ones from the location groups, actually go into the map renderer
 
 
-class AccessRestrictionsOr(AccessRestrictionsEval, NamedTuple):
+@dataclass(frozen=True, slots=True)
+class AccessRestrictionsOr(AccessRestrictionsEval):
     children: frozenset[AccessRestrictionsAllIDs]
 
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
         return any(child.can_see(permissions_as_set) for child in self.children)
 
+    # todo: add overload stubs
+
     def __or__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
         if isinstance(other, AccessRestrictionsAllIDs):
             if not any((child.access_restrictions <= other.access_restrictions) for child in self.children):
+                # todo: optimize / pull out stuff
                 return AccessRestrictionsOr(self.children | {other})
             return self
         if isinstance(other, AccessRestrictionsOr):
@@ -125,6 +259,7 @@ class AccessRestrictionsOr(AccessRestrictionsEval, NamedTuple):
                 other_child for other_child in other.children
                 if not any((child.access_restrictions <= other_child.access_restrictions) for child in self.children)
             )
+            # todo: optimize / pull out stuff
             if new_sets:
                 return AccessRestrictionsOr(self.children | frozenset(new_sets))
             return self
@@ -136,7 +271,7 @@ class AccessRestrictionsOr(AccessRestrictionsEval, NamedTuple):
             if len(new_children) == 1:
                 return next(iter(new_children))
         if isinstance(other, AccessRestrictionsOr):
-            return AccessRestrictionsAnd(or_children=frozenset((self, other)))
+            return AccessRestrictionsAnd(children=frozenset((self, other)))
 
         return other & self
 
@@ -149,69 +284,187 @@ class AccessRestrictionsOr(AccessRestrictionsEval, NamedTuple):
             return next(iter(new_children))
         return AccessRestrictionsOr(new_children)
 
+    @classmethod
+    def build(cls, children: Iterable[AccessRestrictionsEval]) -> AccessRestrictionsEval:
+        return reduce(operator.or_, children, NoAccessRestrictions)
 
-class AccessRestrictionsAnd(AccessRestrictionsEval, NamedTuple):
-    id_child: Optional[AccessRestrictionsAllIDs] = None
-    or_children: frozenset[AccessRestrictionsOr] = frozenset()
+    @property
+    def relevant_permissions(self) -> frozenset[int]:
+        return reduce(operator.or_, (child.relevant_permissions for child in self.children), frozenset())
+
+    @property
+    def minimum_permissions(self) -> frozenset[int]:
+        return reduce(operator.and_, (child.minimum_permissions for child in self.children), frozenset())
+
+    def simplify(self) -> Union[Self, "AccessRestrictionsAnd"]:
+        minimum_permissions = self.minimum_permissions
+        if not minimum_permissions:
+            return self
+        return AccessRestrictionsAnd(ids=AccessRestrictionsAllIDs(minimum_permissions),
+                                     children=frozenset((self - minimum_permissions,)))
+
+    def flatten(self) -> frozenset[PermissionsAsSet]:
+        return frozenset(child.access_restrictions for child in self.children)
+
+    @classmethod
+    def _validate(cls, value: Sequence[Sequence[int]]) -> Self:
+        return cls(frozenset(AccessRestrictionsAllIDs._validate(subval) for subval in value))
+
+    @classmethod
+    def _serialize(cls, value: Self) -> list[list[int]]:
+        return [AccessRestrictionsAllIDs._serialize(child) for child in value.children]
+
+
+@dataclass(frozen=True, slots=True)
+class AccessRestrictionsAnd(AccessRestrictionsEval):
+    ids: Optional[AccessRestrictionsAllIDs] = None
+    children: frozenset[AccessRestrictionsOr] = frozenset()
 
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
-        return (
-            True if self.id_child is None else self.id_child.can_see(permissions_as_set)
-            and all(child.can_see(permissions_as_set) for child in self.or_children)
-        )
+        return True if self.ids is None else (self.ids.can_see(permissions_as_set)
+                                              and all(child.can_see(permissions_as_set) for child in self.children))
+
+    # todo: add overload stubs
 
     def __or__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
         raise ValueError
 
     def __and__[T: AccessRestrictionsEval](self, other: T) -> T:
-        if isinstance(other, AccessRestrictionsAllIDs):
-            return AccessRestrictionsAnd(
-                id_child=other if self.id_child is None else (self.id_child & other),
-                or_children=self.or_children,
-            )
-        if isinstance(other, AccessRestrictionsOr):
-            return AccessRestrictionsAnd(
-                id_child=self.id_child,
-                or_children=self.or_children | {other},
-            )
-        if isinstance(other, AccessRestrictionsAnd):
-            return AccessRestrictionsAnd(
-                id_child=(other if self.id_child is None
-                          else (self.id_child if other.id_child is None else (self.id_child & other.id_child))),
-                or_children=self.or_children | {other.or_children},
-            )
-        if isinstance(other, NoAccessRestrictionsCls):
-            return other & self
-        raise ValueError
+        match other:
+            case AccessRestrictionsAllIDs():
+                return AccessRestrictionsAnd(
+                    ids=other if self.ids is None else (self.ids & other),
+                    children=self.children,
+                )
+            case AccessRestrictionsOr():
+                return AccessRestrictionsAnd(
+                    ids=self.ids,
+                    children=self.children | {other},
+                )
+            case AccessRestrictionsAnd():
+                return AccessRestrictionsAnd(
+                    ids=(other if self.ids is None else (self.ids if other.ids is None else (self.ids & other.ids))),
+                    children=self.children | other.children,
+                )
+            case NoAccessRestrictionsCls():
+                return other & self
+            case _:
+                raise ValueError
 
     def __sub__(self, other: frozenset[int]) -> AccessRestrictionsEval:
-        new_id_child = (self.id_child or NoAccessRestrictions) - other
-        new_or_children = deque()
+        new_ids = (self.ids or NoAccessRestrictions) - other
+        new_children = deque()
 
         full_other = (
-            other if isinstance(new_id_child, NoAccessRestrictionsCls) else other | new_id_child.access_restrictions
+            other if isinstance(new_ids, NoAccessRestrictionsCls) else other | new_ids.access_restrictions
         )
 
-        for or_child in self.or_children:
+        for or_child in self.children:
             new_or_child = or_child - full_other
             if isinstance(new_or_child, AccessRestrictionsOr):
-                new_or_children.append(new_or_child)
+                new_children.append(new_or_child)
             elif isinstance(new_or_child, AccessRestrictionsAllIDs):
-                new_id_child &= new_or_child
+                new_ids &= new_or_child
 
-        new_or_children = frozenset(new_or_children)
+        new_children = frozenset(new_children)
 
-        if not new_or_children:
-            return new_id_child
+        if not new_children:
+            return new_ids
 
-        if isinstance(new_id_child, NoAccessRestrictionsCls):
-            if not new_or_children:
+        if isinstance(new_ids, NoAccessRestrictionsCls):
+            if not new_children:
                 return NoAccessRestrictions
-            if len(new_or_children) == 1:
-                return next(iter(new_or_children))
-            new_id_child = None
+            if len(new_children) == 1:
+                return next(iter(new_children))
+            new_ids = None
 
-        return AccessRestrictionsAnd(new_id_child, new_or_children)
+        return AccessRestrictionsAnd(new_ids, new_children)
+
+    @classmethod
+    def build(cls, children: Iterable[AccessRestrictionsEval]) -> AccessRestrictionsEval:
+        return reduce(operator.and_, children, NoAccessRestrictions)
+
+    @property
+    def relevant_permissions(self) -> frozenset[int]:
+        return reduce(operator.or_, (child.relevant_permissions for child in self.children),
+                      frozenset() if self.ids is None else self.ids.relevant_permissions)
+
+    @property
+    def minimum_permissions(self) -> frozenset[int]:
+        return reduce(operator.or_, (child.minimum_permissions for child in self.children),
+                      frozenset() if self.ids is None else self.ids.minimum_permissions)
+
+    def simplify(self) -> Self:
+        new_ids = self.ids or NoAccessRestrictions
+        new_children = deque()
+        for child in self.children:
+            new_child = child.simplify()
+            if isinstance(new_child, AccessRestrictionsAnd):
+                new_ids |= new_child.ids
+                new_children.extend(new_child.children)
+            else:
+                new_children.append(new_child)
+        new_children = frozenset(new_children)
+        if new_children == self.children:
+            return self
+        return AccessRestrictionsAnd(ids=None if isinstance(new_ids, NoAccessRestrictionsCls) else new_ids,
+                                     children=new_children)
+
+    def flatten(self) -> frozenset[PermissionsAsSet]:
+        # todo: probably good to simplify/optimize some more here?
+        min_ids = self.ids.access_restrictions if self.ids is not None else frozenset()
+        return frozenset(
+            reduce(operator.or_, choices, min_ids)
+            for choices in product(*(child.flatten() for child in self.children))
+        )
+
+    @classmethod
+    def _validate(cls, value) -> Self:
+        return cls(ids=None if value[0] is None else AccessRestrictionsAllIDs(frozenset(value[0])),
+                   children=frozenset(AccessRestrictionsOr._validate(subval) for subval in value[1:]))
+
+    @classmethod
+    def _serialize(cls, value: Self) -> list:
+        return [
+            AccessRestrictionsAllIDs._serialize(value.ids) if value.ids else None,
+            *(AccessRestrictionsOr._serialize(child) for child in value.children),
+        ]
+
+
+def validate_access_restrictions_eval(value: list | None) -> AccessRestrictionsEval:
+    if isinstance(value, AccessRestrictionsEval):
+        return value
+    if value is None or not value:
+        return NoAccessRestrictions
+    print(value)
+    if not isinstance(value[0], list):
+        return AccessRestrictionsAllIDs._validate(value)
+    if isinstance(value[1][0], int):
+        return AccessRestrictionsOr._validate(value)
+    return AccessRestrictionsAnd._validate(value)
+
+
+def serialize_access_restrictions_eval(value: Any) -> list | None:
+    match value:
+        case NoAccessRestrictionsCls():
+            return None
+        case AccessRestrictionsAllIDs():
+            AccessRestrictionsAllIDs._serialize(value)
+        case AccessRestrictionsOr():
+            AccessRestrictionsOr._serialize(value)
+        case AccessRestrictionsAnd():
+            AccessRestrictionsAnd._serialize(value)
+        case _:
+            raise TypeError
+
+
+AccessRestrictionsEvalSchema = Union[
+        NoAccessRestrictionsCls,
+        AccessRestrictionsAllIDs,
+        AccessRestrictionsOr,
+        AccessRestrictionsAnd,
+    ]
+
 
 
 class MapPermissions(Protocol):
@@ -552,11 +805,12 @@ class MapPermissionGuardedMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[K
         if not self._has_minimum_permissions(permissions_as_set):
             return {}
         return {key: value for key, value in self._data.items()
-                if not (value.effective_access_restrictions - permissions_as_set)}
+                if value.effective_access_restrictions.can_see(permissions_as_set)}  # noqa
 
     @cached_property
     def _relevant_permissions(self) -> PermissionsAsSet:
-        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data.values()),
+        return reduce(operator.or_, (item.effective_access_restrictions.relevant_permissions  # noqa
+                                     for item in self._data.values()),
                       frozenset((FullAccessTo.RESTRICTIONS, )))
 
     @cached_property
@@ -566,7 +820,8 @@ class MapPermissionGuardedMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[K
         If the user doesn't have all of at least one of these, the result will be empty.
         """
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item.effective_access_restrictions for item in self._data.values()), frozenset()
+            operator.and_, (item.effective_access_restrictions.minimum_permissions  # noqa
+                            for item in self._data.values()), frozenset()
         )
         if not common_permissions:
             return ()
@@ -580,13 +835,13 @@ class MapPermissionGuardedMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[K
 
     def __getitem__(self, key: KT):
         value = self._data[key]
-        if value.effective_access_restrictions - active_map_permissions.access_restrictions:
+        if not value.effective_access_restrictions.can_see(active_map_permissions.access_restrictions):
            raise KeyError(key)
         return value
 
     def get(self, key: KT, default=None):
         value = self._data.get(key, default)
-        if value is not None and value.effective_access_restrictions - active_map_permissions.access_restrictions:
+        if value is not None and not value.effective_access_restrictions.can_see(active_map_permissions.as_set):
             return default
         return value
 
@@ -651,17 +906,18 @@ class MapPermissionGuardedSequence[T: AccessRestrictionLogicMixin](BaseMapPermis
             return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(self._data)
-        return tuple(item for item in self._data
-                     if not (item.effective_access_restrictions - permissions_as_set))
+        return tuple(item for item in self._data if item.effective_access_restrictions.can_see(permissions_as_set))
 
     @cached_property
     def _relevant_permissions(self) -> PermissionsAsSet:
-        return reduce(operator.or_, (item.effective_access_restrictions for item in self._data), frozenset())
+        return reduce(operator.or_, (item.effective_access_restrictions.relevant_permissions
+                                     for item in self._data), frozenset())
 
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(
-            operator.and_, (item.effective_access_restrictions for item in self._data), frozenset()
+            operator.and_, (item.effective_access_restrictions.minimum_permissions
+                            for item in self._data), frozenset()
         )
         if not common_permissions:
             return ()
@@ -679,7 +935,7 @@ class MapPermissionTaggedItem[T](NamedTuple):
     Tags a value with access permissions
     """
     value: T
-    access_restrictions: frozenset[int]
+    access_restrictions: AccessRestrictionsEvalSchema
 
     @staticmethod
     def skip_redundant_presorted[T](values: Iterable["MapPermissionTaggedItem[T]"]) -> Generator["MapPermissionTaggedItem[T]"]:
@@ -693,7 +949,7 @@ class MapPermissionTaggedItem[T](NamedTuple):
             if item.value != last_value:
                 done = []
                 last_value = item.value
-            if any((d <= item.access_restrictions) for d in done):
+            if any((item.access_restrictions <= d) for d in done):
                 # skip restriction supersets of other instances of the same value
                 continue
             done.append(item.access_restrictions)
@@ -706,13 +962,14 @@ class MapPermissionTaggedItem[T](NamedTuple):
         Sort items by value – ascending by default, descending if reverse=True
         Then, yield all items that unless there is one with the same value and a subset of access restrictions.
         """
+        raise NotImplementedError   # todo: fix sorting, or get rid of this function
         values = sorted(values, key=lambda item: (item.value * (-1 if reverse else 1), len(item.access_restrictions)))
         yield from MapPermissionTaggedItem.skip_redundant_presorted(values)
 
     @staticmethod
     def add_restrictions_and_skip_redundant[T](
             values: Iterable["MapPermissionTaggedItem[T]"],
-            access_restrictions: frozenset[int]) -> Generator["MapPermissionTaggedItem[T]"]:
+            access_restrictions: AccessRestrictionsEval) -> Generator["MapPermissionTaggedItem[T]"]:
         """
         Expecting the items to presorted, add access restrictions to each one.
         Then, yield all items that unless there is one with the same value and a subset of access restrictions.
@@ -739,18 +996,17 @@ class MapPermissionGuardedTaggedSequence[T](BaseMapPermissionGuardedSequence[T])
             return ()
         if FullAccessTo.RESTRICTIONS in permissions_as_set:
             return tuple(item.value for item in self._data)
-        return tuple(item.value for item in self._data
-                     if not (item.access_restrictions - permissions_as_set))
+        return tuple(item.value for item in self._data if item.access_restrictions.can_see(permissions_as_set))
 
     @cached_property
     def _relevant_permissions(self) -> PermissionsAsSet:
-        return reduce(operator.or_, (item.access_restrictions for item in self._data),
+        return reduce(operator.or_, (item.access_restrictions.relevant_permissions for item in self._data),
                       frozenset((FullAccessTo.RESTRICTIONS, )))
 
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item.access_restrictions for item in self._data), frozenset()
+            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data), frozenset()
         )
         if not common_permissions:
             return ()
@@ -788,21 +1044,20 @@ class MapPermissionGuardedTaggedValue[T, DT](BaseMapPermissionGuardedValue[T | D
         try:
             if FullAccessTo.RESTRICTIONS in permissions_as_set:
                 return next(iter(item.value for item in self._data))
-            return next(iter(item.value for item in self._data
-                             if not (item.access_restrictions - permissions_as_set)))
+            return next(iter(item.value for item in self._data if item.access_restrictions.can_see(permissions_as_set)))
         except StopIteration:
             return self._default
 
     @cached_property
     def _relevant_permissions(self) -> PermissionsAsSet:
         """ All permissions that may affect the result here. """
-        return reduce(operator.or_, (item.access_restrictions for item in self._data),
+        return reduce(operator.or_, (item.access_restrictions.relevant_permissions for item in self._data),
                       frozenset((FullAccessTo.RESTRICTIONS, )))
 
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item.access_restrictions for item in self._data), frozenset()
+            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data), frozenset()
         )
         if not common_permissions:
             return ()
