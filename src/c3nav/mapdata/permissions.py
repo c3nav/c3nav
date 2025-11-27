@@ -15,8 +15,8 @@ from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTu
 
 from django.apps.registry import apps
 from django.contrib.auth.models import User
-from pydantic_core import CoreSchema, core_schema
-from pydantic import PlainSerializer, PlainValidator
+from pydantic_core import CoreSchema, core_schema, SchemaSerializer
+from pydantic import PlainSerializer, PlainValidator, WrapValidator
 
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
 from c3nav.mapdata.utils.cache.compress import compress_sorted_list_of_int
@@ -94,7 +94,7 @@ class AccessRestrictionsEval(ABC):
 # todo: this is so dumb! get pydantic to serialize this properly and more simply. it works for now but this is silly
 
 
-@dataclass(frozen=True, slots=True, repr=False)
+#@dataclass(frozen=True, slots=True, repr=False)
 class NoAccessRestrictionsCls(AccessRestrictionsEval):
     none: None = None
 
@@ -128,34 +128,27 @@ class NoAccessRestrictionsCls(AccessRestrictionsEval):
         return "NoAccessRestrictions"
 
     @classmethod
-    def _validate(cls, value: Any, *args, **kwargs) -> Self:
+    def _validate(cls, value: Any) -> Self:
         return NoAccessRestrictions
 
     @classmethod
-    def _serialize(cls, value: Any, *args, **kwargs) -> str:
-        return "null"
+    def _serialize(cls, value: Any) -> None:
+        return None
 
-    """
+    schema = core_schema.none_schema()
+
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler) -> CoreSchema:
-        return core_schema.no_info_after_validator_function(
+    def __get_pydantic_core_schema__(cls, source_type: Any=None, handler=None) -> CoreSchema:
+        print("schema requested!")
+        schema = core_schema.no_info_after_validator_function(
             cls._validate,
-            core_schema.union_schema([
-                core_schema.is_instance_schema(NoAccessRestrictionsCls),
-                core_schema.str_schema(),
-            ]),
+            core_schema.union_schema([core_schema.is_instance_schema(cls), cls.schema]),
             serialization=core_schema.plain_serializer_function_ser_schema(
-                cls._serialize, return_schema=core_schema.str_schema(),
+                cls._serialize, info_arg=False, return_schema=cls.schema,
             ),
         )
-
-    @classmethod
-    def __get_pydantic_json_schema__(
-            cls, _core_schema: core_schema.CoreSchema, handler
-    ):
-        return handler(core_schema.str_schema())
-    """
-
+        cls.__pydantic_serializer__ = SchemaSerializer(schema)
+        return schema
 
 
 NoAccessRestrictions = NoAccessRestrictionsCls()
@@ -228,12 +221,32 @@ class AccessRestrictionsAllIDs(AccessRestrictionsEval):
         return frozenset((self.access_restrictions, ))
 
     @classmethod
-    def _validate(cls, value: Sequence[int]) -> Self:
+    def _validate(cls, value: Sequence[int] | Self) -> Self:
+        if isinstance(value, AccessRestrictionsAllIDs):
+            return value
         return cls(frozenset(value))
 
     @classmethod
-    def _serialize(cls, value: Self) -> list[int]:
-        return list(value.access_restrictions)
+    def _serialize(cls, value: Self) -> tuple[int, ...]:
+        return tuple(value.access_restrictions)
+
+    schema = core_schema.tuple_variable_schema(
+        core_schema.int_schema(gt=0),
+        min_length=1,
+    )
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any=None, handler=None) -> CoreSchema:
+        print("schema requested!")
+        schema = core_schema.no_info_after_validator_function(
+            cls._validate,
+            core_schema.union_schema([core_schema.is_instance_schema(cls), cls.schema]),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                cls._serialize, info_arg=False, return_schema=cls.schema,
+            ),
+        )
+        cls.__pydantic_serializer__ = SchemaSerializer(schema)
+        return schema
 
 
 # todo: check that all access restrictions, even the ones from the location groups, actually go into the map renderer
@@ -307,12 +320,32 @@ class AccessRestrictionsOr(AccessRestrictionsEval):
         return frozenset(child.access_restrictions for child in self.children)
 
     @classmethod
-    def _validate(cls, value: Sequence[Sequence[int]]) -> Self:
+    def _validate(cls, value: Sequence[Sequence[int]] | Self) -> Self:
+        if isinstance(value, AccessRestrictionsOr):
+            return value
         return cls(frozenset(AccessRestrictionsAllIDs._validate(subval) for subval in value))
 
     @classmethod
-    def _serialize(cls, value: Self) -> list[list[int]]:
-        return [AccessRestrictionsAllIDs._serialize(child) for child in value.children]
+    def _serialize(cls, value: Self) -> tuple[tuple[int, ...], ...]:
+        return tuple(AccessRestrictionsAllIDs._serialize(child) for child in value.children)
+
+    schema = core_schema.tuple_variable_schema(
+        AccessRestrictionsAllIDs.schema,
+        min_length=2,
+    )
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any = None, handler=None) -> CoreSchema:
+        print("schema requested!")
+        schema = core_schema.no_info_after_validator_function(
+            cls._validate,
+            core_schema.union_schema([core_schema.is_instance_schema(cls), cls.schema]),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                cls._serialize, info_arg=False, return_schema=cls.schema,
+            ),
+        )
+        cls.__pydantic_serializer__ = SchemaSerializer(schema)
+        return schema
 
 
 @dataclass(frozen=True, slots=True)
@@ -420,51 +453,47 @@ class AccessRestrictionsAnd(AccessRestrictionsEval):
 
     @classmethod
     def _validate(cls, value) -> Self:
+        if isinstance(value, AccessRestrictionsAnd):
+            return value
         return cls(ids=None if value[0] is None else AccessRestrictionsAllIDs(frozenset(value[0])),
                    children=frozenset(AccessRestrictionsOr._validate(subval) for subval in value[1:]))
 
     @classmethod
-    def _serialize(cls, value: Self) -> list:
-        return [
+    def _serialize(cls, value: Self) -> tuple[Optional[tuple[int, ...]], tuple[tuple[int, ...], ...], ...]:
+        return (
             AccessRestrictionsAllIDs._serialize(value.ids) if value.ids else None,
             *(AccessRestrictionsOr._serialize(child) for child in value.children),
-        ]
+        )
 
+    schema = core_schema.tuple_positional_schema(
+        items_schema=[
+            core_schema.union_schema([
+                core_schema.none_schema(),
+                AccessRestrictionsAllIDs.schema,
+            ])
+        ],
+        extras_schema=AccessRestrictionsOr.schema,
+    )
 
-def validate_access_restrictions_eval(value: list | None) -> AccessRestrictionsEval:
-    if isinstance(value, AccessRestrictionsEval):
-        return value
-    if value is None or not value:
-        return NoAccessRestrictions
-    print(value)
-    if not isinstance(value[0], list):
-        return AccessRestrictionsAllIDs._validate(value)
-    if isinstance(value[1][0], int):
-        return AccessRestrictionsOr._validate(value)
-    return AccessRestrictionsAnd._validate(value)
-
-
-def serialize_access_restrictions_eval(value: Any) -> list | None:
-    match value:
-        case NoAccessRestrictionsCls():
-            return None
-        case AccessRestrictionsAllIDs():
-            AccessRestrictionsAllIDs._serialize(value)
-        case AccessRestrictionsOr():
-            AccessRestrictionsOr._serialize(value)
-        case AccessRestrictionsAnd():
-            AccessRestrictionsAnd._serialize(value)
-        case _:
-            raise TypeError
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any = None, handler=None) -> CoreSchema:
+        schema = core_schema.no_info_after_validator_function(
+            cls._validate,
+            core_schema.union_schema([core_schema.is_instance_schema(cls), cls.schema]),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                cls._serialize, info_arg=False, return_schema=cls.schema,
+            ),
+        )
+        cls.__pydantic_serializer__ = SchemaSerializer(schema)
+        return schema
 
 
 AccessRestrictionsEvalSchema = Union[
-        NoAccessRestrictionsCls,
-        AccessRestrictionsAllIDs,
-        AccessRestrictionsOr,
-        AccessRestrictionsAnd,
-    ]
-
+    NoAccessRestrictionsCls,
+    AccessRestrictionsAllIDs,
+    AccessRestrictionsOr,
+    AccessRestrictionsAnd,
+]
 
 
 class MapPermissions(Protocol):
@@ -892,7 +921,6 @@ class BaseMapPermissionGuardedSequence[T](Sequence[T], BaseMapPermissionGuarded[
 
 
 class MapPermissionGuardedSequence[T: AccessRestrictionLogicMixin](BaseMapPermissionGuardedSequence[T]):
-    # todo: don't forget to make sure this works with LocationTag as well
     """
     Wraps a sequence of AccessRestrictionLogicMixin objects.
     Acts like a sequence (like list, tuple, ...) but will filter objects based on the active map permissions.
