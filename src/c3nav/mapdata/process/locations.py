@@ -99,7 +99,6 @@ def recalculate_locationtag_effective_inherited_values():
             values_so_far.access_restrictions &
             AccessRestrictionsOneID.build(tag.access_restriction_id)
         )
-        print(tag_id, access_restrictions, tag.icon)
 
         if not access_restrictions:
             public_tags.add(tag_id)
