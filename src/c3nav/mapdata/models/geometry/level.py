@@ -1,5 +1,6 @@
 import logging
 from decimal import Decimal
+from functools import reduce
 from itertools import combinations
 from typing import Sequence, TypeAlias, NamedTuple
 
@@ -21,7 +22,8 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestrictionLogicMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin
 from c3nav.mapdata.models.locations import LocationTagTargetMixin
-from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue
+from c3nav.mapdata.permissions import MapPermissionTaggedItem, MapPermissionGuardedTaggedValue, AccessRestrictionsEval, \
+    AccessRestrictionsAllIDs
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry.modify import comparable_mapping
 from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
@@ -73,11 +75,8 @@ class LevelGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Mode
         )
 
     @cached_property
-    def effective_access_restrictions(self) -> frozenset[int]:
-        return (
-            super().effective_access_restrictions |
-            self.level.effective_access_restrictions
-        )
+    def effective_access_restrictions(self) -> AccessRestrictionsEval:
+        return super().effective_access_restrictions | self.level.effective_access_restrictions
 
     def pre_save_changed_geometries(self):
         self.register_change()
@@ -169,7 +168,7 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
             columns_by_restrictions = {}
             for column in space.columns.all():
                 access_restriction_id = column.access_restriction_id
-                if access_restriction_id in space.effective_access_restrictions:
+                if access_restriction_id in space.effective_access_restrictions.minimum_permissions:
                     # remove access restrictions of the space to avoid unnecessary duplicates
                     access_restriction_id = None
                 columns_by_restrictions.setdefault(access_restriction_id, []).append(unwrap_geom(column.geometry))
@@ -207,7 +206,8 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
                     result.append(MapPermissionTaggedItem(
                         value=comparable_mapping(geometry),
                         # here we add the access restrictions of the space back in
-                        access_restrictions=frozenset(selected_restrictions) | space.effective_access_restrictions,
+                        access_restrictions=(space.effective_access_restrictions &
+                                             AccessRestrictionsAllIDs.build(selected_restrictions)),
                     ))
 
             if not result:
@@ -226,13 +226,13 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
             results_by_area: dict[float, list[MapPermissionTaggedItem[Polygon]]] = {}
 
             # go through all possible space geometries, starting with the least restricted ones
-            for space_geometry, access_restriction_ids in reversed(space.cached_effective_geometries):
+            for space_geometry, access_restrictions in reversed(space.cached_effective_geometries):
                 # get the minimum rotated rectangle
                 simplified_geometry = shape(space_geometry).minimum_rotated_rectangle
 
                 # seach whether we had this same polygon as a result before
                 for previous_result in results_by_area.get(simplified_geometry.area, []):
-                    if (access_restriction_ids >= results_by_area
+                    if (access_restrictions >= previous_result.access_restrictions
                             and previous_result.value.equals_exact(simplified_geometry, 1e-3)):
                         # if the found polygon matches and has a subset of restrictions, no need to store this one
                         break
@@ -240,7 +240,7 @@ class Space(CachedEffectiveGeometryMixin, LevelGeometryMixin, LocationTagTargetM
                 # create and store item
                 item = MapPermissionTaggedItem(
                     value=comparable_mapping(simplified_geometry),
-                    access_restrictions=access_restriction_ids
+                    access_restrictions=access_restrictions
                 )
                 results_by_area.setdefault(simplified_geometry.area, []).append(item)
                 results.append(item)

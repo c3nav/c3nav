@@ -19,7 +19,7 @@ from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissio
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin, CachedEffectiveGeometryMixin, CachedPoints, CachedBounds
 from c3nav.mapdata.models.locations import LocationTagTargetMixin
-from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem
+from c3nav.mapdata.permissions import MapPermissions, MapPermissionTaggedItem, AccessRestrictionsEval
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry.modify import comparable_mapping
 from c3nav.mapdata.utils.geometry.wrapped import unwrap_geom
@@ -77,11 +77,8 @@ class SpaceGeometryMixin(AccessRestrictionLogicMixin, GeometryMixin, models.Mode
         )
 
     @cached_property
-    def effective_access_restrictions(self) -> frozenset[int]:
-        return (
-            super().effective_access_restrictions |
-            self.space.effective_access_restrictions
-        )
+    def effective_access_restrictions(self) -> AccessRestrictionsEval:
+        return super().effective_access_restrictions | self.space.effective_access_restrictions
 
     def register_change(self, force=False):
         space = self.space
@@ -151,9 +148,9 @@ class Area(CachedEffectiveGeometryMixin, SpaceGeometryMixin, LocationTagTargetMi
             results_by_area: dict[float, list[MapPermissionTaggedItem[Polygon | MultiPolygon]]] = {}
 
             # go through all possible space geometries, starting with the least restricted ones
-            for space_geometry, access_restriction_ids in reversed(area.space.cached_effective_geometries):
+            for space_geometry, access_restrictions in reversed(area.space.cached_effective_geometries):
                 # further restrict with the access restrictions of this area
-                item_access_restrictions = access_restriction_ids | area.effective_access_restrictions
+                item_access_restrictions = access_restrictions & area.effective_access_restrictions
 
                 # crop this area to this version of the space
                 geometry = area.geometry.intersection(shape(space_geometry))
@@ -164,7 +161,7 @@ class Area(CachedEffectiveGeometryMixin, SpaceGeometryMixin, LocationTagTargetMi
 
                 # seach whether we had this same polygon as a result before
                 for previous_result in results_by_area.get(geometry.area, []):
-                    if (item_access_restrictions >= results_by_area
+                    if (item_access_restrictions >= previous_result.access_restrictions
                             and previous_result.value.equals_exact(geometry, 1e-3)):
                         # if the found polygon matches and has a subset of restrictions, no need to store this one
                         break
@@ -172,7 +169,7 @@ class Area(CachedEffectiveGeometryMixin, SpaceGeometryMixin, LocationTagTargetMi
                 # create and store item
                 item = MapPermissionTaggedItem(
                     value=comparable_mapping(geometry),
-                    access_restrictions=access_restriction_ids
+                    access_restrictions=access_restrictions
                 )
                 results_by_area.setdefault(geometry.area, []).append(item)
                 results.append(item)
@@ -367,20 +364,20 @@ class POI(SpaceGeometryMixin, LocationTagTargetMixin, AccessRestrictionMixin, mo
     def cached_effective_geometries(self) -> list[MapPermissionTaggedItem[PointSchema]]:
         return [MapPermissionTaggedItem(
             value=comparable_mapping(self.geometry),
-            access_restrictions=frozenset(self.effective_access_restrictions),
+            access_restrictions=self.effective_access_restrictions,
         )]
 
     @property
     def cached_points(self) -> CachedPoints:
         return [MapPermissionTaggedItem(
             value=self.geometry.coords[0],
-            access_restrictions=frozenset(self.effective_access_restrictions),
+            access_restrictions=self.effective_access_restrictions,
         )]
 
     @property
     def cached_bounds(self) -> CachedBounds:
         return CachedBounds(*(
-            (MapPermissionTaggedItem(value=round(value, 2), access_restrictions=frozenset(self.effective_access_restrictions)), )
+            (MapPermissionTaggedItem(value=round(value, 2), access_restrictions=self.effective_access_restrictions), )
             for value in self.geometry.bounds
         ))
 
