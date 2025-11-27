@@ -34,7 +34,8 @@ from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
     MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
-    MapPermissionMaskedTaggedValue, MapPermissionGuardedTaggedSequence
+    MapPermissionMaskedTaggedValue, MapPermissionGuardedTaggedSequence, AccessRestrictionsEval, NoAccessRestrictions, \
+    AccessRestrictionsAllIDs, AccessRestrictionsOr
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
@@ -126,6 +127,9 @@ class LocationTagManager(UseQForPermissionsManager):
 
     def without_inherited(self):
         return super().get_queryset()
+
+    def with_restrictions(self):
+        return self.prefetch_related("effective_access_restriction_sets__access_restrictions")
 
     def bulk_create(self, *args, **kwargs):
         with transaction.atomic():
@@ -234,6 +238,16 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         self._orig = {
             key: getattr(self, key) for key in ("priority", "color") if key not in deferred_fields
         }
+
+    @cached_property
+    def effective_access_restrictions(self) -> AccessRestrictionsEval:
+        if "effective_access_restriction_sets" not in getattr(self, '_prefetched_objects_cache', ()):
+            raise ValueError("Can't provide LocationTag.effective_access_restrictions "
+                             "without .with_restrictions() in Queryset")
+        return AccessRestrictionsOr.build((
+            AccessRestrictionsAllIDs.build(restriction.pk for restriction in restriction_set.access_restrictions.all())
+            for restriction_set in self.effective_access_restriction_sets.all()
+        ))
 
     """ Targets """
 

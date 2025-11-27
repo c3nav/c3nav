@@ -198,18 +198,18 @@ class CachedEffectiveGeometryMixin(models.Model):
             point_results: dict[tuple[float, float], list[frozenset[int]]] = {}
 
             # go through all possible geometries, starting with the least restricted ones
-            for geometry, access_restriction_ids in reversed(space.cached_effective_geometries):
+            for geometry, access_restrictions in reversed(space.cached_effective_geometries):
                 point = snap_to_grid_and_fully_normalized(good_representative_point(shape(geometry))).coords[0]
 
                 # seach whether we had this same points as a result before
                 for previous_result in point_results.get(point, []):
-                    if access_restriction_ids >= previous_result:
+                    if access_restrictions >= previous_result:
                         # if we already had this point with a subset of these access restrictions, skip
                         break
 
                 # create and store item
-                item = MapPermissionTaggedItem(value=point, access_restrictions=access_restriction_ids)
-                point_results.setdefault(point, []).append(access_restriction_ids)
+                item = MapPermissionTaggedItem(value=point, access_restrictions=access_restrictions)
+                point_results.setdefault(point, []).append(access_restrictions)
                 results.append(item)
 
             # we need to reverse the list back to make the logic work
@@ -244,7 +244,8 @@ class CachedEffectiveGeometryMixin(models.Model):
 
                 new_bounds = CachedBounds(*(
                     list(MapPermissionTaggedItem.skip_redundant(
-                        (MapPermissionTaggedItem(round(item[0], 2), item[1]) for item in zip(values, access_restrictions)),
+                        (MapPermissionTaggedItem(round(value, 2), access_restrictions)
+                         for value, access_restrictions in zip(values, access_restrictions)),
                         reverse=(i > 1),  # sort in reverse for maxx/maxy
                     ))
                     # zip the collected bounds into 4 iterators of tagged items

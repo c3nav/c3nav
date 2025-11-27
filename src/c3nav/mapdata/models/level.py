@@ -173,6 +173,6 @@ class Level(LocationTagTargetMixin, AccessRestrictionMixin, models.Model):
     @property
     def cached_bounds(self) -> CachedBounds:
         return CachedBounds(*(
-            (MapPermissionTaggedItem(value=float(value), access_restrictions=frozenset(self.effective_access_restrictions)), )
+            (MapPermissionTaggedItem(value=float(value), access_restrictions=self.effective_access_restrictions), )
             for value in (self.effective_left, self.effective_bottom, self.effective_right, self.effective_top)
         ))
