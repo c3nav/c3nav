@@ -243,11 +243,9 @@ class Router:
                 locationtags.setdefault(location.pk, RouterLocation(location)).targets.append(level)
 
         # add sublocations
-        for location in LocationTag.objects.prefetch_related(
-                Prefetch("calculated_descendants", LocationTag.objects.only("pk"))
-        ):
+        for location in LocationTag.objects.all():
             router_location = locationtags.setdefault(location.pk, RouterLocation(location))
-            router_location.sublocations.update(sublocation.pk for sublocation in location.calculated_descendants.all())
+            router_location.sublocations.update(location.descendants)
 
         # add graph descriptions
         for description in LeaveDescription.objects.all():

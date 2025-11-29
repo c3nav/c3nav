@@ -1,5 +1,8 @@
 import json
 import math
+import operator
+from collections import defaultdict
+from functools import reduce
 from itertools import chain
 from typing import Annotated, Union, Optional, Sequence
 
@@ -247,9 +250,7 @@ def legend_for_theme(request, theme_id: int):
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    legend_tags = LocationTag.objects.filter(in_legend=True).prefetch_related(
-        Prefetch("calculated_descendants", LocationTag.objects.only("pk")),
-    ).order_by("effective_depth_first_pre_order")
+    legend_tags = LocationTag.objects.filter(in_legend=True).order_by("effective_depth_first_pre_order")
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
         pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),
@@ -260,7 +261,7 @@ def legend_for_theme(request, theme_id: int):
                                                    fill=manager.location_tag_fill_color(tag),
                                                    border=manager.location_border_color(tag))
                                   for tag in legend_tags
-                                  if tag.calculated_descendants.all() or tag.cached_all_static_targets)
+                                  if tag.descendants or tag.cached_all_static_targets)
                 if item.fill or item.border],
         obstacles=[item for item in (LegendItemSchema(title=group.title,
                                                       fill=manager.obstaclegroup_fill_color(group),
@@ -326,39 +327,25 @@ def get_load(request):
 
     # todo: better caching?
 
-    tags_contribute_to = dict(
-        LocationTag.objects.filter(load_group_contribute__isnull=False).values_list("pk", "load_group_contribute")
-    )
-    for area in Area.objects.filter(
-        Q(tags__in=tags_contribute_to.keys())
-        | Q(tags__calculated_ancestors__in=tags_contribute_to.keys())
-    ).prefetch_related(
-        Prefetch("tags", LocationTag.objects.only("pk", "load_group_contribute_id").prefetch_related(
-            Prefetch("calculated_ancestors", LocationTag.objects.only("pk", "load_group_contribute_id")),
-        )),
+    tags_contribute_to: dict[int, set[int]] = defaultdict(set)
+    for tag in LocationTag.objects.filter(load_group_contribute__isnull=False):
+        for tag_id in chain((tag.pk,), tag.descendants):
+            tags_contribute_to[tag_id].add(tag.load_group_contribute_to)
+
+    for area in Area.objects.filter(tags__in=tags_contribute_to.keys()).prefetch_related(
+        Prefetch("tags", LocationTag.objects.without_inherited().only("pk"))
     ):
-        contribute_to = set()
-        for tag in chain(area.tags.all(), *(tag.calculated_ancestors.all() for tag in area.tags.all())):
-            if tag.load_group_contribute_id:
-                contribute_to.add(tag.load_group_contribute_id)
+        contribute_to = reduce(operator.or_, (tags_contribute_to[tag.pk] for tag in area.tags.all()), set())
         for beacon in beacons_by_space.get(area.space_id, {}).values():
             if area.geometry.intersects(unwrap_geom(beacon.geometry)):
                 for load_group_id in contribute_to:
                     max_values[load_group_id] += beacon.max_observed_num_clients
                     current_values[load_group_id] += beacon.num_clients
 
-    for space in Space.objects.filter(
-        Q(tags__in=tags_contribute_to.keys())
-        | Q(tags__calculated_ancestors__in=tags_contribute_to.keys())
-    ).prefetch_related(
-        Prefetch("tags", LocationTag.objects.only("pk", "load_group_contribute_id").prefetch_related(
-            Prefetch("calculated_ancestors", LocationTag.objects.only("pk", "load_group_contribute_id")),
-        )),
+    for space in Space.objects.filter(tags__in=tags_contribute_to.keys()).prefetch_related(
+        Prefetch("tags", LocationTag.objects.without_inherited().only("pk"))
     ):
-        contribute_to = set()
-        for tag in chain(space.tags.all(), *(tag.calculated_ancestors.all() for tag in space.tags.all())):
-            if tag.load_group_contribute_id:
-                contribute_to.add(tag.load_group_contribute_id)
+        contribute_to = reduce(operator.or_, (tags_contribute_to[tag.pk] for tag in space.tags.all()), set())
         for beacon in beacons_by_space.get(space.pk, {}).values():
             for load_group_id in contribute_to:
                 max_values[load_group_id] += beacon.max_observed_num_clients

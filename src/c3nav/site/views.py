@@ -666,15 +666,15 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.location_tag = get_report_location_for_request(location)
         # todo: migrate this to not use groups but use ALL parents / ancestors
         if isinstance(report.location_tag, LocationTag):
-            for parent in report.location_tag.calculated_ancestors.all():
-                # todo: filter?
-                if parent.can_report_mistake == LocationTag.CanReportMistake.REJECT:
-                    messages.error(request, format_html(
-                        '{}<br><br>{}',
-                        _('We do not accept reports for this location.'),
-                        parent.report_help_text,
-                    ))
-                    return render(request, 'site/report_question.html', {})
+            if (report.location_tag.can_report_mistake == LocationTag.CanReportMistake.REJECT
+                    or LocationTag.objects.filter(pk__in=report.location_tag.ancestors,
+                                                  can_report_mistake=LocationTag.CanReportMistake.REJECT).exists()):
+                messages.error(request, format_html(
+                    '{}<br><br>{}',
+                    _('We do not accept reports for this location.'),
+                    parent.report_help_text,
+                ))
+                return render(request, 'site/report_question.html', {})
         if report.location_tag is None:
             raise Http404
         if not isinstance(report.location_tag, LocationTag):
