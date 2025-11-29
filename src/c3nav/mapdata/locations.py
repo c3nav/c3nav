@@ -1,11 +1,11 @@
 import math
 import re
+from collections import deque, defaultdict
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Optional, ClassVar, NamedTuple, overload, Literal, TypeAlias
+from typing import Optional, ClassVar, NamedTuple, overload, Literal, TypeAlias, Sequence, Generator, Mapping
 
 from django.core.cache import cache
-from django.db.models.query import Prefetch
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from pydantic import PositiveInt
@@ -15,8 +15,10 @@ from c3nav.api.schema import GeometriesByLevelSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, MapUpdate
-from c3nav.mapdata.models.locations import LocationSlug, Position, LocationTag
-from c3nav.mapdata.permissions import active_map_permissions, MapPermissionGuardedMapping
+from c3nav.mapdata.models.locations import LocationSlug, Position, LocationTag, LocationTagAdjacency
+from c3nav.mapdata.permissions import active_map_permissions, MapPermissionGuardedMapping, \
+    MapPermissionGuardedTaggedUniqueSequence, MapPermissionTaggedItem, AccessRestrictionsOneID, \
+    MapPermissionGuardedTaggedSequence
 from c3nav.mapdata.schemas.locations import LocationProtocol, NearbySchema
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, LocationIdentifier, \
     CustomLocationIdentifier
@@ -36,6 +38,7 @@ class LocationRedirect:
 
 
 LazyDatabaseLocationById: TypeAlias = MapPermissionGuardedMapping[int, LocationTag]
+LazyDatabaseLocationList: TypeAlias = MapPermissionGuardedTaggedUniqueSequence[LocationTag]
 
 
 class SlugTarget(NamedTuple):
@@ -48,6 +51,8 @@ class LocationManager:
     _all_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
     _visible_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
     _searchable_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
+    _visible_locations_sorted: LazyDatabaseLocationList = MapPermissionGuardedTaggedSequence(())
+    _searchable_locations_sorted: LazyDatabaseLocationList = MapPermissionGuardedTaggedSequence(())
     _locations_by_slug: dict[NonEmptyStr, SlugTarget] = {}
     _levels_by_level_index: MapPermissionGuardedMapping[str, Level] = MapPermissionGuardedMapping({})
 
@@ -82,6 +87,22 @@ class LocationManager:
         """
         cls._maybe_update()
         return cls._searchable_locations
+
+    @classmethod
+    def get_visible_sorted(cls) -> LazyDatabaseLocationList:
+        """
+        Get all visible (can_search or can_describe) locations under the current map permission context
+        """
+        cls._maybe_update()
+        return cls._visible_locations_sorted
+
+    @classmethod
+    def get_searchable_sorted(cls) -> LazyDatabaseLocationList:
+        """
+        Get all searchable (can_search or can_describe) locations under the current map permission context
+        """
+        cls._maybe_update()
+        return cls._searchable_locations_sorted
 
     @classmethod
     @overload
@@ -184,6 +205,7 @@ class LocationManager:
             if all_locations is None:
                 all_locations = cls.generate_locations_by_id()
                 cache.set(cache_key, all_locations, 1800)
+            breadth_first_order = cls.generate_locations_breadth_first_order(all_locations)
             cls._all_locations = MapPermissionGuardedMapping(all_locations)
             cls._visible_locations = MapPermissionGuardedMapping({
                 pk: location for pk, location in all_locations.items()
@@ -193,6 +215,12 @@ class LocationManager:
                 pk: location for pk, location in all_locations.items()
                 if location.can_describe
             })
+            cls._visible_locations_sorted = MapPermissionGuardedTaggedUniqueSequence(
+                tuple(cls.generate_sorted(cls._visible_locations, breadth_first_order))
+            )
+            cls._searchable_locations_sorted = MapPermissionGuardedTaggedUniqueSequence(
+                tuple(cls.generate_sorted(cls._searchable_locations, breadth_first_order))
+            )
             cls._locations_by_slug = {
                 location_slug.slug: SlugTarget(target_id=location_slug.target_id, redirect=location_slug.redirect)
                 for location_slug in LocationSlug.objects.all()
@@ -205,20 +233,67 @@ class LocationManager:
     @classmethod
     def generate_locations_by_id(cls) -> dict[int, LocationTag]:
         locations = {
-            tag.pk: tag for tag in LocationTag.objects.select_related(
-                "effective_label_settings",
+            tag.pk: tag for tag in LocationTag.objects.with_restrictions().select_related(
                 "load_group_display",
-            ).prefetch_related("slug_set").order_by("effective_downwards_breadth_first_order")
+            ).prefetch_related("slug_set").order_by("-priority", "pk")
         }
 
         # trigger some cached properties, then empty prefetch_related cache
         for obj in locations.values():
             # noinspection PyStatementEffect
-            obj.slug, obj.redirect_slugs, obj.sublocations, obj.display_superlocations
+            obj.slug, obj.redirect_slugs, obj.display_superlocations, obj.effective_access_restrictions
             # clear prefetch cache
             obj._prefetched_objects_cache = {}
 
         return locations
+
+    @classmethod
+    def generate_locations_breadth_first_order(
+            cls, locations_by_id: dict[int, LocationTag]
+    ) -> tuple[MapPermissionTaggedItem[int], ...]:
+        children_for_parents: dict[int, deque[int]] = defaultdict(deque)
+        children_ids: set[int] = set()
+        for parent_id, child_id in LocationTagAdjacency.objects.values_list(
+                "parent_id", "child_id"
+        ).order_by("-child__priority", "child_id"):
+            children_ids.add(child_id)
+            children_for_parents[parent_id].append(child_id)
+
+        result: deque[deque[MapPermissionTaggedItem[int]]] = deque((
+            deque(MapPermissionTaggedItem(
+                tag_id,
+                AccessRestrictionsOneID.build(locations_by_id[tag_id].access_restriction_id)
+            ) for tag_id in locations_by_id if tag_id not in children_ids),
+        ))
+        collect: deque[MapPermissionTaggedItem[int]]
+        while result[-1]:
+            collect = deque()
+            for tag_id, access_restrictions in result[-1]:
+                for child_id in children_for_parents[tag_id]:
+                    collect.append(MapPermissionTaggedItem(
+                       child_id,
+                        (access_restrictions
+                         & AccessRestrictionsOneID.build(locations_by_id[child_id].access_restriction_id))
+                    ))
+            result.append(collect)
+
+        return tuple(
+            MapPermissionTaggedItem.skip_redundant_keep_order(chain.from_iterable(result))
+        )
+
+    @staticmethod
+    def generate_sorted(
+            locations_by_id: Mapping[int, LocationTag],
+            order: tuple[MapPermissionTaggedItem[int], ...]
+    ) -> Generator[MapPermissionTaggedItem[LocationTag]]:
+        for item in order:
+            tag = locations_by_id.get(item.value, None)
+            if tag is None:
+                continue
+            yield MapPermissionTaggedItem(
+                value=tag,
+                access_restrictions=item.access_restrictions & tag.effective_access_restrictions
+            )
 
 
 @dataclass

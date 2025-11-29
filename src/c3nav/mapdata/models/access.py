@@ -453,7 +453,7 @@ class AccessRestrictionLogicMixin(models.Model):
     @cached_property
     def effective_access_restrictions(self) -> "AccessRestrictionsEval":
         from c3nav.mapdata.permissions import NoAccessRestrictions
-        raise NoAccessRestrictions
+        return NoAccessRestrictions
 
 
 class AccessRestrictionMixin(AccessRestrictionLogicMixin, models.Model):

@@ -94,8 +94,8 @@ class LocationListFilters(BaseSchema):
 @api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ))
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
-        return LocationManager.get_searchable().values()
-    return LocationManager.get_visible().values()
+        return LocationManager.get_searchable_sorted()
+    return LocationManager.get_visible_sorted()
 
 
 class ShowRedirects(BaseSchema):
@@ -252,7 +252,8 @@ def legend_for_theme(request, theme_id: int):
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    legend_tags = LocationTag.objects.filter(in_legend=True).order_by("effective_depth_first_pre_order")
+    # todo: fix order here
+    legend_tags = LocationTag.objects.filter(in_legend=True)  #.order_by("effective_depth_first_pre_order")
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
         pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),

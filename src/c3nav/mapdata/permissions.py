@@ -3,7 +3,7 @@ import sys
 import traceback
 import warnings
 from abc import abstractmethod, ABC
-from collections import deque
+from collections import deque, defaultdict
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -1013,6 +1013,19 @@ class MapPermissionTaggedItem[T](NamedTuple):
                 # skip restriction supersets of other instances of the same value
                 continue
             done.append(item.access_restrictions)
+            yield item
+
+    @staticmethod
+    def skip_redundant_keep_order[T](values: Iterable["MapPermissionTaggedItem[T]"]) -> Generator["MapPermissionTaggedItem[T]"]:
+        """
+        Yield every item unless it there was already an item with the same value that had a subset of access restrictions.
+        """
+        # todo: better name
+        done_restrictions_for_values: dict[T, set[AccessRestrictionsEval]] = defaultdict(set)
+        for item in values:
+            if any((item.access_restrictions <= done.access_restrictions)
+                   for done in done_restrictions_for_values[item.value]):
+                continue
             yield item
 
     @staticmethod
