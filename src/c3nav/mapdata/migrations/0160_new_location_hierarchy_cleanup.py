@@ -158,6 +158,10 @@ class Migration(migrations.Migration):
                 ('level', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='inherited', to='mapdata.level')),
                 ('poi', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='inherited', to='mapdata.poi')),
                 ('space', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='inherited', to='mapdata.space')),
+                ('ancestor', django_pydantic_field.fields.PydanticSchemaField(config=None, default=list, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=django_pydantic_field.compat.django.GenericContainer(list, (django_pydantic_field.compat.django.GenericContainer(c3nav.mapdata.permissions.MapPermissionTaggedItem, (int,)),)))),
+                ('ancestor_paths', django_pydantic_field.fields.PydanticSchemaField(config=None, default=list, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=django_pydantic_field.compat.django.GenericContainer(list, (django_pydantic_field.compat.django.GenericContainer(c3nav.mapdata.permissions.MapPermissionTaggedItem, (django_pydantic_field.compat.django.GenericContainer(list, (int,)),)),)))),
+                ('descendant', django_pydantic_field.fields.PydanticSchemaField(config=None, default=list, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=django_pydantic_field.compat.django.GenericContainer(list, (django_pydantic_field.compat.django.GenericContainer(c3nav.mapdata.permissions.MapPermissionTaggedItem, (int,)),)))),
+                ('descendant_paths', django_pydantic_field.fields.PydanticSchemaField(config=None, default=list, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=django_pydantic_field.compat.django.GenericContainer(list, (django_pydantic_field.compat.django.GenericContainer(c3nav.mapdata.permissions.MapPermissionTaggedItem, (django_pydantic_field.compat.django.GenericContainer(list, (int,)),)),)))),
             ],
             options={
                 'verbose_name': 'Location Tag Target Inherited Values',

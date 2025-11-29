@@ -94,10 +94,7 @@ class AccessRestrictionsEval(ABC):
 # todo: this is so dumb! get pydantic to serialize this properly and more simply. it works for now but this is silly
 
 
-#@dataclass(frozen=True, slots=True, repr=False)
 class NoAccessRestrictionsCls(AccessRestrictionsEval):
-    none: None = None
-
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
         return True
 
@@ -139,7 +136,6 @@ class NoAccessRestrictionsCls(AccessRestrictionsEval):
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any=None, handler=None) -> CoreSchema:
-        print("schema requested!")
         schema = core_schema.no_info_after_validator_function(
             cls._validate,
             core_schema.union_schema([core_schema.is_instance_schema(cls), cls.schema]),
@@ -153,6 +149,25 @@ class NoAccessRestrictionsCls(AccessRestrictionsEval):
 
 
 NoAccessRestrictions = NoAccessRestrictionsCls()
+
+
+class InfiniteAccessRestrictionsCls:
+    """
+    An access restrictions eval compatible class that doesn't allow anyone to see anything.
+    Only useful for constructing access restriction eval objects by __or__'ing this or so.
+    """
+
+    def __or__[T: AccessRestrictionsEval](self, other: T) -> T:
+        return other
+
+    def __and__(self, other: AccessRestrictionsEval) -> Self:
+        return self
+
+    def __repr__(self):
+        return "InfiniteAccessRestrictions"
+
+
+InifiniteAccessRestrictions = InfiniteAccessRestrictionsCls()
 
 
 class AccessRestrictionsOneID:
@@ -201,8 +216,8 @@ class AccessRestrictionsAllIDs(AccessRestrictionsEval):
         return AccessRestrictionsAllIDs(new_ids)
 
     @classmethod
-    def build(cls, access_restrictions: Iterable[int]) -> Union[NoAccessRestrictionsCls, Self]:
-        access_restrictions = frozenset(access_restrictions)
+    def build(cls, access_restrictions: Iterable[int | None]) -> Union[NoAccessRestrictionsCls, Self]:
+        access_restrictions = frozenset(access_restrictions) - {None}
         if not access_restrictions:
             return NoAccessRestrictions
         return cls(access_restrictions)
@@ -238,7 +253,6 @@ class AccessRestrictionsAllIDs(AccessRestrictionsEval):
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any=None, handler=None) -> CoreSchema:
-        print("schema requested!")
         schema = core_schema.no_info_after_validator_function(
             cls._validate,
             core_schema.union_schema([core_schema.is_instance_schema(cls), cls.schema]),
@@ -338,7 +352,6 @@ class AccessRestrictionsOr(AccessRestrictionsEval):
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any = None, handler=None) -> CoreSchema:
-        print("schema requested!")
         schema = core_schema.no_info_after_validator_function(
             cls._validate,
             core_schema.union_schema([core_schema.is_instance_schema(cls), cls.schema]),

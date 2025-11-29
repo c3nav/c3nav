@@ -3,7 +3,8 @@ from collections import deque, defaultdict
 from dataclasses import dataclass, replace as dataclass_replace
 from functools import reduce
 from itertools import chain
-from typing import Sequence, NamedTuple, Self
+from operator import itemgetter
+from typing import Sequence, NamedTuple, Self, Callable
 
 from django.conf import settings
 from django.db.models.expressions import F, When, Case, Value, Exists, OuterRef
@@ -15,11 +16,14 @@ from c3nav.mapdata.models.locations import FillAndBorderColor, LocationTag, Stat
     CachedBoundsByLevel, CachedGeometriesByLevel, MaskedLocationTagGeometry, LocationTagInheritedValues, \
     CircularHierarchyError, LocationTagEffectiveAccessRestrictionSet, LocationTagTargetInheritedValues
 from c3nav.mapdata.permissions import MapPermissionTaggedItem, AccessRestrictionsAllIDs, PermissionsAsSet, \
-    AccessRestrictionsEval, NoAccessRestrictions, AccessRestrictionsOneID
+    AccessRestrictionsEval, NoAccessRestrictions, AccessRestrictionsOneID, InifiniteAccessRestrictions
 
 
 @dataclass
 class InheritedValues:
+    ancestor_path: tuple[int, ...] = ()
+    access_restriction_path: tuple[int | None, ...] = ()
+
     icon: str | None = None
     label_settings: int | None = None
     external_url_label: dict | None = None
@@ -56,11 +60,22 @@ class MultipleInheritedValues(NamedTuple):
             colors={
                 theme: self._append(self_colors.get(theme, ()), other_colors.get(theme, None), item.access_restrictions)
                 for theme in set(self_colors.keys()) | set(other_colors.keys())
-            }
+            },
         )
 
 
+def _ancestry_paths_to_ids(
+    paths: Sequence[MapPermissionTaggedItem[tuple[int, ...]]],
+    getter: Callable[[tuple[int, ...],], int],
+) -> list[MapPermissionTaggedItem[int]]:
+    return [
+        MapPermissionTaggedItem(getter(item.path), access_restrictions=item.access_restrictions)
+        for item in paths
+    ]
+
+
 def recalculate_locationtag_effective_inherited_values():
+    # todo: how cool would it be if this thing new which parts of the location graph actually needed to be re-done?
     tags_by_id: dict[int, LocationTag] = {}
     next_tags: deque[tuple[int, frozenset[int], InheritedValues]] = deque()
 
@@ -81,7 +96,9 @@ def recalculate_locationtag_effective_inherited_values():
             next_tags.append((tag.pk, frozenset({tag.pk}), InheritedValues()))
 
     result_for_tags: dict[int, MultipleInheritedValues] = {}
-    restrictions_for_tags: dict[int, AccessRestrictionsEval] = {}
+    restrictions_for_tags: dict[int, AccessRestrictionsEval] = defaultdict(lambda: InifiniteAccessRestrictions)
+    ancestor_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
+    descendant_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
     public_tags: set[int] = set()
     not_done_tags = set(tags_by_id.keys())
 
@@ -95,22 +112,31 @@ def recalculate_locationtag_effective_inherited_values():
         tag = tags_by_id[tag_id]
         not_done_tags.discard(tag_id)
 
+        ancestor_path = values_so_far.ancestor_path + (tag_id,)
         access_restrictions = (
             values_so_far.access_restrictions &
             AccessRestrictionsOneID.build(tag.access_restriction_id)
         )
 
+        for i, ancestor_id in enumerate(range(len(values_so_far.ancestor_path))):
+            ancestor_paths_for_tags[tag_id][values_so_far.ancestor_path[i:]] = MapPermissionTaggedItem(
+                values_so_far.ancestor_path[i:],
+                access_restrictions=AccessRestrictionsAllIDs.build(values_so_far.access_restriction_path[i:]),
+            )
+            descendant_paths_for_tags[ancestor_id][ancestor_path[i+1:]] = MapPermissionTaggedItem(
+                ancestor_path[i+1:],
+                access_restrictions=AccessRestrictionsAllIDs.build(values_so_far.access_restriction_path[i+1:]),
+            )
+
         if not access_restrictions:
             public_tags.add(tag_id)
             restrictions_for_tags.pop(tag_id, None)
         elif tag_id not in public_tags:
-            restrictions_so_far = restrictions_for_tags.setdefault(tag_id, None)
-            restrictions_for_tags[tag_id] = (
-                access_restrictions if restrictions_so_far is None else (restrictions_so_far | access_restrictions)
-            )
+            restrictions_for_tags[tag_id] | access_restrictions
 
         values_so_far = dataclass_replace(
             values_so_far,
+            ancestor_path=ancestor_path,
             icon=(tag.icon or "").strip() or values_so_far.icon,
             label_settings=tag.label_settings_id or values_so_far.label_settings,
             external_url_label=tag.external_url_labels or values_so_far.external_url_label,
@@ -124,6 +150,7 @@ def recalculate_locationtag_effective_inherited_values():
                 }
             } or None,
             access_restrictions=access_restrictions,
+            access_restriction_path=values_so_far.access_restriction_path + (tag.access_restriction_id, )
         )
 
         result_for_tags[tag_id] = result_for_tags.get(tag_id, MultipleInheritedValues()).append(values_so_far)
@@ -159,6 +186,11 @@ def recalculate_locationtag_effective_inherited_values():
                 external_url_label=list(values.external_url_label),
                 describing_title=list(values.describing_title),
                 colors={theme_id: list(colors) for theme_id, colors in (values.colors or {}).items()},
+
+                ancestor_paths=list(ancestor_paths_for_tags[tag_id].values()),
+                ancestors=_ancestry_paths_to_ids(ancestor_paths_for_tags[tag_id].values(), itemgetter(0)),
+                descendant_paths=list(descendant_paths_for_tags[tag_id].values()),
+                descendants=_ancestry_paths_to_ids(descendant_paths_for_tags[tag_id].values(), itemgetter(-1)),
             ) for tag_id, values in result_for_tags.items()
         ],
         update_conflicts=True,
@@ -167,7 +199,11 @@ def recalculate_locationtag_effective_inherited_values():
             "label_settings_id",
             "external_url_label",
             "describing_title",
-            "colors"
+            "colors",
+            "ancestors",
+            "ancestor_paths",
+            "descendants",
+            "descendant_paths",
         ),
         unique_fields=("tag_id", )
     )
