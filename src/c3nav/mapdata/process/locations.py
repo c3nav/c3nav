@@ -355,7 +355,9 @@ def recalculate_locationtag_target_subtitles():
 
 
 def recalculate_locationtag_points():
-    for obj in LocationTag.objects.prefetch_related("levels", "spaces__level", "areas__space__level", "pois__space__level"):
+    for obj in LocationTag.objects.with_restrictions().prefetch_related(
+            "levels", "spaces__level", "areas__space__level", "pois__space__level"
+    ):
         obj: LocationTag
         new_points = [
             # we are filtering out versions of this targets points for users who lack certain permissions,
@@ -373,8 +375,8 @@ def recalculate_locationtag_points():
 
 
 def recalculate_locationtag_bounds():
-    for obj in LocationTag.objects.prefetch_related("levels", "spaces__level",
-                                                    "areas__space__level", "pois__space__level"):
+    for obj in LocationTag.objects.with_restrictions().prefetch_related("levels", "spaces__level",
+                                                                        "areas__space__level", "pois__space__level"):
         obj: LocationTag
         # collect the cached bounds of all static targets, grouped by level
         collected_bounds: dict[int, deque[CachedBounds]] = defaultdict(deque)
@@ -395,9 +397,10 @@ def recalculate_locationtag_bounds():
 
 
 def recalculate_locationtag_geometries():
-    for tag in LocationTag.objects.prefetch_related("levels", "spaces__level", "areas__space__level",
-                                                    "pois__space__level", "levels__tags", "spaces__tags",
-                                                    "areas__tags", "pois__tags",):
+    for tag in LocationTag.objects.with_restrictions().prefetch_related("levels", "spaces__level",
+                                                                        "areas__space__level", "pois__space__level",
+                                                                        "levels__tags", "spaces__tags",
+                                                                        "areas__tags", "pois__tags",):
         tag: LocationTag
         result: CachedGeometriesByLevel = {}
         for target in tag.static_targets:

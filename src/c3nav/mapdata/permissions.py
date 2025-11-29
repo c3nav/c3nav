@@ -1035,8 +1035,9 @@ class MapPermissionTaggedItem[T](NamedTuple):
         Sort items by value – ascending by default, descending if reverse=True
         Then, yield all items that unless there is one with the same value and a subset of access restrictions.
         """
-        raise NotImplementedError   # todo: fix sorting, or get rid of this function
-        values = sorted(values, key=lambda item: (item.value * (-1 if reverse else 1), len(item.access_restrictions)))
+        # todo: is this fine?
+        values = sorted(values, key=lambda item: (item.value * (-1 if reverse else 1),
+                                                  len(item.access_restrictions.relevant_permissions)))
         yield from MapPermissionTaggedItem.skip_redundant_presorted(values)
 
     @staticmethod
