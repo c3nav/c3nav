@@ -355,21 +355,23 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
         return result
 
+    @cached_property
     def sublocations(self) -> list[int]:
         return list(self.descendants)
 
     @cached_property
     def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[dict]:
-        # todo: rename? … make this work / fix this
-        return MapPermissionGuardedTaggedSequence([
-            MapPermissionTaggedItem({
-                'id': l.pk,
-                'slug': l.effective_slug,
-                'title': l.title,  # todo: will translation be used here?
-                'can_search': l.can_search,
-            }, l.effective_access_restrictions)
-            for l in self.calculated_ancestors.all()
-        ])
+        # todo: rename? … make this work / fix this – probably by delivering all locations by default
+        return MapPermissionGuardedTaggedSequence([])
+        #
+        #    MapPermissionTaggedItem({
+        #        'id': l.pk,
+        #        'slug': l.effective_slug,
+        #        'title': l.title,  # todo: will translation be used here?
+        #        'can_search': l.can_search,
+        #    }, l.effective_access_restrictions)
+        #    for l in self.calculated_ancestors.all()
+        #])
 
     @cached_property
     def dynamic(self) -> int:
@@ -802,6 +804,7 @@ class LocationTagTargetMixin(models.Model):
         """
         highest priority first
         """
+        # todo: but this isn't sorted… do we want it to be?
         if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
             raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
         if not self._has_inherited:
