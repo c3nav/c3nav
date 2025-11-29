@@ -249,32 +249,6 @@ def _locationtag_bulk_cached_update[T](name: str, values: Sequence[tuple[set[int
     ).update(**{name: F(f"new_{name}")})
 
 
-def recalculate_locationtag_minimum_access_restrictions():
-    all_minimum_access_restrictions: dict[tuple[int, ...], set[int]] = {}
-    from c3nav.mapdata.models import Level, Space, Area, POI
-    # todo: so locationtags with child tags become invisible if they have targets that are all invisible? we don't want that
-    for tag in LocationTag.objects.prefetch_related(
-            Prefetch("levels", Level.objects.all()),
-            Prefetch("spaces", Space.objects.select_related("level")),
-            Prefetch("areas", Area.objects.select_related("space", "space__level")),
-            Prefetch("pois", POI.objects.select_related("space", "space__level")),
-    ):
-        all_minimum_access_restrictions.setdefault(  # noqa
-            tuple(reduce(
-                operator.and_,
-                (target.effective_access_restrictions.minimum_permissions for target in tag.static_targets),
-            )) if tag.static_targets else (), set()
-        ).add(tag.pk)
-    _locationtag_bulk_cached_update(
-        name="effective_minimum_access_restrictions",
-        values=tuple(
-            (pks, frozenset(minimum_access_restrictions))
-            for minimum_access_restrictions, pks in all_minimum_access_restrictions.items()
-        ),
-        default=frozenset()
-    )
-
-
 def recalculate_locationtag_all_static_targets():
     all_static_target_ids: dict[tuple[tuple[tuple[str, int], AccessRestrictionsEval], ...], set[int]] = {}
     for obj in LocationTag.objects.prefetch_related("levels", "spaces__level",

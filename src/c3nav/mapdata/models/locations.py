@@ -216,8 +216,6 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     areas = models.ManyToManyField('Area', related_name="tags")
     pois = models.ManyToManyField('POI', related_name="tags")
 
-    effective_minimum_access_restrictions: frozenset[int] = SchemaField(schema=frozenset[int], default=frozenset)
-
     cached_geometries: CachedGeometriesByLevel = SchemaField(schema=CachedGeometriesByLevel, null=True)
     cached_points: CachedLocationPoints = SchemaField(schema=CachedLocationPoints, null=True)
     cached_bounds: CachedBoundsByLevel = SchemaField(schema=CachedBoundsByLevel, null=True)
