@@ -242,6 +242,8 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def has_inherited(self):
+        with suppress(AttributeError):
+            self.inherited
         return "inherited" in self._state.fields_cache
 
     def assert_inherited(self):
@@ -695,9 +697,9 @@ class LocationTagInheritedValues(models.Model):
     describing_title: CachedTitles = SchemaField(schema=CachedTitles, default=list)
     colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
 
-    ancestor: CachedIDs = SchemaField(schema=CachedIDs, default=list)
+    ancestors: CachedIDs = SchemaField(schema=CachedIDs, default=list)
     ancestor_paths: CachedAncestryPaths = SchemaField(schema=CachedAncestryPaths, default=list)
-    descendant: CachedIDs = SchemaField(schema=CachedIDs, default=list)
+    descendants: CachedIDs = SchemaField(schema=CachedIDs, default=list)
     descendant_paths: CachedAncestryPaths = SchemaField(schema=CachedAncestryPaths, default=list)
 
     class Meta:

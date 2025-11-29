@@ -69,7 +69,7 @@ def _ancestry_paths_to_ids(
     getter: Callable[[tuple[int, ...],], int],
 ) -> list[MapPermissionTaggedItem[int]]:
     return [
-        MapPermissionTaggedItem(getter(item.path), access_restrictions=item.access_restrictions)
+        MapPermissionTaggedItem(getter(item.value), access_restrictions=item.access_restrictions)
         for item in paths
     ]
 
@@ -132,7 +132,7 @@ def recalculate_locationtag_effective_inherited_values():
             public_tags.add(tag_id)
             restrictions_for_tags.pop(tag_id, None)
         elif tag_id not in public_tags:
-            restrictions_for_tags[tag_id] | access_restrictions
+            restrictions_for_tags[tag_id] |= access_restrictions
 
         values_so_far = dataclass_replace(
             values_so_far,
