@@ -98,11 +98,6 @@ class Migration(migrations.Migration):
             field=models.ManyToManyField(related_name='children', through='mapdata.LocationTagAdjacency', to='mapdata.specificlocation', through_fields=("child", "parent")),
         ),
         migrations.AddField(
-            model_name='specificlocation',
-            name='effective_minimum_access_restrictions',
-            field=django_pydantic_field.fields.PydanticSchemaField(config=None, default=frozenset, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=django_pydantic_field.compat.django.GenericContainer(frozenset, (int,))),
-        ),
-        migrations.AddField(
             model_name='report',
             name='created_parents',
             field=models.ManyToManyField(blank=True, help_text='select all that apply, if any', related_name='+', to='mapdata.specificlocation', verbose_name='location type'),
