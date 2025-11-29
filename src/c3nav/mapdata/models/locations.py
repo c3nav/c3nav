@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Sequence
 from django.conf import settings
 from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
@@ -242,9 +243,11 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def has_inherited(self):
-        with suppress(AttributeError):
+        try:
             self.inherited
-        return "inherited" in self._state.fields_cache
+        except ObjectDoesNotExist:
+            return False
+        return True
 
     def assert_inherited(self):
         if not self.has_inherited:
@@ -795,15 +798,19 @@ class LocationTagTargetMixin(models.Model):
 
     @property
     def _has_inherited(self):
-        with suppress(AttributeError):
+        try:
             self.inherited
-        return "inherited" in self._state.fields_cache
+        except ObjectDoesNotExist:
+            return False
+        return True
 
     @cached_property
     def sorted_tags(self) -> MapPermissionGuardedSequence[LocationTag]:
         """
         highest priority first
         """
+        if not self._has_inherited:
+            return MapPermissionGuardedSequence(())
         # todo: but this isn't sorted… do we want it to be?
         if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
             raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
