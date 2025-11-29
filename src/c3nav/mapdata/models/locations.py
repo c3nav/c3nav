@@ -355,17 +355,12 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
         return result
 
-    @cached_property
-    def sublocations(self) -> MapPermissionGuardedTaggedSequence[int]:
-        # todo: rename
-        return MapPermissionGuardedTaggedSequence([
-            MapPermissionTaggedItem(l.pk, l.effective_access_restrictions)
-            for l in self.calculated_descendants.all()
-        ])
+    def sublocations(self) -> list[int]:
+        return list(self.descendants)
 
     @cached_property
     def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[dict]:
-        # todo: rename?
+        # todo: rename? … make this work / fix this
         return MapPermissionGuardedTaggedSequence([
             MapPermissionTaggedItem({
                 'id': l.pk,
