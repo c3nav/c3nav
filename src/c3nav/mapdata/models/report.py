@@ -1,5 +1,6 @@
 import string
 import uuid
+from itertools import chain
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -95,14 +96,10 @@ class Report(models.Model):
 
     def get_affected_parent_ids(self):
         if self.category == 'missing-location':
-            location_ids = self.created_parents.values_list('pk', flat=True)
-            return (*location_ids, LocationTag.objects.filter(
-                calculated__descendants__in=location_ids
-            ).values_list('pk', flat=True))
+            parents = self.created_parents.all()
+            return chain.from_iterable((parent.pk, *parent.ancestors) for parent in parents)
         elif self.category == 'location-issue':
-            return (
-                self.location_tag.pk, *self.location_tag.calculated_ancestors.values_list('pk', flat=True)
-            )
+            return tuple((self.location_tag.pk, *self.location_tag.ancestors))
         return ()
 
     def get_reviewers_qs(self):

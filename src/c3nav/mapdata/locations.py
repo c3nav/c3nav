@@ -208,14 +208,7 @@ class LocationManager:
             tag.pk: tag for tag in LocationTag.objects.select_related(
                 "effective_label_settings",
                 "load_group_display",
-            ).prefetch_related(
-                "slug_set",
-                "calculated_descendants__slug_set",
-                Prefetch("calculated_ancestors",
-                         LocationTag.objects.order_by("effective_downwards_breadth_first_order").prefetch_related(
-                             "slug_set",
-                         )),
-            ).order_by("effective_downwards_breadth_first_order")
+            ).prefetch_related("slug_set").order_by("effective_downwards_breadth_first_order")
         }
 
         # trigger some cached properties, then empty prefetch_related cache

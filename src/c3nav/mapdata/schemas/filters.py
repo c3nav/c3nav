@@ -82,7 +82,8 @@ class TargetsByLocationFilter(FilterSchema):
         if self.direct_location:
             qs = qs.filter(locations=self.direct_location)
         if self.tag:
-            qs = qs.filter(Q(tags=self.tag) | Q(tags__calculated_ancestors=self.tag))
+            # todo: this is an additional query, would be nice to avoid that
+            qs = qs.filter(tags__in=(*self.tag, LocationTag.objects.get(pk=self.tag).descendants))
         return super().filter_qs(request, qs)
 
 
