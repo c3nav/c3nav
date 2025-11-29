@@ -147,6 +147,7 @@ class NoAccessRestrictionsCls(AccessRestrictionsEval):
                 cls._serialize, info_arg=False, return_schema=cls.schema,
             ),
         )
+        # confused? me too. it's needed because https://github.com/pydantic/pydantic/issues/7779
         cls.__pydantic_serializer__ = SchemaSerializer(schema)
         return schema
 
@@ -245,6 +246,7 @@ class AccessRestrictionsAllIDs(AccessRestrictionsEval):
                 cls._serialize, info_arg=False, return_schema=cls.schema,
             ),
         )
+        # confused? me too. it's needed because https://github.com/pydantic/pydantic/issues/7779
         cls.__pydantic_serializer__ = SchemaSerializer(schema)
         return schema
 
@@ -344,6 +346,7 @@ class AccessRestrictionsOr(AccessRestrictionsEval):
                 cls._serialize, info_arg=False, return_schema=cls.schema,
             ),
         )
+        # confused? me too. it's needed because https://github.com/pydantic/pydantic/issues/7779
         cls.__pydantic_serializer__ = SchemaSerializer(schema)
         return schema
 
@@ -484,6 +487,7 @@ class AccessRestrictionsAnd(AccessRestrictionsEval):
                 cls._serialize, info_arg=False, return_schema=cls.schema,
             ),
         )
+        # confused? me too. it's needed because https://github.com/pydantic/pydantic/issues/7779
         cls.__pydantic_serializer__ = SchemaSerializer(schema)
         return schema
 
