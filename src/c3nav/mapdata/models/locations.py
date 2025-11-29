@@ -83,9 +83,9 @@ class FillAndBorderColor:
     border: str | None
 
 
+# todo: make it possibel for the guarded lists to be serializable on their own?
 ColorByTheme: TypeAlias = dict[int, list[MapPermissionTaggedItem[FillAndBorderColor]]]
 CachedStrings: TypeAlias = list[MapPermissionTaggedItem[str]]
-CachedIDs: TypeAlias = list[MapPermissionTaggedItem[str]]
 CachedTitles: TypeAlias = list[MapPermissionTaggedItem[dict[str, str]]]
 CachedLocationTargetIDs: TypeAlias = list[MapPermissionTaggedItem[tuple[str, int]]]
 
@@ -216,6 +216,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     areas = models.ManyToManyField('Area', related_name="tags")
     pois = models.ManyToManyField('POI', related_name="tags")
 
+    # todo: move this into another model?
     cached_geometries: CachedGeometriesByLevel = SchemaField(schema=CachedGeometriesByLevel, null=True)
     cached_points: CachedLocationPoints = SchemaField(schema=CachedLocationPoints, null=True)
     cached_bounds: CachedBoundsByLevel = SchemaField(schema=CachedBoundsByLevel, null=True)
@@ -706,6 +707,9 @@ class LocationTagTargetInheritedValues(models.Model):
 
 class CircularHierarchyError(IntegrityError):
     pass
+
+
+# todo: check which one of these are still needed
 
 
 def locationtag_parents_removed(instance: LocationTag, pk_set: set[int]):
