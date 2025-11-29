@@ -213,7 +213,7 @@ class LocationManager:
             })
             cls._searchable_locations = MapPermissionGuardedMapping({
                 pk: location for pk, location in all_locations.items()
-                if location.can_describe
+                if location.can_search
             })
             cls._visible_locations_sorted = MapPermissionGuardedTaggedUniqueSequence(
                 tuple(cls.generate_sorted(cls._visible_locations, breadth_first_order))
