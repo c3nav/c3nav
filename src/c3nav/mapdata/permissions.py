@@ -11,12 +11,11 @@ from enum import Enum
 from functools import cached_property, lru_cache, reduce
 from itertools import product
 from typing import Protocol, Sequence, Iterator, Callable, Any, Mapping, NamedTuple, Generator, Iterable, \
-    overload, TypeAlias, Union, Optional, Self, Annotated
+    overload, TypeAlias, Union, Optional, Self
 
 from django.apps.registry import apps
 from django.contrib.auth.models import User
 from pydantic_core import CoreSchema, core_schema, SchemaSerializer
-from pydantic import PlainSerializer, PlainValidator, WrapValidator
 
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionLogicMixin
 from c3nav.mapdata.utils.cache.compress import compress_sorted_list_of_int
@@ -937,6 +936,22 @@ class BaseMapPermissionGuardedSequence[T](Sequence[T], BaseMapPermissionGuarded[
         return iter(reversed(self._get()))
 
 
+class BaseMapPermissionGuardedSet[T](BaseMapPermissionGuarded[frozenset[T]], ABC):
+    """
+    Base class for a wrapper that guards a sequence (output as a set) based on map permissions.
+    """
+    _data: Sequence[T]
+
+    def __len__(self) -> int:
+        return len(self._get())
+
+    def __iter__(self) -> Iterator[T]:
+        return iter(self._get())
+
+    def __contains__(self, item) -> bool:
+        return item in self._get()
+
+
 class MapPermissionGuardedSequence[T: AccessRestrictionLogicMixin](BaseMapPermissionGuardedSequence[T]):
     """
     Wraps a sequence of AccessRestrictionLogicMixin objects.
@@ -1062,6 +1077,45 @@ class MapPermissionGuardedTaggedSequence[T](BaseMapPermissionGuardedSequence[T])
 
     def __repr__(self):
         return f"MapPermissionGuardedTaggedSequence({self._data})"
+
+
+class MapPermissionGuardedTaggedUniqueSequence[T](BaseMapPermissionGuardedSequence[T]):
+    """
+    Wraps a sequence of MapPermissionTaggedItem[T] objects.
+    Acts like a Sequence[T] (like list, tuple, ...) but will filter objects based on the active map permissions.
+    Additionally, duplicates are omitted.
+    Caches the last 16 configurations.
+    """
+    def __init__(self, data: Sequence[MapPermissionTaggedItem[T]]):
+        self._data = data
+
+    def _get_for_permissions(self, permissions_as_set: PermissionsAsSet) -> tuple[T, ...]:
+        if not self._has_minimum_permissions(permissions_as_set):
+            return ()
+        if FullAccessTo.RESTRICTIONS in permissions_as_set:
+            return tuple({item.value: None for item in self._data})
+        return tuple({item.value: None for item in self._data if item.access_restrictions.can_see(permissions_as_set)})
+
+    # todo: this is duplicate code
+    @cached_property
+    def _relevant_permissions(self) -> PermissionsAsSet:
+        return reduce(operator.or_, (item.access_restrictions.relevant_permissions for item in self._data),
+                      frozenset((FullAccessTo.RESTRICTIONS, )))
+
+    @cached_property
+    def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
+        common_permissions: PermissionsAsSet = reduce(  # noqa
+            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data), frozenset()
+        )
+        if not common_permissions:
+            return ()
+        return (
+            frozenset((FullAccessTo.RESTRICTIONS,)),
+            common_permissions,
+        )
+
+    def __repr__(self):
+        return f"MapPermissionGuardedTaggedSet({self._data})"
 
 
 class BaseMapPermissionGuardedValue[T](BaseMapPermissionGuarded[T], ABC):

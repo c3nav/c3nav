@@ -118,7 +118,7 @@ def recalculate_locationtag_effective_inherited_values():
             AccessRestrictionsOneID.build(tag.access_restriction_id)
         )
 
-        for i, ancestor_id in enumerate(range(len(values_so_far.ancestor_path))):
+        for i, ancestor_id in enumerate(values_so_far.ancestor_path):
             ancestor_paths_for_tags[tag_id][values_so_far.ancestor_path[i:]] = MapPermissionTaggedItem(
                 values_so_far.ancestor_path[i:],
                 access_restrictions=AccessRestrictionsAllIDs.build(values_so_far.access_restriction_path[i:]),
@@ -168,10 +168,10 @@ def recalculate_locationtag_effective_inherited_values():
             for target in targets:
                 result_for_targets.get(target.pk, deque()).append(MapPermissionTaggedItem(tag_id, access_restrictions))
 
-        for child in tag.children.all():
+        for child in reversed(tag.children.all()):
             if child.pk in tags_so_far:
                 raise CircularHierarchyError
-            next_tags.append((child.pk, tags_so_far | {child.pk}, values_so_far))
+            next_tags.appendleft((child.pk, tags_so_far | {child.pk}, values_so_far))
 
     if not_done_tags:
         raise CircularHierarchyError
@@ -188,9 +188,9 @@ def recalculate_locationtag_effective_inherited_values():
                 colors={theme_id: list(colors) for theme_id, colors in (values.colors or {}).items()},
 
                 ancestor_paths=list(ancestor_paths_for_tags[tag_id].values()),
-                ancestors=_ancestry_paths_to_ids(ancestor_paths_for_tags[tag_id].values(), itemgetter(0)),
+                ancestors=_ancestry_paths_to_ids(list(ancestor_paths_for_tags[tag_id].values()), itemgetter(0)),
                 descendant_paths=list(descendant_paths_for_tags[tag_id].values()),
-                descendants=_ancestry_paths_to_ids(descendant_paths_for_tags[tag_id].values(), itemgetter(-1)),
+                descendants=_ancestry_paths_to_ids(list(descendant_paths_for_tags[tag_id].values()), itemgetter(-1)),
             ) for tag_id, values in result_for_tags.items()
         ],
         update_conflicts=True,
