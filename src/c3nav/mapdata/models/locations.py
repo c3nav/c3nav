@@ -35,7 +35,7 @@ from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFi
 from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
     MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
     MapPermissionMaskedTaggedValue, MapPermissionGuardedTaggedSequence, AccessRestrictionsEval, NoAccessRestrictions, \
-    AccessRestrictionsAllIDs, AccessRestrictionsOr
+    AccessRestrictionsAllIDs, AccessRestrictionsOr, MapPermissionGuardedTaggedUniqueSequence
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
@@ -249,6 +249,14 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     def assert_inherited(self):
         if not self.has_inherited:
             raise TypeError("inherited wasn't queried")
+
+    @cached_property
+    def ancestors(self) -> MapPermissionGuardedTaggedSequence[int]:
+        return MapPermissionGuardedTaggedUniqueSequence(self.inherited.ancestors)
+
+    @cached_property
+    def descendants(self) -> MapPermissionGuardedTaggedSequence[int]:
+        return MapPermissionGuardedTaggedUniqueSequence(self.inherited.descendants)
 
     @cached_property
     def ancestor_paths(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
