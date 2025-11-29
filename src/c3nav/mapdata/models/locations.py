@@ -5,7 +5,7 @@ from datetime import timedelta
 from decimal import Decimal
 from functools import cached_property
 from itertools import chain, batched
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Sequence
 
 from django.conf import settings
 from django.core.cache import cache
@@ -105,6 +105,8 @@ CachedGeometriesByLevel: TypeAlias = dict[int, list[MaskedLocationTagGeometry | 
 CachedLocationPoints: TypeAlias = list[list[MapPermissionTaggedItem[DjangoCompatibleLocationPoint]]]
 
 CachedIDs: TypeAlias = list[MapPermissionTaggedItem[int]]
+# todo: turn this into tuple[int, ...] but django needs to be able to serialize it
+CachedAncestryPaths: TypeAlias = list[MapPermissionTaggedItem[list[int]]]
 
 
 class LocationTagAdjacency(models.Model):
@@ -238,6 +240,25 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             key: getattr(self, key) for key in ("priority", "color") if key not in deferred_fields
         }
 
+    @property
+    def has_inherited(self):
+        return "inherited" in self._state.fields_cache
+
+    def assert_inherited(self):
+        if not self.has_inherited:
+            raise TypeError("inherited wasn't queried")
+
+    @cached_property
+    def ancestor_paths(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
+        self.assert_inherited()
+        print(self.inherited.ancestor_paths)
+        return MapPermissionGuardedTaggedSequence(self.inherited.ancestor_paths)
+
+    @cached_property
+    def descendant_paths(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
+        self.assert_inherited()
+        return MapPermissionGuardedTaggedSequence(self.inherited.descendant_paths)
+
     @cached_property
     def effective_access_restrictions(self) -> AccessRestrictionsEval:
         if "effective_access_restriction_sets" not in getattr(self, '_prefetched_objects_cache', ()):
@@ -349,34 +370,28 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     def dynamic(self) -> int:
         return len(self.cached_all_position_secrets)
 
-    @property
-    def _has_inherited(self):
-        with suppress(AttributeError):
-            self.inherited
-        return "inherited" in self._state.fields_cache
-
     @cached_property
     def effective_icon(self) -> str | None:
-        if not self._has_inherited:  # todo: test that no inherited still works
+        if not self.has_inherited:  # todo: test that no inherited still works
             return self.icon
         return MapPermissionGuardedTaggedValue(self.inherited.icon, default=None).get()
 
     @cached_property
     def effective_label_settings_id(self) -> int | None:
-        if not self._has_inherited:
+        if not self.has_inherited:
             return self.label_settings_id
         return MapPermissionGuardedTaggedValue(self.inherited.label_settings_id, default=self.label_settings_id).get()
 
     @property
     def effective_external_url_labels(self) -> dict:
-        if not self._has_inherited:
+        if not self.has_inherited:
             return self.external_url_label
         return MapPermissionGuardedTaggedValue(self.inherited.external_url_label, default=self.external_url_labels).get()
 
     @cached_property
     def effective_external_url_label(self) -> str:
         # todo: remove duplicate code here
-        if not self._has_inherited:
+        if not self.has_inherited:
             return lazy_get_i18n_value(self.external_url_label,
                                        fallback_language=settings.LANGUAGE_CODE, fallback_any=True, fallback_value="")
         return lazy_get_i18n_value(
@@ -386,7 +401,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         )
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        if not self._has_inherited:
+        if not self.has_inherited:
             return None
         color = MapPermissionGuardedTaggedValue(
             self.inherited.colors.get(color_manager.theme_id, {}), default=None
@@ -402,14 +417,14 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def describing_titles(self) -> dict:
-        if not self._has_inherited:
+        if not self.has_inherited:
             return {}
         return MapPermissionGuardedTaggedValue(self.inherited.describing_title, default={}).get()
 
     @cached_property
     def describing_title(self) -> str:
         # todo: remove duplicate code here
-        if not self._has_inherited:
+        if not self.has_inherited:
             return ""
         return lazy_get_i18n_value(
             lazy(MapPermissionGuardedTaggedValue(self.inherited.describing_title, default={}).get, dict)(),
@@ -679,6 +694,11 @@ class LocationTagInheritedValues(models.Model):
     external_url_label: CachedTitles = SchemaField(schema=CachedTitles, default=list)
     describing_title: CachedTitles = SchemaField(schema=CachedTitles, default=list)
     colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
+
+    ancestor: CachedIDs = SchemaField(schema=CachedIDs, default=list)
+    ancestor_paths: CachedAncestryPaths = SchemaField(schema=CachedAncestryPaths, default=list)
+    descendant: CachedIDs = SchemaField(schema=CachedIDs, default=list)
+    descendant_paths: CachedAncestryPaths = SchemaField(schema=CachedAncestryPaths, default=list)
 
     class Meta:
         verbose_name = _('Location Tag Inherited Values')
