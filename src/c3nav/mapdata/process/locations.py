@@ -1,7 +1,5 @@
-import operator
 from collections import deque, defaultdict
 from dataclasses import dataclass, replace as dataclass_replace
-from functools import reduce
 from itertools import chain
 from operator import itemgetter
 from typing import Sequence, NamedTuple, Self, Callable
@@ -15,8 +13,8 @@ from c3nav.mapdata.models.geometry.base import CachedBounds
 from c3nav.mapdata.models.locations import FillAndBorderColor, LocationTag, StaticLocationTagTarget, \
     CachedBoundsByLevel, CachedGeometriesByLevel, MaskedLocationTagGeometry, LocationTagInheritedValues, \
     CircularHierarchyError, LocationTagEffectiveAccessRestrictionSet, LocationTagTargetInheritedValues
-from c3nav.mapdata.permissions import MapPermissionTaggedItem, AccessRestrictionsAllIDs, PermissionsAsSet, \
-    AccessRestrictionsEval, NoAccessRestrictions, AccessRestrictionsOneID, InifiniteAccessRestrictions
+from c3nav.mapdata.permissions import MapPermissionTaggedItem, AccessRestrictionsAllIDs, AccessRestrictionsEval, \
+    NoAccessRestrictions, AccessRestrictionsOneID, InifiniteAccessRestrictions
 
 
 @dataclass
