@@ -94,6 +94,12 @@ class AccessRestrictionsEval(ABC):
 
 
 class NoAccessRestrictionsCls(AccessRestrictionsEval):
+    def __new__(cls):
+        try:
+            return NoAccessRestrictions
+        except NameError:
+            return super().__new__(cls)
+
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
         return True
 
