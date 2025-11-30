@@ -325,7 +325,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         result = {
             'id': self.pk,
             'display': [
-                (_('Type'), str(self.__class__._meta.verbose_name)),
+                (_('Type'), _('Location Tag')),
                 (_('ID'), str(self.pk)),
                 (_('Slug'), self.slug),
                 *(
@@ -364,6 +364,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @cached_property
     def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[dict]:
+        return []
         # todo: rename? … make this work / fix this – probably by delivering all locations by default
         return MapPermissionGuardedTaggedSequence([])
         #
@@ -382,7 +383,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @cached_property
     def effective_icon(self) -> str | None:
-        if not self.has_inherited:  # todo: test that no inherited still works
+        if not self.has_inherited:
             return self.icon
         return MapPermissionGuardedTaggedValue(self.inherited.icon, default=None).get()
 
