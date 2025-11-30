@@ -193,7 +193,6 @@ class AccessRestrictionsAllIDs(AccessRestrictionsEval):
             if self.access_restrictions <= other.access_restrictions:
                 return self
             return AccessRestrictionsOr(children=frozenset((self, other)))
-
         return other | self
 
     def __and__[T: AccessRestrictionsEval](self, other: T) -> T:
@@ -295,9 +294,11 @@ class AccessRestrictionsOr(AccessRestrictionsEval):
 
     def __and__(self, other: AccessRestrictionsEval) -> AccessRestrictionsEval:
         if isinstance(other, AccessRestrictionsAllIDs):
-            new_children = frozenset((child | other) for child in self.children)
+            new_children = frozenset((child & other) for child in self.children)
             if len(new_children) == 1:
                 return next(iter(new_children))
+            return AccessRestrictionsOr(new_children)
+
         if isinstance(other, AccessRestrictionsOr):
             return AccessRestrictionsAnd(children=frozenset((self, other)))
 
@@ -322,7 +323,7 @@ class AccessRestrictionsOr(AccessRestrictionsEval):
 
     @property
     def minimum_permissions(self) -> frozenset[int]:
-        return reduce(operator.and_, (child.minimum_permissions for child in self.children), frozenset())
+        return reduce(operator.and_, (child.minimum_permissions for child in self.children))
 
     def simplify(self) -> Union[Self, "AccessRestrictionsAnd"]:
         minimum_permissions = self.minimum_permissions
@@ -369,8 +370,10 @@ class AccessRestrictionsAnd(AccessRestrictionsEval):
     children: frozenset[AccessRestrictionsOr] = frozenset()
 
     def can_see(self, permissions_as_set: PermissionsAsSet) -> bool:
-        return True if self.ids is None else (self.ids.can_see(permissions_as_set)
-                                              and all(child.can_see(permissions_as_set) for child in self.children))
+        return (
+            (True if self.ids is None else self.ids.can_see(permissions_as_set))
+            and all(child.can_see(permissions_as_set) for child in self.children)
+        )
 
     # todo: add overload stubs
 
@@ -448,7 +451,7 @@ class AccessRestrictionsAnd(AccessRestrictionsEval):
         for child in self.children:
             new_child = child.simplify()
             if isinstance(new_child, AccessRestrictionsAnd):
-                new_ids |= new_child.ids
+                new_ids &= new_child.ids
                 new_children.extend(new_child.children)
             else:
                 new_children.append(new_child)
@@ -866,8 +869,8 @@ class MapPermissionGuardedMapping[KT, VT: AccessRestrictionLogicMixin](Mapping[K
         """
         common_permissions: PermissionsAsSet = reduce(  # noqa
             operator.and_, (item.effective_access_restrictions.minimum_permissions  # noqa
-                            for item in self._data.values()), frozenset()
-        )
+                            for item in self._data.values())
+        ) if self._data else frozenset()
         if not common_permissions:
             return ()
         return (
@@ -976,9 +979,8 @@ class MapPermissionGuardedSequence[T: AccessRestrictionLogicMixin](BaseMapPermis
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(
-            operator.and_, (item.effective_access_restrictions.minimum_permissions
-                            for item in self._data), frozenset()
-        )
+            operator.and_, (item.effective_access_restrictions.minimum_permissions for item in self._data)
+        ) if self._data else frozenset()
         if not common_permissions:
             return ()
         return (
@@ -1080,8 +1082,8 @@ class MapPermissionGuardedTaggedSequence[T](BaseMapPermissionGuardedSequence[T])
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data), frozenset()
-        )
+            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data),
+        ) if self._data else frozenset()
         if not common_permissions:
             return ()
         return (
@@ -1119,8 +1121,8 @@ class MapPermissionGuardedTaggedUniqueSequence[T](BaseMapPermissionGuardedSequen
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data), frozenset()
-        )
+            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data),
+        ) if self._data else frozenset()
         if not common_permissions:
             return ()
         return (
@@ -1170,8 +1172,8 @@ class MapPermissionGuardedTaggedValue[T, DT](BaseMapPermissionGuardedValue[T | D
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data), frozenset()
-        )
+            operator.and_, (item.access_restrictions.minimum_permissions for item in self._data)
+        ) if self._data else frozenset()
         if not common_permissions:
             return ()
         return (
@@ -1268,8 +1270,8 @@ class MapPermissionGuardedTaggedValueSequence[T](BaseMapPermissionGuardedSequenc
     @cached_property
     def _minimum_permissions(self) -> tuple[PermissionsAsSet, ...]:
         common_permissions: PermissionsAsSet = reduce(  # noqa
-            operator.and_, (item._relevant_permissions for item in self._data), frozenset()
-        )
+            operator.and_, (item._minimum_permissions for item in self._data)
+        ) if self._data else frozenset()
         if not common_permissions:
             return ()
         return (
