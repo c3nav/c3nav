@@ -18,10 +18,11 @@ class Command(BaseCommand):
         from django.contrib.auth import get_user_model
 
         from c3nav.control.models import UserPermissions
-        from c3nav.editor.models import ChangeSet
+        from c3nav.editor.models import ChangeSet, ChangeSetUpdate
         from c3nav.mapdata.models import MapUpdate
         from c3nav.mapdata.models.access import AccessPermissionToken
         from c3nav.mapdata.models.geometry.space import BeaconMeasurement
+        from c3nav.mapdata.models.report import ReportUpdate
         from c3nav.site.models import Announcement
 
         logger = logging.getLogger('c3nav')
@@ -39,6 +40,11 @@ class Command(BaseCommand):
 
             UserPermissions.objects.filter(user__is_superuser=False).delete()
             logger.info('Deleted all UserPermissions not attached to a super user')
+
+            MapUpdate.objects.filter(user__is_superuser=False).update(user=None)
+            ChangeSet.objects.filter(assigned_to__is_superuser=False).update(assigned_to=None)
+            ChangeSetUpdate.objects.filter(assigned_to__is_superuser=False).update(assigned_to=None)
+            ReportUpdate.objects.filter(author__is_superuser=False).update(author=None)
 
             if options['beacon_measurements']:
                 BeaconMeasurement.objects.all().delete()
