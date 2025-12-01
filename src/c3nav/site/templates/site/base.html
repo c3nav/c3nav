@@ -64,60 +64,57 @@
     {% endif %}
     {% if header_logo_anim %}
     <script async defer>
-        document.addEventListener("DOMContentLoaded", (event) => {
-            // Do not annoy critters with animations when they specificially requested that no
-            const _motionReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-            if (_motionReduced && _motionReduced.matches)
-                return;
+        document.addEventListener('readystatechange', event => { 
+            // When all resources have been loaded 
+            if (event.target.readyState === "complete") {
+                // Do not annoy critters with animations when they specificially requested that no
+                const _motionReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+                if (_motionReduced && _motionReduced.matches)
+                    return;
 
-            const _logo_canvas = document.getElementById("c3nav-logo-canvas");
-            const _logo_link = document.getElementById("header-logo-link");
+                const _logo_canvas = document.getElementById("c3nav-logo-canvas");
+                const _logo_link = document.getElementById("header-logo-link");
 
-            // Since stylesheets load after this script, we need to wait for the canvas to have it's final size
-            const _logo_canvas_observer = new ResizeObserver(() => {
-                _logo_canvas.width = _logo_canvas.clientWidth;
-                _logo_canvas.height = _logo_canvas.clientHeight;
-            });
-            _logo_canvas_observer.observe(_logo_canvas);
+                // Create worker thread for logo
+                const _logo_worker = new Worker("{% static header_logo_anim %}");
+                var _logo_offscreen = null;
 
-            // Create worker thread for logo
-            const _logo_worker = new Worker("{% static header_logo_anim %}");
-            var _logo_offscreen = null;
+                _logo_link.onmouseover = function(){
+                    _logo_link.style.visibility = 'hidden';
+                    _logo_canvas.style.visibility = 'visible';
+                    _logo_canvas.style.zIndex = '1';
+                    
+                    if (!_logo_offscreen) {
+                        _logo_canvas.width = _logo_canvas.clientWidth * window.devicePixelRatio;
+                        _logo_canvas.height = _logo_canvas.clientHeight * window.devicePixelRatio;
+                        
+                        _logo_offscreen = _logo_canvas.transferControlToOffscreen();
 
-            _logo_link.onmouseover = function(){
-                _logo_link.style.visibility = 'hidden';
-                _logo_canvas.style.visibility = 'visible';
-                _logo_canvas.style.zIndex = '1';
-                
-                if (!_logo_offscreen) {
-                    // This is final now, we can no longer change sizes anyway
-                    _logo_canvas_observer.disconnect();
-                    _logo_offscreen = _logo_canvas.transferControlToOffscreen();
+                        // Send the offscreen logo canvas to the worker
+                        _logo_worker.postMessage({ canvas: _logo_offscreen, dpr: window.devicePixelRatio }, [_logo_offscreen]);
+                    }
+                    // Instruct worker to resume animation
+                    _logo_worker.postMessage({ pause: false });
 
-                    // Send the offscreen logo canvas to the worker
-                    _logo_worker.postMessage({ canvas: _logo_offscreen }, [_logo_offscreen]);
-                }
-                // Instruct worker to resume animation
-                _logo_worker.postMessage({ pause: false });
+                    // We have to fetch it at runtime since the logo link changes dynamically
+                    const _logo_href = _logo_link.getAttribute('href');
+                    _logo_canvas.style.cursor = (_logo_href ? 'pointer' : 'default');
+                    
+                    if (_logo_href)
+                        _logo_canvas.onclick = function() { window.open(_logo_href, '_self'); _logo_offscreen = null; };
+                };
 
-                // We have to fetch it at runtime since the logo link changes dynamically
-                const _logo_href = _logo_link.getAttribute('href');
-                _logo_canvas.style.cursor = (_logo_href ? 'pointer' : 'default');
-                
-                if (_logo_href)
-                    _logo_canvas.onclick = function() { window.open(_logo_href, '_self'); _logo_offscreen = null; };
-            };
+                _logo_canvas.onmouseout = function(){
+                    _logo_link.style.visibility = 'visible';
+                    _logo_canvas.style.visibility = 'hidden';
+                    _logo_canvas.style.zIndex = '-1';
 
-            _logo_canvas.onmouseout = function(){
-                _logo_link.style.visibility = 'visible';
-                _logo_canvas.style.visibility = 'hidden';
-                _logo_canvas.style.zIndex = '-1';
+                    // Instruct worker to pause animation
+                    _logo_worker.postMessage({ pause: true });
 
-                // Instruct worker to pause animation
-                _logo_worker.postMessage({ pause: true });
-
-                _logo_canvas.onclick = null;
-            }; 
+                    _logo_canvas.onclick = null;
+                };
+            }
         });
     </script>
     {% endif %}
