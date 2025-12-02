@@ -250,8 +250,10 @@ def legend_for_theme(request, theme_id: int):
         manager = ColorManager.for_theme(theme_id or None)
     except Theme.DoesNotExist:
         raise API404()
-    # todo: fix order here
-    legend_tags = LocationTag.objects.filter(in_legend=True)  #.order_by("effective_depth_first_pre_order")
+    legend_tags = sorted([
+        tag for tag in LocationTag.objects.filter(in_legend=True)
+        if tag.descendants or tag.cached_all_static_targets
+    ], key=lambda tag: tag.get_color_order(manager))
     obstaclegroups = ObstacleGroup.objects.filter(
         in_legend=True,
         pk__in=set(Obstacle.objects.filter(group__isnull=False).values_list('group', flat=True)),
@@ -261,8 +263,7 @@ def legend_for_theme(request, theme_id: int):
         groups=[item for item in (LegendItemSchema(title=tag.title,
                                                    fill=manager.location_tag_fill_color(tag),
                                                    border=manager.location_border_color(tag))
-                                  for tag in legend_tags
-                                  if tag.descendants or tag.cached_all_static_targets)
+                                  for tag in legend_tags)
                 if item.fill or item.border],
         obstacles=[item for item in (LegendItemSchema(title=group.title,
                                                       fill=manager.obstaclegroup_fill_color(group),

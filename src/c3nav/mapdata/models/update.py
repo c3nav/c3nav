@@ -259,4 +259,5 @@ class MapUpdate(models.Model):
                 )
             else:
                 from c3nav.mapdata.updatejobs import run_eager_mapupdate_jobs
+                # todo: eager mapupdate jobs need to run always, even in editor
                 run_eager_mapupdate_jobs(self)
