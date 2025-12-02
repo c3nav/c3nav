@@ -124,10 +124,6 @@ class Migration(migrations.Migration):
             name='specificlocation',
             options={'default_related_name': 'specific_locations', 'verbose_name': 'Specific Location', 'verbose_name_plural': 'Specific Locations'},
         ),
-        migrations.RemoveField(
-            model_name='specificlocation',
-            name='effective_order',
-        ),
         migrations.AddField(
             model_name='specificlocation',
             name='include_in_random_location',
