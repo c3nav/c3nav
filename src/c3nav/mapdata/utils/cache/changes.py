@@ -1,5 +1,5 @@
 import os
-from typing import Iterable
+from typing import Iterable, Self
 
 from shapely.ops import unary_union
 
@@ -20,6 +20,11 @@ class GeometryChangeTracker:
     def level_deleted(self, level_id):
         self._deleted_levels.add(level_id)
         self._unary_unions.pop(level_id, None)
+
+    def overwrite(self, other: Self):
+        self._geometries_by_level = other._geometries_by_level
+        self._deleted_levels = other._deleted_levels
+        self._unary_unions = other._unary_unions
 
     def reset(self):
         self._geometries_by_level = {}

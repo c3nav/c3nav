@@ -13,7 +13,6 @@ from django.utils.translation import gettext_lazy as _
 from c3nav.control.forms import MapUpdateFilterForm, MapUpdateForm
 from c3nav.control.views.base import control_panel_view
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.models.update import MapUpdateJob
 from c3nav.mapdata.tasks import schedule_available_mapupdate_jobs
 
 

@@ -30,9 +30,8 @@ class LocationInheritanceTests(TransactionTestCase):
         ))
         locations[0].children.add(locations[1])
         locations[1].children.add(locations[2])
-        locations[2].children.add(locations[0])
         with self.assertRaises(CircularHierarchyError):
-            self._recalculate()
+            locations[2].children.add(locations[0])
 
     def test_single_tag(self):
         tag = LocationTag.objects.create(

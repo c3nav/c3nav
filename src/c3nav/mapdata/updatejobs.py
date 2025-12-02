@@ -260,10 +260,21 @@ def schedule_available_mapupdate_jobs_as_tasks(dependency: str = None):
         run_mapupdate_job.delay(job_type=job_type)
 
 
-# todo: make this a transaction?? is it already? rename?
 @register_mapupdate_job("Location tag inheritance", eager=True)
 def recalculate_locationtag_effective_inherited_values(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    # todo: changing an update afterwards? not great…
+    last_update = mapupdates[-1]
+    old_changed_geometries = last_update.get_changed_geometries()
+    if old_changed_geometries is None:
+        changed_geometries.reset()
+    else:
+        changed_geometries.overwrite(old_changed_geometries)
     process.recalculate_locationtag_effective_inherited_values()
+    if not changed_geometries.is_empty:
+        if not last_update.geometries_changed:
+            MapUpdate.objects.filter(pk=last_update.pk).update(geometries_changed=True)
+        last_update.set_changed_geometries(changed_geometries)
+        changed_geometries.reset()
     return True
 
 

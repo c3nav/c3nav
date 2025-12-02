@@ -182,7 +182,7 @@ class AccessRestrictionQueryset(TestCase):
     Flatten
     """
     def test_flatten_none(self):
-        self.assertIs(NoAccessRestrictions.flatten(), frozenset())
+        self.assertEqual(NoAccessRestrictions.flatten(), frozenset())
 
     def test_flatten_all_ids(self):
         value = AccessRestrictionsAllIDs.build((1, 3, 2))
