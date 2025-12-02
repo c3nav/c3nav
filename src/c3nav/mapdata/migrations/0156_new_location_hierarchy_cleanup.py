@@ -158,6 +158,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('tags', django_pydantic_field.fields.PydanticSchemaField(config=None, default=list, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=django_pydantic_field.compat.django.GenericContainer(list, (django_pydantic_field.compat.django.GenericContainer(c3nav.mapdata.permissions.MapPermissionTaggedItem, (int,)),)))),
+                ('colors', django_pydantic_field.fields.PydanticSchemaField(config=None, default=dict, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=django_pydantic_field.compat.django.GenericContainer(dict, (int, django_pydantic_field.compat.django.GenericContainer(list, (django_pydantic_field.compat.django.GenericContainer(c3nav.mapdata.permissions.MapPermissionTaggedItem, (c3nav.mapdata.models.locations.FillAndBorderColor,)),)))))),
                 ('area', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='inherited', to='mapdata.area')),
                 ('level', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='inherited', to='mapdata.level')),
                 ('poi', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='inherited', to='mapdata.poi')),

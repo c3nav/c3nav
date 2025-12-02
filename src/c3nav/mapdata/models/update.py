@@ -207,6 +207,9 @@ class MapUpdate(models.Model):
         except FileNotFoundError:
             return None
 
+    def set_changed_geometries(self, value: GeometryChangeTracker):
+        pickle.dump(value, open(self._changed_geometries_filename(), 'wb'))
+
     @cached_property
     def changed_geometries_summary(self):
         if self.pk is None:
@@ -247,7 +250,7 @@ class MapUpdate(models.Model):
             os.mkdir(os.path.dirname(self._changed_geometries_filename()))
 
         if self.geometries_changed:
-            pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
+            self.set_changed_geometries(changed_geometries)
 
         if new:
             transaction.on_commit(
