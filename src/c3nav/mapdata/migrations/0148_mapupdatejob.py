@@ -35,7 +35,7 @@ def fill_mapupdate_processed(apps, model_name):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0147_cache_effective_order_effective_icon'),
+        ('mapdata', '0146_m2m_location_target'),
     ]
 
     operations = [
