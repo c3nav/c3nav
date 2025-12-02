@@ -93,10 +93,13 @@ def recalculate_locationtag_effective_inherited_values():
         if tag.no_parents:
             next_tags.append((tag.pk, frozenset({tag.pk}), InheritedValues()))
 
+    color_order = 0
+
     result_for_tags: dict[int, MultipleInheritedValues] = {}
     restrictions_for_tags: dict[int, AccessRestrictionsEval] = defaultdict(lambda: InifiniteAccessRestrictions)
     ancestor_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
     descendant_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
+    color_order_for_tags: dict[int, int | None] = {}
     public_tags: set[int] = set()
     not_done_tags = set(tags_by_id.keys())
 
@@ -132,6 +135,9 @@ def recalculate_locationtag_effective_inherited_values():
         elif tag_id not in public_tags:
             restrictions_for_tags[tag_id] |= access_restrictions
 
+        has_colors = tag.color or tag.theme_colors.all()
+        color_order_for_tags.setdefault(tag_id, color_order)
+
         values_so_far = dataclass_replace(
             values_so_far,
             ancestor_path=ancestor_path,
@@ -140,12 +146,14 @@ def recalculate_locationtag_effective_inherited_values():
             external_url_label=tag.external_url_labels or values_so_far.external_url_label,
             colors={
                 **(values_so_far.colors or {}),
-                **{
-                    **{theme_color.theme_id: FillAndBorderColor(fill=theme_color.fill_color,
-                                                                 border=theme_color.border_color)
+                **({
+                    **{theme_color.theme_id: FillAndBorderColor(order=color_order,
+                                                                fill=theme_color.fill_color,
+                                                                border=theme_color.border_color)
                        for theme_color in tag.theme_colors.all()},
-                    **({0: FillAndBorderColor(fill=tag.color, border=None)} if tag.color else {}),
-                }
+                    **({0: FillAndBorderColor(order=color_order, fill=tag.color, border=None)}
+                       if tag.color else {}),
+                } if has_colors else {})
             } or None,
             access_restrictions=access_restrictions,
             access_restriction_path=values_so_far.access_restriction_path + (tag.access_restriction_id, )
