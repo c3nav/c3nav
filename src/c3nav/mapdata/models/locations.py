@@ -80,6 +80,7 @@ LocationTarget: TypeAlias = Union["DynamicLocationTagTarget", "StaticLocationTag
 
 @dataclass(frozen=True)
 class FillAndBorderColor:
+    order: int
     fill: str | None
     border: str | None
 
@@ -420,11 +421,17 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         return None if color is None else color.fill
 
     def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
-        # todo: where is this used? get rid of it!
-        color = self.get_color(color_manager)
-        if color is None:
+        # todo: merge this with get_color() and get_color_order() eventually
+        if not self.has_inherited:
             return None
-        return 0, color
+        color = MapPermissionGuardedTaggedValue(
+            self.inherited.colors.get(color_manager.theme_id, {}), default=None
+        ).get()
+        return None if color is None else (color.order, color.fill)
+
+    def get_color_order(self, color_manager: 'ThemeColorManager') -> int:
+        color = self.get_color_sorted(color_manager)
+        return -1 if color is None else color[0]
 
     @property
     def describing_titles(self) -> dict:

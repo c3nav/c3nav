@@ -1,6 +1,5 @@
 import logging
 from decimal import Decimal
-from functools import reduce
 from itertools import combinations
 from typing import Sequence, TypeAlias, NamedTuple
 
