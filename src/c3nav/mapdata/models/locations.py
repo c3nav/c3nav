@@ -812,12 +812,12 @@ class LocationTagTargetMixin(models.Model):
         """
         if not self._has_inherited:
             return MapPermissionGuardedSequence(())
-        # todo: but this isn't sorted… do we want it to be?
         if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
             raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
         if not self._has_inherited:
             raise ValueError(f'Accessing sorted_tags on {self} despite no select_related for inherited.')
 
+        # we're getting all the tags, then getting the stuff from inherited to sort them
         tags_by_id = {tag.pk: tag for tag in self.tags.all()}
         return MapPermissionGuardedSequence(
             tuple(tag for tag in (
