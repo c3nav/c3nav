@@ -2,7 +2,7 @@ from collections import deque, defaultdict
 from dataclasses import dataclass, replace as dataclass_replace
 from itertools import chain
 from operator import itemgetter
-from typing import Sequence, NamedTuple, Self, Callable
+from typing import Sequence, NamedTuple, Self, Callable, Union
 
 from django.conf import settings
 from django.db.models.expressions import F, When, Case, Value, Exists, OuterRef
@@ -30,7 +30,7 @@ class InheritedValues:
     access_restrictions: AccessRestrictionsEval = NoAccessRestrictions
 
 
-class MultipleInheritedValues(NamedTuple):
+class MultipleTagInheritedValues(NamedTuple):
     icon: tuple[MapPermissionTaggedItem[str], ...] = ()
     label_settings: tuple[MapPermissionTaggedItem[int], ...] = ()
     external_url_label: tuple[MapPermissionTaggedItem[dict], ...] = ()
@@ -50,7 +50,7 @@ class MultipleInheritedValues(NamedTuple):
     def append(self, item: InheritedValues) -> Self:
         self_colors = (self.colors or {})
         other_colors = (item.colors or {})
-        return MultipleInheritedValues(
+        return MultipleTagInheritedValues(
             icon=self._append(self.icon, item.icon, item.access_restrictions),
             label_settings=self._append(self.label_settings, item.label_settings, item.access_restrictions),
             external_url_label=self._append(self.external_url_label, item.external_url_label, item.access_restrictions),
@@ -83,11 +83,7 @@ def recalculate_locationtag_effective_inherited_values():
             "icon", "color", "label_settings_id", "external_url_label", "titles", "can_describe",
     ).order_by("-priority", "pk").prefetch_related(
             Prefetch("children", LocationTag.objects.order_by("-priority", "pk")),
-            Prefetch("levels", Level.objects.only("pk")),
-            Prefetch("spaces", Space.objects.only("pk")),
-            Prefetch("areas", Area.objects.only("pk")),
-            Prefetch("pois", POI.objects.only("pk")),
-            "theme_colors",
+            "levels", "spaces", "areas", "pois", "theme_colors",
     ).annotate(no_parents=~Exists(LocationTag.objects.filter(children=OuterRef("pk")))):
         tags_by_id[tag.pk] = tag
         if tag.no_parents:
@@ -95,7 +91,7 @@ def recalculate_locationtag_effective_inherited_values():
 
     color_order = 0
 
-    result_for_tags: dict[int, MultipleInheritedValues] = {}
+    result_for_tags: dict[int, MultipleTagInheritedValues] = {}
     restrictions_for_tags: dict[int, AccessRestrictionsEval] = defaultdict(lambda: InifiniteAccessRestrictions)
     ancestor_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
     descendant_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
@@ -103,10 +99,8 @@ def recalculate_locationtag_effective_inherited_values():
     public_tags: set[int] = set()
     not_done_tags = set(tags_by_id.keys())
 
-    result_for_levels: dict[int, deque[MapPermissionTaggedItem[int]]] = {}
-    result_for_spaces: dict[int, deque[MapPermissionTaggedItem[int]]] = {}
-    result_for_areas: dict[int, deque[MapPermissionTaggedItem[int]]] = {}
-    result_for_pois: dict[int, deque[MapPermissionTaggedItem[int]]] = {}
+    known_targets: dict[tuple[str, int], Union[Level, Space, Area, POI]] = {}
+    tags_for_targets: dict[tuple[str, int], deque[MapPermissionTaggedItem[int]]] = defaultdict(deque)
 
     while next_tags:
         tag_id, tags_so_far, values_so_far = next_tags.popleft()
@@ -159,7 +153,7 @@ def recalculate_locationtag_effective_inherited_values():
             access_restriction_path=values_so_far.access_restriction_path + (tag.access_restriction_id, )
         )
 
-        result_for_tags[tag_id] = result_for_tags.get(tag_id, MultipleInheritedValues()).append(values_so_far)
+        result_for_tags[tag_id] = result_for_tags.get(tag_id, MultipleTagInheritedValues()).append(values_so_far)
 
         if tag.titles and tag.can_describe:
             values_so_far = dataclass_replace(
@@ -167,12 +161,10 @@ def recalculate_locationtag_effective_inherited_values():
                 describing_title=tag.titles,
             )
 
-        for result_for_targets, targets in ((result_for_levels, tag.levels.all()),
-                                            (result_for_spaces, tag.spaces.all()),
-                                            (result_for_areas, tag.areas.all()),
-                                            (result_for_pois, tag.pois.all())):
-            for target in targets:
-                result_for_targets.get(target.pk, deque()).append(MapPermissionTaggedItem(tag_id, access_restrictions))
+        for target in chain(tag.levels.all(), tag.spaces.all(), tag.areas.all(), tag.pois.all()):
+            key = (target._meta.model_name, target.pk)
+            known_targets[key] = target
+            tags_for_targets[key].append(MapPermissionTaggedItem(tag_id, access_restrictions))
 
         for child in reversed(tag.children.all()):
             if child.pk in tags_so_far:
@@ -213,26 +205,49 @@ def recalculate_locationtag_effective_inherited_values():
         ),
         unique_fields=("tag_id", )
     )
-    LocationTagInheritedValues.objects.exclude(pk__in=(obj.pk for obj in created)).delete()
+    LocationTagInheritedValues.objects.exclude(tag_id__in=result_for_tags.keys()).delete()
 
     # todo: improve this in a similar way
-    created = LocationTagTargetInheritedValues.objects.bulk_create(
-        list(chain.from_iterable(
-            (
+    new_target_inherited_values = []
+    for target_key, tags in tags_for_targets.items():
+        target = known_targets[target_key]
+        tags = list(tags)
+        colors = []
+        for tag_item in tags:
+            for new_color in result_for_tags[tag_item.value]:
+                new_item = MapPermissionTaggedItem(
+                    new_color.value,
+                    access_restrictions=(
+                        tag_item.access_restrictions
+                        | new_color.access_restrictions
+                        | ({target.access_restriction_id} if target.access_restriction_id else {})
+                    ),
+                )
+                if any((color.access_restrictions <= new_item.access_restrictions) for color in colors):
+                    continue
+                colors.append(colors)
+        tags_changed = (tags != target.inherited.tags)
+        colors_changed = (colors != target.inherited.colors)
+        if tags_changed or colors_changed:
+            new_target_inherited_values.append(
                 LocationTagTargetInheritedValues(
-                    **{attr: target_id},
-                    tags=list(tags_for_target)
-                ) for target_id, tags_for_target in result_for_targets.items()
-            ) for result_for_targets, attr in ((result_for_levels, "level"),
-                                               (result_for_spaces, "space"),
-                                               (result_for_areas, "area"),
-                                               (result_for_pois, "poi"))
-        )),
+                    **{f"{key[0]}_id": key[1]},
+                    tags=list(tags),
+                    colors=list(colors),
+                )
+            )
+        if colors_changed:
+            target.register_change(force=True)
+
+    LocationTagTargetInheritedValues.objects.exclude(
+        pk__in=[target.inherited.pk for target in known_targets.values()]
+    ).delete()
+    LocationTagTargetInheritedValues.objects.bulk_create(
+        new_target_inherited_values,
         update_conflicts=True,
         update_fields=("tags",),
-        unique_fields=("level_id", "space_id", "area_id", "poi_id")
+        unique_fields=("level_id", "space_id", "area_id", "poi_id"),
     )
-    LocationTagTargetInheritedValues.objects.exclude(pk__in=(obj.pk for obj in created)).delete()
 
     # todo: improve this as well…?
     existing_restriction_set_id_to_tag = dict(

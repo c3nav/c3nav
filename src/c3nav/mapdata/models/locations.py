@@ -1,4 +1,5 @@
 import string
+from collections import deque, defaultdict
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
@@ -123,6 +124,33 @@ class LocationTagAdjacency(models.Model):
             UniqueConstraint(fields=("parent", "child"), name="unique_location_tag_parent_child"),
             CheckConstraint(check=~Q(parent=F("child")), name="location_tag_parent_cant_be_child"),
         )
+
+    @staticmethod
+    def _check_for_circle(tag_id: int, children_for_parents: dict[int, deque[int]],
+                          so_far: set[int], remaining: set[int]):
+        for child_id in children_for_parents.get(tag_id, ()):
+            if child_id in so_far:
+                raise CircularHierarchyError
+            remaining.discard(child_id)
+            LocationTagAdjacency._check_for_circle(child_id, children_for_parents, so_far | {child_id}, remaining)
+
+    @classmethod
+    def validate_everything(cls):
+        children_for_parents: dict[int, deque[int]] = defaultdict(deque)
+        children_ids: set[int] = set()
+        for parent_id, child_id in LocationTagAdjacency.objects.values_list(
+                "parent_id", "child_id"
+        ):
+            children_ids.add(child_id)
+            children_for_parents[parent_id].append(child_id)
+
+        remaining_tags = children_ids.copy()
+
+        for root_id in (set(children_for_parents) - children_ids):
+            cls._check_for_circle(root_id, children_for_parents, {root_id}, remaining_tags)
+
+        if remaining_tags:
+            raise CircularHierarchyError
 
 
 class LocationTagManager(UseQForPermissionsManager):
@@ -722,13 +750,18 @@ class LocationTagInheritedValues(models.Model):
         verbose_name = _('Location Tag Inherited Values')
         verbose_name_plural = _('Location Tags Inherited Values')
 
+    def __str__(self):
+        return f"LocationTag #{self.tag_id} inherited values"
+
 
 class LocationTagTargetInheritedValues(models.Model):
     level = models.OneToOneField('Level', related_name="inherited", null=True, on_delete=models.CASCADE)
     space = models.OneToOneField('Space', related_name="inherited", null=True, on_delete=models.CASCADE)
     area = models.OneToOneField('Area', related_name="inherited", null=True, on_delete=models.CASCADE)
     poi = models.OneToOneField('POI', related_name="inherited", null=True, on_delete=models.CASCADE)
+
     tags: CachedIDs = SchemaField(schema=CachedIDs, default=list)
+    colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
 
     class Meta:
         verbose_name = _('Location Tag Target Inherited Values')
@@ -743,61 +776,15 @@ class LocationTagTargetInheritedValues(models.Model):
         )
 
 
+@receiver(m2m_changed, sender=LocationTag.parents.through)
+def locationtag_adjacency_changed(sender, instance: LocationTag, pk_set: set[int], action: str, reverse: bool, **kwargs):
+    if action == "post_add":
+        # todo: we can probably do some of this in pre_add or so
+        LocationTagAdjacency.validate_everything()
+
+
 class CircularHierarchyError(IntegrityError):
     pass
-
-
-# todo: check which one of these are still needed
-
-
-def locationtag_parents_removed(instance: LocationTag, pk_set: set[int]):
-    """
-    parents were removed from the location
-    """
-    # get removed adjacencies, this is why we do this before  … todo get rid of this. could we do it after then?
-    #LocationTagRelation.objects.annotate(count=Count("paths")).filter(descendant_id=instance.pk, count=0).delete()
-
-    # notify changed geometries… todo: this should definitely use the descendants thing
-    instance.register_changed_geometries(force=True)
-
-
-def locationtag_children_removed(instance: LocationTag, pk_set: set[int] = None):
-    """
-    children were removed from the location
-    """
-    if pk_set is None:
-        # todo: this is a hack, can be done nicer… todo get rid of this anyways
-        pass #pk_set = set(LocationTagRelation.objects.filter(ancestor_id=instance.pk).values_list("pk", flat=True))
-
-    # todo: ged rid of this… could we do it after then?
-    # LocationTagRelation.objects.annotate(count=Count("paths")).filter(ancestor_id=instance.pk, count=0).delete()
-
-    # notify changed geometries… todo: this should definitely use the descendants thing
-    for obj in LocationTag.objects.filter(pk__in=pk_set):
-        obj.register_changed_geometries(force=True)
-
-
-@receiver(m2m_changed, sender=LocationTag.levels.through)
-@receiver(m2m_changed, sender=LocationTag.spaces.through)
-@receiver(m2m_changed, sender=LocationTag.areas.through)
-@receiver(m2m_changed, sender=LocationTag.pois.through)
-def locationtag_targets_changed(sender, instance, action, reverse, model, pk_set, using, **kwargs):
-    if action not in ('post_add', 'post_remove', 'post_clear'):
-        return
-
-    if not reverse:
-        # the targets of a location tag were changed
-        if action not in ('post_clear',):
-            raise NotImplementedError
-        query = model.objects.filter(pk__in=pk_set)
-        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-        if issubclass(model, SpaceGeometryMixin):
-            query = query.select_related('space')  # todo… ??? needed?
-        for obj in query:
-            obj.register_change(force=True)
-    else:
-        # the location tags of a target were changed
-        instance.register_change(force=True)
 
 
 class LocationTagTargetMixin(models.Model):
@@ -842,16 +829,21 @@ class LocationTagTargetMixin(models.Model):
         raise NotImplementedError
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        try:
-            return next(iter(filter(None, (tag.get_color(color_manager) for tag in self.sorted_tags))))
-        except StopIteration:
+        if not self._has_inherited:
             return None
+        color = MapPermissionGuardedTaggedValue(
+            self.inherited.colors.get(color_manager.theme_id, {}), default=None
+        ).get()
+        return None if color is None else color.fill
 
-    def get_color_sorted(self, color_manager) -> tuple[int, str] | None:
-        try:
-            return next(iter(filter(None, (tag.get_color_sorted(color_manager) for tag in self.sorted_tags))))
-        except StopIteration:
+    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
+        # todo: merge this with get_color() and get_color_order() eventually
+        if not self._has_inherited:
             return None
+        color = MapPermissionGuardedTaggedValue(
+            self.inherited.colors.get(color_manager.theme_id, {}), default=None
+        ).get()
+        return None if color is None else (color.order, color.fill)
 
     def get_location(self, can_describe=False) -> Optional[LocationTag]:
         # todo: do we want to get rid of this?
