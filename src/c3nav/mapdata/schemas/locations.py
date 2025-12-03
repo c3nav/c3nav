@@ -308,6 +308,14 @@ class SingleLocationItemSchema(BaseLocationItemSchema):
     # todo: get dynamic states of children
 
 
+class PositionSchema(SingleLocationItemSchema):
+    short_name: Annotated[Optional[NearbySchema], APIField(
+        title="abbreviation",
+        description="used to display markers",
+        max_length=2,
+    )]
+
+
 class ListedLocationItemSchema(BaseLocationItemSchema):
     locationtype: Literal["tag"]
     id: DjangoID
