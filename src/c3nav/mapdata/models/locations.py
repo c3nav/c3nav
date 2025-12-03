@@ -793,9 +793,21 @@ class CircularHierarchyError(IntegrityError):
     pass
 
 
+class LocationTagTargetManager(UseQForPermissionsManager):
+    def get_queryset(self):
+        if self.model is DynamicLocationTagTarget:
+            return super().get_queryset()
+        return super().get_queryset().select_related("inherited")
+
+    def without_inherited(self):
+        return super().get_queryset()
+
+
 class LocationTagTargetMixin(models.Model):
     class Meta:
         abstract = True
+
+    objects = LocationTagTargetManager()
 
     @property
     def has_inherited(self):
