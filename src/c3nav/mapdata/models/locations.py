@@ -31,7 +31,7 @@ from shapely.geometry import shape
 from c3nav.api.schema import GeometriesByLevelSchema, PolygonSchema, MultiPolygonSchema, GeometriesByLevel, PointSchema
 from c3nav.mapdata.fields import I18nField, lazy_get_i18n_value
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager
+from c3nav.mapdata.models.access import AccessRestrictionMixin, UseQForPermissionsManager, AccessRestriction
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
@@ -279,30 +279,37 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         return True
 
     def assert_inherited(self):
-        if not self.has_inherited:
+        if "inherited" not in self._state.fields_cache:
             raise TypeError("inherited wasn't queried")
 
     @cached_property
     def ancestors(self) -> MapPermissionGuardedTaggedSequence[int]:
-        return MapPermissionGuardedTaggedUniqueSequence(self.inherited.ancestors)
+        self.assert_inherited()
+        return MapPermissionGuardedTaggedUniqueSequence(self.inherited.ancestors if self.has_inherited else ())
 
     @cached_property
     def descendants(self) -> MapPermissionGuardedTaggedSequence[int]:
-        return MapPermissionGuardedTaggedUniqueSequence(self.inherited.descendants)
+        self.assert_inherited()
+        return MapPermissionGuardedTaggedUniqueSequence(self.inherited.descendants if self.has_inherited else ())
 
     @cached_property
     def ancestor_paths(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
         self.assert_inherited()
         print(self.inherited.ancestor_paths)
-        return MapPermissionGuardedTaggedSequence(self.inherited.ancestor_paths)
+        return MapPermissionGuardedTaggedSequence(self.inherited.ancestor_paths if self.has_inherited else ())
 
     @cached_property
     def descendant_paths(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
         self.assert_inherited()
-        return MapPermissionGuardedTaggedSequence(self.inherited.descendant_paths)
+        return MapPermissionGuardedTaggedSequence(self.inherited.descendant_paths if self.has_inherited else ())
 
     @cached_property
     def effective_access_restrictions(self) -> AccessRestrictionsEval:
+        self.assert_inherited()
+        if not self.has_inherited:
+            # not processed yet, so we don't know the access restrictions, so lets use… all!
+            return AccessRestrictionsAllIDs.build(AccessRestriction.get_all())
+
         if "effective_access_restriction_sets" not in getattr(self, '_prefetched_objects_cache', ()):
             raise ValueError("Can't provide LocationTag.effective_access_restrictions "
                              "without .with_restrictions() in Queryset")
@@ -482,8 +489,8 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         return (
             super().q_for_permissions(permissions, prefix) &
             (Q() if permissions.full else (
-                #Q(effective_access_restriction_sets__isnull=True) | (
-                (~Exists(LocationTagEffectiveAccessRestrictionSet.objects.filter(tag=OuterRef("pk")))) | (
+                Q(inherited__isnull=False)
+                & (~Exists(LocationTagEffectiveAccessRestrictionSet.objects.filter(tag=OuterRef("pk")))) | (
                     Q() if not permissions.access_restrictions else
                     Exists(LocationTagEffectiveAccessRestrictionSet.objects.filter(
                         Q(tag=OuterRef("pk")) & ~Exists(
