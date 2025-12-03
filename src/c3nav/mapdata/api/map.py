@@ -106,11 +106,17 @@ class ShowRedirects(BaseSchema):
     )
 
 
+def cache_job_types_by_identifier(*args, identifier: LocationIdentifier, **kwargs) -> tuple[str, ...]:
+    if ":" in identifier:
+        return ("router.rebuild_locator", "mapdata.recalculate_locationtag_final", )
+    return ("mapdata.recalculate_locationtag_final",)
+
+
 @map_api_router.get('/locations/{identifier}/', summary="get location",
                     description="Retrieve location",
                     response={200: SingleLocationItemSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
-@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ))  # todo: custom location changes later
+@api_etag(cache_job_types=cache_job_types_by_identifier)
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
     location = LocationManager.get(identifier)
 
@@ -134,7 +140,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
                     description="Retrieve displayable information about a location",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
-@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ))  # todo: custom location changes later
+@api_etag(cache_job_types=cache_job_types_by_identifier)
 def location_display(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
     if location is None:
@@ -155,7 +161,7 @@ def location_display(request, identifier: LocationIdentifier):
                     description="Get location geometries (if available)",
                     response={200: GeometriesByLevelSchema, **API404.dict(), **auth_responses})
 @api_stats('location_geometries')
-@api_etag(base_mapdata=True, cache_job_types=("mapdata.recalculate_locationtag_final", ))
+@api_etag(base_mapdata=True, cache_job_types=cache_job_types_by_identifier)
 def location_geometries(request, identifier: LocationIdentifier):
     location = LocationManager.get(identifier)
 

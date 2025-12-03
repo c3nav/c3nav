@@ -21,7 +21,8 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 request_cache = VersionedCacheProxy(LocalCacheProxy(maxsize=settings.CACHE_SIZE_API))
 
 
-def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = (),
+def api_etag(permissions=True, quests=False,
+             cache_job_types: tuple[str, ...] | Callable[..., tuple[str, ...]] = (),
              base_etag_func: Optional[Callable] = None, base_mapdata=False,
              etag_add_key: Optional[tuple[str, str]] = None):
     # todo: honestly everything should have to specify job types, cause now groups are different
@@ -43,7 +44,9 @@ def api_etag(permissions=True, quests=False, cache_job_types: tuple[str, ...] = 
         @wraps(func)
         def inner_wrapped_func(request, *args, **kwargs):
             # calculate the ETag
-            last_update = MapUpdate.last_update(*cache_job_types)
+            last_update = MapUpdate.last_update(
+                *(cache_job_types(*args, **kwargs) if callable(cache_job_types) else None)
+            )
 
             # prefix will not be part of the etag, but part of the cache key
             etag_prefix = f"{last_update.cache_key}:" if base_etag_func is None else ""
