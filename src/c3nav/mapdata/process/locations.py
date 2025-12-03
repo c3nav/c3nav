@@ -208,7 +208,7 @@ def recalculate_locationtag_effective_inherited_values():
     LocationTagInheritedValues.objects.exclude(tag_id__in=result_for_tags.keys()).delete()
 
     # todo: improve this in a similar way
-    new_target_inherited_values = []
+    new_target_inherited_values: dict[str, list] = defaultdict(list)
     for target_key, tags in tags_for_targets.items():
         target = known_targets[target_key]
         tags = list(tags)
@@ -228,6 +228,7 @@ def recalculate_locationtag_effective_inherited_values():
                     if any((color.access_restrictions <= new_item.access_restrictions) for color in new_theme_colors):
                         continue
                     new_theme_colors.append(new_item)
+        new_colors = dict(new_colors)
         if target.has_inherited:
             tags_changed = (tags != target.inherited.tags)
             colors_changed = (new_colors != target.inherited.colors)
@@ -235,11 +236,11 @@ def recalculate_locationtag_effective_inherited_values():
             tags_changed = True
             colors_changed = True
         if tags_changed or colors_changed:
-            new_target_inherited_values.append(
+            new_target_inherited_values[target_key[0]].append(
                 LocationTagTargetInheritedValues(
                     **{f"{target_key[0]}_id": target_key[1]},
-                    tags=list(tags),
-                    colors=dict(new_colors),
+                    tags=tags,
+                    colors=new_colors,
                 )
             )
         if colors_changed and not isinstance(target, Level):
@@ -248,12 +249,13 @@ def recalculate_locationtag_effective_inherited_values():
     LocationTagTargetInheritedValues.objects.exclude(
         pk__in=[target.inherited.pk for target in known_targets.values() if target.has_inherited]
     ).delete()
-    LocationTagTargetInheritedValues.objects.bulk_create(
-        new_target_inherited_values,
-        update_conflicts=True,
-        update_fields=("tags", "colors"),
-        unique_fields=("level", "space", "area", "poi"),
-    )
+    for target_type, type_values in new_target_inherited_values.items():
+        LocationTagTargetInheritedValues.objects.bulk_create(
+            type_values,
+            update_conflicts=True,
+            update_fields=("tags", "colors"),
+            unique_fields=(target_type, ),
+        )
 
     # todo: improve this as well…?
     existing_restriction_set_id_to_tag = dict(

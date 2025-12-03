@@ -1,7 +1,7 @@
 from django.test.testcases import TransactionTestCase
 
 from c3nav.mapdata import process
-from c3nav.mapdata.models import AccessRestriction, Theme
+from c3nav.mapdata.models import AccessRestriction, Theme, Level
 from c3nav.mapdata.models.locations import LocationTag, LabelSettings, CircularHierarchyError
 from c3nav.mapdata.permissions import active_map_permissions, ManualMapPermissions
 from c3nav.mapdata.render.theme import ColorManager
@@ -37,9 +37,11 @@ class LocationInheritanceTests(TransactionTestCase):
         tag = LocationTag.objects.create(
             icon="testicon",
         )
+        level = Level.objects.create(short_label="level0", level_index="0", base_altitude=0)
+        tag.levels.add(level)
         self._recalculate()
-        tag.refresh_from_db()
 
+        tag.refresh_from_db()
         self.assertEqual(tag.effective_icon, "testicon")
         self.assertEqual(tag.effective_external_url_labels, {})
         self.assertIsNone(tag.effective_label_settings_id, None)
@@ -48,22 +50,44 @@ class LocationInheritanceTests(TransactionTestCase):
         self.assertEqual(tag.inherited.describing_title, [])
         self.assertEqual(str(tag.describing_title), "")
 
-        tag = LocationTag.objects.create(
+        # todo: this stuff could belong somewhere else
+        level.refresh_from_db()
+        self.assertEqual(level.get_color(ColorManager.for_theme(theme=None)), None)
+        self.assertEqual(level.get_color(ColorManager.for_theme(theme=self.theme)), None)
+        self.assertEqual(list(level.sorted_tag_ids), [tag.pk])
+
+        new_tag = LocationTag.objects.create(
             external_url_labels={"en": "Testlabel"},
             label_settings=self.label_settings,
             color="#ff0000",
         )
-        self.theme.tags.create(tag=tag, fill_color="#00ff00")
+        new_tag.levels.add(level)
+        self.theme.tags.create(tag=new_tag, fill_color="#00ff00")
         self._recalculate()
-        tag.refresh_from_db()
 
-        self.assertIsNone(tag.effective_icon)
-        self.assertEqual(tag.effective_external_url_labels, {"en": "Testlabel"})
-        self.assertEqual(tag.effective_label_settings_id, self.label_settings.pk)
-        self.assertEqual(tag.get_color(ColorManager.for_theme(theme=None)), "#ff0000")
-        self.assertEqual(tag.get_color(ColorManager.for_theme(theme=self.theme)), "#00ff00")
-        self.assertEqual(tag.inherited.describing_title, [])
-        self.assertEqual(str(tag.describing_title), "")
+        new_tag.refresh_from_db()
+        self.assertIsNone(new_tag.effective_icon)
+        self.assertEqual(new_tag.effective_external_url_labels, {"en": "Testlabel"})
+        self.assertEqual(new_tag.effective_label_settings_id, self.label_settings.pk)
+        self.assertEqual(new_tag.get_color(ColorManager.for_theme(theme=None)), "#ff0000")
+        self.assertEqual(new_tag.get_color(ColorManager.for_theme(theme=self.theme)), "#00ff00")
+        self.assertEqual(new_tag.inherited.describing_title, [])
+        self.assertEqual(str(new_tag.describing_title), "")
+
+        # todo: this stuff could belong somewhere else
+        level = Level.objects.get(pk=level.pk)  # need reload, because cached_property
+        self.assertEqual(level.get_color(ColorManager.for_theme(theme=None)), "#ff0000")
+        self.assertEqual(level.get_color(ColorManager.for_theme(theme=self.theme)), "#00ff00")
+        self.assertEqual(list(level.sorted_tag_ids), [tag.pk, new_tag.pk])
+
+        new_tag.levels.remove(level)
+        self._recalculate()
+
+        # todo: this stuff could belong somewhere else
+        level = Level.objects.get(pk=level.pk)  # need reload, because cached_property
+        self.assertEqual(level.get_color(ColorManager.for_theme(theme=None)), None)
+        self.assertEqual(level.get_color(ColorManager.for_theme(theme=self.theme)), None)
+        self.assertEqual(list(level.sorted_tag_ids), [tag.pk])
 
     def test_simple_inheritance(self):
         parent_tag = LocationTag.objects.create(
