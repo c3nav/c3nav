@@ -93,6 +93,7 @@ def recalculate_locationtag_effective_inherited_values():
 
     result_for_tags: dict[int, MultipleTagInheritedValues] = {}
     restrictions_for_tags: dict[int, AccessRestrictionsEval] = defaultdict(lambda: InifiniteAccessRestrictions)
+    target_restrictions_for_tags: dict[int, AccessRestrictionsEval] = {}
     ancestor_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
     descendant_paths_for_tags: dict[int, dict[tuple[int, ...], MapPermissionTaggedItem[tuple[int, ...]]]] = defaultdict(dict)
     color_order_for_tags: dict[int, int | None] = {}
@@ -113,6 +114,19 @@ def recalculate_locationtag_effective_inherited_values():
             AccessRestrictionsOneID.build(tag.access_restriction_id)
         )
 
+        targets = (*tag.levels.all(), *tag.spaces.all(), *tag.areas.all(), *tag.pois.all())
+        target_access_restrictions = target_restrictions_for_tags.get(tag_id, None)
+        if target_access_restrictions is None:
+            if not len(tag.children.all()):
+                target_access_restrictions = AccessRestrictionsAllIDs.build(
+                    target.access_restriction_id for target in targets
+                )
+            else:
+                target_access_restrictions = NoAccessRestrictions
+            target_restrictions_for_tags[tag_id] = target_access_restrictions
+
+        combined_access_restrictions = access_restrictions & target_access_restrictions
+
         for i, ancestor_id in enumerate(values_so_far.ancestor_path):
             ancestor_paths_for_tags[tag_id][values_so_far.ancestor_path[i:]] = MapPermissionTaggedItem(
                 values_so_far.ancestor_path[i:],
@@ -120,7 +134,8 @@ def recalculate_locationtag_effective_inherited_values():
             )
             descendant_paths_for_tags[ancestor_id][ancestor_path[i+1:]] = MapPermissionTaggedItem(
                 ancestor_path[i+1:],
-                access_restrictions=AccessRestrictionsAllIDs.build(values_so_far.access_restriction_path[i+1:]),
+                access_restrictions=(AccessRestrictionsAllIDs.build(values_so_far.access_restriction_path[i+1:])
+                                     & target_access_restrictions),
             )
 
         if not access_restrictions:
@@ -161,7 +176,7 @@ def recalculate_locationtag_effective_inherited_values():
                 describing_title=tag.titles,
             )
 
-        for target in chain(tag.levels.all(), tag.spaces.all(), tag.areas.all(), tag.pois.all()):
+        for target in targets:
             key = (target._meta.model_name, target.pk)
             known_targets[key] = target
             tags_for_targets[key].append(MapPermissionTaggedItem(tag_id, access_restrictions))
@@ -277,7 +292,7 @@ def recalculate_locationtag_effective_inherited_values():
     remaining_set_ids: set[int] = set(existing_restriction_set_id_to_tag.keys())
     sets_to_create: deque[tuple[int, frozenset[int]]] = deque()
     for tag_id, expected_restrictions in restrictions_for_tags.items():
-        for expected_set in expected_restrictions.flatten():
+        for expected_set in (expected_restrictions & target_restrictions_for_tags[tag_id]).flatten():
             set_id = set_by_tag_and_restrictions.get((tag_id, expected_set), None)
             if set_id is None:
                 sets_to_create.append((tag_id, expected_set))
