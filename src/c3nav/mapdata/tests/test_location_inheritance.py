@@ -242,3 +242,26 @@ class LocationInheritanceTests(TransactionTestCase):
             tag = LocationTag.objects.get(pk=tag.pk)  # need to reload, because cached_property
             self.assertEqual(str(tag.describing_title), "Child 2",
                              msg="Describing title without access permission doesn't match")
+
+    def test_location_tag_hidden_if_no_inherited(self):
+        tag = LocationTag.objects.create(titles={"en": "Tag"}, priority=1)
+
+        with active_map_permissions.override(ManualMapPermissions()):
+            self.assertQuerySetEqual(LocationTag.objects.filter(pk=tag.pk), [])
+
+        with active_map_permissions.override(ManualMapPermissions(access_restrictions={self.access_restriction.pk})):
+            self.assertQuerySetEqual(LocationTag.objects.filter(pk=tag.pk), [])
+
+        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+            self.assertQuerySetEqual(LocationTag.objects.filter(pk=tag.pk), [tag])
+
+        self._recalculate()
+
+        with active_map_permissions.override(ManualMapPermissions()):
+            self.assertQuerySetEqual(LocationTag.objects.filter(pk=tag.pk), [tag])
+
+        with active_map_permissions.override(ManualMapPermissions(access_restrictions={self.access_restriction.pk})):
+            self.assertQuerySetEqual(LocationTag.objects.filter(pk=tag.pk), [tag])
+
+        with active_map_permissions.override(ManualMapPermissions.get_full_access()):
+            self.assertQuerySetEqual(LocationTag.objects.filter(pk=tag.pk), [tag])
