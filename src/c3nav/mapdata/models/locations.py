@@ -755,10 +755,14 @@ class LocationTagInheritedValues(models.Model):
 
 
 class LocationTagTargetInheritedValues(models.Model):
-    level = models.OneToOneField('Level', related_name="inherited", null=True, on_delete=models.CASCADE)
-    space = models.OneToOneField('Space', related_name="inherited", null=True, on_delete=models.CASCADE)
-    area = models.OneToOneField('Area', related_name="inherited", null=True, on_delete=models.CASCADE)
-    poi = models.OneToOneField('POI', related_name="inherited", null=True, on_delete=models.CASCADE)
+    level = models.OneToOneField('Level', related_name="inherited",
+                                 unique=True, null=True, on_delete=models.CASCADE)
+    space = models.OneToOneField('Space', related_name="inherited",
+                                 unique=True, null=True, on_delete=models.CASCADE)
+    area = models.OneToOneField('Area', related_name="inherited",
+                                unique=True, null=True, on_delete=models.CASCADE)
+    poi = models.OneToOneField('POI', related_name="inherited",
+                               unique=True, null=True, on_delete=models.CASCADE)
 
     tags: CachedIDs = SchemaField(schema=CachedIDs, default=list)
     colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
@@ -767,6 +771,8 @@ class LocationTagTargetInheritedValues(models.Model):
         verbose_name = _('Location Tag Target Inherited Values')
         verbose_name_plural = _('Location Tag Targets Inherited Values')
         constraints = (
+            UniqueConstraint("level", "space", "area", "poi",
+                             name="target_inherited_values_unique"),
             CheckConstraint(check=(
                 Q(level__isnull=False, space__isnull=True, area__isnull=True, poi__isnull=True)
                 | Q(level__isnull=True, space__isnull=False, area__isnull=True, poi__isnull=True)
@@ -792,7 +798,7 @@ class LocationTagTargetMixin(models.Model):
         abstract = True
 
     @property
-    def _has_inherited(self):
+    def has_inherited(self):
         try:
             self.inherited
         except ObjectDoesNotExist:
@@ -804,11 +810,11 @@ class LocationTagTargetMixin(models.Model):
         """
         highest priority first
         """
-        if not self._has_inherited:
+        if not self.has_inherited:
             return MapPermissionGuardedSequence(())
         if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
             raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
-        if not self._has_inherited:
+        if not self.has_inherited:
             raise ValueError(f'Accessing sorted_tags on {self} despite no select_related for inherited.')
 
         # we're getting all the tags, then getting the stuff from inherited to sort them
@@ -829,7 +835,7 @@ class LocationTagTargetMixin(models.Model):
         raise NotImplementedError
 
     def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
-        if not self._has_inherited:
+        if not self.has_inherited:
             return None
         color = MapPermissionGuardedTaggedValue(
             self.inherited.colors.get(color_manager.theme_id, {}), default=None
@@ -838,7 +844,7 @@ class LocationTagTargetMixin(models.Model):
 
     def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[int, str] | None:
         # todo: merge this with get_color() and get_color_order() eventually
-        if not self._has_inherited:
+        if not self.has_inherited:
             return None
         color = MapPermissionGuardedTaggedValue(
             self.inherited.colors.get(color_manager.theme_id, {}), default=None

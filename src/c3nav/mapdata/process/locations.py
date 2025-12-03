@@ -175,7 +175,7 @@ def recalculate_locationtag_effective_inherited_values():
         raise CircularHierarchyError
 
     # todo: improve this, only update what's needed etc?
-    created = LocationTagInheritedValues.objects.bulk_create(
+    LocationTagInheritedValues.objects.bulk_create(
         [
             LocationTagInheritedValues(
                 tag_id=tag_id,
@@ -212,41 +212,47 @@ def recalculate_locationtag_effective_inherited_values():
     for target_key, tags in tags_for_targets.items():
         target = known_targets[target_key]
         tags = list(tags)
-        colors = []
+        new_colors: dict[int, list[MapPermissionTaggedItem[FillAndBorderColor]]] = defaultdict(list)
         for tag_item in tags:
-            for new_color in result_for_tags[tag_item.value]:
-                new_item = MapPermissionTaggedItem(
-                    new_color.value,
-                    access_restrictions=(
-                        tag_item.access_restrictions
-                        | new_color.access_restrictions
-                        | ({target.access_restriction_id} if target.access_restriction_id else {})
-                    ),
-                )
-                if any((color.access_restrictions <= new_item.access_restrictions) for color in colors):
-                    continue
-                colors.append(colors)
-        tags_changed = (tags != target.inherited.tags)
-        colors_changed = (colors != target.inherited.colors)
+            for theme_id, theme_colors in result_for_tags[tag_item.value].colors.items():
+                new_theme_colors = new_colors[theme_id]
+                for new_color in theme_colors:
+                    new_item = MapPermissionTaggedItem(
+                        new_color.value,
+                        access_restrictions=(
+                            tag_item.access_restrictions
+                            & new_color.access_restrictions
+                            & AccessRestrictionsOneID.build(target.access_restriction_id)
+                        ),
+                    )
+                    if any((color.access_restrictions <= new_item.access_restrictions) for color in new_theme_colors):
+                        continue
+                    new_theme_colors.append(new_item)
+        if target.has_inherited:
+            tags_changed = (tags != target.inherited.tags)
+            colors_changed = (new_colors != target.inherited.colors)
+        else:
+            tags_changed = True
+            colors_changed = True
         if tags_changed or colors_changed:
             new_target_inherited_values.append(
                 LocationTagTargetInheritedValues(
-                    **{f"{key[0]}_id": key[1]},
+                    **{f"{target_key[0]}_id": target_key[1]},
                     tags=list(tags),
-                    colors=list(colors),
+                    colors=dict(new_colors),
                 )
             )
-        if colors_changed:
+        if colors_changed and not isinstance(target, Level):
             target.register_change(force=True)
 
     LocationTagTargetInheritedValues.objects.exclude(
-        pk__in=[target.inherited.pk for target in known_targets.values()]
+        pk__in=[target.inherited.pk for target in known_targets.values() if target.has_inherited]
     ).delete()
     LocationTagTargetInheritedValues.objects.bulk_create(
         new_target_inherited_values,
         update_conflicts=True,
-        update_fields=("tags",),
-        unique_fields=("level_id", "space_id", "area_id", "poi_id"),
+        update_fields=("tags", "colors"),
+        unique_fields=("level", "space", "area", "poi"),
     )
 
     # todo: improve this as well…?
