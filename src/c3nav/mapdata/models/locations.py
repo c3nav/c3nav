@@ -755,14 +755,10 @@ class LocationTagInheritedValues(models.Model):
 
 
 class LocationTagTargetInheritedValues(models.Model):
-    level = models.OneToOneField('Level', related_name="inherited",
-                                 unique=True, null=True, on_delete=models.CASCADE)
-    space = models.OneToOneField('Space', related_name="inherited",
-                                 unique=True, null=True, on_delete=models.CASCADE)
-    area = models.OneToOneField('Area', related_name="inherited",
-                                unique=True, null=True, on_delete=models.CASCADE)
-    poi = models.OneToOneField('POI', related_name="inherited",
-                               unique=True, null=True, on_delete=models.CASCADE)
+    level = models.OneToOneField('Level', related_name="inherited", null=True, on_delete=models.CASCADE)
+    space = models.OneToOneField('Space', related_name="inherited", null=True, on_delete=models.CASCADE)
+    area = models.OneToOneField('Area', related_name="inherited", null=True, on_delete=models.CASCADE)
+    poi = models.OneToOneField('POI', related_name="inherited", null=True, on_delete=models.CASCADE)
 
     tags: CachedIDs = SchemaField(schema=CachedIDs, default=list)
     colors: ColorByTheme = SchemaField(schema=ColorByTheme, default=dict)
@@ -771,8 +767,6 @@ class LocationTagTargetInheritedValues(models.Model):
         verbose_name = _('Location Tag Target Inherited Values')
         verbose_name_plural = _('Location Tag Targets Inherited Values')
         constraints = (
-            UniqueConstraint("level", "space", "area", "poi",
-                             name="target_inherited_values_unique"),
             CheckConstraint(check=(
                 Q(level__isnull=False, space__isnull=True, area__isnull=True, poi__isnull=True)
                 | Q(level__isnull=True, space__isnull=False, area__isnull=True, poi__isnull=True)
@@ -816,6 +810,15 @@ class LocationTagTargetMixin(models.Model):
         except ObjectDoesNotExist:
             return False
         return True
+
+    @cached_property
+    def sorted_tag_ids(self) -> MapPermissionGuardedTaggedSequence[int]:
+        """
+        highest priority first
+        """
+        if not self.has_inherited:
+            return MapPermissionGuardedTaggedSequence(())
+        return MapPermissionGuardedTaggedSequence(self.inherited.tags)
 
     @cached_property
     def sorted_tags(self) -> MapPermissionGuardedSequence[LocationTag]:
