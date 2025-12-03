@@ -480,24 +480,25 @@ class AccessRestrictionsAnd(AccessRestrictionsEval):
         if isinstance(value, AccessRestrictionsAnd):
             return value
         return cls(ids=None if value[0] is None else AccessRestrictionsAllIDs(frozenset(value[0])),
-                   children=frozenset(AccessRestrictionsOr._validate(subval) for subval in value[1:]))
+                   children=frozenset(AccessRestrictionsOr._validate(subval) for subval in value[1]))
 
     @classmethod
-    def _serialize(cls, value: Self) -> tuple[Optional[tuple[int, ...]], tuple[tuple[int, ...], ...], ...]:
+    def _serialize(cls, value: Self) -> tuple[Optional[tuple[int, ...]], tuple[tuple[tuple[int, ...], ...], ...]]:
         return (
             AccessRestrictionsAllIDs._serialize(value.ids) if value.ids else None,
-            *(AccessRestrictionsOr._serialize(child) for child in value.children),
+            tuple(AccessRestrictionsOr._serialize(child) for child in value.children),
         )
 
-    schema = core_schema.tuple_positional_schema(
-        items_schema=[
-            core_schema.union_schema([
-                core_schema.none_schema(),
-                AccessRestrictionsAllIDs.schema,
-            ])
-        ],
-        extras_schema=AccessRestrictionsOr.schema,
-    )
+    schema = core_schema.tuple_schema([
+        core_schema.union_schema([
+            core_schema.none_schema(),
+            AccessRestrictionsAllIDs.schema,
+        ]),
+        core_schema.tuple_variable_schema(
+            AccessRestrictionsOr.schema,
+            min_length=2,
+        ),
+    ])
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source_type: Any = None, handler=None) -> CoreSchema:
