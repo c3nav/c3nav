@@ -99,9 +99,10 @@ PUBLIC_EDITOR = config.getboolean('c3nav', 'editor', fallback=True)
 PUBLIC_BASE_MAPDATA = config.getboolean('c3nav', 'public_base_mapdata', fallback=False)
 AUTO_PROCESS_UPDATES = config.getboolean('c3nav', 'auto_process_updates', fallback=True)
 
+# no longer used, deprecated!
+# this remains here becaue the data migration needs it
 RANDOM_LOCATION_GROUPS = config.getlist('c3nav', 'random_location_groups', fallback=None)
 if RANDOM_LOCATION_GROUPS:
-    # todo: no longer used, deprecated!
     RANDOM_LOCATION_GROUPS = tuple(int(i) for i in RANDOM_LOCATION_GROUPS)
 DISTANCE_FROM_LOCATION = config.getint('c3nav', 'distance_from_location', fallback=None)
 
