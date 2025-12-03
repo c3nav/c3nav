@@ -33,7 +33,8 @@ from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, Ranging
 from c3nav.mapdata.models.locations import Position, LoadGroup, LocationTag
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
-from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema
+from c3nav.mapdata.schemas.locations import LocationDisplay, SingleLocationItemSchema, ListedLocationItemSchema, \
+    PositionSchema
 from c3nav.mapdata.schemas.model_base import LocationIdentifier, CustomLocationIdentifier, PositionIdentifier
 from c3nav.mapdata.schemas.models import ProjectionPipelineSchema, ProjectionSchema, LegendSchema, LegendItemSchema
 from c3nav.mapdata.schemas.responses import WithBoundsSchema, MapSettingsSchema
@@ -178,7 +179,7 @@ def location_geometries(request, identifier: LocationIdentifier):
 
 @map_api_router.get('/positions/my/', summary="all moving position coordinates",
                     description="get current coordinates of all moving positions owned be the current users",
-                    response={200: list[SingleLocationItemSchema], **API404.dict(), **auth_responses})
+                    response={200: list[PositionSchema], **API404.dict(), **auth_responses})
 @api_stats('get_positions')
 def get_my_positions(request) -> Sequence[Position]:
     # no caching for obvious reasons!
@@ -205,7 +206,7 @@ class UpdatePositionSchema(BaseSchema):
 @map_api_router.put('/positions/{position_id}/', url_name="position-update",
                     summary="set moving position",
                     description="only the string ID for the position secret must be used",
-                    response={200: SingleLocationItemSchema, **API404.dict(), **auth_permission_responses})
+                    response={200: PositionSchema, **API404.dict(), **auth_permission_responses})
 def set_position(request, position_id: PositionIdentifier, update: UpdatePositionSchema):
     # todo: may an API key do this?
     try:
