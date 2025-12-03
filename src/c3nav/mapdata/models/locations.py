@@ -1,17 +1,16 @@
 import string
 from collections import deque, defaultdict
-from contextlib import suppress
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 from functools import cached_property
 from itertools import chain, batched
-from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable, Sequence
+from typing import TYPE_CHECKING, Optional, TypeAlias, Union, Iterable
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
@@ -36,7 +35,7 @@ from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.base import CachedBounds, LazyMapPermissionFilteredBounds
 from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissionTaggedItem, \
     MapPermissionGuardedTaggedValue, MapPermissionGuardedTaggedValueSequence, \
-    MapPermissionMaskedTaggedValue, MapPermissionGuardedTaggedSequence, AccessRestrictionsEval, NoAccessRestrictions, \
+    MapPermissionMaskedTaggedValue, MapPermissionGuardedTaggedSequence, AccessRestrictionsEval, \
     AccessRestrictionsAllIDs, AccessRestrictionsOr, MapPermissionGuardedTaggedUniqueSequence
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, \
