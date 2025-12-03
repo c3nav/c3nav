@@ -44,19 +44,16 @@ class MapUpdateJobConfig:
             job = mapupdates[-1].jobs.create(job_type=self.key, status=MapUpdateJobStatus.RUNNING)
         except IntegrityError:
             raise CantStartMapUpdateJob
-        e = None
-        with transaction.atomic():
-            job: MapUpdateJob = MapUpdateJob.objects.select_for_update(nowait=nowait).get(pk=job.pk)
-            try:
+        try:
+            with transaction.atomic():
+                job: MapUpdateJob = MapUpdateJob.objects.select_for_update(nowait=nowait).get(pk=job.pk)
                 with active_map_permissions.disable_access_checks():
                     had_effect = self.func(mapupdates)
-            except Exception as e:
-                job.update_status(MapUpdateJobStatus.FAILED)
-                raise
-            else:
-                job.update_status(MapUpdateJobStatus.SUCCESS if had_effect else MapUpdateJobStatus.SKIPPED)
-        if e:
-            raise e
+        except Exception as e:
+            job.update_status(MapUpdateJobStatus.FAILED)
+            raise
+        else:
+            job.update_status(MapUpdateJobStatus.SUCCESS if had_effect else MapUpdateJobStatus.SKIPPED)
         if settings.DEBUG:
             logger.info(f'Ended job in {time.time() - starttime:.2f}s '
                         f'with {len(connection.queries) - startqueries} queries.')
