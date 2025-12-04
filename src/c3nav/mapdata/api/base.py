@@ -45,7 +45,7 @@ def api_etag(permissions=True, quests=False,
         def inner_wrapped_func(request, *args, **kwargs):
             # calculate the ETag
             last_update = MapUpdate.last_update(
-                *(cache_job_types(*args, **kwargs) if callable(cache_job_types) else None)
+                *(cache_job_types(*args, **kwargs) if callable(cache_job_types) else cache_job_types)
             )
 
             # prefix will not be part of the etag, but part of the cache key
