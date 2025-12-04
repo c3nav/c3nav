@@ -235,7 +235,7 @@ class LocationManager:
         locations = {
             tag.pk: tag for tag in LocationTag.objects.with_restrictions().select_related(
                 "load_group_display",
-            ).prefetch_related("slug_set").order_by("-priority", "pk")
+            ).prefetch_related("slug_set", "parents").order_by("-priority", "pk")
         }
 
         # trigger some cached properties, then empty prefetch_related cache
