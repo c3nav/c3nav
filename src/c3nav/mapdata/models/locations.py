@@ -526,12 +526,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def dynamic_points(self) -> list[LocationPoint]:
-        return list(filter(None,
-            # todo: this needs to be cached
-            (position.dynamic_point for position in Position.objects.filter(
-                secret__in=self.cached_all_position_secrets
-            ))
-        ))
+        return list(filter(None, (position.dynamic_point for position in self._dynamic_positions)))
 
     @cached_property
     def _bounds(self) -> dict[int, LazyMapPermissionFilteredBounds]:
@@ -555,14 +550,15 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             ) if not any((v is None) for v in level_bounds)
         }
 
+    @cached_property
+    def _dynamic_positions(self) -> Tuple[Position, ...]:
+        return tuple(Position.objects.filter(secret__in=self.cached_all_position_secrets))
+
     @property
     def dynamic_bounds(self) -> BoundsByLevelSchema:
         return merge_bounds(
             self.bounds,
-            # todo: this needs to be cached
-            *filter(None, (position.bounds for position in Position.objects.filter(
-                secret__in=self.cached_all_position_secrets
-            )))
+            *filter(None, (position.bounds for position in self._dynamic_positions))
         )
 
     @staticmethod
@@ -634,9 +630,8 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
         if static_target_subtitle:
             return static_target_subtitle
         if not static_target_subtitle:
-            # todo: this needs to be cached
             if len(self.cached_all_position_secrets) == 1:
-                return Position.objects.filter(secret=self.cached_all_position_secrets[0]).dynamic_subtitle
+                return self._dynamic_positions[0].dynamic_subtitle
         # todo: make this work better for multiple targets
         return None
 
@@ -700,7 +695,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             grid_square=self.dynamic_grid_square,
             dynamic_points=self.dynamic_points,
             bounds=self.dynamic_bounds,
-            nearby=None,  # todo: add nearby information
+            nearby=list(chain.from_iterable(position.dynamic_state.nearby for position in self._dynamic_positions)),
         )
 
     """ Changed Geometries """
@@ -1021,7 +1016,7 @@ class Position(models.Model):
                 grid_square=None,
                 dynamic_points=[],
                 bounds={},
-                nearby=None,
+                nearby=[],
             )
         return DynamicLocationState(
             subtitle='%s, %s, %s' % (
@@ -1032,7 +1027,7 @@ class Position(models.Model):
             grid_square=custom_location.grid_square,
             dynamic_points=[self.dynamic_point],
             bounds=custom_location.bounds,
-            nearby=custom_location.nearby,
+            nearby=[custom_location.nearby],
         )
 
     @property

@@ -109,7 +109,7 @@ class DynamicLocationState(BaseSchema):
         description="representative points of dynamic targets, to be merged with the static points"
     )] = []
     bounds: BoundsByLevelSchema = {}
-    nearby: Optional[NearbySchema] = None
+    nearby: list[NearbySchema] = []
 
 
 class DisplayURL(BaseSchema):
