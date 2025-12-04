@@ -1,3 +1,4 @@
+from __future__ import annotations
 import string
 from collections import deque, defaultdict
 from dataclasses import dataclass
@@ -40,7 +41,7 @@ from c3nav.mapdata.permissions import MapPermissionGuardedSequence, MapPermissio
 from c3nav.mapdata.schemas.locations import GridSquare, DynamicLocationState
 from c3nav.mapdata.schemas.model_base import LocationPoint, BoundsByLevelSchema, \
     DjangoCompatibleLocationPoint
-from c3nav.mapdata.utils.cache.proxied import per_request_cache
+from c3nav.mapdata.utils.cache.proxied import per_request_cache, versioned_proxied_cache
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.geometry.modify import merge_bounds
 
@@ -550,9 +551,17 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             ) if not any((v is None) for v in level_bounds)
         }
 
-    @cached_property
-    def _dynamic_positions(self) -> Tuple[Position, ...]:
-        return tuple(Position.objects.filter(secret__in=self.cached_all_position_secrets))
+    @property
+    def _dynamic_positions(self) -> tuple[Position, ...]:
+        # todo: better caching?
+        from c3nav.mapdata.models import MapUpdate
+        cache_update = MapUpdate.last_update("mapdata.recalculate_locationtag_final")
+        cache_key = f"mapdata:dynamic_positions:{self.pk}"
+        result = versioned_proxied_cache.get(cache_update, cache_key)
+        if result is None:
+            result = tuple(Position.objects.filter(secret__in=self.cached_all_position_secrets))
+            versioned_proxied_cache.set(cache_update, cache_key, result, expire=3)
+        return result
 
     @property
     def dynamic_bounds(self) -> BoundsByLevelSchema:

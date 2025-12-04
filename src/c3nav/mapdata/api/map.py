@@ -129,6 +129,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
             }))
 
     if location.dynamic:
+        # we don't want to cache anything that's dynamic
         request._target_etag = None
         request._target_cache_key = None
 
