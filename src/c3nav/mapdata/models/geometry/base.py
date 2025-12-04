@@ -228,7 +228,7 @@ class CachedEffectiveGeometryMixin(models.Model):
 
     @property
     def bounds(self) -> BoundsByLevelSchema:
-        # todo: remove
+        # todo: we wanted to remove this… but why?
         values = tuple(item.get() for item in self._bounds)
         if any((v is None) for v in values):
             return {}
