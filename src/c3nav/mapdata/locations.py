@@ -3,9 +3,10 @@ import re
 from collections import deque, defaultdict
 from dataclasses import dataclass, field
 from itertools import chain
-from typing import Optional, ClassVar, NamedTuple, overload, Literal, TypeAlias, Sequence, Generator, Mapping
+from typing import Optional, ClassVar, NamedTuple, overload, Literal, TypeAlias, Generator, Mapping
 
 from django.core.cache import cache
+from django.db.models import Prefetch
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from pydantic import PositiveInt
@@ -235,7 +236,10 @@ class LocationManager:
         locations = {
             tag.pk: tag for tag in LocationTag.objects.with_restrictions().select_related(
                 "load_group_display",
-            ).prefetch_related("slug_set", "parents").order_by("-priority", "pk")
+            ).prefetch_related(
+                "slug_set",
+                Prefetch("parents", LocationTag.objects.with_restrictions()),
+            ).order_by("-priority", "pk")
         }
 
         # trigger some cached properties, then empty prefetch_related cache
