@@ -241,7 +241,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     # imported from locationgroup end
 
     parents = models.ManyToManyField("self", related_name="children", symmetrical=False,
-                                              through="LocationTagAdjacency", through_fields=("child", "parent"))
+                                     through="LocationTagAdjacency", through_fields=("child", "parent"))
 
     levels = models.ManyToManyField('Level', related_name="tags")
     spaces = models.ManyToManyField('Space', related_name="tags")
@@ -283,12 +283,12 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             raise TypeError("inherited wasn't queried")
 
     @cached_property
-    def ancestors(self) -> MapPermissionGuardedTaggedSequence[int]:
+    def ancestors(self) -> MapPermissionGuardedTaggedUniqueSequence[int]:
         self.assert_inherited()
         return MapPermissionGuardedTaggedUniqueSequence(self.inherited.ancestors if self.has_inherited else ())
 
     @cached_property
-    def descendants(self) -> MapPermissionGuardedTaggedSequence[int]:
+    def descendants(self) -> MapPermissionGuardedTaggedUniqueSequence[int]:
         self.assert_inherited()
         return MapPermissionGuardedTaggedUniqueSequence(self.inherited.descendants if self.has_inherited else ())
 
@@ -394,24 +394,22 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
         return result
 
-    @cached_property
+    @property
     def sublocations(self) -> list[int]:
         return list(self.descendants)
 
-    @cached_property
-    def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[dict]:
-        return []
-        # todo: rename? … make this work / fix this – probably by delivering all locations by default
-        return MapPermissionGuardedTaggedSequence([])
-        #
-        #    MapPermissionTaggedItem({
-        #        'id': l.pk,
-        #        'slug': l.effective_slug,
-        #        'title': l.title,  # todo: will translation be used here?
-        #        'can_search': l.can_search,
-        #    }, l.effective_access_restrictions)
-        #    for l in self.calculated_ancestors.all()
-        #])
+    @property
+    def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
+        # todo: precalculate this including the entire tree
+        return MapPermissionGuardedTaggedSequence([
+             MapPermissionTaggedItem({
+                 'id': l.pk,
+                 'slug': l.effective_slug,
+                 'title': l.title,  # todo: will translation be used here? … this needs automated tests
+                 'can_search': l.can_search,
+             }, l.effective_access_restrictions)
+             for l in self.parents.all()
+        ])
 
     @cached_property
     def dynamic(self) -> int:
