@@ -60,6 +60,7 @@
             <th>{% trans 'Date' %}</th>
             <th>{% trans 'Reason' %}</th>
             <th>{% trans 'Geometries' %}</th>
+            <th>{% trans 'Purge' %}</th>
             <th>{% trans 'Processed' %}</th>
         </tr>
         {% for update in updates %}
@@ -89,6 +90,13 @@
                         {% for area_of_level in update.changed_geometries_summary.area_by_level %}
                             <strong>{{ area_of_level.level }}:</strong> {{ area_of_level.area|floatformat:3 }}m²
                         {% endfor %}
+                    {% else %}
+                        {% trans 'No' %}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if update.purge_all_cache %}
+                        <strong class="green">{% trans 'Yes' %}</strong><br>
                     {% else %}
                         {% trans 'No' %}
                     {% endif %}

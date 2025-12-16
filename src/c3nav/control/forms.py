@@ -337,6 +337,10 @@ class MapUpdateFilterForm(Form):
         choices=(('', _('any')), ('1', _('geometries changed')), ('0', _('no geometries changed'))),
         required=False
     )
+    purge_all_cache = ChoiceField(
+        choices=(('', _('any')), ('1', _('purge the entire cache')), ('0', _('don\'t purge the entire cache'))),
+        required=False
+    )
     processed = ChoiceField(
         choices=(('', _('any')), ('1', _('processed')), ('0', _('not processed'))),
         required=False

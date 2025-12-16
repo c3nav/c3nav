@@ -51,6 +51,9 @@ def map_updates(request):  # todo: make class based view
     if request.GET.get('geometries_changed', None):
         if request.GET['geometries_changed'] in ('1', '0'):
             queryset = queryset.filter(geometries_changed=request.GET['geometries_changed'] == '1')
+    if request.GET.get('purge_all_cache', None):
+        if request.GET['purge_all_cache'] in ('1', '0'):
+            queryset = queryset.filter(purge_all_cache=request.GET['purge_all_cache'] == '1')
     if request.GET.get('processed', None):
         if request.GET['processed'] in ('1', '0'):
             queryset = queryset.filter(processed=request.GET['processed'] == '1')
