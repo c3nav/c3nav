@@ -456,7 +456,7 @@ def map_history(request, level, mode, filetype):
     if filetype == 'png':
         response = HttpResponse(content_type='image/png')
         history.to_image().save(response, format='PNG')
-    if filetype == 'json':
+    elif filetype == 'json':
         response = HttpResponse(content_type='application/json')
         response.write(json.dumps(history.to_dict(), indent=2))
     elif filetype == 'data':
