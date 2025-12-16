@@ -39,15 +39,19 @@ class MapHistory(LevelGeometryIndexed):
         f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
 
     @classmethod
-    def open(cls, filename: str | bytes | PathLike, default_update: Optional[MapUpdateTuple] = None) -> Self:
-        try:
-            instance = super().open(filename)
-        except FileNotFoundError:
-            if default_update is None:
-                from c3nav.mapdata.models import MapUpdate
-                default_update = MapUpdate.last_processed_update()
-            instance = cls(updates=[default_update], filename=filename)
-            instance.save()
+    def open(cls, filename: str | bytes | PathLike,
+             default_update: Optional[MapUpdateTuple] = None, purge=False) -> Self:
+        if not purge:
+            try:
+                return super().open(filename)
+            except FileNotFoundError:
+                pass
+
+        if default_update is None:
+            from c3nav.mapdata.models import MapUpdate
+            default_update = MapUpdate.last_processed_update()
+        instance = cls(updates=[default_update], filename=filename)
+        instance.save()
         return instance
 
     def add_geometry(self, geometry: Union["Polygon", "MultiPolygon"], update: MapUpdateTuple):

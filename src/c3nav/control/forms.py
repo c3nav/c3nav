@@ -351,4 +351,4 @@ class MapUpdateFilterForm(Form):
 class MapUpdateForm(ModelForm):
     class Meta:
         model = MapUpdate
-        fields = ('geometries_changed', )
+        fields = ('geometries_changed', 'purge_all_cache')

@@ -1,4 +1,5 @@
 import os
+from typing import Iterable
 
 from django.db.models.signals import m2m_changed, post_delete
 from shapely.ops import unary_union
@@ -60,16 +61,20 @@ class GeometryChangeTracker:
             self._geometries_by_level.setdefault(level_id, []).append(other._get_unary_union(level_id))
         self._unary_unions = {}
 
-    def save(self, last_update: MapUpdateTuple, new_update: MapUpdateTuple):
+    def save(self, default_update: MapUpdateTuple, new_update: MapUpdateTuple, purge_levels: Iterable[int] = ()):
         self.finalize()
 
+        purge_levels = set(purge_levels)
+        for purge_level in purge_levels:
+            self._geometries_by_level.setdefault(purge_level, [])
         for level_id, geometries in self._geometries_by_level.items():
             geometries = unary_union(geometries)
-            if geometries.is_empty:
+            if geometries.is_empty and level_id not in purge_levels:
                 continue
-            # todo: is new_update really better here? we sure hope it is
-            history = MapHistory.open_level(level_id, mode='base', default_update=new_update)
-            history.add_geometry(geometries.buffer(1), new_update)
+            history = MapHistory.open_level(level_id, mode='base', default_update=default_update,
+                                            purge=level_id in purge_levels)
+            if not geometries.is_empty:
+                history.add_geometry(geometries.buffer(1), new_update)
             history.save()
         self.reset()
 

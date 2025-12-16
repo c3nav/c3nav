@@ -35,6 +35,10 @@ class MapUpdate(models.Model):
     type = models.CharField(max_length=32, choices=TYPES)
     processed = models.BooleanField(default=False)
     geometries_changed = models.BooleanField()
+    purge_all_cache = models.BooleanField(default=False, verbose_name=_("purge the entire cache"),
+                                          help_text=_("This erases all map history when processed, meaning that all "
+                                                      "tiles and renderings need to be re-rendered. Only use after "
+                                                      "manually tampering with the database or to fix caching issues."))
 
     class Meta:
         verbose_name = _('Map update')
@@ -230,22 +234,50 @@ class MapUpdate(models.Model):
 
                 last_processed_update = cls.last_processed_update(force=True, lock=False)
 
+                purging_updates = [new_update.to_tuple for new_update in new_updates if new_update.purge_all_cache]
+                num_purges = 0
+
                 for new_update in new_updates:
                     logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
                                 {'id': new_update.pk, 'type': new_update.type})
+                    if new_update.purge_all_cache:
+                        logger.info('Entire map purged by this update.')
+                        changed_geometries.reset()
+                        num_purges += 1
                     try:
                         new_changes = new_update.get_changed_geometries()
+
                         if new_changes is None:
                             logger.warning('changed_geometries pickle file not found.')
                         else:
-                            logger.info('%.3f m² affected by this update.' % new_changes.area)
-                            changed_geometries.combine(new_changes)
+                            if new_update.purge_all_cache:
+                                # delete changed geometries of that update
+                                new_changes.finalize()
+                            elif num_purges < len(purging_updates):
+                                # delete changed geometries of that update
+                                new_changes.finalize()
+                                logger.info('skipped %.3f m² affected by this update.' % new_changes.area)
+                            else:
+                                changed_geometries.combine(new_changes)
+                                logger.info('%.3f m² affected by this update.' % new_changes.area)
+
                     except EOFError:
                         logger.warning('changed_geometries pickle file corrupted.')
 
+                if purging_updates:
+                    logger.info('Cache completely purged. After purge update,')
                 logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
 
-                changed_geometries.save(last_processed_update, new_updates[-1].to_tuple)
+                purge_levels = ()
+                if purging_updates:
+                    from c3nav.mapdata.models import Level
+                    purge_levels = Level.objects.values_list("pk", flat=True)
+                from c3nav.mapdata.models import Level
+                changed_geometries.save(
+                    default_update=purging_updates[-1] if purging_updates else last_processed_update,
+                    new_update=new_updates[-1].to_tuple,
+                    purge_levels=purge_levels,
+                )
 
                 logger.info('Rebuilding level render data...')
 

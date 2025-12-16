@@ -25,16 +25,9 @@ class Command(BaseCommand):
 
         logger = logging.getLogger('c3nav')
 
-        MapUpdate.objects.create(type='management', geometries_changed=options['include_geometries'])
+        MapUpdate.objects.create(type='management', geometries_changed=options['include_geometries'],
+                                 purge_all_cache=options['include_history'])
         logger.info('New management update created.')
-
-        if options['include_history']:
-            logger.info('Deleting base history...')
-            for filename in os.listdir(settings.CACHE_ROOT):
-                if filename.startswith('history_base_'):
-                    logger.info('Deleting %s...' % filename)
-                    os.remove(settings.CACHE_ROOT / filename)
-            logger.info('Base history deleted.')
 
         if not settings.HAS_CELERY and not options['no_process']:
             print(_('You don\'t have celery installed, so we will run processupdates now...'))
