@@ -74,7 +74,7 @@ class AccessRestrictionAffected(LevelGeometryIndexed):
             "restrictions": self.restrictions,
             "restrictions_data": [
                 [
-                    [restriction for i, restriction in restrictions if (cell & (2**i)).any()] for cell in row
+                    [restriction for i, restriction in restrictions if (cell & (2**i))] for cell in row
                 ]
                 for row in self.data.tolist()
             ],
