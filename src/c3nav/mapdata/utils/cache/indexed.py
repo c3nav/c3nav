@@ -203,6 +203,17 @@ class GeometryIndexed:
         from PIL import Image
         return Image.fromarray(np.flip(image_data, axis=0), 'L')
 
+    def to_dict(self) -> dict:
+        return {
+            "variant_id": self.variant_id,
+            "resolution": self.resolution,
+            "x": self.x,
+            "y": self.y,
+            "width": self.data.shape[0],
+            "height": self.data.shape[1],
+            "data": self.data.tolist(),
+        }
+
 
 class LevelGeometryIndexed(GeometryIndexed):
     variant_name = None

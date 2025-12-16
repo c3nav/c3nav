@@ -67,6 +67,19 @@ class AccessRestrictionAffected(LevelGeometryIndexed):
     def __setitem__(self, selector, value):
         raise TypeError('__setitem__ not supported for AccessRestriction matrix')
 
+    def to_dict(self) -> dict:
+        restrictions = tuple((i, restriction) for i, restriction in enumerate(self.restrictions) if restriction)
+        return {
+            **super().to_dict(),
+            "restrictions": self.restrictions,
+            "restrictions_data": [
+                [
+                    [restriction for i, restriction in restrictions if (cell & (2**i)).any()] for cell in row
+                ]
+                for row in self.data.tolist()
+            ],
+        }
+
 
 class AccessRestrictionAffectedCells:
     def __init__(self, parent: AccessRestrictionAffected,

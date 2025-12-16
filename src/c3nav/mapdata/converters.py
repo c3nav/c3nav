@@ -29,7 +29,7 @@ class HistoryModeConverter:
 
 
 class HistoryFileExtConverter:
-    regex = '(png|data)'
+    regex = '(png|json|data)'
 
     def to_python(self, value):
         return value

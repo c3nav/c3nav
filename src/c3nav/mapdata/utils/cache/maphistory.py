@@ -109,3 +109,13 @@ class MapHistory(LevelGeometryIndexed):
         if cells.size:
             return self.updates[cells.max()]
         return self.updates[0]
+
+    def to_dict(self) -> dict:
+        return {
+            **super().to_dict(),
+            "updates": self.updates,
+            "updates_data": [
+                [self.updates[cell] for cell in row]
+                for row in self.data.tolist()
+            ],
+        }
