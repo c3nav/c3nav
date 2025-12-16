@@ -1,7 +1,7 @@
-# syntax=docker/dockerfile:1.17@sha256:38387523653efa0039f8e1c89bb74a30504e76ee9f565e25c9a09841f9427b05
-FROM ubuntu:noble-20250716@sha256:7c06e91f61fa88c08cc74f7e1b7c69ae24910d745357e0dfe1d2c0322aaf20f9 as base
-ARG BASE_IMAGE_NAME=ubuntu:noble-20250716
-ARG BASE_IMAGE_DIGEST=sha256:7c06e91f61fa88c08cc74f7e1b7c69ae24910d745357e0dfe1d2c0322aaf20f9
+# syntax=docker/dockerfile:1.20@sha256:26147acbda4f14c5add9946e2fd2ed543fc402884fd75146bd342a7f6271dc1d
+FROM ubuntu:noble-20251013@sha256:c35e29c9450151419d9448b0fd75374fec4fff364a27f176fb458d472dfc9e54 as base
+ARG BASE_IMAGE_NAME=ubuntu:noble-20251013
+ARG BASE_IMAGE_DIGEST=sha256:c35e29c9450151419d9448b0fd75374fec4fff364a27f176fb458d472dfc9e54
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
@@ -15,17 +15,17 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.12=3.12.3-1ubuntu0.8 \
+    python3.12=3.12.3-1ubuntu0.9 \
     # renovate: srcname=python3.12
-    libpython3.12=3.12.3-1ubuntu0.8 \
+    libpython3.12=3.12.3-1ubuntu0.9 \
     # renovate: srcname=python3.12
-    python3.12-venv=3.12.3-1ubuntu0.8 \
+    python3.12-venv=3.12.3-1ubuntu0.9 \
     # renovate: srcname=python-pip
-    python3-pip=24.0+dfsg-1ubuntu1.2 \
+    python3-pip=24.0+dfsg-1ubuntu1.3 \
     # renovate: srcname=postgresql-16
-    libpq5=16.9-0ubuntu0.24.04.1 \
+    libpq5=16.11-0ubuntu0.24.04.1 \
     # renovate: srcname=postgresql-16
-    postgresql-client-16=16.9-0ubuntu0.24.04.1 \
+    postgresql-client-16=16.11-0ubuntu0.24.04.1 \
     curl=8.5.0-2ubuntu10.6 \
     # renovate: srcname=pcre3
     libpcre3=2:8.39-15build1 \
@@ -51,10 +51,10 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.10ubuntu1 \
     # renovate: srcname=python3.12
-    python3.12-dev=3.12.3-1ubuntu0.8 \
+    python3.12-dev=3.12.3-1ubuntu0.9 \
     libpcre3-dev=2:8.39-15build1 \
     # renovate: srcname=postgresql-16
-    libpq-dev=16.9-0ubuntu0.24.04.1 \
+    libpq-dev=16.11-0ubuntu0.24.04.1 \
     # renovate: srcname=cairo
     libcairo2-dev=1.18.0-3build1 \
     libgirepository1.0-dev=1.80.1-1 \
