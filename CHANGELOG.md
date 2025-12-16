@@ -8,6 +8,8 @@ and potential backwards incompatibilities.
 
 # 39. Chaos Communication Congress (development ongoing)
 
+- Add option to purge entire cache through UI (previously `clearmapcache --include-history`), and fix total purge sometimes not working.
+
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
 
 - Fix Problem with fetch updates API
