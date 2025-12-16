@@ -686,10 +686,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 num_deleted += 1
                 continue
 
-            if not field.get_final_value(new_area.geometry).equals_exact(unwrap_geom(candidate.geometry), 0.00001):
+            # need to do this to ensure it's identical
+            simplified = field.to_python(field.get_final_value(new_area.geometry, as_json=True))
+            if not simplified.equals_exact(unwrap_geom(candidate.geometry), 0.00001):
                 num_modified += 1
 
-            candidate.geometry = new_area.geometry
+            candidate.geometry = simplified
             candidate.altitude = new_area.altitude
             candidate.points = new_area.points
             candidate.save()
