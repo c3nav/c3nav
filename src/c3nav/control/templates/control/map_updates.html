@@ -12,6 +12,10 @@
                 <label style="font-weight:normal;">
                     {{ map_update_form.geometries_changed }} {{ map_update_form.geometries_changed.label }}
                 </label>
+                <label style="font-weight:normal;">
+                    {{ map_update_form.purge_all_cache }} {{ map_update_form.purge_all_cache.label }}
+                </label>
+
                 <button type="submit" name="create_map_update" value="1">{% trans 'Create map update' %}</button>
             </form>
         </div>
