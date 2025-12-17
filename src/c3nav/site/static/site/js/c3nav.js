@@ -2907,7 +2907,7 @@ LevelControl = L.Control.extend({
         const urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${this.currentTheme}.png`;
         return L.tileLayer(urlPattern, {
             minZoom: -2,
-            maxZoom: 5,
+            maxNativeZoom: 5,
             bounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds)
         });
     },
