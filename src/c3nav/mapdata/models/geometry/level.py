@@ -216,8 +216,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     points: Sequence[AltitudeAreaPoint] = SchemaField(schema=list[AltitudeAreaPoint], null=True)
 
     constraints = (
-        CheckConstraint(check=(Q(points__isnull=True, altitude__isnull=False) |
-                               Q(points__isnull=False, altitude__isnull=True)),
+        CheckConstraint(condition=(Q(points__isnull=True, altitude__isnull=False) |
+                                   Q(points__isnull=False, altitude__isnull=True)),
                         name="altitudearea_needs_precisely_one_of_altitude_or_points"),
     )
 

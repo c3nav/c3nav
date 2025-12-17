@@ -7,7 +7,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model
 from django.utils.functional import Promise
 from ninja import Schema
-from pydantic import Discriminator
+from pydantic import Discriminator, ConfigDict
 from pydantic import Field as APIField
 from pydantic import model_validator
 from pydantic.functional_validators import ModelWrapValidatorHandler
@@ -120,8 +120,7 @@ class PolygonSchema(BaseSchema):
         example=[[[1.5, 1.5], [1.5, 2.5], [2.5, 2.5], [2.5, 2.5]]]
     )
 
-    class Config(Schema.Config):
-        title = "GeoJSON Polygon"
+    model_config = ConfigDict(title="GeoJSON Polygon")
 
 
 class MultiPolygonSchema(BaseSchema):
@@ -133,8 +132,7 @@ class MultiPolygonSchema(BaseSchema):
         example=[[[[1.5, 1.5], [1.5, 2.5], [2.5, 2.5], [2.5, 2.5]]]]
     )
 
-    class Config(Schema.Config):
-        title = "GeoJSON Polygon"
+    model_config = ConfigDict(title="GeoJSON Multipolygon")
 
 
 class LineStringSchema(BaseSchema):
@@ -146,8 +144,7 @@ class LineStringSchema(BaseSchema):
         example=[[1.5, 1.5], [2.5, 2.5], [5, 8.7]]
     )
 
-    class Config(Schema.Config):
-        title = "GeoJSON LineString"
+    model_config = ConfigDict(title="GeoJSON LineString")
 
 
 class LineSchema(BaseSchema):
@@ -159,8 +156,7 @@ class LineSchema(BaseSchema):
         example=[[1.5, 1.5], [5, 8.7]]
     )
 
-    class Config(Schema.Config):
-        title = "GeoJSON LineString (only two points)"
+    model_config = ConfigDict(title="GeoJSON LineString (only two points)")
 
 
 class PointSchema(BaseSchema):
@@ -172,8 +168,7 @@ class PointSchema(BaseSchema):
         example=[1, 2.5]
     )
 
-    class Config(Schema.Config):
-        title = "GeoJSON Point"
+    model_config = ConfigDict(title="GeoJSON Point")
 
 
 GeometrySchema = Annotated[

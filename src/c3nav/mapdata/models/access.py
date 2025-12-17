@@ -200,8 +200,8 @@ class AccessPermissionSSOGrant(models.Model):
             ('provider', 'group', 'access_restriction', 'access_restriction_group')
         )
         constraints = (
-            CheckConstraint(check=(~Q(access_restriction__isnull=True, access_restriction_group__isnull=True) &
-                                   ~Q(access_restriction__isnull=False, access_restriction_group__isnull=False)),
+            CheckConstraint(condition=(~Q(access_restriction__isnull=True, access_restriction_group__isnull=True) &
+                                       ~Q(access_restriction__isnull=False, access_restriction_group__isnull=False)),
                             name="sso_permission_grant_needs_restriction_or_restriction_group"),
         )
 
@@ -229,11 +229,11 @@ class AccessPermission(models.Model):
             ('author', 'unique_key')
         )
         constraints = (
-            CheckConstraint(check=(~Q(access_restriction__isnull=True, access_restriction_group__isnull=True) &
-                                   ~Q(access_restriction__isnull=False, access_restriction_group__isnull=False)),
+            CheckConstraint(condition=(~Q(access_restriction__isnull=True, access_restriction_group__isnull=True) &
+                                       ~Q(access_restriction__isnull=False, access_restriction_group__isnull=False)),
                             name="permission_needs_restriction_or_restriction_group"),
-            CheckConstraint(check=(~Q(user__isnull=True, session_token__isnull=True) &
-                                   ~Q(user__isnull=False, session_token__isnull=False)),
+            CheckConstraint(condition=(~Q(user__isnull=True, session_token__isnull=True) &
+                                       ~Q(user__isnull=False, session_token__isnull=False)),
                             name="permission_needs_user_or_session"),
         )
 

@@ -1,2 +1,2 @@
-uwuipy==0.1.9
+uwuipy==0.1.10
 polib==1.2.0

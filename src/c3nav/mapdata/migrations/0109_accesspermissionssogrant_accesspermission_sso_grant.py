@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='accesspermissionssogrant',
-            constraint=models.CheckConstraint(check=models.Q(models.Q(('access_restriction__isnull', True), ('access_restriction_group__isnull', True), _negated=True), models.Q(('access_restriction__isnull', False), ('access_restriction_group__isnull', False), _negated=True)), name='sso_permission_grant_needs_restriction_or_restriction_group'),
+            constraint=models.CheckConstraint(condition=models.Q(models.Q(('access_restriction__isnull', True), ('access_restriction_group__isnull', True), _negated=True), models.Q(('access_restriction__isnull', False), ('access_restriction_group__isnull', False), _negated=True)), name='sso_permission_grant_needs_restriction_or_restriction_group'),
         ),
         migrations.AlterUniqueTogether(
             name='accesspermissionssogrant',

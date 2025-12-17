@@ -53,9 +53,6 @@ class FirmwareBuildSchema(BaseSchema):
     def resolve_boards(obj):
         return list(obj.boards)
 
-    class Config(Schema.Config):
-        pass
-
 
 class FirmwareSchema(BaseSchema):
     """

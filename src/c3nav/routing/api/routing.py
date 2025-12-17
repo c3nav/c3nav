@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from ninja import Field as APIField
 from ninja import Router as APIRouter
 from ninja import Schema
-from pydantic import PositiveInt
+from pydantic import PositiveInt, ConfigDict
 
 from c3nav.api.auth import APIKeyAuth, auth_responses, validate_responses
 from c3nav.api.exceptions import APIRequestValidationFailed
@@ -190,8 +190,7 @@ class RouteResponse(BaseSchema):
     report_issue_url: NonEmptyStr
     result: RouteSchema
 
-    class Config(Schema.Config):
-        title = "route found"
+    model_config = ConfigDict(title="route found")
 
 
 class NoRouteResponse(BaseSchema):
@@ -203,8 +202,7 @@ class NoRouteResponse(BaseSchema):
                      "this field contains the reason.")
     )
 
-    class Config(Schema.Config):
-        title = "route could not be determined"
+    model_config = ConfigDict(title="route could not be determined")
 
 
 def get_request_pk(location):

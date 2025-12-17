@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="accesspermission",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(
                         ("access_restriction__isnull", True),
                         ("access_restriction_group__isnull", True),
