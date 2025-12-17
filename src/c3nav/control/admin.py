@@ -32,4 +32,4 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(AccessPermissionSSOGrant)
 class AccessPermissionSSOGrantAdmin(admin.ModelAdmin):
-    model = AccessPermissionSSOGrant
+    list_display = ('provider', 'group', 'access_restriction', 'access_restriction_group')

@@ -205,6 +205,9 @@ class AccessPermissionSSOGrant(models.Model):
                             name="sso_permission_grant_needs_restriction_or_restriction_group"),
         )
 
+    def __str__(self):
+        return f'{self.provider}: {self.group} ({self.pk})'
+
 
 class AccessPermission(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)
