@@ -35,7 +35,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     gir1.2-rsvg-2.0=2.58.0+dfsg-1build1 \
     # renovate: srcname=cairo
     libcairo2=1.18.0-3build1 \
-    libgirepository-1.0-1=1.80.1-1 \
+    # we can't set a version here because it's different for amd64 and arm64 ugh
+    libgirepository-2.0-dev \
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build3 \
     gettext \
