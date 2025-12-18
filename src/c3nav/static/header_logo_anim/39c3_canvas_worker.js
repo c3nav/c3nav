@@ -14,7 +14,7 @@ const weightStep = 10;
 const fontSize = 30;
 const fontFamily = 'KarioDuplexVar';
 const fontFallback = 'sans-serif';
-const fontURL = "url('/static/header_logo_anim/Kario39C3VarWEB-Roman.woff2')";
+const fontURL = "url('/static/39c3/fonts/Kario39C3VarWEB-Roman.woff2')";
 const fontStyle = {
     style: "normal",
     weight: "10 100"
