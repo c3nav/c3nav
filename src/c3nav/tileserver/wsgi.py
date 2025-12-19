@@ -97,7 +97,8 @@ class TileServer:
     def update_cache_package_thread(self):
         cache = self.get_cache_client()  # different thread → different client!
         while True:
-            time.sleep(self.reload_interval)
+            # we try to make the reload happen predictably around the same time everywhere
+            time.sleep(self.reload_interval - max((time.time() % self.reload_interval), self.reload_interval/2))
             self.load_cache_package(cache=cache)
 
     def get_date_header(self):
