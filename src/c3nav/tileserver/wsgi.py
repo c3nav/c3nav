@@ -325,7 +325,7 @@ class TileServer:
         cache_key = path_info+'_'+tile_etag
         cached_result = self.cache.get(cache_key)
         if cached_result is not None:
-            return self.deliver_tile(start_response, tile_etag, cached_result)
+            return self.deliver_tile(start_response, tile_etag, cached_result, headers=cors_headers)
 
         try:
             r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' %
