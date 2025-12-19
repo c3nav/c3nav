@@ -9,6 +9,9 @@ and potential backwards incompatibilities.
 # 39. Chaos Communication Congress (development ongoing)
 
 - Add option to purge entire cache through UI (previously `clearmapcache --include-history`), and fix total purge sometimes not working.
+- CORS-Headers for API and Tileserver
+- Some more Theming options
+- Make altitude area generation deterministic again
 
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
 
