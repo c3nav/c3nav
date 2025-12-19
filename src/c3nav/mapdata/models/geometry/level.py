@@ -306,7 +306,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             # collect all stairs on this level
             for space in level.spaces.all():
-                space_buffer = space.geometry.buffer(0.001, join_style=JOIN_STYLE.mitre)
+                space_buffer = space.geometry.buffer(0.01, join_style=JOIN_STYLE.mitre)
                 for stair in space.stairs.all():
                     stairs.extend(assert_multilinestring(
                         stair.geometry.intersection(space_buffer)

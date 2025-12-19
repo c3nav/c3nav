@@ -22,6 +22,7 @@ from c3nav.mapdata.render.engines import ImageRenderEngine
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
+from c3nav.mapdata.utils.cors import allow_cors
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
@@ -332,6 +333,7 @@ def preview_route(request, slug, slug2):
 
 
 @no_language()
+@allow_cors()
 def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = None):
     if access_permissions is not None:
         enforce_tile_secret_auth(request)

@@ -29,6 +29,8 @@ logger = logging.getLogger('c3nav')
 if os.environ.get('C3NAV_LOGFILE'):
     logging.basicConfig(filename=os.environ['C3NAV_LOGFILE'])
 
+type Headers = tuple[tuple[str, str], ...]
+
 
 class TileServer:
     def __init__(self):
@@ -157,19 +159,21 @@ class TileServer:
             return False
         return True
 
-    def not_found(self, start_response, text):
+    def not_found(self, start_response, text, headers: Headers = ()):
         start_response('404 Not Found', [self.get_date_header(),
                                          ('Content-Type', 'text/plain'),
-                                         ('Content-Length', str(len(text)))])
+                                         ('Content-Length', str(len(text))),
+                                         *headers])
         return [text]
 
-    def internal_server_error(self, start_response, text=b'internal server error'):
-        start_response('500 Internal Server Error', [self.get_date_header(),
-                                                     ('Content-Type', 'text/plain'),
-                                                     ('Content-Length', str(len(text)))])
+    def service_unavaiilable(self, start_response, text=b'Service unavailable', headers: Headers = ()):
+        start_response('503 Service Unavailable', [self.get_date_header(),
+                                                   ('Content-Type', 'text/plain'),
+                                                   ('Content-Length', str(len(text))),
+                                                   *headers,])
         return [text]
 
-    def deliver_tile(self, start_response, etag, data):
+    def deliver_tile(self, start_response, etag, data, headers: Headers = ()):
         start_response('200 OK', [self.get_date_header(),
                                   ('Content-Type', 'image/png'),
                                   ('Content-Length', str(len(data))),
@@ -238,9 +242,16 @@ class TileServer:
         if path_info == '/health/ready':
             return self.readiness_check_response(start_response)
 
+        origin_header = env.get("HTTP_ORIGIN", "null")
+        cors_headers = []
+        if origin_header != "null":
+            cors_headers = (
+                ('Access-Control-Allow-Origin', origin_header),
+            )
+
         match = self.path_regex.match(path_info)
         if match is None:
-            return self.not_found(start_response, b'invalid tile path.')
+            return self.not_found(start_response, b'invalid tile path.', headers=cors_headers)
 
         level, zoom, x, y, _, theme = match.groups()
         if theme is None:
@@ -248,21 +259,22 @@ class TileServer:
 
         zoom = int(zoom)
         if not (-2 <= zoom <= 5):
-            return self.not_found(start_response, b'zoom out of bounds.')
+            return self.not_found(start_response, b'zoom out of bounds.', headers=cors_headers)
 
         # do this to be thread safe
         try:
             cache_package = self.get_cache_package()
         except Exception as e:
             logger.error('get_cache_package() failed: %s' % e)
-            return self.internal_server_error(start_response)
+            return self.service_unavaiilable(start_response, b'upstream sync failed',
+                                             headers=cors_headers)
 
         # check if bounds are valid
         x = int(x)
         y = int(y)
         minx, miny, maxx, maxy = get_tile_bounds(zoom, x, y)
         if not cache_package.bounds_valid(minx, miny, maxx, maxy):
-            return self.not_found(start_response, b'coordinates out of bounds.')
+            return self.not_found(start_response, b'coordinates out of bounds.', headers=cors_headers)
 
         # get level
         level = int(level)
@@ -270,7 +282,7 @@ class TileServer:
         theme = None if theme_id == 0 else theme_id
         level_data = cache_package.levels.get((level, theme))
         if level_data is None:
-            return self.not_found(start_response, b'invalid level or theme.')
+            return self.not_found(start_response, b'invalid level or theme.', headers=cors_headers)
 
         # build cache keys
         last_update = level_data.history.last_update(minx, miny, maxx, maxy)
@@ -292,7 +304,12 @@ class TileServer:
                 access_cache_key = build_access_cache_key(access_permissions)
 
         if not all((r in access_permissions) for r in level_data.global_restrictions):
-            return self.not_found(start_response, b'invalid level or theme.')
+            return self.not_found(start_response, b'invalid level or theme.', headers=cors_headers)
+
+        if cors_headers:
+            cors_headers += (
+                ('Access-Control-Expose-Headers', 'ETag'),
+            )
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
@@ -300,7 +317,8 @@ class TileServer:
         if if_none_match == tile_etag:
             start_response('304 Not Modified', [self.get_date_header(),
                                                 ('Content-Length', '0'),
-                                                ('ETag', tile_etag)])
+                                                ('ETag', tile_etag),
+                                                *cors_headers,])
             return [b'']
 
         cache_key = path_info+'_'+tile_etag
@@ -308,22 +326,26 @@ class TileServer:
         if cached_result is not None:
             return self.deliver_tile(start_response, tile_etag, cached_result)
 
-        r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' %
-                         (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
-                         headers=self.auth_headers, auth=self.http_auth)
+        try:
+            r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' %
+                             (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
+                             headers=self.auth_headers, auth=self.http_auth)
+        except ConnectionError:
+            return self.service_unavaiilable(start_response, b'upstream fetch failed',
+                                             headers=cors_headers)
+
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
             if int(r.headers.get('X-Processed-Geometry-Update', 0)) < self.processed_geometry_update:
-                error = b'upstream is outdated'
-                start_response('503 Service Unavailable', [self.get_date_header(),
-                                                           ('Content-Length', len(error))])
-                return [error]
+                return self.service_unavaiilable(start_response, b'upstream is outdated',
+                                                 headers=cors_headers)
             self.cache.set(cache_key, r.content)
-            return self.deliver_tile(start_response, tile_etag, r.content)
+            return self.deliver_tile(start_response, tile_etag, r.content, headers=cors_headers)
 
         start_response('%d %s' % (r.status_code, r.reason), [
             self.get_date_header(),
             ('Content-Length', str(len(r.content))),
-            ('Content-Type', r.headers.get('Content-Type', 'text/plain'))
+            ('Content-Type', r.headers.get('Content-Type', 'text/plain')),
+            *cors_headers,
         ])
         return [r.content]
 
