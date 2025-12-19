@@ -390,6 +390,7 @@ MIDDLEWARE = [
     'c3nav.mapdata.middleware.NoLanguageMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -559,6 +560,12 @@ PRIMARY_COLOR_RANDOMISATION = {
     'chroma': float(config.get('primary_color_randomization', 'chroma', fallback='0.5')),
     'lightness': float(config.get('primary_color_randomization', 'lightness', fallback='0.3')),
 }
+
+
+CORS_URLS_REGEX = r"^/api/v2/map/.*$"
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_METHODS = ["GET"]
+CORS_EXPOSE_HEADERS = ["ETag"]
 
 
 def oklch_to_oklab(L, C, h):
