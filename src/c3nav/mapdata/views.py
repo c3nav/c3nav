@@ -1,7 +1,7 @@
 import base64
 import json
 import os
-from collections import Counter
+from collections import Counter, defaultdict
 from shutil import rmtree
 from typing import Optional, Union, Literal
 from wsgiref.util import FileWrapper
@@ -150,7 +150,7 @@ def cache_preview(request, ext, key, last_update, render_fn):
 
 
 @no_language()
-def preview_location(request, slug):
+def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]]):
     from c3nav.site.views import check_location
     from c3nav.mapdata.utils.locations import CustomLocation
     from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -161,6 +161,9 @@ def preview_location(request, slug):
     highlight = True
     if location is None:
         raise Http404
+
+    cache_package = CachePackage.open_cached()
+    theme = None if settings.DEFAULT_THEME == 0 else settings.DEFAULT_THEME  # previews use the default theme
 
     slug = location.effective_slug
 
@@ -176,8 +179,17 @@ def preview_location(request, slug):
         level = location.pk
         highlight = False
     elif isinstance(location, LocationGroup):
-        counts = Counter([loc.level_id for loc in location.locations])
-        level = counts.most_common(1)[0][0]
+        area_by_level = defaultdict(lambda: 0)
+        for loc in location.locations:
+            if (loc.level_id, theme) not in cache_package.levels:
+                continue
+            if isinstance(loc, GeometryMixin):
+                area_by_level[loc.level_id] += max(loc.geometry.area, 3)
+
+        if not area_by_level:
+            raise Http404
+
+        level, max_area = max(area_by_level.items())
         geometries = [loc.geometry for loc in location.locations if loc.level_id == level]
         highlight = True
     elif isinstance(location, Position):
@@ -189,15 +201,11 @@ def preview_location(request, slug):
     else:
         raise NotImplementedError(f'location type {type(location)} is not supported yet')
 
-    cache_package = CachePackage.open_cached()
-
     from c3nav.mapdata.utils.geometry import unwrap_geom
     geometries = [geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry) for geometry in
                   geometries]
 
     minx, miny, maxx, maxy, img_scale = bounds_for_preview(unary_union(geometries), cache_package)
-
-    theme = None if settings.DEFAULT_THEME == 0 else settings.DEFAULT_THEME  # previews use the default theme
 
     level_data = cache_package.levels.get((level, theme))
     if level_data is None:

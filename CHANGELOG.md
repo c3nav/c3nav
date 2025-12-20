@@ -15,6 +15,7 @@ and potential backwards incompatibilities.
 - Tileserver now reloads cache packages at a deterministic time, so they should update around the same time
 - Fix locationredirects API
 - WEBP support
+- Better preview rendering of multi-level location groups
 
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
 
