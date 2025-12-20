@@ -2904,7 +2904,7 @@ LevelControl = L.Control.extend({
     },
 
     createTileLayer: function (id) {
-        const urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${this.currentTheme}.png`;
+        const urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${this.currentTheme}.webp`;
         return L.tileLayer(urlPattern, {
             minZoom: -2,
             maxNativeZoom: 5,

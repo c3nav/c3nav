@@ -18,6 +18,16 @@ class AccessPermissionsConverter:
         return '-'.join(str(i) for i in value)
 
 
+class TileFileExtConverter:
+    regex = '(png|webp)'
+
+    def to_python(self, value):
+        return value
+
+    def to_url(self, value):
+        return value
+
+
 class HistoryModeConverter:
     regex = '(base|composite)'
 

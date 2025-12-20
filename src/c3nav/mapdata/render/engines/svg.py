@@ -6,6 +6,7 @@ from itertools import chain
 from typing import Optional
 
 import numpy as np
+from PIL import Image
 from django.conf import settings
 from django.core import checks
 from shapely.affinity import translate
@@ -27,8 +28,6 @@ if settings.SVG_RENDERER == 'rsvg':
         gi.require_version('Rsvg', '2.0')
         import cairo
         from gi.repository import Rsvg
-elif settings.SVG_RENDERER == 'rsvg-convert':
-    from PIL import Image
 
 
 def unwrap_hybrid_geom(geom):
@@ -52,8 +51,14 @@ def check_svg_renderer(app_configs, **kwargs):
     return errors
 
 
+webp_kwargs = {
+    **({"quality": settings.WEBP_QUALITY} if settings.WEBP_QUALITY < 100 else {"lossless": True}),
+    "method": 6,
+}
+
+
 class SVGEngine(RenderEngine):
-    filetype = 'png'
+    filetype = ('png', 'svg')
 
     # draw an svg image. supports pseudo-3D shadow-rendering
     def __init__(self, *args, **kwargs):
@@ -98,8 +103,8 @@ class SVGEngine(RenderEngine):
         result += '</svg>'
         return result
 
-    def render(self, filename=None):
-        # render the image to png. returns bytes if f is None, otherwise it calls f.write()
+    def render(self) -> tuple[bytes, bytes]:
+        # render the image to png and webp. returns bytes if f is None, otherwise it calls f.write()
 
         if self.width == 256 and self.height == 256 and not self.g:
             # create empty tile png with minimal size, indexed color palette with only one entry
@@ -132,10 +137,18 @@ class SVGEngine(RenderEngine):
             context.set_source_surface(buffered_surface, -self.buffer, -self.buffer)
             context.paint()
 
-            f = io.BytesIO()
-            surface.write_to_png(f)
-            f.seek(0)
-            return f.read()
+            f_png = io.BytesIO()
+            surface.write_to_png(f_png)
+
+            # write webp
+            f_webp = io.BytesIO()
+            f_png.seek(0)
+            Image.open(f_png).save(f_webp, "webp", **webp_kwargs)
+
+            f_png.seek(0)
+            f_webp.seek(0)
+
+            return f_png.read(), f_webp.read()
 
         elif settings.SVG_RENDERER == 'rsvg-convert':
             p = subprocess.run(('rsvg-convert', '-b', self.background, '--format', 'png'),
@@ -146,17 +159,29 @@ class SVGEngine(RenderEngine):
                             self.buffer + self.width,
                             self.buffer + self.height))
 
-            f = io.BytesIO()
-            img.save(f, 'PNG')
-            f.seek(0)
-            return f.read()
+            f_png = io.BytesIO()
+            img.save(f_png, 'PNG')
+
+            f_webp = io.BytesIO()
+            img.save(f_webp, 'WEBP', **webp_kwargs)
+
+            f_png.seek(0)
+            f_webp.seek(0)
+
+            return f_png.read(), f_webp.read()
 
         elif settings.SVG_RENDERER == 'inkscape':
             p = subprocess.run(('inkscape', '-z', '-b', self.background, '-e', '/dev/stderr', '/dev/stdin'),
                                input=self.get_xml().encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                check=True)
-            png = p.stderr[p.stderr.index(b'\x89PNG'):]
-            return png
+            png: bytes = p.stderr[p.stderr.index(b'\x89PNG'):]  # noqa
+
+            # write webp
+            f_webp = io.BytesIO()
+            Image.open(io.BytesIO(png)).save(f_webp, "webp", **webp_kwargs)
+            f_webp.seek(0)
+
+            return png, f_webp.read()
 
     def _trim_decimals(self, data):
         # remove trailing zeros from a decimal – yes this is slow, but it greatly speeds up cairo rendering

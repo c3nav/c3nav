@@ -34,7 +34,7 @@ type Headers = tuple[tuple[str, str], ...]
 
 class TileServer:
     def __init__(self):
-        self.path_regex = re.compile(r'^/(\d+)/(-?\d+)/(-?\d+)/(-?\d+)(/(-?\d+))?.png$')
+        self.path_regex = re.compile(r'^/(\d+)/(-?\d+)/(-?\d+)/(-?\d+)(/(-?\d+))?.(png|webp)$')
 
         self.cookie_regex = re.compile(r'(^| )c3nav_tile_access="?([^;" ]+)"?')
 
@@ -174,9 +174,9 @@ class TileServer:
                                                    *headers,])
         return [text]
 
-    def deliver_tile(self, start_response, etag, data, headers: Headers = ()):
+    def deliver_tile(self, start_response, etag, data, ext, headers: Headers = ()):
         start_response('200 OK', [self.get_date_header(),
-                                  ('Content-Type', 'image/png'),
+                                  ('Content-Type', f'image/{ext}'),
                                   ('Content-Length', str(len(data))),
                                   ('Cache-Control', 'no-cache'),
                                   ('ETag', etag)])
@@ -254,7 +254,7 @@ class TileServer:
         if match is None:
             return self.not_found(start_response, b'invalid tile path.', headers=cors_headers)
 
-        level, zoom, x, y, _, theme = match.groups()
+        level, zoom, x, y, _, theme, ext = match.groups()
         if theme is None:
             theme = 0
 
@@ -325,22 +325,21 @@ class TileServer:
         cache_key = path_info+'_'+tile_etag
         cached_result = self.cache.get(cache_key)
         if cached_result is not None:
-            return self.deliver_tile(start_response, tile_etag, cached_result, headers=cors_headers)
+            return self.deliver_tile(start_response, tile_etag, cached_result, ext, headers=cors_headers)
 
         try:
-            r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' %
-                             (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
+            r = requests.get(f'{self.upstream_base}/map/{level}/{zoom}/{x}/{y}/{theme_id}/{access_cache_key}.{ext}',
                              headers=self.auth_headers, auth=self.http_auth)
         except ConnectionError:
             return self.service_unavaiilable(start_response, b'upstream fetch failed',
                                              headers=cors_headers)
 
-        if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
+        if r.status_code == 200 and r.headers['Content-Type'] == f'image/{ext}':
             if int(r.headers.get('X-Processed-Geometry-Update', 0)) < self.processed_geometry_update:
                 return self.service_unavaiilable(start_response, b'upstream is outdated',
                                                  headers=cors_headers)
             self.cache.set(cache_key, r.content)
-            return self.deliver_tile(start_response, tile_etag, r.content, headers=cors_headers)
+            return self.deliver_tile(start_response, tile_etag, r.content, ext, headers=cors_headers)
 
         start_response('%d %s' % (r.status_code, r.reason), [
             self.get_date_header(),

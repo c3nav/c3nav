@@ -94,7 +94,11 @@ engines_by_filetype = {}
 
 
 def register_engine(engine=None):
-    engines_by_filetype[engine.filetype] = engine
+    if isinstance(engine.filetype, tuple):
+        for i, filetype in enumerate(engine.filetype):
+            engines_by_filetype[filetype] = (engine, i)
+    else:
+        engines_by_filetype[engine.filetype] = (engine, None)
     return engine
 
 

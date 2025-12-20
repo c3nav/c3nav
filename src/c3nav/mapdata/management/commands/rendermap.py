@@ -126,12 +126,18 @@ class Command(BaseCommand):
             filename = settings.RENDER_ROOT / ('%s.%s' % (name, options['filetype']))
 
             if options['filetype'] == 'svg':
-                render = renderer.render(get_engine('png'), options['theme'], center=not options['no_center'])
+                engine, index = get_engine('png')
+                render = renderer.render(engine, options['theme'], center=not options['no_center'])
                 data = render.get_xml().encode()
+                if index is not None:
+                    data = data[index]
             else:
-                render = renderer.render(get_engine(options['filetype']), options['theme'],
+                engine, index = get_engine(options['filetype'])
+                render = renderer.render(engine, options['theme'],
                                          center=not options['no_center'])
-                data = render.render(filename)
+                data = render.render()
+                if index is not None:
+                    data = data[index]
             if isinstance(data, tuple):
                 other_data = data[1:]
                 data = data[0]

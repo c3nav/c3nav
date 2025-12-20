@@ -183,6 +183,8 @@ RENDER_SCALE = config.getfloat('c3nav', 'render_scale', fallback=20.0)
 IMAGE_RENDERER = config.get('c3nav', 'image_renderer', fallback='svg')
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 
+WEBP_QUALITY = config.getint('c3nav', 'webp_quality', fallback=95)
+
 CACHE_TILES = config.getboolean('c3nav', 'cache_tiles', fallback=not DEBUG)
 CACHE_PREVIEWS = config.getboolean('c3nav', 'cache_previews', fallback=not DEBUG)
 CACHE_RESOLUTION = config.getint('c3nav', 'cache_resolution', fallback=4)

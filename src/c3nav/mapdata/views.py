@@ -3,7 +3,7 @@ import json
 import os
 from collections import Counter
 from shutil import rmtree
-from typing import Optional
+from typing import Optional, Union, Literal
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
@@ -88,7 +88,7 @@ def bounds_for_preview(geometry, cache_package):
     return minx, miny, maxx, maxy, img_scale
 
 
-def cache_preview(request, key, last_update, render_fn):
+def cache_preview(request, ext, key, last_update, render_fn):
     import binascii
     import hashlib
     base_cache_key = build_base_cache_key(last_update)
@@ -102,7 +102,7 @@ def cache_preview(request, key, last_update, render_fn):
     if settings.CACHE_PREVIEWS:
         previews_directory = settings.PREVIEWS_ROOT / key
         last_update_file = previews_directory / 'last_update'
-        preview_file = previews_directory / 'preview.png'
+        preview_file = previews_directory / f'preview.{ext}'
 
         preview_cache_update_cache_key = 'mapdata:preview-cache-update:%s' % key
         preview_cache_update = cache.get(preview_cache_update_cache_key, None)
@@ -126,14 +126,23 @@ def cache_preview(request, key, last_update, render_fn):
                 pass
 
     if data is None:
-        data = render_fn()
+        data_png, data_webp = render_fn()
+
         if settings.CACHE_PREVIEWS:
             os.makedirs(previews_directory, exist_ok=True)
-            preview_file.write_bytes(data)
+
+            preview_file_png = previews_directory / 'preview.png'
+            preview_file_webp = previews_directory / 'preview.webp'
+
+            preview_file_png.write_bytes(data_png)
+            preview_file_webp.write_bytes(data_webp)
+
             last_update_file.write_text(base_cache_key)
             cache.set(preview_cache_update_cache_key, base_cache_key, 60)
 
-    response = HttpResponse(data, 'image/png')
+        data = data_png if ext == "png" else data_webp
+
+    response = HttpResponse(data, f'image/{ext}')
     response['ETag'] = preview_etag
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'
@@ -207,11 +216,11 @@ def preview_location(request, slug):
                                    category='highlight')
         return image.render()
 
-    return cache_preview(request, slug, level_data.history.last_update(minx, miny, maxx, maxy), render_preview)
+    return cache_preview(request, ext, slug, level_data.history.last_update(minx, miny, maxx, maxy), render_preview)
 
 
 @no_language()
-def preview_route(request, slug, slug2):
+def preview_route(request, slug, slug2, ext: Union[Literal["png"], Literal["webp"]]):
     from c3nav.routing.router import Router
     from c3nav.routing.models import RouteOptions
     from c3nav.routing.exceptions import NotYetRoutable
@@ -328,13 +337,15 @@ def preview_route(request, slug, slug2):
                                category='route')
         return image.render()
 
-    return cache_preview(request, f'{slug}:{slug2}', level_data.history.last_update(minx, miny, maxx, maxy),
+    return cache_preview(request, ext, f'{slug}:{slug2}',
+                         level_data.history.last_update(minx, miny, maxx, maxy),
                          render_preview)
 
 
 @no_language()
 @allow_cors()
-def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = None):
+def tile(request, level, zoom, x, y, theme, ext: Union[Literal["png"], Literal["webp"]],
+         access_permissions: Optional[set] = None):
     if access_permissions is not None:
         enforce_tile_secret_auth(request)
     elif settings.TILE_CACHE_SERVER:
@@ -399,7 +410,7 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
     if settings.CACHE_TILES:
         tile_directory = settings.TILES_ROOT / str(level) / str(zoom) / str(x) / str(y) / access_cache_key
         last_update_file = tile_directory / 'last_update'
-        tile_file = tile_directory / f'{theme_key}.png'
+        tile_file = tile_directory / f'{theme_key}.{ext}'
 
         # get tile cache last update
         tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
@@ -426,15 +437,23 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
     if data is None:
         renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=2 ** zoom, access_permissions=access_permissions)
         image = renderer.render(ImageRenderEngine, theme=theme)
-        data = image.render()
+        data_png, data_webp = image.render()
 
         if settings.CACHE_TILES:
             os.makedirs(tile_directory, exist_ok=True)
-            tile_file.write_bytes(data)
+
+            tile_file_png = tile_directory / f'{theme_key}.png'
+            tile_file_webp = tile_directory / f'{theme_key}.webp'
+
+            tile_file_png.write_bytes(data_png)
+            tile_file_webp.write_bytes(data_webp)
+
             last_update_file.write_text(base_cache_key)
             cache.set(tile_cache_update_cache_key, base_cache_key, 60)
 
-    response = HttpResponse(data, 'image/png')
+        data = data_png if ext == "png" else data_webp
+
+    response = HttpResponse(data, f'image/{ext}')
     response['ETag'] = tile_etag
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'

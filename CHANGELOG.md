@@ -14,6 +14,7 @@ and potential backwards incompatibilities.
 - Make altitude area generation deterministic again
 - Tileserver now reloads cache packages at a deterministic time, so they should update around the same time
 - Fix locationredirects API
+- WEBP support
 
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
 

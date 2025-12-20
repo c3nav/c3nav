@@ -154,6 +154,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
             'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.route', kwargs={
                 'slug': origin.effective_slug,
                 'slug2': destination.effective_slug,
+                'ext': 'webp',
             })),
             'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
                 'mode': 'r',
@@ -176,7 +177,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
             'title': title,
             'description': subtitle,
             'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location',
-                                                                  kwargs={'slug': loc_slug})),
+                                                                  kwargs={'slug': loc_slug, 'ext': 'webp'})),
             'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
                 'mode': 'l',
                 'slug': loc_slug,
@@ -189,7 +190,8 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
             'title': settings.BRANDING,
             # 'description': '',
             'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location',
-                                                                  kwargs={'slug': settings.MAIN_PREVIEW_SLUG})),
+                                                                  kwargs={'slug': settings.MAIN_PREVIEW_SLUG,
+                                                                          'ext': 'webp'})),
             'canonical_url': request.build_absolute_uri('/'),
         }
     else:
