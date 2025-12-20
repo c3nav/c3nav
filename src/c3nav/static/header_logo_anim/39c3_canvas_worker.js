@@ -3,18 +3,18 @@ let canvas, ctx, frame;
 let dpr = 1.0;
 
 // The text and x y coords within canvas
-const text = "C3NAV";
+let text = "C3NAV";
 
 // min max weight and how many steps/how smooth
 const minWeight = 10;
 const maxWeight = 100;
-const weightStep = 10;
+const weightStep = 5;
 
 // which font and size
 const fontSize = 30;
 const fontFamily = 'KarioDuplexVar';
 const fontFallback = 'sans-serif';
-const fontURL = "url('/static/39c3/fonts/Kario39C3VarWEB-Roman.woff2')";
+const fontURL = "url('/static/header_logo_anim/Kario39C3VarWEB-Roman.woff2')";
 const fontStyle = {
     style: "normal",
     weight: "10 100"
@@ -22,9 +22,9 @@ const fontStyle = {
 const letterSpacing = 0;
 
 // time between frames
-const speed = 0.005;
+const speed = 0.004;
 // time between letters (phase)
-const phaseDist = 0.7
+const phaseDist = 0.7;
 
 const font = new FontFace(fontFamily, fontURL, fontStyle);
 
@@ -34,6 +34,9 @@ self.onmessage = (e) => {
         canvas = e.data.canvas;
         dpr = e.data.dpr;
         ctx = canvas.getContext("2d");
+
+        if (e.data.text && e.data.text.toUpperCase() !== text.toUpperCase())
+            text = e.data.text.toUpperCase();
 
         font.load().then(() => {
             // Setup with loaded font

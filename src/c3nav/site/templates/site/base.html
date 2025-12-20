@@ -85,17 +85,20 @@
                     _logo_canvas.style.zIndex = '1';
                     
                     if (!_logo_offscreen) {
+                        const _logo_linkText = _logo_link.textContent.trim();
+                        const _dpr = window.devicePixelRatio;
+
                         if (_logo_canvas.clientWidth < _logo_link.clientWidth) {
-                            _logo_canvas.style.width = _logo_link.clientWidth + 'px';
+                            _logo_canvas.style.width = _logo_link.clientWidth + _logo_linkText.length + 'px';
                         }
 
-                        _logo_canvas.width = _logo_canvas.clientWidth * window.devicePixelRatio;
-                        _logo_canvas.height = _logo_canvas.clientHeight * window.devicePixelRatio;
+                        _logo_canvas.width = _logo_canvas.clientWidth * _dpr;
+                        _logo_canvas.height = _logo_canvas.clientHeight * _dpr;
                         
                         _logo_offscreen = _logo_canvas.transferControlToOffscreen();
 
                         // Send the offscreen logo canvas to the worker
-                        _logo_worker.postMessage({ canvas: _logo_offscreen, dpr: window.devicePixelRatio }, [_logo_offscreen]);
+                        _logo_worker.postMessage({ canvas: _logo_offscreen, dpr: _dpr, text: _logo_linkText }, [_logo_offscreen]);
                     }
                     // Instruct worker to resume animation
                     _logo_worker.postMessage({ pause: false });
