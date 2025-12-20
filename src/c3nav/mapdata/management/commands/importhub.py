@@ -37,7 +37,7 @@ class Command(BaseCommand):
     help = 'import from hub'
 
     def handle(self, *args, **options):
-        r = requests.get(settings.HUB_API_BASE+"/integration/c3nav",
+        r = requests.get(settings.HUB_API_BASE+"/integrations/c3nav/",
                          headers={"Authorization": "Token "+settings.HUB_API_SECRET})
         r.raise_for_status()
 
