@@ -50,6 +50,9 @@ def mapdata_list_endpoint(request,
     if filters:
         qs = filters.filter_qs(request, qs)
 
+    if model == LocationRedirect:
+        qs = qs.exclude(slug=None)
+
     # order_by
     qs = qs.order_by(*order_by)
 

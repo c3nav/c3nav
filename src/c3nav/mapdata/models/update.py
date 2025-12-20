@@ -207,6 +207,10 @@ class MapUpdate(models.Model):
                 cls.current_processed_geometry_cache_key(),
             )
 
+            # todo: we don't know how these get created, but this is how they get deleted! >:3
+            from c3nav.mapdata.models.locations import LocationRedirect
+            LocationRedirect.objects.filter(slug=None).delete()
+
             for key in prev_keys:
                 transaction.on_commit(lambda: delete_map_cache_key.delay(cache_key=key))
 
