@@ -46,7 +46,7 @@ class InternalRoomNumberQuest(Quest):
     @property
     def quest_description(self) -> list[str]:
         return [
-            _("Find the internal room number of this space. You find it on the door sign at the bottom."),
+            _("Find the internal room number of “%s”. You find it on the door sign at the bottom.") % self.obj.title,
             _("If you are sure the space has no such sign, just enter a dash."),
         ]
 
