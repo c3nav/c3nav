@@ -160,8 +160,11 @@ c3nav = {
             }
 
         } else {
-            if (navigator.bluetooth && navigator.bluetooth.getAvailability())
+            if (navigator.bluetooth && navigator.bluetooth.getAvailability()) {
                 c3nav._set_user_location(null);
+            } else {
+                c3nav._set_user_location(null);
+            }
 
             document.addEventListener('visibilitychange', c3nav.on_visibility_change, false);
         }
@@ -1104,7 +1107,7 @@ c3nav = {
             .on('blur', c3nav._locationinput_blur)
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
-        $('.locationinput .locate').toggle(c3nav.ssids).on('click', c3nav._locationinput_locate);
+        $('.locationinput .locate').toggle(c3nav.ssids !== null).on('click', c3nav._locationinput_locate);
         $('.locationinput .random').on('click', c3nav._random_location_click);
         $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function (e) {
             e.stopPropagation();
@@ -2622,7 +2625,6 @@ c3nav = {
             $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
-            //$('.locationinput .locate, .leaflet-control-user-location a').hide();
             $('.leaflet-control-user-location a').toggleClass('control-disabled', true);
         }
         if (typeof mobileclient !== 'undefined' && mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
