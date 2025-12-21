@@ -2622,7 +2622,7 @@ c3nav = {
             $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
-            $('.locationinput .locate, .leaflet-control-user-location a').hide();
+            //$('.locationinput .locate, .leaflet-control-user-location a').hide();
             $('.leaflet-control-user-location a').toggleClass('control-disabled', true);
         }
         if (typeof mobileclient !== 'undefined' && mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
