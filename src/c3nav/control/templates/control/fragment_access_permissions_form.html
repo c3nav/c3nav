@@ -21,6 +21,11 @@
                 {{ access_permission_form.unlimited }}
             </div>
         {% endif %}
+        {% if access_permission_form.username %}
+            <div class="field">
+                {{ access_permission_form.username }}
+            </div>
+        {% endif %}
         <div class="field">
             <button type="submit" name="submit_access_permissions" value="1">{{ button_label }}</button>
         </div>

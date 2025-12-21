@@ -10,7 +10,8 @@ from typing import Sequence
 
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
-from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select, MultipleChoiceField
+from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select, MultipleChoiceField, CharField
+from django.forms.widgets import TextInput
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
@@ -46,7 +47,7 @@ class UserPermissionsForm(ModelForm):
 
 
 class AccessPermissionForm(Form):
-    def __init__(self, request=None, author=None, expire_date=None, *args, **kwargs):
+    def __init__(self, request=None, author=None, expire_date=None, by_name=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # remember author if this form is saved
@@ -159,6 +160,10 @@ class AccessPermissionForm(Form):
             choices = [('0', '---')] * 6 + [('1', _('UNLIMITED'))] + [('0', '---')] * 3
             self.fields['unlimited'] = ChoiceField(required=False, initial='0', choices=choices)
 
+        if by_name:
+            self.fields['username'] = CharField(required=False, initial='',
+                                                widget=TextInput(attrs={'placeholder': 'username (optional)'}))
+
     def clean_access_restrictions(self):
         data = self.cleaned_data['access_restrictions']
         return self.access_restriction_choices[data]
@@ -168,9 +173,6 @@ class AccessPermissionForm(Form):
         if data == '':
             return None
         return timezone.now()+timedelta(minutes=int(data))
-
-    def save(self, user):
-        self._save_code(self._create_code(), user)
 
     def get_token(self, unique_key=None):
         # create an AccessPermissionToken from this form and return it

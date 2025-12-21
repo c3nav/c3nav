@@ -3,7 +3,9 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -18,17 +20,29 @@ from c3nav.mapdata.models.access import AccessPermissionToken
 @control_panel_view
 def grant_access(request):  # todo: make class based view
     if request.method == 'POST' and request.POST.get('submit_access_permissions'):
-        form = AccessPermissionForm(request=request, data=request.POST)
+        form = AccessPermissionForm(request=request, by_name=True, data=request.POST)
         if form.is_valid():
             token = form.get_token()
             token.save()
+
+            username = form.cleaned_data.get("username","").strip()
+            if username:
+                try:
+                    user = get_user_model().objects.get(username=username)
+                except ObjectDoesNotExist:
+                    pass
+                else:
+                    token.redeem(user)
+                messages.success(request, _('If the username exists, access has been granted to that user.'))
+                return redirect(reverse('control.access'))
+
             if settings.DEBUG:
                 with suppress(ValueError):
                     signed_data = form.get_signed_data()
                     print('/?'+urlencode({'access': signed_data}))
             return redirect(reverse('control.access.qr', kwargs={'token': token.token}))
     else:
-        form = AccessPermissionForm(request=request)
+        form = AccessPermissionForm(request=request, by_name=True)
 
     ctx = {
         'access_permission_form': form,
