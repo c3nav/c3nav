@@ -278,7 +278,7 @@ def close_response(request):
     # todo: use a better way to recognize this
     ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET
     if ajax:
-        return HttpResponse(json.dumps(request.user_data, cls=DjangoJSONEncoder).encode(),
+        return HttpResponse(json.dumps(dict(request.user_data), cls=DjangoJSONEncoder).encode(),
                             content_type='text/plain')
     redirect_path = request.GET['next'] if request.GET.get('next', '').startswith('/') else reverse('site.index')
     return redirect(redirect_path)
