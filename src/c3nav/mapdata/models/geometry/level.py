@@ -141,6 +141,8 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
                                                    'leave or cross descriptions to this room will be generated.'))
     media_panel_done = models.BooleanField(default=False, verbose_name=_("All media panels mapped"))
 
+    internal_room_number = models.CharField(null=True, blank=True, verbose_name=_("Internal Room Number"))
+
     class Meta:
         verbose_name = _('Space')
         verbose_name_plural = _('Spaces')
@@ -151,6 +153,15 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
         if "geometry" in self.get_deferred_fields():
             return None
         return grid.get_squares_for_bounds(self.geometry.bounds) or ''
+
+    @property
+    def subtitle(self):
+        base_subtitle = super().subtitle
+        if self.internal_room_number and self.internal_room_number != '-':
+            return format_lazy(_('{internal_room_number}, {rest}'),
+                               internal_room_number=self.internal_room_number,
+                               rest=base_subtitle)
+        return base_subtitle
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
