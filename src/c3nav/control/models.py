@@ -42,7 +42,7 @@ class UserPermissions(models.Model):
     mesh_control = models.BooleanField(default=False, verbose_name=_('can access mesh control'))
 
     nonpublic_themes = models.BooleanField(default=False, verbose_name=_('show non-public themes in theme selector'))
-    quests: list[str] = SchemaField(schema=list[str], default=list)
+    quests: list[str] = SchemaField(schema=list[str], default=list, blank=True)
     impolite_quests = models.BooleanField(default=False, verbose_name=_('dont say thanks after completing a quest'))
     passive_ap_name_scanning = models.BooleanField(default=False, verbose_name=_('passive ap name scanning'))
     can_write_load_data = models.BooleanField(default=False, verbose_name=_('write load data'))
