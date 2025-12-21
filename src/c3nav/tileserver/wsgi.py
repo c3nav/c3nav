@@ -323,7 +323,11 @@ class TileServer:
             return [b'']
 
         cache_key = path_info+'_'+tile_etag
-        cached_result = self.cache.get(cache_key)
+        try:
+            cached_result = self.cache.get(cache_key)
+        except pylibmc.Error as e:
+            logger.error("Can't read tile from memcached: " + repr(cache_key))
+            cached_result = None
         if cached_result is not None:
             return self.deliver_tile(start_response, tile_etag, cached_result, ext, headers=cors_headers)
 
@@ -338,7 +342,11 @@ class TileServer:
             if int(r.headers.get('X-Processed-Geometry-Update', 0)) < self.processed_geometry_update:
                 return self.service_unavaiilable(start_response, b'upstream is outdated',
                                                  headers=cors_headers)
-            self.cache.set(cache_key, r.content)
+            try:
+                self.cache.set(cache_key, r.content)
+            except pylibmc.Error as e:
+                logger.error("Can't write tile to cache: " + repr(cache_key))
+
             return self.deliver_tile(start_response, tile_etag, r.content, ext, headers=cors_headers)
 
         start_response('%d %s' % (r.status_code, r.reason), [
