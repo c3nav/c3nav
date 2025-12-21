@@ -3960,10 +3960,6 @@ msgid "German"
 msgstr "Deutsch"
 
 #: c3nav/site/compliance.py
-msgid "I do not read fefe or i only read the sports section."
-msgstr "Ich lese kein Fefe oder nur den Sportteil."
-
-#: c3nav/site/compliance.py
 msgid ""
 "I am not affiliated with Automattic in any way, financially or otherwise."
 msgstr ""

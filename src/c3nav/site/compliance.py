@@ -7,7 +7,6 @@ from django.conf import settings
 
 
 login_options = (
-    _('I do not read fefe or i only read the sports section.'),
     _('I am not affiliated with Automattic in any way, financially or otherwise.'),
     _('I am not Anish Kapoor, i am in no way affiliated to Anish Kapoor, I am not signing in on behalf of '
       'Anish Kapoor or an associate of Anish Kapoor. To the best of my knowledge, information and belief, this account '
