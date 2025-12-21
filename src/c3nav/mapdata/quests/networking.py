@@ -89,7 +89,7 @@ class MediaPanelFinderQuest(Quest):
 
     @property
     def point(self) -> Point:
-        return mapping(self.obj.geometry)
+        return mapping(self.obj.point)
 
     @classmethod
     def _qs_for_request(cls, request):
