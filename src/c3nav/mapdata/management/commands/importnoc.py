@@ -51,7 +51,7 @@ class Command(BaseCommand):
             if item.type != "AP":
                 continue
 
-            match = re.match(r"^AP[0-9]{4}", orig_name)
+            match = re.match(r"^AP[0-9]+", orig_name)
             if match is None:
                 continue
 
