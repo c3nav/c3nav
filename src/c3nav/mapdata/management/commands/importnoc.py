@@ -82,21 +82,26 @@ class Command(BaseCommand):
 
             # build resulting object
             if not result:
+                print(f"{import_tag} / {import_tag_full} not found, creating...")
                 result = RangingBeacon(import_tag=import_tag_full, beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
                 result.geometry = point
                 result.space = new_space
                 result.ap_name = name
 
             elif result.import_tag == import_tag_full:
+                print(f"{import_tag} wasn't moved: {result.import_tag}")
                 # if the import data has not changed, there's nothing to do
                 continue
             else:
+                print(f"{import_tag} wasn moved by noc {result.import_tag} != {import_tag_full}")
                 result.import_tag = import_tag_full
-                if result.space == new_space and distance(unwrap_geom(result.geometry), point) < 1:
+                if distance(unwrap_geom(result.geometry), point) < 1:
+                    print("…noc barely moved it, so we keep it")
                     # same space and noc has moved it, but closer than 1m to where we have it, ignore
                     pass
                 else:
                     # different space or noc has moved it to a place more than 1m away from our position, update
+                    print("…it has moved enough, so we update!")
                     result.geometry = point
                     result.space = new_space
                     result.altitude_quest = True
