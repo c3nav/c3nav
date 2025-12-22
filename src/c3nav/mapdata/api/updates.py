@@ -131,6 +131,7 @@ def fetch_updates(request, response: HttpResponse):
     if cross_origin is not None:
         response['Access-Control-Allow-Origin'] = cross_origin
         response['Access-Control-Allow-Credentials'] = 'true'
+        response['Access-Control-Allow-Headers'] = 'X-API-Key, If-Modified-Since'
     set_tile_access_cookie(request, response)
 
     return result
