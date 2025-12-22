@@ -167,12 +167,19 @@ class TileServer:
                                          *headers])
         return [text]
 
-    def service_unavaiilable(self, start_response, text=b'Service unavailable', headers: Headers = ()):
+    def service_unavailable(self, start_response, text=b'Service unavailable', headers: Headers = ()):
         start_response('503 Service Unavailable', [self.get_date_header(),
                                                    ('Content-Type', 'text/plain'),
                                                    ('Content-Length', str(len(text))),
                                                    *headers,])
         return [text]
+
+    def not_modified(self, start_response, tile_etag, headers):
+        start_response('304 Not Modified', [self.get_date_header(),
+                                            ('Content-Length', '0'),
+                                            ('ETag', tile_etag),
+                                            *headers, ])
+        return [b'']
 
     def deliver_tile(self, start_response, etag, data, ext, headers: Headers = ()):
         start_response('200 OK', [self.get_date_header(),
@@ -267,8 +274,8 @@ class TileServer:
             cache_package = self.get_cache_package()
         except Exception as e:
             logger.error('get_cache_package() failed: %s' % e)
-            return self.service_unavaiilable(start_response, b'upstream sync failed',
-                                             headers=cors_headers)
+            return self.service_unavailable(start_response, b'upstream sync failed',
+                                            headers=cors_headers)
 
         # check if bounds are valid
         x = int(x)
@@ -316,11 +323,7 @@ class TileServer:
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
         tile_etag = build_tile_etag(level, zoom, x, y, theme_id, base_cache_key, access_cache_key, self.tile_secret)
         if if_none_match == tile_etag:
-            start_response('304 Not Modified', [self.get_date_header(),
-                                                ('Content-Length', '0'),
-                                                ('ETag', tile_etag),
-                                                *cors_headers,])
-            return [b'']
+            return self.not_modified(start_response, tile_etag, headers=cors_headers)
 
         cache_key = path_info+'_'+tile_etag
         try:
@@ -333,15 +336,21 @@ class TileServer:
 
         try:
             r = requests.get(f'{self.upstream_base}/map/{level}/{zoom}/{x}/{y}/{theme_id}/{access_cache_key}.{ext}',
-                             headers=self.auth_headers, auth=self.http_auth)
+                             headers=self.auth_headers, auth=self.http_auth, timeout=2)
+        except requests.exceptions.Timeout:
+            if if_none_match:
+                # send 304, even though it's wrong. just display an old tile, sorry.
+                return self.not_modified(start_response, tile_etag, headers=(*cors_headers, ('X-Timeout', 'true')))
+            # sorry, can't help you right now.
+            return self.service_unavailable(start_response, b'upstream timeout', headers=cors_headers)
         except ConnectionError:
-            return self.service_unavaiilable(start_response, b'upstream fetch failed',
-                                             headers=cors_headers)
+            return self.service_unavailable(start_response, b'upstream fetch failed',
+                                            headers=cors_headers)
 
         if r.status_code == 200 and r.headers['Content-Type'] == f'image/{ext}':
             if int(r.headers.get('X-Processed-Geometry-Update', 0)) < self.processed_geometry_update:
-                return self.service_unavaiilable(start_response, b'upstream is outdated',
-                                                 headers=cors_headers)
+                return self.service_unavailable(start_response, b'upstream is outdated',
+                                                headers=cors_headers)
             try:
                 self.cache.set(cache_key, r.content)
             except pylibmc.Error as e:
