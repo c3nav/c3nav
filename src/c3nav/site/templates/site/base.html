@@ -111,6 +111,10 @@
                         _logo_canvas.onclick = function() { window.open(_logo_href, '_self'); _logo_offscreen = null; };
                 });
 
+                 // Touchcompat: This prevents propagation of the event to document
+                _logo_link.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
+                _logo_canvas.addEventListener('touchstart', (e) => { e.stopPropagation(); }, { passive: true });
+
                 _logo_canvas.addEventListener('mouseleave', (e) => {
                     _logo_link.style.visibility = 'visible';
                     _logo_canvas.style.visibility = 'hidden';
@@ -121,6 +125,17 @@
 
                     _logo_canvas.onclick = null;
                 });
+
+                // Touchcompat: Simulate mouseleave if we touch anywhere else on the page, this is nonblocking
+                document.addEventListener('touchstart', (e) => {
+                    // Check if logo canvas is currently showing
+                    if (_logo_canvas.style.zIndex == 1) {
+                        const event = new MouseEvent('mouseleave', { view: window });
+
+                        // Simulate mouseleave
+                        _logo_canvas.dispatchEvent(event);
+                    }
+                }, { passive: true });
             }
         });
     </script>
