@@ -1,3 +1,5 @@
+import re
+
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -40,15 +42,23 @@ class Command(BaseCommand):
         import_helper = PointPlacementHelper()
 
         beacons_so_far: dict[str, RangingBeacon] = {
-            **{m.import_tag: m for m in RangingBeacon.objects.filter(import_tag__startswith="noc:",
-                                                                     beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)},
+            **{":".join(m.import_tag.split(':')[:2]): m
+               for m in RangingBeacon.objects.filter(import_tag__startswith="noc:",
+                                                     beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)},
         }
 
-        for name, item in items.items():
-            import_tag = f"noc:{name}"
-
+        for orig_name, item in items.items():
             if item.type != "AP":
                 continue
+
+            match = re.match(r"^AP[0-9]{4}", orig_name)
+            if match is None:
+                continue
+
+            name = match.group(0)
+
+            import_tag = f"noc:{name}"
+            import_tag_full = f"noc:{name}:{item.layer}:{item.lat}:{item.lng}"
 
             # determine geometry
             converter = settings.NOC_LAYERS.get(item.layer, None)
@@ -71,21 +81,25 @@ class Command(BaseCommand):
             result = beacons_so_far.pop(import_tag, None)
 
             # build resulting object
-            altitude_quest = True
             if not result:
-                result = RangingBeacon(import_tag=import_tag, beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
-            else:
-                if result.space == new_space and distance(unwrap_geom(result.geometry), point) < 0.03:
-                    continue
-                if result.space == new_space and distance(unwrap_geom(result.geometry), point) < 0.20:
-                    altitude_quest = False
+                result = RangingBeacon(import_tag=import_tag_full, beacon_type=RangingBeacon.BeaconType.EVENT_WIFI)
+                result.geometry = point
+                result.space = new_space
+                result.ap_name = name
 
-            result.ap_name = name
-            result.space = new_space
-            result.geometry = point
-            result.altitude = 0
-            if altitude_quest:
-                result.altitude_quest = True
+            elif result.import_tag == import_tag_full:
+                # if the import data has not changed, there's nothing to do
+                continue
+            else:
+                if result.space == new_space and distance(unwrap_geom(result.geometry), point) < 1:
+                    # same space and noc has moved it, but closer than 1m to where we have it, ignore
+                    continue
+                else:
+                    # different space or noc has moved it to a place more than 1m away from our position, update
+                    result.geometry = point
+                    result.space = new_space
+                    result.altitude_quest = True
+
             result.save()
 
         for import_tag, location in beacons_so_far.items():
