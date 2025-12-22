@@ -91,9 +91,10 @@ class Command(BaseCommand):
                 # if the import data has not changed, there's nothing to do
                 continue
             else:
+                result.import_tag = import_tag_full
                 if result.space == new_space and distance(unwrap_geom(result.geometry), point) < 1:
                     # same space and noc has moved it, but closer than 1m to where we have it, ignore
-                    continue
+                    pass
                 else:
                     # different space or noc has moved it to a place more than 1m away from our position, update
                     result.geometry = point
