@@ -80,6 +80,12 @@ header h1 a {
     line-height: 50px;
     display: block;
     height: 50px;
+    // Disable text selection
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 header h1 a, header h1 a:hover {
