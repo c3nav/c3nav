@@ -109,5 +109,5 @@ class Command(BaseCommand):
             result.save()
 
         for import_tag, location in beacons_so_far.items():
-            location.delete()
-            print(f"NOTE: {import_tag} was deleted")
+            #location.delete()
+            print(f"NOTE: {import_tag} should be deleted")
