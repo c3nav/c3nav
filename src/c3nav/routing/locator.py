@@ -13,6 +13,7 @@ from django.conf import settings
 from pydantic.types import NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
 from shapely import Point
+from shapely.ops import nearest_points
 
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.utils.locations import CustomLocation
@@ -255,6 +256,10 @@ class Locator:
             (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id == space_id
         ], key=lambda a: -a[1].rssi)
 
+        scan_data_in_other_rooms = sorted([
+            (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id != space_id
+        ], key=lambda a: -a[1].rssi)
+
         deduplicized_scan_data_in_the_same_room = []
         already_got = set()
         for peer_id, value in scan_data_in_the_same_room:
@@ -264,7 +269,8 @@ class Locator:
             already_got.add(key)
             deduplicized_scan_data_in_the_same_room.append((peer_id, value))
 
-        the_sum = sum((value.rssi + 90) for peer_id, value in deduplicized_scan_data_in_the_same_room[:3])
+        the_sum = sum((value.rssi + 90) for peer_id, value in (deduplicized_scan_data_in_the_same_room[:3]+
+                      scan_data_in_other_rooms[:1]))
 
         level = router.levels[space.level_id]
         if not the_sum:
@@ -278,8 +284,14 @@ class Locator:
                 y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
             point = Point(x/100, y/100)
 
+        # todo: add some kind of jitter
+        try:
+            point = nearest_points(space.geometry.buffer(-0.25), point)[0]
+        except KeyError:
+            point = nearest_points(space.geometry.buffer(0), point)[0]
+
         new_space, new_point = self.placement_helper.get_point_and_space(
-            level_id=level.pk, point=point,
+            level_id=level.pk, point=point, restrictions=restrictions,
             max_space_distance=20,
         )
 
@@ -290,8 +302,8 @@ class Locator:
 
         return CustomLocation(
             level=level,
-            x=point.x,
-            y=point.y,
+            x=new_point.x,
+            y=new_point.y,
             permissions=permissions,
             icon='my_location'
         )
