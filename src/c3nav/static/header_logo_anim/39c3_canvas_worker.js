@@ -29,6 +29,7 @@ const phaseDist = 0.7;
 const font = new FontFace(fontFamily, fontURL, fontStyle);
 
 let startTime = null;
+let requestPause = false;
 
 // Listen for the canvas from c3nav main thread
 self.onmessage = (e) => {
@@ -51,10 +52,14 @@ self.onmessage = (e) => {
     }
 
     if (e.data.pause) {
-        cancelAnimationFrame(frame);
+        requestPause = true;
     } else {
+        if (!requestPause)
+            startTime = null;
+        
+        requestPause = false;
+        cancelAnimationFrame(frame);
         frame = requestAnimationFrame(draw);
-        startTime = null;
     }
 };
 
@@ -105,6 +110,13 @@ function draw(t) {
             ctx.drawImage(charCanvas, x, (canvas.height - (fontSize * dpr / 2)) - fontSize * dpr);
 
             x += charWidths[weight][text[i]] + letterSpacing;
+
+            if (requestPause && weight == maxWeight && i == (text.length - 1)) {
+                self.postMessage({ animCompleted: true });
+                cancelAnimationFrame(frame);
+                requestPause = false;
+                return;
+            }
         }
     }
     frame = requestAnimationFrame(draw);

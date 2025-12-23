@@ -1,6 +1,17 @@
 // Demo worker for animation canvas
 let canvas, ctx, frame;
 
+// Text, Coords and Initial Direction (0 or 1)
+var text = "C3NAV";
+var x = 0;
+var y = 43;
+var dir = 1;
+
+var grad;
+var width;
+
+let requestPause = false;
+
 // Listen for the canvas from c3nav main thread
 self.onmessage = (e) => {
     // Set it all up
@@ -11,20 +22,17 @@ self.onmessage = (e) => {
     }
 
     // Pause logic, frame keeps reference
-    if (e.data.pause)
+    if (e.data.pause) {
+      requestPause = true;
+    } else {
+      if (!requestPause)
+        x = 0;
+      requestPause = false;
+      // Prevent any double runs
       cancelAnimationFrame(frame);
-    else
       frame = requestAnimationFrame(draw);
+    }
 };
-
-// Text, Coords and Initial Direction (0 or 1)
-var text = "C3NAV";
-var x = 0;
-var y = 43;
-var dir = 1;
-
-var grad;
-var width;
 
 function setup() {
     // Which font to use
@@ -48,6 +56,14 @@ function draw(t) {
     // Reverse direction when end reached
     if (x > canvas.width - width || x < 0) {
       dir *= -1;
+
+      // We have reached the end of this animation, smoothly end it
+      if (requestPause && dir == 1) {
+          self.postMessage({ animCompleted: true });
+          cancelAnimationFrame(frame);
+          requestPause = false;
+          return;
+      }
     }
 
     // Render text at pos
