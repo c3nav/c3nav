@@ -236,10 +236,10 @@ class Locator:
         return self.locate_rssi(scan_data, permissions)
 
     def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None):
-        scan_data_we_can_use = [
+        scan_data_we_can_use = sorted([
             (peer_id, value) for peer_id, value in scan_data.items()
             if self.peers[peer_id].space_id and -90 < value.rssi < -10
-        ]
+        ], key=lambda a: -a[1].rssi)
 
         if not scan_data_we_can_use:
             return None
@@ -252,25 +252,25 @@ class Locator:
         space_id = self.peers[best_ap_id].space_id
         space = router.spaces[space_id]
 
-        scan_data_in_the_same_room = sorted([
-            (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id == space_id
-        ], key=lambda a: -a[1].rssi)
-
-        scan_data_in_other_rooms = sorted([
-            (peer_id, value) for peer_id, value in scan_data_we_can_use if self.peers[peer_id].space_id != space_id
-        ], key=lambda a: -a[1].rssi)
-
-        deduplicized_scan_data_in_the_same_room = []
         already_got = set()
-        for peer_id, value in scan_data_in_the_same_room:
+        selected_scan_data_in_the_same_room = []
+        selected_scan_data_in_other_rooms = []
+        for peer_id, value in scan_data_we_can_use:
             key = tuple(self.peers[peer_id].xyz)
             if key in already_got:
                 continue
             already_got.add(key)
-            deduplicized_scan_data_in_the_same_room.append((peer_id, value))
+            if self.peers[peer_id].space_id == space_id:
+                selected_scan_data_in_the_same_room.append((peer_id, value))
+            else:
+                if not selected_scan_data_in_other_rooms:
+                    selected_scan_data_in_other_rooms.append((peer_id, value))
+            if (len(selected_scan_data_in_the_same_room) + len(selected_scan_data_in_other_rooms)) == 4:
+                break
 
-        the_sum = sum((value.rssi + 90) for peer_id, value in (deduplicized_scan_data_in_the_same_room[:3]+
-                      scan_data_in_other_rooms[:1]))
+        selected_scan_data = selected_scan_data_in_the_same_room + selected_scan_data_in_other_rooms
+
+        the_sum = sum((value.rssi + 90) for peer_id, value in selected_scan_data)
 
         level = router.levels[space.level_id]
         if not the_sum:
@@ -279,7 +279,7 @@ class Locator:
             x = 0
             y = 0
             # sure this can be better probably
-            for peer_id, value in deduplicized_scan_data_in_the_same_room[:3]:
+            for peer_id, value in selected_scan_data:
                 x += float(self.peers[peer_id].xyz[0]) * (value.rssi+90) / the_sum
                 y += float(self.peers[peer_id].xyz[1]) * (value.rssi+90) / the_sum
             point = Point(x/100, y/100)
