@@ -28,6 +28,8 @@ const phaseDist = 0.7;
 
 const font = new FontFace(fontFamily, fontURL, fontStyle);
 
+let startTime = null;
+
 // Listen for the canvas from c3nav main thread
 self.onmessage = (e) => {
     if (e.data.canvas !== undefined) {
@@ -79,16 +81,20 @@ function setup() {
 function draw(t) {
     // Check if glyphs are rendered yet
     if (Object.keys(charCache).length !== 0) {
+        // We want t to start at zero so the animation starts always at the same point, so we store the first start time and do t - startTime
+        if (startTime === null)
+            startTime = t;
+        
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         let x = 0;
         for (let i = 0; i < text.length; i++) {
-            const phase = t * speed + i * phaseDist;
-            // smooth out the phase by approximating it to a sine wave
-            const sine = (Math.sin(phase) + 1) / 2;
+            const phase = (t - startTime) * speed + i * phaseDist;
+            // smooth out the phase by approximating it to a cosine wave
+            const cosine = (1 - Math.cos(phase)) / 2;
 
             // get prerendered canvas and width
-            let weight = minWeight + sine * (maxWeight - minWeight);
+            let weight = minWeight + cosine * (maxWeight - minWeight);
             weight = Math.round(weight / weightStep) * weightStep;
             weight = Math.min(Math.max(weight, minWeight), maxWeight);
 
