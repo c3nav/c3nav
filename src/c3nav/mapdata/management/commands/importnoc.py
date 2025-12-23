@@ -58,7 +58,7 @@ class Command(BaseCommand):
             name = match.group(0)
 
             import_tag = f"noc:{name}"
-            import_tag_full = f"noc:{name}:{item.layer}:{item.lat}:{item.lng}"
+            import_tag_full = f"noc:{name}:{item.layer}:{round(item.lat, 2)}:{round(item.lng, 2)}"
 
             # determine geometry
             converter = settings.NOC_LAYERS.get(item.layer, None)
@@ -93,7 +93,7 @@ class Command(BaseCommand):
                 # if the import data has not changed, there's nothing to do
                 continue
             else:
-                print(f"{import_tag} wasn moved by noc {result.import_tag} != {import_tag_full}")
+                print(f"{import_tag} was moved by noc {result.import_tag} != {import_tag_full}")
                 result.import_tag = import_tag_full
                 if distance(unwrap_geom(result.geometry), point) < 1:
                     print("…noc barely moved it, so we keep it")
@@ -101,9 +101,7 @@ class Command(BaseCommand):
                     pass
                 else:
                     # different space or noc has moved it to a place more than 1m away from our position, update
-                    print("…it has moved enough, so we update!")
-                    result.geometry = point
-                    result.space = new_space
+                    print("…it has moved enough, so we recreate an altitude quest!")
                     result.altitude_quest = True
 
             result.save()
