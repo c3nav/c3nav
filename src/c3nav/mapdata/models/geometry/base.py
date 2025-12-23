@@ -102,6 +102,11 @@ class GeometryMixin(SerializableMixin):
 
     @property
     def all_geometry_changed(self):
+        try:
+            if self._orig_geometry is None:
+                return True
+        except AttributeError:
+            return True
         return any(getattr(self, attname) != value for attname, value in self._orig.items())
 
     @property

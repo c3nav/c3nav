@@ -16,6 +16,7 @@ and potential backwards incompatibilities.
 - Fix locationredirects API
 - WEBP support
 - Better preview rendering of multi-level location groups
+- Fix some caching bugs when editing objects
 
 # Eurofurence 29 ([ef29](https://github.com/c3nav/c3nav/tree/ef28))
 
