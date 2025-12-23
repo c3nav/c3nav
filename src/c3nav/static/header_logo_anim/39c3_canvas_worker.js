@@ -5,16 +5,20 @@ let dpr = 1.0;
 // The text and x y coords within canvas
 let text = "C3NAV";
 
-// min max weight and how many steps/how smooth
-const minWeight = 10;
-const maxWeight = 100;
-const weightStep = 5;
+// min max weight for fallback and how many steps/how smooth
+var minWeight = 100;
+var maxWeight = 900;
+var weightStep = 10;
 
 // which font and size
 const fontSize = 30;
 const fontFamily = 'KarioDuplexVar';
-const fontFallback = 'sans-serif';
+const fontFallback = 'monospace';
 const fontURL = "url('/static/39c3/fonts/Kario39C3VarWEB-Roman.woff2')";
+// min max weight for font and how many steps/how smooth
+const fontMinWeight = 10;
+const fontMaxWeight = 100;
+const fontWeightStep = 5;
 const fontStyle = {
     style: "normal",
     weight: "10 100"
@@ -40,15 +44,20 @@ self.onmessage = (e) => {
 
         if (e.data.text && e.data.text.toUpperCase() !== text.toUpperCase())
             text = e.data.text.toUpperCase();
-
+        
         font.load().then(() => {
             // Setup with loaded font
             self.fonts.add(font);
+            minWeight = fontMinWeight;
+            maxWeight = fontMaxWeight;
+            weightStep = fontWeightStep;
             setup();
         }, (err) => {
-            // Setup anyway, it will fallback unless font is installed on system
-            setup();
+            console.error(err);
         });
+
+        // Setup anyway, it will fallback unless font is installed on system
+        setup();
     }
 
     if (e.data.pause) {
@@ -56,7 +65,7 @@ self.onmessage = (e) => {
     } else {
         if (!requestPause)
             startTime = null;
-        
+
         requestPause = false;
         cancelAnimationFrame(frame);
         frame = requestAnimationFrame(draw);
