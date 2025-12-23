@@ -50,10 +50,12 @@ self.onmessage = (e) => {
         });
     }
 
-    if (e.data.pause)
+    if (e.data.pause) {
         cancelAnimationFrame(frame);
-    else
+    } else {
         frame = requestAnimationFrame(draw);
+        startTime = null;
+    }
 };
 
 const charWidths = {};
