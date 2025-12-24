@@ -3,7 +3,7 @@ let canvas, ctx, frame;
 let dpr = 1.0;
 
 // The text and x y coords within canvas
-let text = "C3NAV";
+let text = "C3NAV⏼";
 
 // min max weight for fallback and how many steps/how smooth
 var minWeight = 100;
@@ -26,9 +26,9 @@ const fontStyle = {
 const letterSpacing = 0;
 
 // time between frames
-const speed = 0.004;
-// time between letters (phase)
-const phaseDist = 0.7;
+const speed = 0.0035;
+// time between letters (phase) the number of the beast = 120deg = grid phase difference = power cycles
+const phaseDist = 0.666;
 
 const font = new FontFace(fontFamily, fontURL, fontStyle);
 
@@ -81,15 +81,21 @@ function setup() {
         charCache[weight] = {};
         charWidths[weight] = {};
         [...text].forEach(ch => {
-            const tmpCanvas = new OffscreenCanvas(fontSize*dpr, fontSize*dpr);
+            var str = ch;
+            var wModifier = 1;
+            if (ch == "⏼") {
+                str = " <<toggle";
+                wModifier = 2;
+            }
+            const tmpCanvas = new OffscreenCanvas((fontSize*wModifier)*dpr, fontSize*dpr);
             const tmpCtx = tmpCanvas.getContext("2d");
             tmpCtx.fontKerning = "none";
             tmpCtx.font = `${weight} ${fontSize*dpr}px ${fontFamily}, ${fontFallback}`;
             tmpCtx.fillStyle = "white";
             tmpCtx.textBaseline = "top";
-            tmpCtx.fillText(ch, 0, 0);
+            tmpCtx.fillText(str, 0, 0);
             charCache[weight][ch] = tmpCanvas;
-            charWidths[weight][ch] = tmpCtx.measureText(ch).width;
+            charWidths[weight][ch] = tmpCtx.measureText(str).width;
         });
     }
 }
