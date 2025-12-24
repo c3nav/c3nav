@@ -412,7 +412,7 @@ class Locator:
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
-        result_pos = results.x
+        result_pos = tuple(i/100 for i in results.x)
 
         level = router.levels[router.level_id_for_xyz(
             (result_pos[0], result_pos[1], result_pos[2] - 1.3),  # -1.3m cause we assume people to be above ground
@@ -423,12 +423,12 @@ class Locator:
 
         location = CustomLocation(
             level=level,
-            x=result_pos[0]/100,
-            y=result_pos[1]/100,
+            x=result_pos[0],
+            y=result_pos[1],
             permissions=permissions,
             icon='my_location'
         )
-        location.z = result_pos[2]/100
+        location.z = result_pos[2]
 
         orig_xyz = None
         print('orig_addr', orig_addr)
