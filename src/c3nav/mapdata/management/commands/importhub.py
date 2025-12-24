@@ -173,10 +173,14 @@ class Command(BaseCommand):
                     result.import_block_data = old_result.import_block_data
                     print(f"NOTE: {item.slug} / {item.id} was switched to {target_type}")
 
+            if item.parent_id and item.parent_id not in items_by_id:
+                print(f"WARNING: {item.slug} / {item.id} references an unknown parent: {item.parent_id}")
+            parent = items_by_id.get(item.parent_id, None)
+
             hub_types = [
                 item.type,
                 "%s:%s" % (item.type, "with-children" if item.children else "with-no-children"),
-                "%s:%s" % (item.type, f"parent:{items_by_id[item.parent_id].slug}" if item.parent_id else "no-parent"),
+                "%s:%s" % (item.type, f"parent:{parent.slug}" if parent else "no-parent"),
             ]
 
             # build groups
