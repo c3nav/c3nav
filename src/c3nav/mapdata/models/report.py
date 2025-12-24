@@ -98,7 +98,10 @@ class Report(models.Model):
         if self.category == 'missing-location':
             return tuple(self.created_groups.values_list('pk', flat=True))
         elif self.category == 'location-issue':
-            return tuple(self.location.get_child().groups.values_list('pk', flat=True))
+            child = self.location.get_child()
+            if child is None:
+                return ()
+            return tuple(child.groups.values_list('pk', flat=True))
         return ()
 
     def get_reviewers_qs(self):
