@@ -340,8 +340,8 @@ class Locator:
     @cached_property
     def least_squares_func(self):
         # this is effectively a lazy import to save memory… todo: do we need that?
-        from scipy.optimize import least_squares
-        return least_squares
+        from scipy.optimize import minimize
+        return minimize
 
     @cached_property
     def norm_func(self):
@@ -349,20 +349,36 @@ class Locator:
         from scipy.linalg import norm
         return norm
 
+    def _deduplicate_peer_ids(self, peer_ids: tuple[int, ...]) -> tuple[int, ...]:
+        had_xyz = set()
+        result = []
+        for peer_id in peer_ids:
+            xyz = tuple(self.xyz[peer_id, :].flatten())
+            if xyz in had_xyz:
+                continue
+            had_xyz.add(xyz)
+            result.append(peer_id)
+        return tuple(result)
+
     def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None):
-        peer_ids = tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
+        peer_ids = self._deduplicate_peer_ids(
+            tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
+        )
 
         if len(peer_ids) < 3:
             # can't get a good result from just two beacons
             # todo: maybe we can at least give… something?
-            print('less than 3 ranges, can\'t do ranging')
+            if settings.DEBUG:
+                print('less than 3 ranges, can\'t do ranging')
             return None
 
-        if len(peer_ids) == 3 and 0:
-            print('2D trilateration')
+        if len(peer_ids) == 3:
+            if settings.DEBUG:
+                print('2D trilateration')
             dimensions = 2
         else:
-            print('3D trilateration')
+            if settings.DEBUG:
+                print('3D trilateration')
             dimensions = 3
 
         relevant_xyz = self.xyz[peer_ids, :]
@@ -370,7 +386,7 @@ class Locator:
         # create 2d array with x, y, z, distance as rows
         np_ranges = np.hstack((
             relevant_xyz,
-            np.array(tuple(float(scan_data[i].distance) for i in peer_ids)).reshape((-1, 1)),
+            np.array(tuple(float(scan_data[i].distance) for i in peer_ids)).reshape((-1, 1))*100,
         ))
 
         #print(np_ranges)
@@ -379,6 +395,10 @@ class Locator:
         #print('a', measured_ranges)
         # measured_ranges[measured_ranges<1] = 1
         #print('b', measured_ranges)
+
+        if settings.DEBUG:
+            print("relevant", relevant_xyz)
+            print("measured_ranges", measured_ranges)
 
         # rating the guess by calculating the distances
         def diff_func(guess):
@@ -389,23 +409,37 @@ class Locator:
             # return factors - np.mean(factors)
 
         def cost_func(guess):
-            result = np.abs(diff_func(guess))
-            result[result < 300] = result[result < 300]/3+200
-            return result
+            if settings.DEBUG:
+                print("guess", guess)
+            result = diff_func(guess) * -1
+            if settings.DEBUG:
+                print("diff", result)
+            result[result < 0] = result[result < 0] * -10
+            cost = np.sum(result ** 2)
+            if settings.DEBUG:
+                print("cost", result, cost)
+            return cost
 
-        # initial guess i the average of all beacons, with scale 1
-        initial_guess = np.average(np_ranges[:, :dimensions], axis=0)
+        # initial guess is the average of all beacons, with scale 1
+        initial_guess = np.average(np_ranges, axis=0)
+
+        #initial_guess = (76.96*100, 183.65*100, 1600)
 
         # here the magic happen
+        bounds = tuple(zip(tuple(np.min(self.xyz[:, :2], axis=0) - np.array([200, 200, 100])[:2]),
+                           tuple(np.max(self.xyz[:, :2], axis=0) + np.array([200, 200, 100])[:2])))
+
+        if dimensions == 3:
+            bounds += (min(relevant_xyz[:, 2]), min(relevant_xyz[:, 2]))
+        if settings.DEBUG:
+            print(bounds)
         results = self.least_squares_func(
             fun=cost_func,
             # jac="3-point",
-            loss="linear",
-            bounds=(
-                np.min(self.xyz[:, :dimensions], axis=0) - np.array([200, 200, 100])[:dimensions],
-                np.max(self.xyz[:, :dimensions], axis=0) + np.array([200, 200, 100])[:dimensions],
-            ),
-            x0=initial_guess,
+            #loss="linear",
+            bounds=bounds,
+            #x_scale=10,
+            x0=initial_guess[:dimensions],
         )
 
         # create result
@@ -413,9 +447,12 @@ class Locator:
         restrictions = router.get_restrictions(permissions)
 
         result_pos = tuple(i/100 for i in results.x)
+        if dimensions == 2:
+            result_pos += (initial_guess[2]/100, )
 
         level = router.levels[router.level_id_for_xyz(
-            (result_pos[0], result_pos[1], result_pos[2] - 1.3),  # -1.3m cause we assume people to be above ground
+            # -1.3m cause we assume people to be above ground
+            (result_pos[0], result_pos[1], result_pos[2] - 1.3),
             restrictions
         )]
         if level.on_top_of_id:
@@ -431,49 +468,50 @@ class Locator:
         location.z = result_pos[2]
 
         orig_xyz = None
-        print('orig_addr', orig_addr)
-        if orig_addr:
-            orig_xyz = self.get_xyz(orig_addr)
-            if orig_xyz:
-                orig_xyz = np.array(orig_xyz)
+        if settings.DEBUG:
+            print('orig_addr', orig_addr)
+            if orig_addr:
+                orig_xyz = self.get_xyz(orig_addr)
+                if orig_xyz:
+                    orig_xyz = np.array(orig_xyz)
 
-        print()
-        print("result:", ", ".join(("%.2f" % i) for i in tuple(result_pos)))
-        if orig_xyz is not None:
-            print("correct:", ", ".join(("%.2f" % i) for i in tuple(orig_xyz)))
-            print("diff:", ", ".join(("%.2f" % i) for i in tuple(orig_xyz-result_pos)))
-        print()
-        print("measured ranges:", ", ".join(("%.2f" % i) for i in tuple(np_ranges[:, 3])))
-        print("result ranges:", ", ".join(
-            ("%.2f" % i) for i in tuple(self.norm_func(np_ranges[:, :dimensions] - result_pos[:dimensions], axis=1))
-        ))
-        if orig_xyz is not None:
-            print("correct ranges:", ", ".join(
-                ("%.2f" % i)
-                for i in tuple(self.norm_func(np_ranges[:, :dimensions] - orig_xyz[:dimensions], axis=1))
+            print()
+            print("result:", ", ".join(("%.2f" % i) for i in tuple(result_pos)))
+            if orig_xyz is not None:
+                print("correct:", ", ".join(("%.2f" % i) for i in tuple(orig_xyz)))
+                print("diff:", ", ".join(("%.2f" % i) for i in tuple(orig_xyz-result_pos)))
+            print()
+            print("measured ranges:", ", ".join(("%.2f" % i) for i in tuple(np_ranges[:, 3])))
+            print("result ranges:", ", ".join(
+                ("%.2f" % i) for i in tuple(self.norm_func(np_ranges[:, :dimensions] - result_pos[:dimensions], axis=1))
             ))
-        print()
-        print("diff result-measured:", ", ".join(
-            ("%.2f" % i) for i in
-            tuple(diff_func(result_pos))
-        ))
-        if orig_xyz is not None:
-            print("diff correct-measured:", ", ".join(
+            if orig_xyz is not None:
+                print("correct ranges:", ", ".join(
+                    ("%.2f" % i)
+                    for i in tuple(self.norm_func(np_ranges[:, :dimensions] - orig_xyz[:dimensions], axis=1))
+                ))
+            print()
+            print("diff result-measured:", ", ".join(
                 ("%.2f" % i) for i in
-                tuple(diff_func(orig_xyz))
+                tuple(diff_func(result_pos))
             ))
+            if orig_xyz is not None:
+                print("diff correct-measured:", ", ".join(
+                    ("%.2f" % i) for i in
+                    tuple(diff_func(orig_xyz))
+                ))
 
-        def print_cost(title, pos):
-            cost = cost_func(pos)
-            print(title, ", ".join(
-                ("%.2f" % i) for i in cost
-            ), '=', np.sum(cost**2))
-        print_cost("cost:", result_pos)
-        if orig_xyz is not None:
-            print_cost("cost of correct position:", orig_xyz)
-        if dimensions > 2:
-            print("height:", result_pos[2])
-        # print("scale:", (factor or results.x[3]))
+            #def print_cost(title, pos):
+            #    cost = cost_func(pos)
+            #    print(title, ", ".join(
+            #        ("%.2f" % i) for i in cost
+            #    ), '=', np.sum(cost**2))
+            #print_cost("cost:", result_pos)
+            #if orig_xyz is not None:
+            #    print_cost("cost of correct position:", orig_xyz)
+            if dimensions > 2:
+                print("height:", result_pos[2])
+            # print("scale:", (factor or results.x[3]))
 
         return location
 

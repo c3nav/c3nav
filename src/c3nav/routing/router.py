@@ -418,7 +418,9 @@ class Router:
         for level_id, level in self.levels.items():
             space = self.space_for_point(level=level_id, point=xy, restrictions=restrictions)
             if space:
-                possible_levels[level_id] = abs(space.altitudearea_for_point(xy).get_altitude(xy)-z)
+                possible_levels[level_id] = (
+                    abs(space.altitudearea_for_point(xy).get_altitude(xy)-z), space.geometry.distance(xy)
+                )
         if possible_levels:
             return min(possible_levels.items(), key=itemgetter(1))[0]
         return min(self.levels.items(), key=lambda a: abs(float(a[1].base_altitude)-z))[0]
