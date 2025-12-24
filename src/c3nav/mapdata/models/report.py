@@ -107,7 +107,7 @@ class Report(models.Model):
             return tuple(self.created_groups.values_list('pk', flat=True))
         elif self.category == 'location-issue':
             child = self.location.get_child()
-            if child is None:
+            if child is None or not hasattr(child, "groups"):
                 return ()
             return tuple(child.groups.values_list('pk', flat=True))
         return ()
