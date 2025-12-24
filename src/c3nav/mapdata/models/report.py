@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.models.locations import SpecificLocation, LocationRedirect
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
 from c3nav.site.tasks import send_report_notification
@@ -81,7 +81,8 @@ class Report(models.Model):
     def location_specific(self):
         if self.location is None:
             return None
-        return self.location.get_child()
+        result = self.location.get_child()
+        return result.target if isinstance(result, LocationRedirect) else result
 
     @classmethod
     def qs_for_request(cls, request):
@@ -106,8 +107,8 @@ class Report(models.Model):
         if self.category == 'missing-location':
             return tuple(self.created_groups.values_list('pk', flat=True))
         elif self.category == 'location-issue':
-            child = self.location.get_child()
-            if child is None or not hasattr(child, "groups"):
+            child = self.location_specific
+            if child is None:
                 return ()
             return tuple(child.groups.values_list('pk', flat=True))
         return ()
