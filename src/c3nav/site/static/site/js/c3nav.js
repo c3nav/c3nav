@@ -1679,7 +1679,16 @@ c3nav = {
     },
     _modal_submit: function (e) {
         e.preventDefault();
-        $.post($(this).attr('action'), $(this).serialize(), c3nav._modal_loaded).fail(c3nav._modal_error);
+        $.ajax({
+            url: $(this).attr('action'),
+            data: new FormData($(this)[0]),
+            cache: false,
+            contentType: false,
+            processData: false,
+            method: 'POST',
+            success: c3nav._modal_loaded,
+        }).fail(c3nav._modal_error);
+        c3nav.open_modal();
     },
     _modal_loaded: function (data) {
         if (data.startsWith('{')) {

@@ -331,6 +331,7 @@ class LocationGroup(Location, models.Model):
         DONT_OFFER = "dont_offer", _("don't offer")
         REJECT = "reject", _("offer in first step, then reject")
         SINGLE = "single", _("offer in first step, exclusive choice")
+        SINGLE_IMAGE = "image", _("offer in first step, then only query image")
         MULTIPLE = "multiple", _("offer if nothing in the first step matches, multiple choice")
 
     class CanReportMistake(models.TextChoices):

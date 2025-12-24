@@ -592,6 +592,7 @@ def report_select_location(request, coordinates):
 def report_missing_choose(request, coordinates):
     groups = LocationGroup.qs_for_request(request).filter(can_report_missing__in=(
         LocationGroup.CanReportMissing.SINGLE,
+        LocationGroup.CanReportMissing.SINGLE_IMAGE,
         LocationGroup.CanReportMissing.REJECT,
     ))
     if not groups.exists():
@@ -653,7 +654,8 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
                     group.report_help_text,
                 ))
                 return render(request, 'site/report_question.html', {})
-            if group.can_report_missing != LocationGroup.CanReportMissing.SINGLE:
+            if group.can_report_missing not in (LocationGroup.CanReportMissing.SINGLE,
+                                                LocationGroup.CanReportMissing.SINGLE_IMAGE):
                 raise Http404
             help_text = group.report_help_text
             form_kwargs["group"] = group
@@ -694,7 +696,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.options = options.serialize_string()
 
     if request.method == 'POST':
-        form = report.form_cls(instance=report, data=request.POST, **form_kwargs)
+        form = report.form_cls(instance=report, data=request.POST, files=request.FILES, **form_kwargs)
         if form.is_valid():
             report = form.instance
             if request.user.is_authenticated:

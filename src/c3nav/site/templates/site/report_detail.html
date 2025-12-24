@@ -49,6 +49,17 @@
         {% endif %}
     {% endfor %}
 
+    {% if report.image %}
+        <p>
+            <strong>{% trans "Image" %}:</strong><br>
+            {% if update_form %}
+                <img src="{{ report.image.url }}" style="max-width: 100%;">
+            {% else %}
+                <em>{% trans "You submitted an image." %}</em>
+            {% endif %}
+        </p>
+    {% endif %}
+
     {% for update in report.updates.all %}
         {% if update_form or update.public or update.open != None %}
             <hr>

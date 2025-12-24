@@ -28,11 +28,22 @@ class DeleteAccountForm(Form):
 
 class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
     def __init__(self, *args, group=None, request=None, **kwargs):
-        super().__init__(*args, initial={"created_groups": [group] if group else []}, **kwargs)
+        initial = {"created_groups": [group] if group else []}
+        if group and group.can_report_missing == LocationGroup.CanReportMissing.SINGLE_IMAGE:
+            initial["title"] = _("Image for %s") % group.title
+            initial["description"] = _('(feel free to add more description if it makes sense)')
+
+        super().__init__(*args, initial=initial, **kwargs)
         if group:
             self.fields['created_groups'].disabled = True
             self.fields['created_groups'].queryset = LocationGroup.objects.filter(pk=group.pk)
+
+            if group.can_report_missing == LocationGroup.CanReportMissing.SINGLE_IMAGE:
+                self.fields['created_title__en'].initial = group.title
+            else:
+                self.fields.pop('image')
         else:
+            self.fields.pop('image')
             exists = LocationGroup.qs_for_request(request).filter(
                 can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
             ).exists()
@@ -47,7 +58,7 @@ class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
 
     class Meta:
         model = Report
-        fields = ['title', 'description', 'created_title', 'created_groups']
+        fields = ['title', 'description', 'created_title', 'created_groups', 'image']
 
 
 class ReportUpdateForm(ModelForm):

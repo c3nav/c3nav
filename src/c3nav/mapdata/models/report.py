@@ -1,4 +1,5 @@
 import string
+import uuid
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -6,6 +7,7 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -21,6 +23,10 @@ from c3nav.site.tasks import send_report_notification
 
 def get_report_secret():
     return get_random_string(32, string.ascii_letters)
+
+
+def report_image_upload_path(instance, filename):
+    return f"reports/{timezone.now().strftime("%Y-%m-%d")}/{uuid.uuid4()}/{filename}"
 
 
 class Report(models.Model):
@@ -52,6 +58,8 @@ class Report(models.Model):
     created_groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('location groups'), blank=True,
                                             help_text=_('select all groups that apply, if any'), related_name='+')
     secret = models.CharField(_('secret'), max_length=32, default=get_report_secret)
+
+    image = models.ImageField(_('image'), null=True, upload_to=report_image_upload_path)
 
     import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=256)
 
