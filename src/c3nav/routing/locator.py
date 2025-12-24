@@ -430,7 +430,7 @@ class Locator:
                            tuple(np.max(self.xyz[:, :2], axis=0) + np.array([200, 200, 100])[:2])))
 
         if dimensions == 3:
-            bounds += (min(relevant_xyz[:, 2]), min(relevant_xyz[:, 2]))
+            bounds += ((min(relevant_xyz[:, 2]), min(relevant_xyz[:, 2])),)
         if settings.DEBUG:
             print(bounds)
         results = self.least_squares_func(
