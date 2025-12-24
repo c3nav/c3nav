@@ -9,11 +9,12 @@ from pydantic_extra_types.mac_address import MacAddress
 from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.tasks import update_ap_names_bssid_mapping
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.routing.locator import Locator
-from c3nav.routing.schemas import LocateWifiPeerSchema, LocateIBeaconPeerSchema
+from c3nav.routing.schemas import LocateWifiPeerSchema, LocateIBeaconPeerSchema, BeaconMeasurementDataSchema
 
 positioning_api_router = APIRouter(tags=["positioning"])
 
@@ -62,6 +63,15 @@ def get_position(request, parameters: LocateRequestSchema):
                 map_name={str(name): [str(b) for b in bssids] for name, bssids in bssid_mapping.items()},
                 user_id=request.user.pk
             )
+
+    if request.user_permissions.passive_scan_collection:
+        AutoBeaconMeasurement.objects.create(
+            author=request.user,
+            data=BeaconMeasurementDataSchema(
+                wifi=[parameters.wifi_peers],
+                ibeacon=[parameters.ibeacon_peers],
+            )
+        )
 
     return {
         "location": location

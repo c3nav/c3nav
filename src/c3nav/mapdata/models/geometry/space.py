@@ -482,6 +482,26 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
         return super().save(*args, **kwargs)
 
 
+class AutoBeaconMeasurement(models.Model):
+    """
+    Collected wifi measurement with no confirmed location
+    """
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                               verbose_name=_('author'))
+    datetime = models.DateTimeField(auto_now_add=True)
+    data: BeaconMeasurementDataSchema = SchemaField(BeaconMeasurementDataSchema,
+                                                    verbose_name=_('Measurement list'),
+                                                    default=BeaconMeasurementDataSchema())
+
+    placed = models.OneToOneField(BeaconMeasurement, null=True, on_delete=models.SET_NULL,
+                                  related_name="auto_measurement")
+
+    class Meta:
+        verbose_name = _('Auto Beacon Measurement')
+        verbose_name_plural = _('Auto Beacon Measurements')
+        default_related_name = 'auto_beacon_measurements'
+
+
 class RangingBeacon(SpaceGeometryMixin, models.Model):
     """
     A ranging beacon
