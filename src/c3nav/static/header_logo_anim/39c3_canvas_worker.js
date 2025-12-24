@@ -100,6 +100,48 @@ function setup() {
     }
 }
 
+// something something power cycles... grid overlad simulation meow
+function gridFluctuations () {
+    // current time in seconds
+    let t = performance.now() / 1000
+
+    // emulate sag (0.5 Hz) + faster wobble (3 Hz) from stuff like motors, compressors, fairydust taking off or whatever
+    // real flicker creatures notice is usually 1-8 Hz, so these are in that area (IEC 61000:4:15)
+    let wobble = Math.sin(t * 3) + Math.sin(t * 0.5) * 0.6;
+
+    // incandescent bulbs respond to RMS voltage
+    // squaring a 50 Hz sine results in 100 Hz flicker, barely visible
+    let ripple = Math.sin(2 * Math.PI * 50 * t);
+    // If you multiply it with itself it will be a positive number...
+    ripple = ripple * ripple;
+
+    // lets assume baseline voltage is at 92% of usual because there is a bunch of load
+    // wobble range 5%, this might be noticeable
+    // ripple 1%, at this point you mostly just feeling rather than seeing it, but maybe with two cee bee or other fairydusts you notice....
+    let v = 0.92 + (wobble * 0.05) + (ripple * 0.01);
+
+    // clamp so it never gets totally dark
+    // don't let it fall below ~84% of nominal, otherwise it looks like blackout
+    if (v < 0.84)
+        v = 0.84;
+
+    // cap voltage at 100%
+    if (v > 1)
+        v = 1;
+
+    // incandescent bulbs are disproportionatly sensitive to voltage, flux or something, i dunno i only understood half of it
+    // flux to the power of 2.4 (instead of ~V^3) is a compromise adjusted to screen gamma, GE has some technical docs on their incandescent lights
+    // 0.25 brightness offset and clamping the minimum at 0.85 keeps min alpha from being too low to be visible/greyish
+    var alpha = 0.25 + Math.pow(v, 2.4) * 0.85
+
+    // At this point at least make the text 100% brightness sometimes and ignore 99-100% range
+    if (alpha >= 0.99)
+        alpha = 1.0;
+    
+    return alpha;
+
+}
+
 function draw(t) {
     // Check if glyphs are rendered yet
     if (Object.keys(charCache).length !== 0) {
@@ -109,6 +151,9 @@ function draw(t) {
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        ctx.globalAlpha = gridFluctuations();
+        //console.log(ctx.globalAlpha);
+        
         let x = 0;
         for (let i = 0; i < text.length; i++) {
             const phase = (t - startTime) * speed + i * phaseDist;
