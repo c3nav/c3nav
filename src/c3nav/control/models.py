@@ -102,9 +102,14 @@ class UserPermissions(models.Model):
         if not force:
             result = cache.get(cache_key, None)
             for field in cls._meta.get_fields():
-                if not hasattr(result, field.attname):
-                    result = None
-                    break
+                try:
+                    if hasattr(result, field.attname):
+                        continue
+                except UserPermissions.DoesNotExist:
+                    pass
+                # field was missing, do not use cache
+                result = None
+                break
         if result:
             return result
         with cls.lock(user.pk):
