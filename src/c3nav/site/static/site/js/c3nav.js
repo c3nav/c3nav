@@ -2603,7 +2603,23 @@ c3nav = {
             });
     },
     _current_user_location: null,
-    _set_user_location: function (location) {
+    _last_user_location_time: 0,
+    _set_user_location: function (location, force) {
+        const currentLocationRequested = (
+            typeof mobileclient !== 'undefined' &&
+            mobileclient.isCurrentLocationRequested &&
+            mobileclient.isCurrentLocationRequested()
+        );
+        if (force !== true) force = currentLocationRequested;
+        if (location === null) {
+            if (force !== true && c3nav._last_user_location_time > Date.now()-60000) {
+                // no location, but we had a location less than a minute ago, so we ignore this
+                // if force is true the location is set to null even then
+                return;
+            }
+        } else {
+            c3nav._last_user_location_time = Date.now();
+        }
         c3nav._current_user_location = location;
         for (const id in c3nav._userLocationLayers) {
             c3nav._userLocationLayers[id].clearLayers();
