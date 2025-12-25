@@ -11,6 +11,7 @@ from django.apps import apps
 from django.conf import settings
 from django.db.models import Prefetch, Q
 from django.utils.functional import cached_property
+from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
 
@@ -225,7 +226,9 @@ def get_location_by_id_for_request(pk, request):
 
 
 def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[LocationSlug, Position]]:
-    cache_key = 'mapdata:location:by_slug:%s:%s' % (AccessPermission.cache_key_for_request(request), slug)
+    cache_key = (
+        'mapdata:location:by_slug:%s:%s:%s' % (AccessPermission.cache_key_for_request(request), get_language(), slug)
+    )
     location = proxied_cache.get(cache_key, None)
     if location is not None:
         return location
