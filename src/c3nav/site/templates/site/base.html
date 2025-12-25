@@ -74,9 +74,20 @@
 
                 const _logo_canvas = document.getElementById("c3nav-logo-canvas");
                 const _logo_link = document.getElementById("header-logo-link");
+                const _logo_img = _logo_link.getElementsByTagName('img')[0]; // may be undefined, as to be expected
+                var _logo_img_blob;
 
                 // Create worker thread for logo
                 const _logo_worker = new Worker("{% static header_logo_anim %}");
+
+                if (_logo_img) {
+                    fetch(_logo_img.src)
+                        .then(r => r.blob())
+                        .then(blob => {
+                            _logo_img_blob = blob;
+                            console.log(_logo_img_blob);
+                        });
+                }
                 var _logo_offscreen = null;
 
                 _logo_link.addEventListener('mouseenter', (e) => {
@@ -98,7 +109,7 @@
                         _logo_offscreen = _logo_canvas.transferControlToOffscreen();
 
                         // Send the offscreen logo canvas to the worker
-                        _logo_worker.postMessage({ canvas: _logo_offscreen, dpr: _dpr, text: _logo_linkText }, [_logo_offscreen]);
+                        _logo_worker.postMessage({ canvas: _logo_offscreen, dpr: _dpr, text: _logo_linkText, fallbackImg: _logo_img_blob }, [_logo_offscreen]);
                     }
                     // Instruct worker to resume animation
                     _logo_worker.postMessage({ pause: false });

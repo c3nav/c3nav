@@ -1,5 +1,5 @@
 // Worker for 39C3 animation canvas
-let canvas, ctx, frame;
+let canvas, ctx, frame, fallbackImg;
 let dpr = 1.0;
 
 // The text and x y coords within canvas
@@ -45,6 +45,13 @@ self.onmessage = (e) => {
         if (e.data.text && e.data.text.toUpperCase() !== text.toUpperCase())
             text = e.data.text.toUpperCase();
         
+        if (e.data.fallbackImg) {
+            createImageBitmap(e.data.fallbackImg).then(bitmap => {
+                fallbackImg = bitmap;
+                drawFallback(fallbackImg);
+            });
+        }
+
         font.load().then(() => {
             // Setup with loaded font
             self.fonts.add(font);
@@ -54,10 +61,9 @@ self.onmessage = (e) => {
             setup();
         }, (err) => {
             console.error(err);
+            // Setup anyway, it will fallback unless font is installed on system
+            setup();
         });
-
-        // Setup anyway, it will fallback unless font is installed on system
-        setup();
     }
 
     if (e.data.pause) {
@@ -74,6 +80,13 @@ self.onmessage = (e) => {
 
 const charWidths = {};
 const charCache = {};
+
+function drawFallback(img) {
+    if (img && Object.keys(charCache).length === 0 && canvas) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img,0,5,img.width * ((canvas.height - 10)/img.height), canvas.height - 10);
+    }
+}
 
 // pre render every char and measure it's weight
 function setup() {
@@ -107,6 +120,7 @@ function gridFluctuations () {
 
     // emulate sag (0.5 Hz) + faster wobble (3 Hz) from stuff like motors, compressors, fairydust taking off or whatever
     // real flicker creatures notice is usually 1-8 Hz, so these are in that area (IEC 61000:4:15)
+    // Tje proportion between sag an wobbl we can adjust by downscaling one of them to make it less noticeable in comparison (60%)
     let wobble = Math.sin(t * 3) + Math.sin(t * 0.5) * 0.6;
 
     // incandescent bulbs respond to RMS voltage
