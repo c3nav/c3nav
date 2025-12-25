@@ -1153,7 +1153,7 @@ c3nav = {
                 new_text[new_text.length - 1] += $('<div>').text(segment).html();
                 len += segment.length;
             } else {
-                new_text.push(segment);
+                new_text.push($('<div>').text(segment).html());
                 len = segment.length;
             }
         }
