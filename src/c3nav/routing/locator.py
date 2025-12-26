@@ -608,14 +608,13 @@ class Locator:
         location.z = result_pos[2]
 
         if correct_xyz is not None:
-            distance = np.linalg.norm(results.x - np.array(correct_xyz[:dimensions]))
+            distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
 
             for peer_id, correct_distance in zip(peer_ids, correct_distances):
-
                 value = scan_data[peer_id]
                 analysis.insert(0,
-                                f"{tuple(round(float(i), 2) for i in results.x/2)} → "
-                                f"{tuple(round(float(i), 2) for i in correct_xyz[:dimensions])} "
+                                f"{tuple(round(float(i)/100, 2) for i in results.x/2)} → "
+                                f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
                                 f"(off by {distance:.2f} m)")
 
         # get suggested peers

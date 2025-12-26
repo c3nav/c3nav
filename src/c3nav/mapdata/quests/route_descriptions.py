@@ -60,7 +60,7 @@ class SpaceIdentifyableQuest(Quest):
         ]
 
     @property
-    def point(self) -> Point:
+    def point(self) -> dict:
         return mapping(self.obj.point)
 
     @classmethod
