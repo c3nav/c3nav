@@ -63,5 +63,8 @@ class BeaconMeasurementAdmin(admin.ModelAdmin):
         for located in obj.located_all_permissions:
             if result:
                 result.append("")
-            result.extend(located.analysis)
+            if located.analysis:
+                result.extend(located.analysis)
+            else:
+                result.append("-")
         return mark_safe("<br>".join(result))
