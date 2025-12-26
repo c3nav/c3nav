@@ -16,6 +16,7 @@ from shapely import Point
 from shapely.ops import nearest_points
 
 from c3nav.mapdata.models import MapUpdate, Space
+from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
@@ -227,13 +228,18 @@ class Locator:
 
         result = self.locate_range(scan_data, permissions)
         if result is not None:
+            increment_cache_key('apistats__locate__range')
             return result
 
         result = self.locate_by_beacon_positions(scan_data, permissions)
         if result is not None:
+            increment_cache_key('apistats__locate__beacon_positions')
             return result
 
-        return self.locate_rssi(scan_data, permissions)
+        result = self.locate_rssi(scan_data, permissions)
+        if result is not None:
+            increment_cache_key('apistats__locate__rssi')
+        return result
 
     def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None):
         scan_data_we_can_use = sorted([
@@ -512,6 +518,8 @@ class Locator:
             if dimensions > 2:
                 print("height:", result_pos[2])
             # print("scale:", (factor or results.x[3]))
+
+        increment_cache_key('apistats__locate__range__%s_peers' % len(peer_ids))
 
         return location
 
