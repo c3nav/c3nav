@@ -35,7 +35,7 @@ class RangePeerSchema(BaseSchema):
         description="BSSID of the peer",
         example="c3:42:13:37:ac:ab",
     )
-    frequency: list[PositiveInt] = APIField(
+    frequencies: list[PositiveInt] = APIField(
         default=[],
         title="frequencies",
         description="possible frequencies in KHz – sorted by likeliness descending",

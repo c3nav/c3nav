@@ -22,6 +22,7 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
+from c3nav.routing.api.positioning import RangePeerSchema
 from c3nav.routing.router import Router
 from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema, LocateIBeaconPeerSchema
 
@@ -49,10 +50,17 @@ class TypedIdentifier(NamedTuple):
 @dataclass
 class LocatorPeer:
     identifier: TypedIdentifier
-    frequencies: set[int] = field(default_factory=set)
+    frequencies: list[int] = field(default_factory=list)
     xyz: Optional[tuple[int, int, int]] = None
     space_id: Optional[int] = None
     supports80211mc: bool = False
+
+    @cached_property
+    def suggestion(self) -> RangePeerSchema:
+        return RangePeerSchema(
+            bssid=self.identifier.identifier,
+            frequencies=self.frequencies,
+        )
 
 
 @dataclass
@@ -102,7 +110,8 @@ class Locator:
         calculated = get_nodes_and_ranging_beacons()
 
         # get ranging bssids first
-        measurements = list(chain(AutoBeaconMeasurement.objects.all(), BeaconMeasurement.objects.all()))
+        measurements = list(chain(AutoBeaconMeasurement.objects.order_by('-datetime'),
+                                  BeaconMeasurement.objects.order_by('-pk')))
         ranging_bssids: set[str] = set()
         for m in measurements:
             for item in chain.from_iterable(m.data.wifi):
@@ -131,6 +140,13 @@ class Locator:
                 self.peers[peer_id].supports80211mc = supports80211mc
                 self.peers[peer_id].space_id = beacon.space_id
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
+
+        # write down frequencies based on latest data
+        for m in measurements:
+            for value in chain.from_iterable(reversed(m.data.wifi)):
+                peer_id = self.peer_lookup.get(TypedIdentifier(PeerType.WIFI, value.bssid), None)
+                if peer_id is not None and value.frequency not in self.peers[peer_id].frequencies:
+                    self.peers[peer_id].frequencies.append(value.frequency)
 
         for space in Space.objects.prefetch_related('beacon_measurements'):
             new_space = LocatorSpace.create(
