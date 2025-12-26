@@ -476,16 +476,6 @@ class Locator:
             tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
         )
 
-        analysis = []
-        if correct_xyz is not None:
-            correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1)/100
-            for peer_id, correct_distance in zip(peer_ids, correct_distances):
-                peer = self.peers[peer_id]
-                value = scan_data[peer_id]
-                analysis.append(f"{tuple(round(float(i)/100, 2) for i in peer.xyz)}} - "
-                                f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) → {value.rssi} dB → "
-                                f"{correct_distance:.2f} m ({value.distance-correct_distance:+.1f} m)")
-
         if not peer_ids:
             return LocatorResult(
                 location=None,
@@ -586,6 +576,7 @@ class Locator:
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
+        result_distances = self.norm_func(np_ranges[:, :dimensions] - results.x, axis=1)
         precision = round(float(np.max(np.abs(diff_func(results.x))))/100, 2)
 
         result_pos = tuple(i/100 for i in results.x)
@@ -608,6 +599,18 @@ class Locator:
             icon='my_location'
         )
         location.z = result_pos[2]
+
+
+        analysis = []
+        if correct_xyz is not None:
+            correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1)/100
+            for peer_id, result_distance, correct_distance in zip(peer_ids, result_distances, correct_distances):
+                peer = self.peers[peer_id]
+                value = scan_data[peer_id]
+                analysis.append(f"{tuple(round(float(i)/100, 2) for i in peer.xyz)}: "
+                                f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) - {value.rssi} dB")
+                analysis.append(f"- result: {result_distance:.2f} m ({value.distance-correct_distance:+.1f} m)")
+                analysis.append(f"- correct {correct_distance:.2f} m ({value.distance-result_distance:+.1f} m)")
 
         if correct_xyz is not None:
             distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
