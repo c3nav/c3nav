@@ -532,7 +532,7 @@ def post_load(request, parameters: ApLoadSchema):
                     response={200: dict, **auth_responses})
 def wifidata(request):
     # todo: this is ugly because i'm tired, wehhhh
-    if not request.user.has_perm("mapdata__can_view_autobeaconmeasurement"):
+    if not request.user.has_perm("mapdata.view_autobeaconmeasurement"):
         raise APIPermissionDenied()
 
     result = {
