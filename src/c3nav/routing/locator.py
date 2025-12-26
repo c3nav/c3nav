@@ -614,9 +614,9 @@ class Locator:
 
                 value = scan_data[peer_id]
                 analysis.insert(0,
-                                f"{tuple(round(i, 2) for i in results.x/2)} → "
-                                f"{tuple(round(i, 2) for i in correct_xyz[:dimensions])} "
-                                f"(off by {distance:2} m)")
+                                f"{tuple(round(float(i), 2) for i in results.x/2)} → "
+                                f"{tuple(round(float(i), 2) for i in correct_xyz[:dimensions])} "
+                                f"(off by {distance:.2f} m)")
 
         # get suggested peers
         remaining_peer_ids = tuple(self.peers_with_80211mc - set(peer_ids))
