@@ -577,7 +577,7 @@ class Locator:
         restrictions = router.get_restrictions(permissions)
 
         result_distances = self.norm_func(np_ranges[:, :dimensions] - results.x, axis=1)/100
-        precision = round(float(np.max(np.abs(diff_func(results.x))))/100, 2)
+        precision = round(float(np.median(np.abs(diff_func(results.x))))/100*1.1, 2)
 
         result_pos = tuple(i/100 for i in results.x)
         if dimensions == 2:
