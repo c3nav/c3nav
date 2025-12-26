@@ -576,7 +576,7 @@ class Locator:
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
-        result_distances = self.norm_func(np_ranges[:, :dimensions] - results.x, axis=1)
+        result_distances = self.norm_func(np_ranges[:, :dimensions] - results.x, axis=1)/100
         precision = round(float(np.max(np.abs(diff_func(results.x))))/100, 2)
 
         result_pos = tuple(i/100 for i in results.x)
@@ -607,10 +607,12 @@ class Locator:
             for peer_id, result_distance, correct_distance in zip(peer_ids, result_distances, correct_distances):
                 peer = self.peers[peer_id]
                 value = scan_data[peer_id]
-                analysis.append(f"{tuple(round(float(i)/100, 2) for i in peer.xyz)}: "
+                analysis.append(f"{tuple(round(float(i), 2) for i in peer.xyz)}: "
                                 f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) - {value.rssi} dB")
-                analysis.append(f"- result: {result_distance:.2f} m ({value.distance-correct_distance:+.1f} m)")
-                analysis.append(f"- correct {correct_distance:.2f} m ({value.distance-result_distance:+.1f} m)")
+                analysis.append(f"- result: {round(float(result_distance), 2):.2f} m"
+                                f" ({value.distance-result_distance:+.1f} m)")
+                analysis.append(f"- correct {correct_distance:.2f} m"
+                                f" ({value.distance-correct_distance:+.1f} m)")
 
         if correct_xyz is not None:
             distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
