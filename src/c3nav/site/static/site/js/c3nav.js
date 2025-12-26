@@ -2640,11 +2640,19 @@ c3nav = {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
                 const layer = c3nav._userLocationLayers[level];
                 const factor = (parseInt(level) === location.level) ? 1 : 0.3;
-                L.circleMarker(latlng, {
-                    radius: (precision !== undefined && precision !== null) ? precision : 11,
-                    stroke: 0,
-                    fillOpacity: 0.1
-                }).addTo(layer);
+                if (precision !== undefined && precision !== null) {
+                    L.circle(latlng, {
+                        radius: precision,
+                        stroke: 0,
+                        fillOpacity: 0.1
+                    }).addTo(layer);
+                } else {
+                    L.circleMarker(latlng, {
+                        radius: 11,
+                        stroke: 0,
+                        fillOpacity: 0.1
+                    }).addTo(layer);
+                }
                 L.circleMarker(latlng, {
                     radius: 5,
                     stroke: 0,
