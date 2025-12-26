@@ -461,16 +461,13 @@ class DistanceLocationFeature:
 
     @classmethod
     def add_distance_location_display(cls, result: dict, location):
-        print("lalala")
         if not settings.DISTANCE_FROM_LOCATION:
-            raise
             return
 
         try:
             from c3nav.routing.router import Router
             router = Router.load()
         except:
-            raise
             return
 
         if cls.location is None:
@@ -481,7 +478,6 @@ class DistanceLocationFeature:
                     pk=settings.DISTANCE_FROM_LOCATION).get_child()
                 point = cls.location.point
             except:
-                raise
                 return
 
             cls.xyz = (
@@ -500,7 +496,6 @@ class DistanceLocationFeature:
                 ].altitudearea_for_point(point).get_altitude(point)
             )
         except:
-            raise
             return
 
         import numpy as np
