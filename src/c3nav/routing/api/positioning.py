@@ -61,7 +61,7 @@ def get_position(request, parameters: LocateRequestSchema):
                                         permissions=AccessPermission.get_for_request(request))
         location = located.location
         if location is not None:
-            increment_cache_key('apistats__locate__%s' % location.rounded_pk)
+            increment_cache_key('apistats__locate_%s' % location.rounded_pk)
     except ValidationError:
         # todo: validation error, seriously? this shouldn't happen anyways
         raise
@@ -96,7 +96,9 @@ def get_position(request, parameters: LocateRequestSchema):
 
 if settings.METRICS:
     from c3nav.mapdata.metrics import APIStatsCollector
-    APIStatsCollector.add_stat('locate', ['location', 'method', 'rangepeers'])
+    APIStatsCollector.add_stat('locate', ['location'])
+    APIStatsCollector.add_stat('locatemethod', ['method'])
+    APIStatsCollector.add_stat('locaterangepeers', ['peers'])
 
 
 @positioning_api_router.get('/locate-test/', summary="debug position",

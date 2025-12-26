@@ -327,7 +327,7 @@ class Locator:
 
         result = self.locate_range(scan_data, permissions, correct_xyz=correct_xyz)
         if result.location is not None:
-            increment_cache_key('apistats__locate__method__range')
+            increment_cache_key('apistats__locatemethod_range')
             return result
 
         suggestions = result.suggested_peers
@@ -337,12 +337,12 @@ class Locator:
 
         result = self.locate_by_beacon_positions(scan_data, permissions)
         if result is not None:
-            increment_cache_key('apistats__locate__method__beacon_positions')
+            increment_cache_key('apistats__locatemethod_beaconpositions')
             return LocatorResult(location=result, suggested_peers=suggestions)
 
         result = self.locate_rssi(scan_data, permissions)
         if result is not None:
-            increment_cache_key('apistats__locate__method__rssi')
+            increment_cache_key('apistats__locatemethod_rssi')
         return LocatorResult(location=result, suggested_peers=suggestions)
 
     def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None) -> Optional[CustomLocation]:
@@ -677,8 +677,7 @@ class Locator:
                 print("height:", result_pos[2])
             # print("scale:", (factor or results.x[3]))
 
-        increment_cache_key('apistats__locate__method__range')
-        increment_cache_key('apistats__locate__rangepeers__%s' % len(peer_ids))
+        increment_cache_key('apistats__locaterangepeers_%s' % len(peer_ids))
 
         return LocatorResult(
             location=location,
