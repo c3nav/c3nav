@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-28 18:12+0100\n"
-"PO-Revision-Date: 2024-12-28 18:20+0100\n"
+"POT-Creation-Date: 2025-12-26 17:00+0100\n"
+"PO-Revision-Date: 2025-12-26 17:04+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Poedit 3.8\n"
 
 #: c3nav/api/models.py c3nav/mapdata/models/locations.py
 msgid "name"
@@ -45,6 +45,10 @@ msgstr "Editor-Zugriff"
 #: c3nav/api/models.py
 msgid "mesh access"
 msgstr "Mesh-Zugriff"
+
+#: c3nav/api/models.py
+msgid "load write access"
+msgstr "Load Schreibzugriff"
 
 #: c3nav/api/models.py
 msgid "valid_until"
@@ -164,6 +168,14 @@ msgstr "geometrien geändert"
 msgid "no geometries changed"
 msgstr "keine geometrien geändert"
 
+#: c3nav/control/forms.py c3nav/mapdata/models/update.py
+msgid "purge the entire cache"
+msgstr "leert kompletten Cache"
+
+#: c3nav/control/forms.py
+msgid "don't purge the entire cache"
+msgstr "leert nicht kompletten Cache"
+
 #: c3nav/control/forms.py
 msgid "processed"
 msgstr "verarbeitet"
@@ -247,6 +259,18 @@ msgstr "Nichtöffentliche Themes in der Themeauswahl zeigen"
 #: c3nav/control/models.py
 msgid "dont say thanks after completing a quest"
 msgstr "nicht für das Lösen eines Quests bedanken"
+
+#: c3nav/control/models.py
+msgid "passive ap name scanning"
+msgstr "passives AP-Namen scanning"
+
+#: c3nav/control/models.py
+msgid "collect all locate wifi scans"
+msgstr "sammle alle Positionierungs-WiFi scans"
+
+#: c3nav/control/models.py
+msgid "write load data"
+msgstr "Load Daten schreiben"
 
 #: c3nav/control/models.py
 msgid "User Permissions"
@@ -495,6 +519,10 @@ msgid "Geometries"
 msgstr "Geometrien"
 
 #: c3nav/control/templates/control/map_updates.html
+msgid "Purge"
+msgstr ""
+
+#: c3nav/control/templates/control/map_updates.html
 msgid "Processed"
 msgstr "Verarbeitet"
 
@@ -615,6 +643,10 @@ msgid "Username"
 msgstr "Benutzername"
 
 #: c3nav/control/views/access.py
+msgid "If the username exists, access has been granted to that user."
+msgstr "Falls der Username existiert, hat der User die Rechte erhalten."
+
+#: c3nav/control/views/access.py
 msgid "Access successfully granted."
 msgstr "Zugangserlaubnis erfolgreich erteilt."
 
@@ -682,14 +714,6 @@ msgstr "Raumzugriffserlaubnis erfolgreich gelöscht."
 #: c3nav/control/views/users.py
 msgid "You cannot delete this space access."
 msgstr "Du kannst diese Raumzugriffserlaubnis nicht löschen."
-
-#: c3nav/editor/api/endpoints.py
-msgid "No matching editor view endpoint found."
-msgstr "Es wurde keine passende Editor-Endpunkt gefunden."
-
-#: c3nav/editor/api/endpoints.py
-msgid "Matching editor view point does not provide an API."
-msgstr "Der entsprechende Editor-Endpunkt bietet diese API nicht an."
 
 #: c3nav/editor/forms.py
 msgid "Redirecting Slugs (comma separated)"
@@ -1293,10 +1317,6 @@ msgstr "Neues Konto erstellen"
 #: c3nav/editor/views/account.py c3nav/site/views.py
 msgid "Password successfully changed."
 msgstr "Passwort erfolgreich geändert."
-
-#: c3nav/editor/views/base.py
-msgid "Log in required."
-msgstr "Login erforderlich."
 
 #: c3nav/editor/views/changes.py
 msgid "Can't find this changed object"
@@ -1928,8 +1948,21 @@ msgstr ""
 "Quest zum Betreten, Verlassen und Durchgehen zu diesem Space generiert."
 
 #: c3nav/mapdata/models/geometry/level.py
+msgid "All media panels mapped"
+msgstr "Alle mediapanels gemappt"
+
+#: c3nav/mapdata/models/geometry/level.py c3nav/mapdata/quests/building.py
+msgid "Internal Room Number"
+msgstr "Internet raumnummer"
+
+#: c3nav/mapdata/models/geometry/level.py
 msgid "Spaces"
 msgstr "Räume"
+
+#: c3nav/mapdata/models/geometry/level.py
+#, python-brace-format
+msgid "{internal_room_number}, {rest}"
+msgstr "{internal_room_number}, {rest}"
 
 #: c3nav/mapdata/models/geometry/level.py c3nav/mapdata/models/level.py
 msgid "outside only"
@@ -2141,6 +2174,14 @@ msgid "Beacon Measurements"
 msgstr "Beacon Messungen"
 
 #: c3nav/mapdata/models/geometry/space.py
+msgid "Auto Beacon Measurement"
+msgstr "Automatische Beacon-Messung"
+
+#: c3nav/mapdata/models/geometry/space.py
+msgid "Auto Beacon Measurements"
+msgstr "Automatische Beacon-Messungen"
+
+#: c3nav/mapdata/models/geometry/space.py
 msgid "Event WiFi AP"
 msgstr "Event-WLAN AP"
 
@@ -2191,6 +2232,14 @@ msgstr "AP Name"
 #: c3nav/mapdata/models/geometry/space.py
 msgid "altitude quest"
 msgstr "Höhenquest"
+
+#: c3nav/mapdata/models/geometry/space.py
+msgid "current number of clients"
+msgstr "aktuelle anzahl Clients"
+
+#: c3nav/mapdata/models/geometry/space.py
+msgid "highest observed number of clients"
+msgstr "maximale anzahl Clients"
 
 #: c3nav/mapdata/models/geometry/space.py
 msgid "Ranging beacon"
@@ -2465,6 +2514,10 @@ msgid "offer in first step, exclusive choice"
 msgstr "im ersten Schritt anbieten, exklusive Auswahl"
 
 #: c3nav/mapdata/models/locations.py
+msgid "offer in first step, then only query image"
+msgstr "im ersten Schritt anbieten, dann Bild abfragen"
+
+#: c3nav/mapdata/models/locations.py
 msgid "offer if nothing in the first step matches, multiple choice"
 msgstr "anbieten falls nichts im ersten Schritt passt, multiple choice"
 
@@ -2607,6 +2660,14 @@ msgstr "z. Zt. nicht verfügbar"
 #: c3nav/mapdata/models/locations.py
 msgid "(moving)"
 msgstr "(beweglich)"
+
+#: c3nav/mapdata/models/locations.py
+msgid "abbreviation"
+msgstr "Abkürzung"
+
+#: c3nav/mapdata/models/locations.py
+msgid "two characters maximum"
+msgstr "maximal zwwei Buchstaben"
 
 #: c3nav/mapdata/models/locations.py
 msgid "last coordinates update"
@@ -2826,6 +2887,10 @@ msgstr "Ortgruppen"
 msgid "select all groups that apply, if any"
 msgstr "wähle zutreffende Gruppen aus"
 
+#: c3nav/mapdata/models/report.py
+msgid "image"
+msgstr ""
+
 #: c3nav/mapdata/models/report.py c3nav/site/templates/site/report_detail.html
 msgid "Report"
 msgstr "Meldung"
@@ -2995,8 +3060,80 @@ msgid "via control panel"
 msgstr "via Control Panel"
 
 #: c3nav/mapdata/models/update.py
+msgid ""
+"This erases all map history when processed, meaning that all tiles and "
+"renderings need to be re-rendered. Only use after manually tampering with "
+"the database or to fix caching issues."
+msgstr ""
+
+#: c3nav/mapdata/models/update.py
 msgid "Map update"
 msgstr "Kartenänderung"
+
+#: c3nav/mapdata/quests/building.py
+#, python-format
+msgid ""
+"Find the internal room number of “%s”. You find it on the door sign at the "
+"bottom."
+msgstr ""
+
+#: c3nav/mapdata/quests/building.py
+msgid "If you are sure the space has no such sign, just enter a dash."
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+msgid "You have not marveled enough yet! Marvel more!"
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+msgid "Wifi AP Marveling"
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+#, python-format
+msgid "Marvel at this access point with the name: %s"
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+#, python-format
+msgid "Marvel at its addresses: %s"
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+#, python-format
+msgid "Marvel at its bluetooth addresses: %s"
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+#, python-format
+msgid "Marvel at its BLE addresses: %s %s %s"
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+msgid "Your time starts now."
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+msgid "Media Panel Scouting"
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+#, python-format
+msgid "Find all media panels in this room: %s "
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+msgid "Report them all using the report missing location form."
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+msgid ""
+"Take a picture of them as well and store it separately, so we know the ports."
+msgstr ""
+
+#: c3nav/mapdata/quests/networking.py
+msgid "Once you are done, complete this quest."
+msgstr ""
 
 #: c3nav/mapdata/quests/positioning.py
 #, python-format
@@ -3263,6 +3400,11 @@ msgstr "Nahe %(area)s"
 #, python-format
 msgid "In %(space)s"
 msgstr "In %(space)s"
+
+#: c3nav/mapdata/utils/locations.py
+#, python-brace-format
+msgid "Distance from {location}"
+msgstr "Entfernung von {location}"
 
 #: c3nav/mapdata/utils/user.py
 msgid "Login"
@@ -4044,6 +4186,15 @@ msgid "Yes, i really want to delete my account."
 msgstr "Ja, ich möchte meinen Account löschen."
 
 #: c3nav/site/forms.py
+#, python-format
+msgid "Image for %s"
+msgstr ""
+
+#: c3nav/site/forms.py
+msgid "(feel free to add more description if it makes sense)"
+msgstr ""
+
+#: c3nav/site/forms.py
 msgid "change status"
 msgstr "Status ändern"
 
@@ -4093,8 +4244,8 @@ msgstr ""
 
 #: c3nav/site/templates/site/about.html
 msgid ""
-"Keep yourself up to date on c3nav by following us on <a href=\"https://chaos."
-"social/@c3nav\" rel=\"external\" target=\"_blank\">the fediverse</a>."
+"Keep yourself up to date on c3nav by following us on <a href=\"https://"
+"chaos.social/@c3nav\" rel=\"external\" target=\"_blank\">the fediverse</a>."
 msgstr ""
 "Bleib auf dem Laufenden zu c3nav auf dem <a href=\"https://chaos.social/"
 "@c3nav\" rel=\"external\" target=\"_blank\">Fediverse</a>.."
@@ -4470,6 +4621,14 @@ msgid "(none)"
 msgstr "(keine)"
 
 #: c3nav/site/templates/site/report_detail.html
+msgid "Image"
+msgstr ""
+
+#: c3nav/site/templates/site/report_detail.html
+msgid "You submitted an image."
+msgstr "Du hast ein Bild eingereicht."
+
+#: c3nav/site/templates/site/report_detail.html
 msgid "Issue was opened."
 msgstr "Meldung wurde geöffnet."
 
@@ -4658,6 +4817,15 @@ msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
 
+#~ msgid "No matching editor view endpoint found."
+#~ msgstr "Es wurde keine passende Editor-Endpunkt gefunden."
+
+#~ msgid "Matching editor view point does not provide an API."
+#~ msgstr "Der entsprechende Editor-Endpunkt bietet diese API nicht an."
+
+#~ msgid "Log in required."
+#~ msgstr "Login erforderlich."
+
 #~ msgid "WiFi BSSIDs"
 #~ msgstr "WLAN BSSIDs"
 
@@ -4763,9 +4931,6 @@ msgstr ""
 
 #~ msgid "for missing locations"
 #~ msgstr "für fehlende Orte"
-
-#~ msgid "can be used when reporting a missing location"
-#~ msgstr "kann beim melden eines fehlenden Ortges genutzt werden"
 
 #~ msgid ""
 #~ "I understand that if i report an issue related to an assembly, all that "

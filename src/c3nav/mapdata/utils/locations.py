@@ -11,6 +11,7 @@ from django.apps import apps
 from django.conf import settings
 from django.db.models import Prefetch, Q
 from django.utils.functional import cached_property
+from django.utils.text import format_lazy
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from shapely.ops import unary_union
@@ -362,6 +363,7 @@ class CustomLocation:
             ],
             'geometry': self.serialized_geometry,
         }
+        DistanceLocationFeature.add_distance_location_display(result, self)
         if not grid.enabled:
             result['display'].pop(6)
         return result
@@ -450,3 +452,60 @@ class CustomLocation:
     @cached_property
     def slug(self):
         return self.pk
+
+
+# todo: written fast, make better
+class DistanceLocationFeature:
+    location = None
+    xyz = None
+
+    @classmethod
+    def add_distance_location_display(cls, result: dict, location):
+        print("lalala")
+        if not settings.DISTANCE_FROM_LOCATION:
+            raise
+            return
+
+        try:
+            from c3nav.routing.router import Router
+            router = Router.load()
+        except:
+            raise
+            return
+
+        if cls.location is None:
+            from c3nav.mapdata.models.locations import LocationSlug
+
+            try:
+                cls.location = LocationSlug.objects.get(
+                    pk=settings.DISTANCE_FROM_LOCATION).get_child()
+                point = cls.location.point
+            except:
+                raise
+                return
+
+            cls.xyz = (
+                point.x, point.y,
+                router.spaces[
+                    cls.location.pk if isinstance(cls.location, Space) else cls.location.space_id
+                ].altitudearea_for_point(point).get_altitude(point)
+            )
+
+        try:
+            point = location.point
+            other_xyz = (
+                point.x, point.y,
+                router.spaces[
+                    location.pk if isinstance(location, Space) else cls.location.space_id
+                ].altitudearea_for_point(point).get_altitude(point)
+            )
+        except:
+            raise
+            return
+
+        import numpy as np
+        distance = np.linalg.norm(tuple((x-y) for x, y in zip(cls.xyz, other_xyz)))
+
+        result["display"].append(
+            (format_lazy(_('Distance from {location}'), location=cls.location.title), '%.1f m' % distance)
+        )

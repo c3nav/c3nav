@@ -1,4 +1,3 @@
-import math
 from contextlib import contextmanager
 
 from django.db import models
@@ -84,6 +83,8 @@ class GeometryMixin(SerializableMixin):
 
     def details_display(self, detailed_geometry=True, **kwargs):
         result = super().details_display(**kwargs)
+        from c3nav.mapdata.utils.locations import DistanceLocationFeature
+        DistanceLocationFeature.add_distance_location_display(result, self)
         result['geometry'] = self.get_geometry(detailed_geometry=detailed_geometry)
         return result
 
