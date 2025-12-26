@@ -20,7 +20,7 @@ class Command(BaseCommand):
             return Level.objects.filter(on_top_of__isnull=True)
 
         values = set(v for v in value.split(',') if v)
-        levels = Level.objects.filter(on_top_of__isnull=True, level_index___in=values)
+        levels = Level.objects.filter(on_top_of__isnull=True, level_index__in=values)
 
         not_found = values - set(level.level_index for level in levels)
         if not_found:
@@ -129,8 +129,6 @@ class Command(BaseCommand):
                 engine, index = get_engine('png')
                 render = renderer.render(engine, options['theme'], center=not options['no_center'])
                 data = render.get_xml().encode()
-                if index is not None:
-                    data = data[index]
             else:
                 engine, index = get_engine(options['filetype'])
                 render = renderer.render(engine, options['theme'],
