@@ -98,7 +98,7 @@ def get_position(request, parameters: LocateRequestSchema):
 
 if settings.METRICS:
     from c3nav.mapdata.metrics import APIStatsCollector
-    APIStatsCollector.add_stat('locate', 'location')
+    APIStatsCollector.add_stat('locate', ['location', 'method', 'rangepeers'])
 
 
 @positioning_api_router.get('/locate-test/', summary="debug position",
