@@ -480,9 +480,11 @@ class Locator:
         if correct_xyz is not None:
             correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1)/100
             for peer_id, correct_distance in zip(peer_ids, correct_distances):
+                peer = self.peers[peer_id]
                 value = scan_data[peer_id]
-                analysis.append(f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) → "
-                                f"{correct_distance:.2f} m ({value.distance-correct_distance:+} m)")
+                analysis.append(f"{peer.identifier.identifier}: {tuple(round(float(i), 2) for i in peer.xyz)}"
+                                f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) → "
+                                f"{correct_distance:.2f} m ({value.distance-correct_distance:+.1f} m)")
 
         if not peer_ids:
             return LocatorResult(
@@ -610,12 +612,10 @@ class Locator:
         if correct_xyz is not None:
             distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
 
-            for peer_id, correct_distance in zip(peer_ids, correct_distances):
-                value = scan_data[peer_id]
-                analysis.insert(0,
-                                f"{tuple(round(float(i)/100, 2) for i in results.x/2)} → "
-                                f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
-                                f"(off by {distance:.2f} m)")
+            analysis.insert(0,
+                            f"{tuple(round(float(i)/100, 2) for i in results.x/2)} → "
+                            f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
+                            f"(off by {distance:.2f} m)")
 
         # get suggested peers
         remaining_peer_ids = tuple(self.peers_with_80211mc - set(peer_ids))
