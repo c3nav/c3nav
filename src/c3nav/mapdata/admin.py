@@ -13,10 +13,14 @@ class AutoBeaconMeasurementAdmin(admin.ModelAdmin):
     list_per_page = 10
 
     def located(self, obj):
-        location = obj.located_all_permissions.location
+        located = obj.located_all_permissions
+        location = located.location
         if location is None:
             return ""
-        return format_html('<a href="/l/{slug}/">{title}</a>', slug=location.slug, title=location.title)
+        line = format_html('<a href="/l/{slug}/">{title}</a>', slug=located.location.slug, title=located.location.title)
+        if located.precision is not None:
+            line = mark_safe(str(line) + f' (+/- {located.precision:.1f} m)')
+        return line
 
     def suggestions(self, obj):
         return mark_safe(
@@ -54,8 +58,10 @@ class BeaconMeasurementAdmin(admin.ModelAdmin):
         for located in obj.located_all_permissions:
             if located.location is None:
                 result.append("-")
-            result.append(format_html('<a href="/l/{slug}/">{title}</a>',
-                                      slug=located.location.slug, title=located.location.title))
+            line = format_html('<a href="/l/{slug}/">{title}</a>', slug=located.location.slug, title=located.location.title)
+            if located.precision is not None:
+                line = str(line) + f' (+/- {located.precision:.1f} m)'
+            result.append(line)
         return mark_safe("<br>".join(result))
 
     def analysis(self, obj):

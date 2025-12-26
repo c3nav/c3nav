@@ -2599,7 +2599,7 @@ c3nav = {
             ibeacon_peers: ibeacon_peers,
         })
             .then(data => {
-                c3nav._set_user_location(data.location);
+                c3nav._set_user_location(data.location, data.precision);
                 if (typeof mobileclient !== 'undefined' && mobileclient.suggestedWifiPeersReceived) {
                     mobileclient.suggestedWifiPeersReceived(JSON.stringify(data.suggested_peers));
                 }
@@ -2612,7 +2612,7 @@ c3nav = {
     },
     _current_user_location: null,
     _last_user_location_time: 0,
-    _set_user_location: function (location, force) {
+    _set_user_location: function (location, precision, force) {
         const currentLocationRequested = (
             typeof mobileclient !== 'undefined' &&
             mobileclient.isCurrentLocationRequested &&
@@ -2641,7 +2641,7 @@ c3nav = {
                 const layer = c3nav._userLocationLayers[level];
                 const factor = (parseInt(level) === location.level) ? 1 : 0.3;
                 L.circleMarker(latlng, {
-                    radius: 11,
+                    radius: (precision !== undefined && precision !== null) ? precision : 11,
                     stroke: 0,
                     fillOpacity: 0.1
                 }).addTo(layer);

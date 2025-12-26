@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from ninja import Field as APIField
 from ninja import Router as APIRouter
-from pydantic import PositiveInt
+from pydantic import PositiveFloat
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.auth import auth_responses
@@ -38,19 +38,16 @@ class PositioningResult(BaseSchema):
         title="location",
         description="positinoing result",
     )
+    precision: Union[
+        Annotated[PositiveFloat, APIField(title="precision")],
+        Annotated[None, APIField(title="null", description="precision unknown or not applicable")]
+    ] = APIField(
+        title="precision",
+        description="estimated description in meters",
+    )
     suggested_peers: list[RangePeerSchema] = APIField(
         title="suggested peers",
         description="suggested peers to range, in descending priority",
-    )
-
-
-class PositioningResult(BaseSchema):
-    location: Union[
-        Annotated[CustomLocationSchema, APIField(title="location")],
-        Annotated[None, APIField(title="null", description="position could not be determined")]
-    ] = APIField(
-        title="location",
-        description="positinoing result",
     )
 
 
@@ -93,6 +90,7 @@ def get_position(request, parameters: LocateRequestSchema):
     return {
         "location": location,
         "suggested_peers": located.suggested_peers,
+        "precision": located.precision,
     }
 
 

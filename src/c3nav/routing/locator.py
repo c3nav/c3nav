@@ -102,6 +102,7 @@ class LocatorPoint:
 class LocatorResult(NamedTuple):
     location: Optional[CustomLocation]
     suggested_peers: list[RangePeerSchema]
+    precision: Optional[float] = None
     analysis: Optional[list[str]] = None
 
 
@@ -583,6 +584,8 @@ class Locator:
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
+        precision = round(float(np.max(np.abs(diff_func(results.x))))/100, 2)
+
         result_pos = tuple(i/100 for i in results.x)
         if dimensions == 2:
             result_pos += (initial_guess[2]/100, )
@@ -674,13 +677,14 @@ class Locator:
                 print("height:", result_pos[2])
             # print("scale:", (factor or results.x[3]))
 
-        increment_cache_key('apistats__locate__method__range' % len(peer_ids))
+        increment_cache_key('apistats__locate__method__range')
         increment_cache_key('apistats__locate__rangepeers__%s' % len(peer_ids))
 
         return LocatorResult(
-            location=None,
+            location=location,
             suggested_peers=suggestions,
             analysis=analysis,
+            precision=precision,
         )
 
 
