@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from ninja import Field as APIField
 from ninja import Router as APIRouter
+from pydantic import PositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.auth import auth_responses
@@ -25,6 +26,34 @@ class LocateRequestSchema(BaseSchema):
     )
     ibeacon_peers: list[LocateIBeaconPeerSchema] = APIField(
         title="list of visible/measured location iBeacons",
+    )
+
+
+class RangePeerSchema(BaseSchema):
+    bssid: MacAddress = APIField(
+        title="BSSID",
+        description="BSSID of the peer",
+        example="c3:42:13:37:ac:ab",
+    )
+    frequency: list[PositiveInt] = APIField(
+        default=[],
+        title="frequencies",
+        description="possible frequencies in KHz – sorted by likeliness descending",
+        example=[2472, 5580],
+    )
+
+
+class PositioningResult(BaseSchema):
+    location: Union[
+        Annotated[CustomLocationSchema, APIField(title="location")],
+        Annotated[None, APIField(title="null", description="position could not be determined")]
+    ] = APIField(
+        title="location",
+        description="positinoing result",
+    )
+    suggested_peers: list[RangePeerSchema] = APIField(
+        title="suggested peers",
+        description="suggested peers to range, in descending priority",
     )
 
 
@@ -74,7 +103,8 @@ def get_position(request, parameters: LocateRequestSchema):
         )
 
     return {
-        "location": location
+        "location": location,
+        "suggested_peers": [],
     }
 
 

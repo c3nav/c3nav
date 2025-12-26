@@ -3,6 +3,7 @@ import pickle
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import cached_property, reduce
+from itertools import chain
 from typing import Annotated, NamedTuple, Union
 from typing import Optional, Self, Sequence, TypeAlias
 from uuid import UUID
@@ -16,6 +17,7 @@ from shapely import Point
 from shapely.ops import nearest_points
 
 from c3nav.mapdata.models import MapUpdate, Space
+from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
@@ -50,6 +52,7 @@ class LocatorPeer:
     frequencies: set[int] = field(default_factory=set)
     xyz: Optional[tuple[int, int, int]] = None
     space_id: Optional[int] = None
+    supports80211mc: bool = False
 
 
 @dataclass
@@ -97,8 +100,19 @@ class Locator:
 
     def _rebuild(self, router):
         calculated = get_nodes_and_ranging_beacons()
+
+        # get ranging bssids first
+        measurements = list(chain(AutoBeaconMeasurement.objects.all(), BeaconMeasurement.objects.all()))
+        ranging_bssids: set[str] = set()
+        for m in measurements:
+            for item in chain.from_iterable(m.data.wifi):
+                if not (item.supports80211mc or item.distance is not None):
+                    ranging_bssids.add(item.bssid.lower())
+
+        # go through beacons, create peers
         for beacon in calculated.beacons.values():
             identifiers = []
+            supports80211mc = any((bssid.lower() in ranging_bssids) for bssid in beacon.addresses)
             for bssid in beacon.addresses:
                 identifiers.append(TypedIdentifier(PeerType.WIFI, bssid.lower()))
             if beacon.ap_name:
@@ -114,6 +128,7 @@ class Locator:
                     int(beacon.geometry.y * 100),
                     int((router.altitude_for_point(beacon.space_id, beacon.geometry) + float(beacon.altitude)) * 100),
                 )
+                self.peers[peer_id].supports80211mc = supports80211mc
                 self.peers[peer_id].space_id = beacon.space_id
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
 
