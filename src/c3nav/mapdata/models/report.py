@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
+from django.urls.exceptions import NoReverseMatch
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
@@ -158,19 +159,22 @@ class Report(models.Model):
             if location is None:
                 return None
             url_name = 'editor.%s.edit' % location.__class__._meta.default_related_name
-            if isinstance(location, SpaceGeometryMixin):
+            try:
+                if isinstance(location, SpaceGeometryMixin):
+                    return reverse(url_name, kwargs={
+                        'pk': location.pk,
+                        'space': location.space.pk
+                    })
+                if isinstance(location, LevelGeometryMixin):
+                    return reverse(url_name, kwargs={
+                        'pk': location.pk,
+                        'level': location.level.pk
+                    })
                 return reverse(url_name, kwargs={
                     'pk': location.pk,
-                    'space': location.space.pk
                 })
-            if isinstance(location, LevelGeometryMixin):
-                return reverse(url_name, kwargs={
-                    'pk': location.pk,
-                    'level': location.level.pk
-                })
-            return reverse(url_name, kwargs={
-                'pk': location.pk,
-            })
+            except NoReverseMatch:
+                return '#sorry'
 
     def save(self, *args, **kwargs):
         created = self.pk is None
