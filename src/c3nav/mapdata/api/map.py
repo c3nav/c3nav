@@ -22,7 +22,8 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
-from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon
+from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon, AutoBeaconMeasurement, \
+    BeaconMeasurement
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup, LoadGroup
 from c3nav.mapdata.quests.base import QuestSchema, get_all_quests_for_request
 from c3nav.mapdata.render.theme import ColorManager
@@ -525,3 +526,52 @@ def post_load(request, parameters: ApLoadSchema):
     cache.set('mapdata:load_is_recent', True, 300)
 
     return 204, None
+
+
+@map_api_router.get('/wifidata/', summary="wifidata special",
+                    response={200: dict, **auth_responses})
+def wifidata(request):
+    # todo: this is ugly because i'm tired, wehhhh
+    if not request.user.has_perm("mapdata__can_view_autobeaconmeasurement"):
+        raise APIPermissionDenied()
+
+    result = {
+        "rangingbeacons": [],
+        "autobeaconmeasurements": [],
+        "beaconmeasurements": [],
+    }
+    for m in AutoBeaconMeasurement.objects.select_related("author"):
+        result["autobeaconmeasurements"].append({
+            "pk": m.pk,
+            "author": m.author.username,
+            "datetime": str(m.datetime),
+            "data": m.data.model_dump(),
+        })
+
+    from c3nav.routing.router import Router
+    router = Router.load()
+    for m in BeaconMeasurement.objects.select_related("author"):
+        result["beaconmeasurements"].append({
+            "pk": m.pk,
+            "author": m.author.username,
+            "comment": m.comment,
+            "space_id": m.space_id,
+            "xyz_floor": (
+                int(m.geometry.x*100), int(m.geometry.y*100),
+                int(router.spaces[m.space_id].altitudearea_for_point(m.geometry).get_altitude(m.geometry)*100),
+            ),
+            "data": m.data.model_dump(),
+        })
+
+    from c3nav.routing.locator import Locator
+    l = Locator.load()
+    for peer in l.peers:
+        if not peer.identifier.identifier.startswith('AP'):
+            continue
+        result["rangingbeacons"].append({
+            "name": peer.identifier.identifier,
+            "xyz": peer.xyz,
+            "space_id": peer.space_id,
+        })
+
+    return result
