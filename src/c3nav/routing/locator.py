@@ -544,7 +544,7 @@ class Locator:
             result = diff_func(guess) * -1
             if settings.DEBUG:
                 print("diff", result)
-            result[result < 0] = result[result < 0] * -10
+            result[result < 0] = result[result < 0] * -2
             cost = np.sum(result ** 2)
             if settings.DEBUG:
                 print("cost", result, cost)
@@ -607,11 +607,11 @@ class Locator:
             for peer_id, result_distance, correct_distance in zip(peer_ids, result_distances, correct_distances):
                 peer = self.peers[peer_id]
                 value = scan_data[peer_id]
-                analysis.append(f"{tuple(round(float(i), 2) for i in peer.xyz)}: "
+                analysis.append(f"{tuple(round(float(i)/100, 2) for i in peer.xyz)}: "
                                 f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) - {value.rssi} dB")
-                analysis.append(f"- result: {round(float(result_distance), 2):.2f} m"
-                                f" ({value.distance-result_distance:+.1f} m)")
-                analysis.append(f"- correct {correct_distance:.2f} m"
+                analysis.append(f"→ result: {round(float(result_distance), 2):.2f} m"
+                                f" ({value.distance-result_distance:+.1f} m)"
+                                f"→ correct: {correct_distance:.2f} m"
                                 f" ({value.distance-correct_distance:+.1f} m)")
 
         if correct_xyz is not None:
