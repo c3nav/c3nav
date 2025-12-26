@@ -2501,6 +2501,7 @@ c3nav = {
     _enable_scan_debugging: false,
     _scan_debugging_results: [],
     _wifi_scan_results: function (peers) {
+        // important: we need to send peers even if empty, because we get an interesting useful answer from the server
         peers = JSON.parse(peers);
 
         if (c3nav._enable_scan_debugging) {
@@ -2550,6 +2551,7 @@ c3nav = {
         c3nav._after_scan_results();
     },
     _ibeacon_scan_results: function (peers) {
+        return;  // disabled causae no ibeacon support currently
         peers = JSON.parse(peers);
         c3nav._last_ibeacon_peers = peers;
 
@@ -2582,9 +2584,10 @@ c3nav = {
                     c3nav._no_scan_count++;
                 }
             }
-            return;
+            // don't abort here, we still need to send the data
+        } else {
+            c3nav._no_scan_count = 0;
         }
-        c3nav._no_scan_count = 0;
 
         const ibeacon_peers = c3nav._last_ibeacon_peers.map(p => ({...p}));
         for (const peer of ibeacon_peers) {
@@ -2595,7 +2598,12 @@ c3nav = {
             wifi_peers: c3nav._last_wifi_peers,
             ibeacon_peers: ibeacon_peers,
         })
-            .then(data => c3nav._set_user_location(data.location))
+            .then(data => {
+                c3nav._set_user_location(data.location);
+                if (typeof mobileclient !== 'undefined' && mobileclient.suggestedWifiPeersReceived) {
+                    mobileclient.suggestedWifiPeersReceived(JSON.stringify(data.suggested_peers));
+                }
+            })
             .catch(err => {
                 console.error(err);
                 c3nav._set_user_location(null);
