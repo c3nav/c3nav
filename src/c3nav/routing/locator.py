@@ -482,8 +482,8 @@ class Locator:
             for peer_id, correct_distance in zip(peer_ids, correct_distances):
                 peer = self.peers[peer_id]
                 value = scan_data[peer_id]
-                analysis.append(f"{peer.identifier.identifier}: {tuple(round(float(i), 2) for i in peer.xyz)}"
-                                f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) → "
+                analysis.append(f"{tuple(round(float(i)/100, 2) for i in peer.xyz)}} - "
+                                f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) → {value.rssi} dB → "
                                 f"{correct_distance:.2f} m ({value.distance-correct_distance:+.1f} m)")
 
         if not peer_ids:
