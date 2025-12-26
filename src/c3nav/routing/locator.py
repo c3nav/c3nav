@@ -613,7 +613,7 @@ class Locator:
             distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
 
             analysis.insert(0,
-                            f"{tuple(round(float(i)/100, 2) for i in results.x/2)} → "
+                            f"{tuple(round(float(i)/100, 2) for i in results.x)} → "
                             f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
                             f"(off by {distance:.2f} m)")
 
