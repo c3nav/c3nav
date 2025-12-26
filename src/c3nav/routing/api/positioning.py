@@ -15,7 +15,8 @@ from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.tasks import update_ap_names_bssid_mapping
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.routing.locator import Locator
-from c3nav.routing.schemas import LocateWifiPeerSchema, LocateIBeaconPeerSchema, BeaconMeasurementDataSchema
+from c3nav.routing.schemas import LocateWifiPeerSchema, LocateIBeaconPeerSchema, BeaconMeasurementDataSchema, \
+    RangePeerSchema
 
 positioning_api_router = APIRouter(tags=["positioning"])
 
@@ -26,20 +27,6 @@ class LocateRequestSchema(BaseSchema):
     )
     ibeacon_peers: list[LocateIBeaconPeerSchema] = APIField(
         title="list of visible/measured location iBeacons",
-    )
-
-
-class RangePeerSchema(BaseSchema):
-    bssid: MacAddress = APIField(
-        title="BSSID",
-        description="BSSID of the peer",
-        example="c3:42:13:37:ac:ab",
-    )
-    frequencies: list[PositiveInt] = APIField(
-        default=[],
-        title="frequencies",
-        description="possible frequencies in KHz – sorted by likeliness descending",
-        example=[2472, 5580],
     )
 
 
@@ -73,8 +60,9 @@ class PositioningResult(BaseSchema):
                              response={200: PositioningResult, **auth_responses})
 def get_position(request, parameters: LocateRequestSchema):
     try:
-        location = Locator.load().locate(parameters.wifi_peers,
-                                         permissions=AccessPermission.get_for_request(request))
+        located = Locator.load().locate(parameters.wifi_peers,
+                                        permissions=AccessPermission.get_for_request(request))
+        location = located.location
         if location is not None:
             increment_cache_key('apistats__locate__%s' % location.rounded_pk)
     except ValidationError:
@@ -104,7 +92,7 @@ def get_position(request, parameters: LocateRequestSchema):
 
     return {
         "location": location,
-        "suggested_peers": [],
+        "suggested_peers": located.suggested_peers,
     }
 
 

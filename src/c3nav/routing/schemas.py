@@ -86,6 +86,20 @@ class LocateWifiPeerSchema(BaseSchema):
     )
 
 
+class RangePeerSchema(BaseSchema):
+    bssid: Union[MacAddress, str] = APIField(
+        title="BSSID",
+        description="BSSID of the peer",
+        example="c3:42:13:37:ac:ab",
+    )
+    frequencies: list[PositiveInt] = APIField(
+        default=[],
+        title="frequencies",
+        description="possible frequencies in KHz – sorted by likeliness descending",
+        example=[2472, 5580],
+    )
+
+
 def negative_one_is_none(value: Any):
     return None if value == -1 else value
 

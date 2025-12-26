@@ -15,8 +15,8 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models import Space, Level
-from c3nav.mapdata.models.access import AccessRestrictionMixin
+from c3nav.mapdata.models import Space
+from c3nav.mapdata.models.access import AccessRestrictionMixin, AccessRestriction
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation, LoadGroup
@@ -477,6 +477,28 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
             beacon.addresses = list(set(beacon.addresses) | set(map_name[beacon.ap_name]))
             beacon.save()
 
+    @cached_property
+    def calculated_altitude(self) -> float:
+        from c3nav.routing.router import Router
+        r = Router.load()
+        return r.spaces[self.space_id].altitudearea_for_point(self.geometry).get_altitude(self.geometry)
+
+    @cached_property
+    def correct_xyz(self) -> tuple[int, int, int]:
+        return (
+            int(self.geometry.x*100),
+            int(self.geometry.y*100),
+            int(self.calculated_altitude*100)
+        )
+
+    @cached_property
+    def located_all_permissions(self) -> list["LocatorResult"]:
+        from c3nav.routing.locator import Locator
+        return [
+            Locator.load().locate(wifi_scan, permissions=AccessRestriction.get_all(), correct_xyz=self.correct_xyz)
+            for wifi_scan in self.data.wifi
+        ]
+
     def save(self, *args, **kwargs):
         self.contribute_bssid_to_beacons([self])
         return super().save(*args, **kwargs)
@@ -500,6 +522,11 @@ class AutoBeaconMeasurement(models.Model):
         verbose_name = _('Auto Beacon Measurement')
         verbose_name_plural = _('Auto Beacon Measurements')
         default_related_name = 'auto_beacon_measurements'
+
+    @cached_property
+    def located_all_permissions(self) -> "LocatorResult":
+        from c3nav.routing.locator import Locator
+        return Locator.load().locate(self.data.wifi[0], permissions=AccessRestriction.get_all())
 
 
 class RangingBeacon(SpaceGeometryMixin, models.Model):

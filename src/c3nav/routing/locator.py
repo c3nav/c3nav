@@ -1,9 +1,12 @@
+import bisect
 import operator
 import pickle
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import cached_property, reduce
-from itertools import chain
+from itertools import chain, combinations
+from operator import itemgetter
 from typing import Annotated, NamedTuple, Union
 from typing import Optional, Self, Sequence, TypeAlias
 from uuid import UUID
@@ -22,9 +25,9 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
-from c3nav.routing.api.positioning import RangePeerSchema
 from c3nav.routing.router import Router
-from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema, LocateIBeaconPeerSchema
+from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema, LocateIBeaconPeerSchema, \
+    RangePeerSchema
 
 try:
     from asgiref.local import Local as LocalContext
@@ -54,6 +57,8 @@ class LocatorPeer:
     xyz: Optional[tuple[int, int, int]] = None
     space_id: Optional[int] = None
     supports80211mc: bool = False
+    seen_with: Counter = field(default_factory=Counter)
+    seen_with_with: dict[int, Counter] = field(default_factory=lambda: defaultdict(Counter))
 
     @cached_property
     def suggestion(self) -> RangePeerSchema:
@@ -68,16 +73,19 @@ class ScanDataValue:
     rssi: Optional[int] = None
     ibeacon_range: Optional[float] = None
     distance: Optional[float] = None
+    distance_sd: Optional[float] = None
 
     @classmethod
     def average(cls, items: Sequence[Self]):
         rssi = [item.rssi for item in items if item.rssi]
         ibeacon_range = [item.ibeacon_range for item in items if item.ibeacon_range is not None]
         distance = [item.distance for item in items if item.distance is not None]
+        distance_sd = [item.distance_sd for item in items if item.distance_sd is not None]  # pretty sure this is wrong
         return cls(
             rssi=(sum(rssi)//len(rssi)) if rssi else None,
             ibeacon_range=(sum(ibeacon_range) // len(ibeacon_range)) if ibeacon_range else None,
             distance=(sum(distance)/len(distance)) if distance else None,
+            distance_sd=(sum(distance_sd) / len(distance_sd)) if distance_sd else None,
         )
 
 
@@ -91,6 +99,12 @@ class LocatorPoint:
     values: ScanData
 
 
+class LocatorResult(NamedTuple):
+    location: Optional[CustomLocation]
+    suggested_peers: list[RangePeerSchema]
+    analysis: Optional[list[str]] = None
+
+
 @dataclass
 class Locator:
     peers: list[LocatorPeer] = field(default_factory=list)
@@ -98,6 +112,12 @@ class Locator:
     xyz: np.array = field(default_factory=(lambda: np.empty((0,))))
     spaces: dict[int, "LocatorSpace"] = field(default_factory=dict)
     placement_helper: Optional[PointPlacementHelper] = None
+    peers_with_80211mc: frozenset[int] = field(default_factory=frozenset)
+    initial_80211mc_peers: list[int] = field(default_factory=list)
+
+    @cached_property
+    def initial_suggested_peers(self) -> list[RangePeerSchema]:
+        return [self.peers[peer_id].suggestion for peer_id in self.initial_80211mc_peers]
 
     @classmethod
     def rebuild(cls, update, router):
@@ -115,13 +135,12 @@ class Locator:
         ranging_bssids: set[str] = set()
         for m in measurements:
             for item in chain.from_iterable(m.data.wifi):
-                if not (item.supports80211mc or item.distance is not None):
+                if item.distance is not None:
                     ranging_bssids.add(item.bssid.lower())
 
         # go through beacons, create peers
         for beacon in calculated.beacons.values():
             identifiers = []
-            supports80211mc = any((bssid.lower() in ranging_bssids) for bssid in beacon.addresses)
             for bssid in beacon.addresses:
                 identifiers.append(TypedIdentifier(PeerType.WIFI, bssid.lower()))
             if beacon.ap_name:
@@ -137,9 +156,13 @@ class Locator:
                     int(beacon.geometry.y * 100),
                     int((router.altitude_for_point(beacon.space_id, beacon.geometry) + float(beacon.altitude)) * 100),
                 )
-                self.peers[peer_id].supports80211mc = supports80211mc
+                if identifier.identifier in ranging_bssids:
+                    self.peers[peer_id].supports80211mc = True
                 self.peers[peer_id].space_id = beacon.space_id
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
+
+        peer_ids_80211mc = tuple(i for i, peer in enumerate(self.peers) if peer.supports80211mc)
+        self.peers_with_80211mc = frozenset(peer_ids_80211mc)
 
         # write down frequencies based on latest data
         for m in measurements:
@@ -147,6 +170,49 @@ class Locator:
                 peer_id = self.peer_lookup.get(TypedIdentifier(PeerType.WIFI, value.bssid), None)
                 if peer_id is not None and value.frequency not in self.peers[peer_id].frequencies:
                     self.peers[peer_id].frequencies.append(value.frequency)
+
+
+        # count seen with
+        range_peer_counter = Counter()
+        for m in measurements:
+            for scan in m.data.wifi:
+                converted_scan = {peer_id: value for peer_id, value in self.convert_wifi_scan(scan).items()
+                                  if peer_id in peer_ids_80211mc}
+                if not converted_scan:
+                    break
+
+                peer_ids = sorted(converted_scan.keys())
+                peer_ids_set = set(converted_scan.keys())
+                range_peer_counter.update(peer_ids)
+                for peer_id in peer_ids:
+                    self.peers[peer_id].seen_with.update(peer_ids_set - {peer_id})
+                for peer_id_0, peer_id_1 in combinations(peer_ids, 2):
+                    self.peers[peer_id_0].seen_with_with[peer_id_1].update(peer_ids_set - {peer_id_0, peer_id_1})
+
+        # find minimum peers
+        minimum_peers_80211mc = set()
+        remaining_well_seen: dict[int, set[int]] = {}
+        for peer_id in peer_ids_80211mc:
+            remaining_well_seen[peer_id] = set(self.peers[peer_id].seen_with.keys())
+
+        while remaining_well_seen:
+            best_peer_id, best_seen = max(remaining_well_seen.items(), key=lambda i: len(i[1]))
+            remaining_well_seen.pop(best_peer_id, None)
+            minimum_peers_80211mc.add(best_peer_id)
+            for peer_id in best_seen:
+                remaining_well_seen.pop(peer_id, None)
+            remaining_well_seen = {
+                peer_id: seen for peer_id, seen in (
+                    (peer_id, seen - best_seen) for peer_id, seen in remaining_well_seen.items()
+                ) if seen
+            }
+
+        self.initial_80211mc_peers = sorted(
+            minimum_peers_80211mc, key=lambda peer_id: range_peer_counter[peer_id], reverse=True
+        )
+
+        for peer in self.peers:
+            peer.seen_with_with = dict(peer.seen_with_with.items())
 
         for space in Space.objects.prefetch_related('beacon_measurements'):
             new_space = LocatorSpace.create(
@@ -184,7 +250,9 @@ class Locator:
                 self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.ap_name), create=create_peers),
             } - {None, ""}
             for peer_id in peer_ids:
-                result[peer_id] = ScanDataValue(rssi=scan_value.rssi, distance=scan_value.distance)
+                result[peer_id] = ScanDataValue(rssi=scan_value.rssi,
+                                                distance=scan_value.distance,
+                                                distance_sd=scan_value.distance_sd)
         return result
 
     def convert_ibeacon_scan(self, scan_data: list[LocateIBeaconPeerSchema], create_peers=False) -> ScanData:
@@ -245,34 +313,38 @@ class Locator:
             return None
         return self.peers[i].xyz
 
-    def get_all_nodes_xyz(self) -> dict[TypedIdentifier, tuple[float, float, float]]:
+    def get_all_nodes_xyz(self) -> dict[TypedIdentifier, tuple[int, int, int]]:
         return {
             peer.identifier: peer.xyz for peer in self.peers[:len(self.xyz)]
             if isinstance(peer.identifier, MacAddress)
         }
 
-    def locate(self, raw_scan_data: list[LocateWifiPeerSchema], permissions=None):
+    def locate(self, raw_scan_data: list[LocateWifiPeerSchema], permissions=None,
+               correct_xyz: Optional[tuple[int, int, int]] = None) -> LocatorResult:
         # todo: support for ibeacons
         scan_data = self.convert_raw_scan_data(raw_scan_data)
-        if not scan_data:
-            return None
 
-        result = self.locate_range(scan_data, permissions)
-        if result is not None:
+        result = self.locate_range(scan_data, permissions, correct_xyz=correct_xyz)
+        if result.location is not None:
             increment_cache_key('apistats__locate__range')
             return result
+
+        suggestions = result.suggested_peers
+
+        if not scan_data:
+            return LocatorResult(location=None, suggested_peers=suggestions)
 
         result = self.locate_by_beacon_positions(scan_data, permissions)
         if result is not None:
             increment_cache_key('apistats__locate__beacon_positions')
-            return result
+            return LocatorResult(location=result, suggested_peers=suggestions)
 
         result = self.locate_rssi(scan_data, permissions)
         if result is not None:
             increment_cache_key('apistats__locate__rssi')
-        return result
+        return LocatorResult(location=result, suggested_peers=suggestions)
 
-    def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None):
+    def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None) -> Optional[CustomLocation]:
         scan_data_we_can_use = sorted([
             (peer_id, value) for peer_id, value in scan_data.items()
             if self.peers[peer_id].space_id and -90 < value.rssi < -10
@@ -345,7 +417,7 @@ class Locator:
             icon='my_location'
         )
 
-    def locate_rssi(self, scan_data: ScanData, permissions=None):
+    def locate_rssi(self, scan_data: ScanData, permissions=None) -> Optional[CustomLocation]:
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
@@ -397,17 +469,45 @@ class Locator:
             result.append(peer_id)
         return tuple(result)
 
-    def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None):
+    def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None,
+                     correct_xyz: Optional[tuple[int, int, int]] = None) -> LocatorResult:
         peer_ids = self._deduplicate_peer_ids(
             tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
         )
 
-        if len(peer_ids) < 3:
-            # can't get a good result from just two beacons
-            # todo: maybe we can at least give… something?
-            if settings.DEBUG:
-                print('less than 3 ranges, can\'t do ranging')
-            return None
+        analysis = []
+        if correct_xyz is not None:
+            correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1)/100
+            for peer_id, correct_distance in zip(peer_ids, correct_distances):
+                value = scan_data[peer_id]
+                analysis.append(f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) → "
+                                f"{correct_distance:.2f} m ({value.distance-correct_distance:+} m)")
+
+        if not peer_ids:
+            return LocatorResult(
+                location=None,
+                suggested_peers=self.initial_suggested_peers
+            )
+
+        if len(peer_ids) == 1:
+            return LocatorResult(
+                location=None,
+                suggested_peers=(
+                    [self.peers[pid].suggestion for pid, c in self.peers[peer_ids[0]].seen_with.most_common(20)]
+                    or self.initial_suggested_peers
+                )
+            )
+
+        if len(peer_ids) == 2:
+            # todo: maybe we can at least give something?
+            return LocatorResult(
+                location=None,
+                suggested_peers=(
+                    [self.peers[pid].suggestion
+                     for pid, c in self.peers[min(peer_ids)].seen_with_with.get(max(peer_ids), Counter()).most_common(20)]
+                    or self.initial_suggested_peers
+                ),
+            )
 
         if len(peer_ids) == 3:
             if settings.DEBUG:
@@ -504,6 +604,30 @@ class Locator:
         )
         location.z = result_pos[2]
 
+        if correct_xyz is not None:
+            distance = np.linalg.norm(results.x - np.array(correct_xyz))
+
+            for peer_id, correct_distance in zip(peer_ids, correct_distances):
+
+                value = scan_data[peer_id]
+                analysis.insert(0,
+                                f"{tuple(round(i, 2) for i in results.x/2)} → "
+                                f"{tuple(round(i, 2) for i in correct_xyz)} "
+                                f"(off by {distance:2} m)")
+
+        # get suggested peers
+        remaining_peer_ids = tuple(self.peers_with_80211mc - set(peer_ids))
+        print(remaining_peer_ids, self.xyz)
+        distances = (
+            np.linalg.norm(self.xyz[remaining_peer_ids, :] - np.array(tuple(int(i)*100 for i in result_pos)), axis=1)
+        )
+        suggested_ids = sorted(list(zip(remaining_peer_ids, distances)), key=itemgetter(1))
+        index = bisect.bisect_left([dist for i, dist in suggested_ids], 50)
+        suggestions = [
+            self.peers[peer_id].suggestion
+            for peer_id, distance in (suggested_ids[:10] if index < 10 else suggested_ids[:index])
+        ]
+
         orig_xyz = None
         if settings.DEBUG:
             print('orig_addr', orig_addr)
@@ -552,7 +676,11 @@ class Locator:
 
         increment_cache_key('apistats__locate__range__%s_peers' % len(peer_ids))
 
-        return location
+        return LocatorResult(
+            location=None,
+            suggested_peers=suggestions,
+            analysis=analysis,
+        )
 
 
 no_signal = int(-90)**2
