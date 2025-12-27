@@ -487,7 +487,7 @@ class DistanceLocationFeature:
                 *(point[1:] if isinstance(point, tuple) else (point.x, point.y)),
                 router.spaces[
                     cls.location.pk if isinstance(cls.location, Space) else (
-                        location.space_id if hasattr(location, "space_id") else location.space.id
+                        cls.location.space_id if hasattr(cls.location, "space_id") else cls.location.space.id
                     )
                 ].altitudearea_for_point(point).get_altitude(point)
             )
