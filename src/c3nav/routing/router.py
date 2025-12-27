@@ -411,7 +411,7 @@ class Router:
     def altitude_for_point(self, space: int, point: PointCompatible) -> float:
         return self.spaces[space].altitudearea_for_point(point).get_altitude(point)
 
-    def level_id_for_xyz(self, xyz: tuple[float, float, float], restrictions, max_distance=20):
+    def level_id_for_xyz(self, xyz: tuple[float, float, float], restrictions, max_distance=50):
         xy = Point(xyz[0], xyz[1])
         z = xyz[2]
         possible_levels = {}
@@ -419,11 +419,12 @@ class Router:
             space = self.space_for_point(level=level_id, point=xy,
                                          restrictions=restrictions, max_distance=max_distance)
             if space:
-                possible_levels[level_id] = (
-                    abs(space.altitudearea_for_point(xy).get_altitude(xy)-z), space.geometry.distance(xy)
+                possible_levels[level_id] = np.linalg.norm(
+                    np.array((space.altitudearea_for_point(xy).get_altitude(xy)-z, space.geometry.distance(xy)))
                 )
         if possible_levels:
             return min(possible_levels.items(), key=itemgetter(1))[0]
+
         return min(self.levels.items(), key=lambda a: abs(float(a[1].base_altitude)-z))[0]
 
     def describe_custom_location(self, location):
