@@ -124,8 +124,12 @@ def fetch_updates(request, response: HttpResponse):
         'last_map_update': MapUpdate.current_processed_cache_key(),
     }
     if cross_origin is None:
+        user_data = dict(request.user_data)
+        if isinstance(user_data, str):
+            # todo: ???????
+            user_data = get_user_data(request)
         result.update({
-            'user_data': dict(request.user_data),
+            'user_data': user_data,
         })
 
     if cross_origin is not None:
