@@ -605,10 +605,13 @@ class Locator:
         analysis = []
         if correct_xyz is not None:
             distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
+            distance_2d = float(np.linalg.norm(results.x[:2] - np.array(correct_xyz[:2]))) / 100
 
-            analysis.append(f"{tuple(round(float(i)/100, 2) for i in results.x)} → "
-                            f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
-                            f"(off by {distance:.2f} m)")
+            analysis.append(
+                f"{tuple(round(float(i)/100, 2) for i in results.x)} → "
+                f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
+                f"(off by {distance:.2f} m" + (f" (2D: {distance_2d:.2f} m" if dimensions > 2 else "") + ")"
+            )
             correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1) / 100
         else:
             correct_distances = (None,) * len(peer_ids)

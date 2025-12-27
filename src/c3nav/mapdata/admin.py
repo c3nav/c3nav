@@ -19,7 +19,7 @@ class AutoBeaconMeasurementAdmin(admin.ModelAdmin):
             return ""
         line = format_html('<a href="/l/{slug}/">{title}</a><br>', slug=located.location.slug, title=located.location.title)
         if located.precision is not None:
-            line = mark_safe(str(line) + f'sd: {located.precision:.1f} m - ')
+            line = mark_safe(str(line) + f' - sd: {located.precision:.1f} m - ')
         line = mark_safe(str(line) + format_html('{title}', title=located.location.level.title))
         return line
 
