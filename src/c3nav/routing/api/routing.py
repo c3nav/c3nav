@@ -220,7 +220,7 @@ def get_route(request, parameters: RouteParametersSchema):
     }, request=request)
 
     if not form.is_valid():
-        return APIRequestValidationFailed("\n".join(form.errors))
+        raise APIRequestValidationFailed("\n".join(form.errors))
 
     options = RouteOptions.get_for_request(request)
     if parameters.options_override is not None:
