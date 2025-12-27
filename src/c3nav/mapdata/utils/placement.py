@@ -47,6 +47,8 @@ class PointPlacementHelper:
             new_space_geometry = new_space.geometry.difference(
                 unary_union([unwrap_geom(hole.geometry) for hole in new_space.columns.all()])
             )
+            if new_space_geometry.is_empty:
+                new_space_geometry = new_space.geometry
             if not new_space_geometry.intersects(point):
                 point = nearest_points(new_space_geometry.buffer(-0.05), point)[0]
         elif len(possible_spaces) == 1:
