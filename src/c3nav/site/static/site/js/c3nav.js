@@ -2342,7 +2342,7 @@ c3nav = {
 
     },
     getBLEScanRate: function () {
-        return 2000;
+        return 60000;
     },
     _wifiScanningTimer: null,
     startWifiScanning: function () {
@@ -2620,7 +2620,7 @@ c3nav = {
         );
         if (force !== true) force = currentLocationRequested;
         if (location === null) {
-            if (force !== true && c3nav._last_user_location_time > Date.now()-60000) {
+            if (force !== true && c3nav._last_user_location_time > Date.now()-75000) {
                 // no location, but we had a location less than a minute ago, so we ignore this
                 // if force is true the location is set to null even then
                 return;

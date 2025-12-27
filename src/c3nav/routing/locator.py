@@ -624,13 +624,16 @@ class Locator:
                              f" ({value.distance-correct_distance:+.1f} m)" if correct_distance is not None else ""))
 
         # if we are outside a space, let's move the user into the space
-        level, new_point = self.move_into_space(
+        new_level, new_point = self.move_into_space(
             router=router, level=level, point=Point(result_pos[0], result_pos[1]),
             restrictions=restrictions, max_space_distance=20,
         )
+        if new_point is not None:
+            level = new_level
+            point = new_point
 
-        # point may have been moved so we need to update the precision too
-        precision = round(precision + np.linalg.norm((new_point.x-point.x, new_point.y-point.y)), 2)
+            # point may have been moved so we need to update the precision too
+            precision = round(precision + np.linalg.norm((new_point.x-point.x, new_point.y-point.y)), 2)
 
         # create location
         location = CustomLocation(
