@@ -122,6 +122,10 @@ class BeaconMeasurementQuestForm(ChangeSetModelForm):
         model = BeaconMeasurement
         fields = ("data", )
 
+    def save(self, *args, **kwargs):
+        self.instance.fill_quest = False
+        return super().save(*args, **kwargs)
+
     @property
     def changeset_title(self):
         return f'Beacon Measurement Quest: {self.instance.title}'
@@ -150,4 +154,4 @@ class BeaconMeasurementQuest(Quest):
 
     @classmethod
     def _qs_for_request(cls, request):
-        return BeaconMeasurement.qs_for_request(request).filter(data=BeaconMeasurementDataSchema())
+        return BeaconMeasurement.qs_for_request(request).filter(fill_quest=True)
