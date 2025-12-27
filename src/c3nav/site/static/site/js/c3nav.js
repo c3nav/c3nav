@@ -2634,7 +2634,8 @@ c3nav = {
         }
         if (location) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('my_location'));
-            $('.locationinput .locate, .leaflet-control-user-location a').removeClass('has-fix').addClass('has-fix').show();
+            $('.locationinput .locate, .leaflet-control-user-location a').removeClass('has-fix').show();
+            $('.locationinput .locate, .leaflet-control-user-location a').addClass('has-fix');
             const latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates);
             for (const level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
