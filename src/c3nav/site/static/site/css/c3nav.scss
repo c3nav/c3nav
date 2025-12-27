@@ -1087,8 +1087,19 @@ main:not([data-view=route-result]) #route-summary {
     }
 }
 
-.leaflet-control-user-location a {
+@keyframes position-degrade {
+    0% {background-position: 0 100%}
+    100% {background-position: 0 0}
+}
+
+.leaflet-control-user-location.leaflet-bar a {
     font-size: 20px;
+    background-size: 200% 200%;
+    background-image: linear-gradient(0deg, color-mix(in lab, var(--color-primary) 25%, #fff 75%) 50%, #fff 50%);
+    background-position: 0 0;
+}
+.leaflet-control-user-location.leaflet-bar a.has-fix {
+    animation: 60s linear 0s 1 position-degrade;
 }
 
 .leaflet-bar, .leaflet-touch .leaflet-bar, .leaflet-control-expanding, .leaflet-control-overlays {
