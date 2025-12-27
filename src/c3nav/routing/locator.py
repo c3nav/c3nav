@@ -595,6 +595,7 @@ class Locator:
         level = router.levels[router.level_id_for_xyz(
             # -1.3m cause we assume people to be above ground
             (result_pos[0], result_pos[1], result_pos[2] - (1.3 if dimensions == 3 else 0)),
+            restrictions=None, # yeah this is right
         )]
         if level.on_top_of_id:
             level = router.levels[level.on_top_of_id]
