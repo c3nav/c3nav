@@ -6,8 +6,8 @@ from django.utils.safestring import mark_safe
 
 @admin.register(AutoBeaconMeasurement)
 class AutoBeaconMeasurementAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "datetime", "author", "ranges", "located", "suggestions")
-    readonly_fields = ("located", "ranges", "data", "author", "datetime", "placed", "suggestions")
+    list_display = ("__str__", "datetime", "author", "ranges", "located", "suggestions", "analysis")
+    readonly_fields = ("located", "ranges", "data", "author", "datetime", "placed", "suggestions", "analysis")
     list_filter = ("datetime", )
     search_fields = ("author__username", )
     list_per_page = 10
@@ -17,9 +17,10 @@ class AutoBeaconMeasurementAdmin(admin.ModelAdmin):
         location = located.location
         if location is None:
             return ""
-        line = format_html('<a href="/l/{slug}/">{title}</a>', slug=located.location.slug, title=located.location.title)
+        line = format_html('<a href="/l/{slug}/">{title}</a><br>', slug=located.location.slug, title=located.location.title)
         if located.precision is not None:
-            line = mark_safe(str(line) + f' (+/- {located.precision:.1f} m)')
+            line = mark_safe(str(line) + f'sd: {located.precision:.1f} m - ')
+        line = mark_safe(str(line) + format_html('{title}', title=located.location.level.title))
         return line
 
     def suggestions(self, obj):
@@ -29,6 +30,12 @@ class AutoBeaconMeasurementAdmin(admin.ModelAdmin):
 
     def ranges(self, obj):
         return str(len([item for item in obj.data.wifi[0] if item.distance]))
+
+    def analysis(self, obj):
+        if obj.located_all_permissions.analysis:
+            return mark_safe("<br>".join(obj.located_all_permissions.analysis))
+        else:
+            return None
 
 
 @admin.register(BeaconMeasurement)
@@ -51,7 +58,8 @@ class BeaconMeasurementAdmin(admin.ModelAdmin):
             permissions=AccessRestriction.get_all(),
             icon='my_location'
         )
-        return format_html('<a href="/l/{slug}/">{title}</a>', slug=location.slug, title=location.title)
+        return format_html('<a href="/l/{slug}/">{title}</a><br>{level}',
+                           slug=location.slug, title=location.title, level=location.level.title)
 
     def located(self, obj):
         result = []
@@ -60,7 +68,8 @@ class BeaconMeasurementAdmin(admin.ModelAdmin):
                 result.append("-")
             line = format_html('<a href="/l/{slug}/">{title}</a>', slug=located.location.slug, title=located.location.title)
             if located.precision is not None:
-                line = str(line) + f' (+/- {located.precision:.1f} m)'
+                line = mark_safe(str(line) + f'sd: {located.precision:.1f} m - ')
+            line = mark_safe(str(line) + format_html('{title}', title=located.location.level.title))
             result.append(line)
         return mark_safe("<br>".join(result))
 

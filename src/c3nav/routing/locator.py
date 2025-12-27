@@ -400,15 +400,11 @@ class Locator:
         except KeyError:
             point = nearest_points(space.geometry.buffer(0), point)[0]
 
-        new_space, new_point = self.placement_helper.get_point_and_space(
-            level_id=level.pk, point=point, restrictions=restrictions,
+        # if we are outside a space, let's move the user into the space
+        level, new_point = self.move_into_space(
+            router=router, level=level, point=point, restrictions=restrictions,
             max_space_distance=20,
         )
-
-        if new_space is not None:
-            level = router.levels[new_space.level_id]
-        if level.on_top_of_id:
-            level = router.levels[level.on_top_of_id]
 
         return CustomLocation(
             level=level,
@@ -458,6 +454,18 @@ class Locator:
         # this is effectively a lazy import to save memory… todo: do we need that?
         from scipy.linalg import norm
         return norm
+
+    def move_into_space(self, router: "Router", level: "Level", point: Point, restrictions,
+                        max_space_distance: int | float = 20) -> tuple["Level", "Point"]:
+        new_space, new_point = self.placement_helper.get_point_and_space(
+            level_id=level.pk, point=point, restrictions=restrictions,
+            max_space_distance=max_space_distance,
+        )
+        if new_space is not None:
+            level = router.levels[new_space.level_id]
+        if level.on_top_of_id:
+            level = router.levels[level.on_top_of_id]
+        return level, new_point
 
     def _deduplicate_peer_ids(self, peer_ids: tuple[int, ...]) -> tuple[int, ...]:
         had_xyz = set()
@@ -577,50 +585,62 @@ class Locator:
         restrictions = router.get_restrictions(permissions)
 
         result_distances = self.norm_func(np_ranges[:, :dimensions] - results.x, axis=1)/100
-        precision = round(float(np.median(np.abs(diff_func(results.x))))/100*1.1, 2)
+        precision = round(float(np.std(diff_func(results.x)))/100, 2)
 
         result_pos = tuple(i/100 for i in results.x)
         if dimensions == 2:
             result_pos += (initial_guess[2]/100, )
+        point = Point(result_pos[0], result_pos[1])
 
         level = router.levels[router.level_id_for_xyz(
             # -1.3m cause we assume people to be above ground
-            (result_pos[0], result_pos[1], result_pos[2] - 1.3),
-            restrictions
+            (result_pos[0], result_pos[1], result_pos[2] - (1.3 if dimensions == 3 else 0)),
+            restrictions=restrictions,
+            max_distance=precision*1.1,
         )]
         if level.on_top_of_id:
             level = router.levels[level.on_top_of_id]
 
+        # analyse
+        analysis = []
+        if correct_xyz is not None:
+            distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
+
+            analysis.append(f"{tuple(round(float(i)/100, 2) for i in results.x)} → "
+                            f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
+                            f"(off by {distance:.2f} m)")
+            correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1) / 100
+        else:
+            correct_distances = (None,) * len(peer_ids)
+
+        for peer_id, result_distance, correct_distance in zip(peer_ids, result_distances, correct_distances):
+            peer = self.peers[peer_id]
+            value = scan_data[peer_id]
+            analysis.append(f"{tuple(round(float(i)/100, 2) for i in peer.xyz)}: "
+                            f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) - {value.rssi} dB")
+            analysis.append(f" → result: {round(float(result_distance), 2):.2f} m"
+                            f" ({value.distance-result_distance:+.1f} m)" +
+                            (f" → correct: {correct_distance:.2f} m"
+                             f" ({value.distance-correct_distance:+.1f} m)" if correct_distance is not None else ""))
+
+        # if we are outside a space, let's move the user into the space
+        level, new_point = self.move_into_space(
+            router=router, level=level, point=Point(result_pos[0], result_pos[1]),
+            restrictions=restrictions, max_space_distance=20,
+        )
+
+        # point may have been moved so we need to update the precision too
+        precision = round(precision + np.linalg.norm((new_point.x-point.x, new_point.y-point.y)), 2)
+
+        # create location
         location = CustomLocation(
             level=level,
-            x=result_pos[0],
-            y=result_pos[1],
+            x=new_point.x,
+            y=new_point.y,
             permissions=permissions,
             icon='my_location'
         )
         location.z = result_pos[2]
-
-
-        analysis = []
-        if correct_xyz is not None:
-            correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1)/100
-            for peer_id, result_distance, correct_distance in zip(peer_ids, result_distances, correct_distances):
-                peer = self.peers[peer_id]
-                value = scan_data[peer_id]
-                analysis.append(f"{tuple(round(float(i)/100, 2) for i in peer.xyz)}: "
-                                f"{value.distance:.2f} m (sd: {value.distance_sd:.2f} m) - {value.rssi} dB")
-                analysis.append(f"→ result: {round(float(result_distance), 2):.2f} m"
-                                f" ({value.distance-result_distance:+.1f} m)"
-                                f"→ correct: {correct_distance:.2f} m"
-                                f" ({value.distance-correct_distance:+.1f} m)")
-
-        if correct_xyz is not None:
-            distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
-
-            analysis.insert(0,
-                            f"{tuple(round(float(i)/100, 2) for i in results.x)} → "
-                            f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
-                            f"(off by {distance:.2f} m)")
 
         # get suggested peers
         remaining_peer_ids = tuple(self.peers_with_80211mc - set(peer_ids))
