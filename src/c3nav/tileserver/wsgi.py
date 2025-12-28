@@ -174,6 +174,18 @@ class TileServer:
                                                    *headers,])
         return [text]
 
+    def no_content(self, start_response, headers):
+        start_response('204 Not Modified', [self.get_date_header(),
+                                            ('Content-Length', '0'),
+                                            *headers, ])
+        return [b'']
+
+    def method_not_allowed(self, start_response, headers):
+        start_response('405 Method Not Allowed', [self.get_date_header(),
+                                                  ('Content-Length', '0'),
+                                                  *headers, ])
+        return [b'']
+
     def not_modified(self, start_response, tile_etag, headers):
         start_response('304 Not Modified', [self.get_date_header(),
                                             ('Content-Length', '0'),
@@ -255,7 +267,14 @@ class TileServer:
         if origin_header != "null":
             cors_headers = (
                 ('Access-Control-Allow-Origin', origin_header),
+                ('Access-Control-Allow-Headers', 'If-none-match'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
             )
+
+        if env["REQUEST_METHOD"] == "OPTIONS":
+            return self.no_content(start_response, headers=cors_headers)
+        elif env["REQUEST_METHOD"] != "GET":
+            return self.method_not_allowed(start_response, headers=cors_headers)
 
         match = self.path_regex.match(path_info)
         if match is None:
