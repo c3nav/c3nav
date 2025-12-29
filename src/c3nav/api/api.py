@@ -39,7 +39,7 @@ def get_status(request):
         *([] if request.auth.readonly else ["write"]),
     ]
     return AuthStatusSchema(
-        method=request.auth.key_type,
+        key_type=request.auth.key_type,
         readonly=request.auth.readonly,
         scopes=scopes,
     )
