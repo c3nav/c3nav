@@ -26,7 +26,7 @@ class RangingBeaconAltitudeQuestForm(ChangeSetModelForm):
 
     class Meta:
         model = RangingBeacon
-        fields = ("altitude", "geometry")
+        fields = ("altitude", )
 
     def save(self, *args, **kwargs):
         self.instance.altitude_quest = False
