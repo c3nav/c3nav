@@ -30,15 +30,20 @@ else:
 
     class Index:
         def __init__(self):
-            self._index = rtree.index.Index()
+            self._index = rtree.index.Index(interleaved=True)
             self._bounds = {}
 
         def insert(self, value, geometry):
+            if geometry.is_empty:
+                return
             try:
                 geoms = geometry.geoms
             except AttributeError:
-                self._bounds.setdefault(value, []).append(geometry.bounds)
-                self._index.insert(value, geometry.bounds)
+                bounds = geometry.bounds
+                if bounds[0] == bounds[2] or bounds[1] == bounds[3]:
+                    bounds = (bounds[0], bounds[1], bounds[2] + 0.01, bounds[3] + 0.01)
+                self._bounds.setdefault(value, []).append(bounds)
+                self._index.insert(value, bounds)
             else:
                 for geom in geoms:
                     self.insert(value, geom)
@@ -48,10 +53,16 @@ else:
                 self._index.delete(value, bounds)
 
         def intersection(self, geometry):
+            if geometry.is_empty:
+                print("is empty!!")
+                return set()
+            bounds = geometry.bounds
+            if bounds[0] == bounds[2] or bounds[1] == bounds[3]:
+                bounds = (bounds[0], bounds[1], bounds[2]+0.01, bounds[3]+0.01)
             try:
                 geoms = geometry.geoms
             except AttributeError:
-                return set(self._index.intersection(geometry.bounds))
+                return set(self._index.intersection(bounds))
             else:
                 return reduce(operator.__or__, (self.intersection(geom) for geom in geoms), set())
 
