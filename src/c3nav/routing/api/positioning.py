@@ -58,7 +58,7 @@ class PositioningResult(BaseSchema):
 def get_position(request, parameters: LocateRequestSchema):
     try:
         located = Locator.load().locate(parameters.wifi_peers,
-                                        permissions=AccessPermission.get_for_request(request))
+                                        permissions=AccessPermission.get_for_request(request), stats=True)
         location = located.location
         if location is not None:
             increment_cache_key('apistats__locate_%s' % location.rounded_pk)

@@ -321,13 +321,14 @@ class Locator:
         }
 
     def locate(self, raw_scan_data: list[LocateWifiPeerSchema], permissions=None,
-               correct_xyz: Optional[tuple[int, int, int]] = None) -> LocatorResult:
+               correct_xyz: Optional[tuple[int, int, int]] = None, stats=False) -> LocatorResult:
         # todo: support for ibeacons
         scan_data = self.convert_raw_scan_data(raw_scan_data)
 
-        result = self.locate_range(scan_data, permissions, correct_xyz=correct_xyz)
+        result = self.locate_range(scan_data, permissions, correct_xyz=correct_xyz, stats=stats)
         if result.location is not None:
-            increment_cache_key('apistats__locatemethod__range')
+            if stats:
+                increment_cache_key('apistats__locatemethod__range')
             return result
 
         suggestions = result.suggested_peers
@@ -337,12 +338,14 @@ class Locator:
 
         result = self.locate_by_beacon_positions(scan_data, permissions)
         if result is not None:
-            increment_cache_key('apistats__locatemethod__beaconpositions')
+            if stats:
+                increment_cache_key('apistats__locatemethod__beaconpositions')
             return LocatorResult(location=result, suggested_peers=suggestions)
 
         result = self.locate_rssi(scan_data, permissions)
         if result is not None:
-            increment_cache_key('apistats__locatemethod__rssi')
+            if stats:
+                increment_cache_key('apistats__locatemethod__rssi')
         return LocatorResult(location=result, suggested_peers=suggestions)
 
     def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None) -> Optional[CustomLocation]:
@@ -478,8 +481,8 @@ class Locator:
             result.append(peer_id)
         return tuple(result)
 
-    def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None,
-                     correct_xyz: Optional[tuple[int, int, int]] = None) -> LocatorResult:
+    def locate_range(self, router: "Router", scan_data: ScanData, permissions=None, orig_addr=None,
+                     correct_xyz: Optional[tuple[int, int, int]] = None, stats=False) -> LocatorResult:
         peer_ids = self._deduplicate_peer_ids(
             tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
         )
@@ -706,7 +709,8 @@ class Locator:
                 print("height:", result_pos[2])
             # print("scale:", (factor or results.x[3]))
 
-        increment_cache_key('apistats__locaterangepeers__%s' % len(peer_ids))
+        if stats:
+            increment_cache_key('apistats__locaterangepeers__%s' % len(peer_ids))
 
         return LocatorResult(
             location=location,
