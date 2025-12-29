@@ -158,7 +158,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         # don't filter in the query here so prefetch_related works
         for group in self.groups.all():
             color = color_manager.locationgroup_fill_color(group)
-            if color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
+            if color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name.replace('dynamicl', 'dynamic_l')):
                 return (0, group.category.priority, group.hierarchy, group.priority), color
         return None
 
