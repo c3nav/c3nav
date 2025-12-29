@@ -43,7 +43,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     tzdata=2025b-0ubuntu0.24.04.1 \
     ca-certificates=20240203 \
     # renovate: srcname=libzstd
-    zstd=1.5.5+dfsg2-2build1.1
+    zstd=1.5.5+dfsg2-2build1.1 \
+    # renovate: srcname=spatialindex
+    libspatialindex-dev=1.9.3-3build1
 ENV PATH="/usr/lib/postgresql/16/bin/:$PATH"
 
 
