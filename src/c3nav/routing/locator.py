@@ -640,8 +640,8 @@ class Locator:
         # create location
         location = CustomLocation(
             level=level,
-            x=new_point.x,
-            y=new_point.y,
+            x=point.x,
+            y=point.y,
             permissions=permissions,
             icon='my_location'
         )
