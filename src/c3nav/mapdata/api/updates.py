@@ -1,3 +1,4 @@
+import json
 from typing import Annotated, Optional, Union
 from urllib.parse import urlparse
 
@@ -126,8 +127,8 @@ def fetch_updates(request, response: HttpResponse):
     if cross_origin is None:
         user_data = dict(request.user_data)
         if isinstance(user_data, str):
-            # todo: ???????
-            user_data = get_user_data(request)
+            # todo: ??????? why the fuck is this needed
+            user_data = json.loads(user_data)
         result.update({
             'user_data': user_data,
         })
