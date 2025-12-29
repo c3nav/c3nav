@@ -485,7 +485,7 @@ class Locator:
             result.append(peer_id)
         return tuple(result)
 
-    def locate_range(self, router: "Router", scan_data: ScanData, permissions=None, orig_addr=None,
+    def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None,
                      correct_xyz: Optional[tuple[int, int, int]] = None, stats=False) -> LocatorResult:
         peer_ids = self._deduplicate_peer_ids(
             tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
