@@ -22,6 +22,7 @@ from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
 from c3nav.mapdata.models.locations import CustomLocationProxyMixin, Location
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
+from c3nav.mapdata.utils.index import Index
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.models import RouteOptions
@@ -315,13 +316,29 @@ class Router:
         pickle.dump(router, open(cls.build_filename(update), 'wb'))
         return router
 
+    def build_indexes(self):
+        # can't be precalculated because of this bug: https://github.com/Toblerity/rtree/issues/87
+        for level_id, level in self.levels.items():
+            for space_id in level.spaces:
+                space = self.spaces[space_id]
+                level.space_index.insert(space_id, space.geometry)
+                for area_id in space.areas:
+                    space.areas_index.insert(area_id, self.areas[area_id].geometry)
+                for poi_id in space.pois:
+                    space.pois_index.insert(poi_id, self.pois[poi_id].geometry)
+                for i, altitudearea in enumerate(space.altitudeareas):
+                    space.altitudeareas_index.insert(i, altitudearea.geometry)
+
     @classmethod
     def build_filename(cls, update):
         return settings.CACHE_ROOT / MapUpdate.build_cache_key(*update) / 'router.pickle'
 
     @classmethod
     def load_nocache(cls, update):
-        return pickle.load(open(cls.build_filename(update), 'rb'))
+        router = pickle.load(open(cls.build_filename(update), 'rb'))
+        router.build_indexes()
+        return router
+
 
     cached = LocalContext()
 
@@ -393,15 +410,27 @@ class Router:
         return result
 
     def space_for_point(self, level: int, point: PointCompatible, restrictions, max_distance=20) -> Optional['RouterSpace']:
+        # todo: way better caching here, and for the rest of custom location description stuff
         point = Point(point.x, point.y)
         level = self.levels[level]
-        excluded_spaces = restrictions.spaces if restrictions else ()
-        for space in level.spaces:
-            if space in excluded_spaces:
-                continue
+        excluded_spaces = restrictions.spaces if restrictions else frozenset()
+        print(level.space_index.__dict__)
+        print(level.space_index.intersection(Point(point.x, point.y)))
+
+        space_ids = (
+            level.spaces if level.space_index is None else level.space_index.intersection(Point(point.x, point.y))
+        ) - excluded_spaces
+        print(space_ids)
+        for space in space_ids:
             if self.spaces[space].geometry_prep.contains(point):
                 return self.spaces[space]
-        spaces = (self.spaces[space] for space in level.spaces if space not in excluded_spaces)
+
+        if level.space_index is not None:
+            space_ids = (
+                level.space_index.intersection(Point(point.x, point.y).buffer(max_distance))
+            ) - excluded_spaces
+
+        spaces = (self.spaces[space] for space in space_ids if space not in excluded_spaces)
         spaces = ((space, space.geometry.distance(point)) for space in spaces)
         spaces = tuple((space, distance) for space, distance in spaces if distance < max_distance)
         if not spaces:
@@ -625,6 +654,7 @@ class BaseRouterProxy(Generic[RouterProxiedType]):
 @dataclass
 class RouterLevel(BaseRouterProxy[Level]):
     spaces: set[int] = field(default_factory=set)
+    space_index: Index = field(default_factory=Index)
 
 
 @dataclass
@@ -635,24 +665,40 @@ class RouterSpace(BaseRouterProxy[Space]):
     leave_descriptions: dict[int, Promise] = field(default_factory=dict)
     cross_descriptions: dict[tuple[int, int], Promise] = field(default_factory=dict)
 
+    areas_index: Index = field(default_factory=Index)
+    pois_index: Index = field(default_factory=Index)
+    altitudeareas_index: Index = field(default_factory=Index)
+
     def altitudearea_for_point(self, point: PointCompatible):
         point = Point(point.x, point.y)
         if not self.altitudeareas:
             raise LocationUnreachable
-        for area in self.altitudeareas:
+        altitudeareas = tuple(self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point))
+        for area in altitudeareas:
             if area.geometry_prep.intersects(point):
                 return area
-        return min(self.altitudeareas, key=lambda area: area.geometry.distance(point))
+        altitudeareas = tuple(
+            self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point.buffer(20))
+        )
+        if altitudeareas:
+            return min(altitudeareas, key=lambda area: area.geometry.distance(point))
+        return self.altitudeareas[0]
 
     def areas_for_point(self, areas, point, restrictions):
+        # todo: areas is redundant as a parameter, same for pois_for_point further down
         point = Point(point.x, point.y)
         areas = {pk: area for pk, area in areas.items()
                  if pk in self.areas and area.can_describe and area.access_restriction_id not in restrictions}
 
-        nearby = ((area, area.geometry.distance(point)) for area in areas.values())
+        contained_area_ids = self.areas_index.intersection(point)
+        nearby_area_ids = self.areas_index.intersection(point.buffer(20))
+
+        nearby = ((area, area.geometry.distance(point)) for area in areas.values()
+                  if area.pk in nearby_area_ids)
         nearby = tuple((area, distance) for area, distance in nearby if distance < 20)
 
-        contained = tuple(area for area in areas.values() if area.geometry_prep.contains(point))
+        contained = tuple(area for area in areas.values() if area.geometry_prep.contains(point)
+                          if area.pk in contained_area_ids)
         if contained:
             return tuple(sorted(contained, key=lambda area: area.geometry.area)), None, nearby
 
@@ -666,7 +712,10 @@ class RouterSpace(BaseRouterProxy[Space]):
         pois = {pk: poi for pk, poi in pois.items()
                 if pk in self.pois and poi.can_describe and poi.access_restriction_id not in restrictions}
 
-        nearby = ((poi, poi.geometry.distance(point)) for poi in pois.values())
+        nearby_poi_ids = self.pois_index.intersection(point.buffer(20))
+
+        nearby = ((poi, poi.geometry.distance(point)) for poi in pois.values()
+                  if poi.pk in nearby_poi_ids)
         nearby = tuple((poi, distance) for poi, distance in nearby if distance < 20)
 
         near = tuple((poi, distance) for poi, distance in nearby if distance < 5)
