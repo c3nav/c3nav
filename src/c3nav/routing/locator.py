@@ -404,15 +404,19 @@ class Locator:
             point = nearest_points(space.geometry.buffer(0), point)[0]
 
         # if we are outside a space, let's move the user into the space
-        level, new_point = self.move_into_space(
+        new_level, new_point = self.move_into_space(
             router=router, level=level, point=point, restrictions=restrictions,
             max_space_distance=20,
         )
 
+        if new_point is not None:
+            level = new_level
+            point = new_point
+
         return CustomLocation(
             level=level,
-            x=new_point.x,
-            y=new_point.y,
+            x=point.x,
+            y=point.y,
             permissions=permissions,
             icon='my_location'
         )
