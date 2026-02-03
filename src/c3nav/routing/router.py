@@ -530,9 +530,9 @@ class Router:
         for waytype in self.waytypes[1:]:
             value = options.get('waytype_%s' % waytype.pk, 'allow')
             if value in ('avoid', 'avoid_up'):
-                graph[tuple(waytype.upwards_indices.transpose().tolist())] *= 100000
+                graph[tuple(waytype.upwards_indices.transpose().tolist())] = np.inf
             if value in ('avoid', 'avoid_down'):
-                graph[tuple(waytype.nonupwards_indices.transpose().tolist())] *= 100000
+                graph[tuple(waytype.nonupwards_indices.transpose().tolist())] = np.inf
 
         # prefer/avoid restrictions
         restrictions_setting = options.get("restrictions", "normal")
