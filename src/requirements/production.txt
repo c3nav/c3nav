@@ -1,4 +1,4 @@
-Django==6.0
+Django==6.0.2
 django-bootstrap3==25.3
 django-compressor==4.6.0
 django-cors-headers==4.9.0
