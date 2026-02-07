@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an idea or improvement for Open Data Hub.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a feature or improvement.
+        Please provide as much detail as possible below.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Clearly describe the problem you are trying to solve or the use case.
+      placeholder: What problem are you facing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution or feature you would like to see.
+      placeholder: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternative solutions or features you have considered.
+      placeholder: Any alternatives you thought about?
+    validations:
+      required: false
