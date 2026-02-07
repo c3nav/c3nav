@@ -1,0 +1,83 @@
+name: Bug report
+description: Report something that is not working as expected.
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem with this project.
+        Please answer the questions below as clearly as you can.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem description
+      description: Clearly describe the problem you encountered.
+      placeholder: What went wrong?
+    validations:
+      required: true
+
+  - type: input
+    id: where
+    attributes:
+      label: Where did it happen?
+      description: Page, module, API endpoint, or part of the system.
+      placeholder: Station detail page, API /v2/stations, mobile app
+    validations:
+      required: true
+
+  - type: textarea
+    id: how
+    attributes:
+      label: How did it happen?
+      description: What were you doing when the issue occurred?
+      placeholder: Steps or actions before the issue appeared
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What do we need to do to reproduce the problem?
+      placeholder: |
+        1. Go to ...
+        2. Click on ...
+        3. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: input
+    id: reproduce
+    attributes:
+      label: Where can we reproduce it?
+      description: URL, environment, or setup needed to reproduce the issue.
+      placeholder: https://…, staging environment, mobile app vX.Y
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, version, or other relevant details.
+      placeholder: Windows 11, Chrome 129, API dev environment
+    validations:
+      required: false
