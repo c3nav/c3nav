@@ -171,7 +171,7 @@ class Migration(migrations.Migration):
                 ('load_group_contribute', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='mapdata.loadgroup', verbose_name='contribute to load group', db_index=False)),
                 ('access_restriction', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='mapdata.accessrestriction', verbose_name='Access Restriction', db_index=False)),
                 ('internal_room_number', models.CharField(blank=True, null=True, verbose_name='Internal Room Number')),
-                ('media_panel_done', models.BooleanField(default=False, verbose_name='All media panels mapped')),             
+                ('media_panel_done', models.BooleanField(default=False, verbose_name='All media panels mapped')),
             ],
             options={
                 'verbose_name': 'Space',
@@ -303,6 +303,10 @@ class Migration(migrations.Migration):
             model_name='locationslug',
             name='specific',
             field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='slug_set', to='mapdata.specificlocation'),
+        ),
+        migrations.AlterModelOptions(
+            name='locationslug',
+            options={'default_related_name': 'locationslugs', 'verbose_name': 'Location Slug', 'verbose_name_plural': 'Location Slug'},
         ),
 
         # Time to copy the data over

@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('control', '0023_alter_userpermissions_restructured_locations'),
-        ('mapdata', '0159_new_location_hierarchy_migrate_data'),
+        ('mapdata', '0151_new_location_hierarchy_data'),
     ]
 
     operations = [

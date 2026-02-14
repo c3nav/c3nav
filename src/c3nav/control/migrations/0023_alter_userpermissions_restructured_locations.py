@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('control', '0022_prepare_userpermissions_restructured_locations'),
-        ('mapdata', '0144_restructure_location_modeling_1'),
+        ('mapdata', '0144_remove_location_multi_table_inheritance_initial'),
     ]
 
     operations = [

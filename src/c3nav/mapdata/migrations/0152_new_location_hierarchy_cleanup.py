@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0159_new_location_hierarchy_migrate_data'),
+        ('mapdata', '0151_new_location_hierarchy_data'),
         ('control', '0024_new_location_hierarchy'),
     ]
 

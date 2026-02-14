@@ -270,7 +270,7 @@ def unmigrate_location_hierarchy(apps, model_name):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0158_new_location_hierarchy'),
+        ('mapdata', '0150_new_location_hierarchy_initial'),
     ]
 
     operations = [
