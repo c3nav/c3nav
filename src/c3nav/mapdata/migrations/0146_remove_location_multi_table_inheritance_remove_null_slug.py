@@ -13,7 +13,7 @@ def delete_null_slugs(apps, model_name):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0145_restructure_location_modeling_delete_old'),
+        ('mapdata', '0145_remove_location_multi_table_inheritance_delete_old'),
     ]
 
     operations = [

@@ -35,7 +35,7 @@ def fill_mapupdate_processed(apps, model_name):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0151_m2m_location_target'),
+        ('mapdata', '0148_location_m2m_target'),
     ]
 
     operations = [
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
             name='MapUpdateJob',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('job_type', models.CharField(choices=(('mapdata.recalculate_locationgroup_order', 'LocationGroup order'), ('mapdata.recalculate_specificlocation_order', 'SpecificLocation order'), ('mapdata.recalculate_effective_icon', 'effective icons'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64)),
+                ('job_type', models.CharField(choices=(('mapdata.evaluate_locationtag_relations', 'evaluate location relations'), ('mapdata.recalculate_locationtag_cached_from_parents', 'Location tag cached from parents'), ('mapdata.recalculate_locationtag_static_targets', 'Location tag static targets'), ('mapdata.recalculate_locationtag_dynamic_targets', 'Location tag dynamic targets'), ('mapdata.recalculate_locationtag_target_subtitles', 'Location tag target subtitles'), ('mapdata.recalculate_locationtag_minimum_access_restrictions', 'Location tag minimum access restrictions'), ('mapdata.recalculate_level_bounds', 'level bounds'), ('mapdata.recalculate_space_effective_geometries', 'Space effective geometries'), ('mapdata.recalculate_space_simplified_geometries', 'Space simplified geometries'), ('mapdata.recalculate_area_effective_geometries', 'Area effective geometries'), ('mapdata.recalculate_space_points', 'Space points'), ('mapdata.recalculate_area_points', 'Area points'), ('mapdata.recalculate_space_bounds', 'Space bounds'), ('mapdata.recalculate_area_bounds', 'Area bounds'), ('mapdata.recalculate_locationtag_geometries', 'Location tag geometries'), ('mapdata.recalculate_locationtag_bounds', 'Location tag bounds'), ('mapdata.recalculate_locationtag_points', 'Location tag points'), ('mapdata.recalculate_locationtag_final', 'Location tag finalize'), ('mapdata.recalculate_geometries', 'geometries'), ('routing.rebuild_router', 'router'), ('routing.rebuild_locator', 'locator')), db_index=True, max_length=64)),
                 ('status', models.PositiveSmallIntegerField(choices=[(0, 'running'), (1, 'failed'), (2, 'timeout'), (3, 'not needed'), (4, 'success')], db_index=True)),
                 ('start', models.DateTimeField(auto_now_add=True)),
                 ('end', models.DateTimeField(null=True)),
