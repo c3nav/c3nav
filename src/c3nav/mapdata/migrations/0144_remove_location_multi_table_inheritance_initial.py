@@ -58,10 +58,10 @@ def migrate_locations(apps, schema_editor):
     LocationGroup_Old = apps.get_model('mapdata', 'LocationGroup_Old')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationSlug = apps.get_model('mapdata', 'LocationSlug')
+    LocationRedirect = apps.get_model('mapdata', 'LocationRedirect')
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     Report = apps.get_model('mapdata', 'Report')
 
-    locations = {}
     locationgroups = {}
     specific_locations = {}
 
@@ -91,33 +91,68 @@ def migrate_locations(apps, schema_editor):
     new_specific_locations = SpecificLocation.objects.bulk_create([location for old_id, location in specific_locations])
     new_locationgroups = LocationGroup.objects.bulk_create([location for old_id, location in locationgroups])
 
-    for (old_id, location), new_location in zip(specific_locations, new_specific_locations):
-        new_location.groups.set(location._groups)
-        locations[old_id] = {"specific": new_location}
+    SpecificLocation.groups.through.objects.bulk_create(list(
+        chain.from_iterable((
+            new_location.groups.through(
+                specificlocation_id=new_location.pk,
+                locationgroup_id=group_id
+            )
+            for group_id in location._groups
+        ) for (old_id, location), new_location in zip(specific_locations, new_specific_locations)
+    )))
 
-    for (old_id, location), new_location in zip(locationgroups, new_locationgroups):
-        locations[old_id] = {"group": new_location}
+    redirects_for_old_ids = {}
+    for old_obj in LocationRedirect.objects.all():
+        redirects_for_old_ids.setdefault(old_obj.target_id, []).append(old_obj.pk)
 
     specific_field = LocationSlug._meta.get_field("specific")
     group_field = LocationSlug._meta.get_field("group")
+    redirect_field = LocationSlug._meta.get_field("redirect")
 
     LocationSlug.objects.annotate(
         new_specific=Case(
-            *(When(pk=old_id, then=Value(new_location.pk, output_field=specific_field))
-              for (old_id, location), new_location in zip(specific_locations, new_specific_locations)),
+            *(
+                When(pk__in=(old_id, *redirects_for_old_ids.get(old_id, ())),
+                     then=Value(new_location.pk, output_field=specific_field))
+                for (old_id, location), new_location in zip(specific_locations, new_specific_locations)
+            ),
             default=Value(None, output_field=specific_field),
         ),
         new_group = Case(
-            *(When(pk=old_id, then=Value(new_location.pk, output_field=group_field))
-              for (old_id, location), new_location in zip(locationgroups, new_locationgroups)),
+            *(
+                When(pk__in=(old_id, *redirects_for_old_ids.get(old_id, ())),
+                     then=Value(new_location.pk, output_field=group_field))
+                for (old_id, location), new_location in zip(locationgroups, new_locationgroups)
+            ),
             default=Value(None, output_field=group_field),
         )
-    ).update(specific=F("new_specific"), group=F("new_group"))
+    ).update(
+        specific=F("new_specific"),
+        group=F("new_group"),
+        redirect=Case(
+            When(pk__in=tuple(chain.from_iterable(redirects_for_old_ids.values())),
+                 then=Value(True, output_field=redirect_field)),
+            default=Value(False, output_field=redirect_field),
+        )
+    )
 
-    LocationRedirect = apps.get_model('mapdata', 'LocationRedirect')
-    for old_obj in LocationRedirect.objects.all():
-        LocationSlug.objects.filter(pk=old_obj.pk).update(**locations[old_obj.target_id], redirect=True)
-        Report.objects.filter(location_id=old_obj.pk).update(location_id=old_obj.target_id)
+    report_location_field = Report._meta.get_field("location_id")
+    Report.objects.annotate(
+        new_location_id=Case(
+            When(location_id__isnull=True, then=Value(None, output_field=report_location_field)),
+            *(
+                When(location_id__in=(old_id, *redirects_for_old_ids.get(old_id, ())),
+                     then=Value(new_location.pk, output_field=report_location_field))
+                for (old_id, location), new_location in chain(
+                    zip(specific_locations, new_specific_locations),
+                    zip(locationgroups, new_locationgroups)
+                )
+            ),
+            default=Value(-1337, output_field=report_location_field),  # we would want this to fail
+        ),
+    ).update(
+        location_id=F("new_location_id"),
+    )
 
 
 def unmigrate_locations(apps, schema_editor):
