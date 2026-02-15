@@ -26,33 +26,30 @@ class Migration(migrations.Migration):
             constraint=models.UniqueConstraint(condition=models.Q(('redirect', False)), fields=('group', 'specific'), name='unique_non_redirect_slugs'),
         ),
 
-        migrations.AlterField(
-            model_name='specificlocation',
-            name='area',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.area'),
-        ),
-        migrations.AlterField(
-            model_name='specificlocation',
-            name='dynamiclocation',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.dynamiclocation'),
-        ),
-        migrations.AlterField(
-            model_name='specificlocation',
-            name='level',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.level'),
-        ),
-        migrations.AlterField(
-            model_name='specificlocation',
-            name='poi',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.poi'),
-        ),
-        migrations.AlterField(
-            model_name='specificlocation',
-            name='space',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.space'),
-        ),
-        migrations.AddConstraint(
-            model_name='specificlocation',
-            constraint=models.CheckConstraint(condition=models.Q(models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', False), ('poi__isnull', True), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', False)), models.Q(('area__isnull', False), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', False), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', False), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', True)), _connector='OR'), name='only_one_specific_location_target'),
-        ),
+        # if sqlite is unhappy, add this again
+        # migrations.AlterField(
+        #     model_name='specificlocation',
+        #     name='area',
+        #     field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.area'),
+        # ),
+        # migrations.AlterField(
+        #     model_name='specificlocation',
+        #     name='dynamiclocation',
+        #     field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.dynamiclocation'),
+        # ),
+        # migrations.AlterField(
+        #     model_name='specificlocation',
+        #     name='level',
+        #     field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.level'),
+        # ),
+        # migrations.AlterField(
+        #     model_name='specificlocation',
+        #     name='poi',
+        #     field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.poi'),
+        # ),
+        # migrations.AlterField(
+        #     model_name='specificlocation',
+        #     name='space',
+        #     field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.space'),
+        # ),
     ]

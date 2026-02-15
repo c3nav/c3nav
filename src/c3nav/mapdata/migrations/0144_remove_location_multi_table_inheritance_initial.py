@@ -54,6 +54,7 @@ def migrate_locations(apps, schema_editor):
     LocationGroup_Old = apps.get_model('mapdata', 'LocationGroup_Old')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationSlug = apps.get_model('mapdata', 'LocationSlug')
+    Report = apps.get_model('mapdata', 'Report')
     for old_obj in LocationGroup_Old.objects.all():
         values = {}
         for field in LocationGroup_Old._meta.get_fields():
@@ -78,6 +79,7 @@ def migrate_locations(apps, schema_editor):
     LocationRedirect = apps.get_model('mapdata', 'LocationRedirect')
     for old_obj in LocationRedirect.objects.all():
         LocationSlug.objects.filter(pk=old_obj.pk).update(**locations[old_obj.target_id], redirect=True)
+        Report.objects.filter(location_id=old_obj.pk).update(location_id=old_obj.target_id)
 
 
 def unmigrate_locations(apps, schema_editor):
@@ -271,14 +273,14 @@ class Migration(migrations.Migration):
                 ('import_block_data', models.BooleanField(default=False, verbose_name="don't change metadata on import")),
                 ('import_block_geom', models.BooleanField(default=False, verbose_name="don't change geometry on import")),
                 ('access_restriction', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='mapdata.accessrestriction', verbose_name='Access Restriction')),
-                ('area', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='location', to='mapdata.area')),
-                ('dynamiclocation', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='location', to='mapdata.dynamiclocation')),
+                ('area', models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.area')),
+                ('dynamiclocation', models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.dynamiclocation')),
                 ('groups', models.ManyToManyField(blank=True, to='mapdata.locationgroup', verbose_name='Location Groups')),
                 ('label_settings', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='mapdata.labelsettings', verbose_name='label settings')),
-                ('level', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='location', to='mapdata.level')),
+                ('level', models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.level')),
                 ('load_group_display', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='mapdata.loadgroup', verbose_name='display load group')),
-                ('poi', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='location', to='mapdata.poi')),
-                ('space', models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='location', to='mapdata.space')),
+                ('poi', models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.poi')),
+                ('space', models.OneToOneField(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='location', to='mapdata.space')),
             ],
             options={
                 'verbose_name': 'Specific Location',

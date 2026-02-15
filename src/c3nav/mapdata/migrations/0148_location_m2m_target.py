@@ -108,6 +108,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # if sqlite is unhappy with this one, these constraint things need to be separate
+        migrations.RemoveConstraint(
+            model_name='specificlocation',
+            name='only_one_specific_location_target',
+        ),
+        migrations.AddConstraint(
+             model_name='specificlocation',
+             constraint=models.CheckConstraint(condition=models.Q(models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', False), ('poi__isnull', True), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', False)), models.Q(('area__isnull', False), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', False), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', False), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', True)), models.Q(('area__isnull', True), ('dynamiclocation__isnull', True), ('level__isnull', True), ('poi__isnull', True), ('space__isnull', True)), _connector='OR'), name='only_one_specific_location_target'),
+        ),
+
         migrations.AddField(
             model_name='specificlocation',
             name='areas',
