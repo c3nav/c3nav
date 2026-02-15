@@ -2,10 +2,12 @@
 
 import re
 from decimal import Decimal
+from itertools import repeat, chain
 
 import django.core.validators
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db.models.expressions import Case, When, Value, F
 
 import c3nav.mapdata.fields
 import c3nav.mapdata.models.locations
@@ -21,6 +23,7 @@ def convert_specific_location(apps, model_name):
     NewModel = apps.get_model('mapdata', model_name)
     SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     LocationSlug = apps.get_model('mapdata', 'LocationSlug')
+    targets = []
     locations = {}
     model_field_names = {field.name for field in NewModel._meta.get_fields()}
     for old_obj in OldModel.objects.prefetch_related("groups").all():
@@ -41,20 +44,27 @@ def convert_specific_location(apps, model_name):
         location_values.pop("redirect")
         location_values[model_name.lower()+'_id'] = values["id"]
 
-        NewModel.objects.create(**values)
-        location = SpecificLocation.objects.create(**location_values)
-        location.groups.set({group.id for group in groups})
-        locations[old_obj.pk] = {'specific': location}
-        LocationSlug.objects.filter(pk=old_obj.pk).update(specific=location)
+        targets.append(NewModel(**values))
+        location = SpecificLocation(**location_values)
+        location._groups = {group.id for group in groups}
+        locations[old_obj.pk] = location
+
+    NewModel.objects.bulk_create(targets)
+
     return locations
 
 
 def migrate_locations(apps, schema_editor):
-    locations = {}
     LocationGroup_Old = apps.get_model('mapdata', 'LocationGroup_Old')
     LocationGroup = apps.get_model('mapdata', 'LocationGroup')
     LocationSlug = apps.get_model('mapdata', 'LocationSlug')
+    SpecificLocation = apps.get_model('mapdata', 'SpecificLocation')
     Report = apps.get_model('mapdata', 'Report')
+
+    locations = {}
+    locationgroups = {}
+    specific_locations = {}
+
     for old_obj in LocationGroup_Old.objects.all():
         values = {}
         for field in LocationGroup_Old._meta.get_fields():
@@ -66,15 +76,43 @@ def migrate_locations(apps, schema_editor):
         values.pop("group_id")
         values.pop("specific_id")
         values.pop("redirect")
-        group = LocationGroup.objects.create(**values)
-        locations[old_obj.pk] = {'group': group}
-        LocationSlug.objects.filter(pk=old_obj.pk).update(group=group)
+        group = LocationGroup(**values)
+        locationgroups[old_obj.pk] = group
 
-    locations.update(convert_specific_location(apps, 'level'))
-    locations.update(convert_specific_location(apps, 'space'))
-    locations.update(convert_specific_location(apps, 'area'))
-    locations.update(convert_specific_location(apps, 'poi'))
-    locations.update(convert_specific_location(apps, 'dynamiclocation'))
+    specific_locations.update(convert_specific_location(apps, 'level'))
+    specific_locations.update(convert_specific_location(apps, 'space'))
+    specific_locations.update(convert_specific_location(apps, 'area'))
+    specific_locations.update(convert_specific_location(apps, 'poi'))
+    specific_locations.update(convert_specific_location(apps, 'dynamiclocation'))
+
+    specific_locations = tuple(specific_locations.items())
+    locationgroups = tuple(locationgroups.items())
+
+    new_specific_locations = SpecificLocation.objects.bulk_create([location for old_id, location in specific_locations])
+    new_locationgroups = LocationGroup.objects.bulk_create([location for old_id, location in locationgroups])
+
+    for (old_id, location), new_location in zip(specific_locations, new_specific_locations):
+        new_location.groups.set(location._groups)
+        locations[old_id] = {"specific": new_location}
+
+    for (old_id, location), new_location in zip(locationgroups, new_locationgroups):
+        locations[old_id] = {"group": new_location}
+
+    specific_field = LocationSlug._meta.get_field("specific")
+    group_field = LocationSlug._meta.get_field("group")
+
+    LocationSlug.objects.annotate(
+        new_specific=Case(
+            *(When(pk=old_id, then=Value(new_location.pk, output_field=specific_field))
+              for (old_id, location), new_location in zip(specific_locations, new_specific_locations)),
+            default=Value(None, output_field=specific_field),
+        ),
+        new_group = Case(
+            *(When(pk=old_id, then=Value(new_location.pk, output_field=group_field))
+              for (old_id, location), new_location in zip(locationgroups, new_locationgroups)),
+            default=Value(None, output_field=group_field),
+        )
+    ).update(specific=F("new_specific"), group=F("new_group"))
 
     LocationRedirect = apps.get_model('mapdata', 'LocationRedirect')
     for old_obj in LocationRedirect.objects.all():
@@ -556,7 +594,7 @@ class Migration(migrations.Migration):
             name='LocationRedirect',
         ),
 
-        # all locationslugs point to a tagret now, so we might as well add a constraint
+        # all locationslugs point to a target now, so we might as well add a constraint
         migrations.AddConstraint(
             model_name='locationslug',
             constraint=models.CheckConstraint(condition=models.Q(models.Q(('group__isnull', False), ('specific__isnull', True)), models.Q(('group__isnull', True), ('specific__isnull', False)), _connector='OR'), name='only_one_slug_target'),
