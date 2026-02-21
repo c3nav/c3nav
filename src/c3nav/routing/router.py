@@ -147,9 +147,9 @@ class Router:
 
                 for altitudearea in level.altitudeareas.all():
                     altitudearea.geometry = unwrap_geom(altitudearea.geometry).buffer(0)
-                    if not routerspace.geometry_prep.intersects(unwrap_geom(altitudearea.geometry)):
+                    if not routerspace.geometry_prep.intersects(altitudearea.geometry):
                         continue
-                    for subgeom in assert_multipolygon(accessible_geom.intersection(unwrap_geom(altitudearea.geometry))):
+                    for subgeom in assert_multipolygon(accessible_geom.intersection(altitudearea.geometry)):
                         if subgeom.is_empty:
                             continue
                         area_clear_geom = unary_union(tuple(get_rings(subgeom.difference(obstacles_geom))))
@@ -765,7 +765,7 @@ class RouterSpace(BaseRouterGeometryTarget[Space, Polygon]):
 
     def altitudearea_for_point(self, point: Point):
         if not self.altitudeareas:
-            raise LocationUnreachable
+            raise LocationUnreachable(f"No altitudeareas for space #{self.id}")
         altitudeareas = tuple(self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point))
         for area in altitudeareas:
             if area.geometry_prep.intersects(point):

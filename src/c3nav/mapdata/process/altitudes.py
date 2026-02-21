@@ -137,6 +137,7 @@ class BuildAltitudeAreaDict[T]:
     def merge_all(self):
         for area in self._dict.values():
             area.merge()
+        self._index = None
 
     def intersections(self, geometry: BaseGeometry) -> set[T]:
         return {key for key in (self._idx_lookup[i] for i in self.index.intersection(geometry))  # pragma: nobranch
@@ -194,6 +195,7 @@ class AltitudeAreaBuilder:
             )
 
             if not this_area.area:
+                print("space has no area:", space.pk)
                 continue
             space_clip = this_area.buffer(precision, join_style=JOIN_STYLE.round, quad_segs=2)
             spaces[space.pk] = space_clip
@@ -298,7 +300,7 @@ class AltitudeAreaBuilder:
                 )
             else:
                 logger.warning(
-                    _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)}'
+                    _(f'AltitudeMarker {altitudemarker.pk} {unwrap_geom(altitudemarker.geometry)} '
                       f'in Space #{altitudemarker.space_id} on Level {level} '
                       f'is on an obstacle in between altitude areas')
                 )

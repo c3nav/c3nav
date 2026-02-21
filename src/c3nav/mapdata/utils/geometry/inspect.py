@@ -58,8 +58,9 @@ def get_rings(geometry):
 
 def calculate_precision(geometry: BaseGeometry):
     if geometry.is_empty:
-        return 10 ** -14
-    return 10 ** (-14 + int(ceil(log10(max((abs(i) for i in geometry.bounds), default=1)))))
+        return 10 ** -12
+    # this used to be -14 but -12 might be needed. before lowering it more, reevaluate this code please
+    return 10 ** (-12 + int(ceil(log10(max((abs(i) for i in geometry.bounds), default=1)))))
 
 
 def check_ring(coordinates):
