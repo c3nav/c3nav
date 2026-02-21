@@ -208,7 +208,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'initial_bounds': json.dumps(initial_bounds, separators=(',', ':')) if initial_bounds else None,
         'last_site_update': json.dumps(SiteUpdate.last_update()),
         'ssids': json.dumps(settings.WIFI_SSIDS, separators=(',', ':')) if settings.WIFI_SSIDS else None,
-        'random_location_parents': ",".join(get_random_location_parents()),
+        'random_location_parents': ",".join(str(i) for i in get_random_location_parents()),
         'editor': can_access_editor(request),
         'embed': bool(embed),
         'imprint': settings.IMPRINT_LINK,
