@@ -396,6 +396,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def sublocations(self) -> list[int]:
+        # todo: test that this stays a @property and not @cached_property
         return list(self.descendants)
 
     @property
