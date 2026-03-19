@@ -120,7 +120,8 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
 
     if isinstance(location, LocationRedirect):
         if not show_redirects:
-            return redirect('../' + str(location.target.slug))  # todo: use reverse, make pk and slug both work
+            return redirect(("../../" if detailed else "../") +
+                            str(location.target.slug) + ("/full/" if detailed else "/"))  # todo: use reverse, make pk and slug both work
 
     if isinstance(location, (DynamicLocation, Position)):
         request._target_etag = None
@@ -137,7 +138,7 @@ def _location_display(request, location):
         raise API404()
 
     if isinstance(location, LocationRedirect):
-        return redirect('../' + str(location.target.slug) + '/details/')  # todo: use reverse, make pk+slug work
+        return redirect('../../' + str(location.target.slug) + '/display/')  # todo: use reverse, make pk+slug work
 
     result = location.details_display(
         detailed_geometry=can_access_geometry(request, location),
@@ -153,7 +154,7 @@ def _location_geometry(request, location):
         raise API404()
 
     if isinstance(location, LocationRedirect):
-        return redirect('../' + str(location.target.slug) + '/geometry/')  # todo: use reverse, make pk+slug work
+        return redirect('../../' + str(location.target.slug) + '/geometry/')  # todo: use reverse, make pk+slug work
 
     return LocationGeometry(
         id=location.pk,
