@@ -1,0 +1,50 @@
+import re
+from collections import deque
+from itertools import chain
+from pathlib import Path
+from django.contrib.staticfiles import finders
+
+from django.test.client import Client
+
+
+def static_archive(output_dir: Path, permissions: set[int]):
+    c = Client()
+    response = c.get("/")
+    with (output_dir / "index.html").open("wb") as f:
+        f.write(response.content)
+
+    staticfiles_found = {
+        Path(m[1]) for m in re.findall(r'(src|href)="(/static/[^"]+)"', response.content.decode())
+    }
+    staticfiles_left = deque(staticfiles_found)
+    while staticfiles_left:
+        staticfile = staticfiles_left.popleft()
+
+        static_dest = output_dir / staticfile.relative_to("/")
+        static_dest.parent.mkdir(parents=True, exist_ok=True)
+
+        result = finders.find(str(staticfile).removeprefix("/static/"))
+        with Path(result).open("rb") as f:
+            content = f.read()
+
+        if staticfile.suffix == ".css":
+            staticfiles_new = {
+                staticfile.parent / Path(match) for match in
+                re.findall(r'url\(["\']([^\'"\(\)]+)["\']\)', content.decode())
+            } - staticfiles_found
+            if staticfiles_new:
+                staticfiles_found.update(staticfiles_new)
+                staticfiles_left.extend(staticfiles_new)
+
+        with static_dest.open("wb") as f:
+            print(static_dest)
+            f.write(content)
+
+    # auth API
+    api_out = output_dir / "api" / "v2"
+
+    auth_api_out = api_out / "auth" / "session" / "index.html"
+    auth_api_out.parent.mkdir(parents=True, exist_ok=True)
+    with auth_api_out.open("w") as f:
+        print(auth_api_out)
+        f.write('{"key": "staticarchive"}')

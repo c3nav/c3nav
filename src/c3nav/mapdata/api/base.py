@@ -33,7 +33,7 @@ def api_etag(permissions=True, quests=False, etag_func=AccessPermission.etag_fun
                 if request._target_etag:
                     response['ETag'] = request._target_etag
                 response['Cache-Control'] = 'no-cache'
-                if request._target_cache_key:
+                if request._target_cache_key and not hasattr(response, "wsgi_request"):
                     request_cache.set(request._target_cache_key, response, 900)
             return response
         return outer_wrapped_func
