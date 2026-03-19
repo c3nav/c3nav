@@ -34,7 +34,7 @@ if settings.FAVICON_PACKAGE and os.path.isdir(settings.FAVICON_PACKAGE):
 
 
 class LogoFinder(BaseFinder):
-    def find(self, path, all=False):
+    def find(self, path, find_all=False):
         result = logofinder_results.get(path)
         if not result:
             return []
