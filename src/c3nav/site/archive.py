@@ -7,7 +7,7 @@ from django.contrib.staticfiles import finders
 from django.test.client import Client
 
 
-def static_archive(output_dir: Path, permissions: set[int]):
+def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     c = Client()
     response = c.get("/")
     with (output_dir / "index.html").open("wb") as f:

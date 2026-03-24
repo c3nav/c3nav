@@ -48,12 +48,13 @@ class Command(BaseCommand):
                             help=_('permissions, e.g. 2,3 or * for all permissions or 0 for public (default)'))
         parser.add_argument('--output-dir', default=None, type=self.dir_path,
                             help=_('override filename'))
+        parser.add_argument('--include-png', default=False, type=bool, help=_('include png renders'))
 
-    def handle(self, *args, permissions: set[int], output_dir: Path, **kwargs):
+    def handle(self, *args, permissions: set[int], output_dir: Path, include_png: bool = False, **kwargs):
         if output_dir is None:
             output_dir = Path(TemporaryDirectory(suffix="c3nav_static_archive_", delete=False).name)
 
         from c3nav.site.archive import static_archive as site_static_archive
         from c3nav.mapdata.archive import static_archive as mapdata_static_archive
-        site_static_archive(output_dir=output_dir, permissions=permissions)
-        mapdata_static_archive(output_dir=output_dir, permissions=permissions)
+        site_static_archive(output_dir=output_dir, permissions=permissions, png=include_png)
+        mapdata_static_archive(output_dir=output_dir, permissions=permissions, png=include_png)

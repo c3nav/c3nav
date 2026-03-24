@@ -1,22 +1,23 @@
 import bisect
 import concurrent
 import json
-import os
 import random
 import time
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
 from typing import Iterable
+from c3nav.mapdata.render.engines import ImageRenderEngine
 
 from django.test.client import Client
 
 from c3nav.mapdata.models import Theme, Source, Level, LocationSlug
 from c3nav.mapdata.models.locations import LocationRedirect
+from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.utils.tiles import (get_tile_bounds)
 
 
-def static_archive(output_dir: Path, permissions: set[int]):
+def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     # mapdata API
     api_base = Path("api") / "v2"
 
@@ -105,7 +106,7 @@ def static_archive_tiles(c: Client, output_dir: Path):
         static_archive_tiles_at_zoom(c, output_dir, zoom)
 
 
-def static_archive_tiles_at_zoom(c: Client, output_dir: Path, zoom: int):
+def static_archive_tiles_at_zoom(c: Client, output_dir: Path, zoom: int, png: bool = False):
     (source_minx, source_miny), (source_maxx, source_maxy) = Source.max_bounds()
 
     # todo: this could be done better but oh well
@@ -155,6 +156,25 @@ def static_archive_tiles_at_zoom(c: Client, output_dir: Path, zoom: int):
     tile_variants = len(level_ids) * len(theme_ids)
     num_tiles = num_x * num_y * tile_variants
 
+    theme_blanks = {}
+
+    for theme_id in theme_ids:
+        tile_out_dir = output_dir / "map" / "blank"
+        tile_out_dir.mkdir(parents=True, exist_ok=True)
+
+        content = ImageRenderEngine(
+            width=257, height=257, background=ColorManager.for_theme(theme_id or None).background
+        ).render()
+        theme_blanks[theme_id] = content
+
+        if png:
+            with (tile_out_dir / f"{theme_id}.png").open("wb") as f:
+                f.write(content[0])
+
+        with (tile_out_dir / f"{theme_id}.webp").open("wb") as f:
+            f.write(content[1])
+
+
     print(f"archiving tiles at zoom={zoom} {final_min_x}<=x<={final_max_x} {final_min_y}<=y<={final_max_y}")
 
     def generate_tile_paths():
@@ -166,15 +186,17 @@ def static_archive_tiles_at_zoom(c: Client, output_dir: Path, zoom: int):
             x = final_min_x + (xy % num_x)
             for level_id in level_ids:
                 for theme_id in theme_ids:
+                    if png:
+                        yield Path("map") / str(level_id) / str(zoom) / str(x) / str(y) / f"{theme_id}.png"
                     yield Path("map") / str(level_id) / str(zoom) / str(x) / str(y) / f"{theme_id}.webp"
-
 
     def download_tile(tile_path: Path):
         response = c.get(f"/{tile_path}")
-        api_out = output_dir / tile_path
-        api_out.parent.mkdir(parents=True, exist_ok=True)
-        with api_out.open("wb") as f:
-            f.write(response.content)
+        tile_out = output_dir / tile_path
+        tile_out.parent.mkdir(parents=True, exist_ok=True)
+        if response.content != theme_blanks[int(tile_path.name.split('.')[0])][int(tile_path.suffix == '.webp')]:
+            with tile_out.open("wb") as f:
+                f.write(response.content)
 
     start_time = time.time()
     next_msg = 0

@@ -330,7 +330,6 @@ c3nav = {
 
         $(document).on('click', '.theme-selection>button', c3nav.select_theme);
 
-
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
