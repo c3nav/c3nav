@@ -53,23 +53,15 @@ def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     def generate_location_paths():
         for location in LocationSlug.objects.filter(pk__in=[location["id"] for location in locations]):
             location = location.get_child()
-            slugs = [LocationSlug.LOCATION_TYPE_CODES.get(location.__class__.__name__) + ":" + str(location.id)]
-            if location.slug:
-                slugs.append(location.slug)
-            slugs.extend(redirects[location.id])
             yield [
                 api_base / "map" / "locations" / str(location.id),
                 api_base / "map" / "locations" / str(location.id) / "full",
                 api_base / "map" / "locations" / str(location.id) / "geometry",
                 api_base / "map" / "locations" / str(location.id) / "display",
-                *chain.from_iterable(
-                    (
-                        api_base / "map" / "locations" / "by-slug" / slug,
-                        api_base / "map" / "locations" / "by-slug" / slug / "full",
-                        api_base / "map" / "locations" / "by-slug" / slug / "geometry",
-                        api_base / "map" / "locations" / "by-slug" / slug / "display",
-                    ) for slug in slugs
-                )
+                api_base / "map" / "locations" / "by-slug" / location.effective_slug,
+                api_base / "map" / "locations" / "by-slug" / location.effective_slug / "full",
+                api_base / "map" / "locations" / "by-slug" / location.effective_slug / "geometry",
+                api_base / "map" / "locations" / "by-slug" / location.effective_slug / "display",
             ]
 
     def download_location(api_paths: Iterable[Path]):

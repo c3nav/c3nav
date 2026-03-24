@@ -1,10 +1,12 @@
 import re
-from collections import deque
+from collections import deque, defaultdict
 from itertools import chain
 from pathlib import Path
 from django.contrib.staticfiles import finders
 
 from django.test.client import Client
+
+from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
 def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
@@ -60,3 +62,19 @@ def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     with auth_api_out.open("w") as f:
         print(auth_api_out)
         f.write('{"key": "staticarchive"}')
+
+    # locations
+    print(f"downloading all locations...")
+    redirects = defaultdict(list)
+    for slug, target_id in LocationRedirect.objects.values_list("slug", "target_id"):
+        redirects[target_id].append(slug)
+
+    for location in LocationSlug.objects.filter():
+        location = location.get_child()
+        if getattr(location, "can_search", False):
+            path = Path("l") / location.effective_slug
+            response = c.get(f"/{path}/")
+            output_path = output_dir / path / "index.html"
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with output_path.open("wb") as f:
+                f.write(response.content)
