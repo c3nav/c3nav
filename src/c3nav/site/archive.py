@@ -13,9 +13,13 @@ def clean_html(html: str) -> str:
     user_data = '{"logged_in":false,"allow_editor":false,"allow_control_panel":false,"mesh_control":false,"has_positions":false,"title":"Archive","subtitle":null,"permissions":[],"overlays":[],"quests":{}}'
     html = re.sub(r'<meta property="[a-z]+:url" content="[^"]+"/>', '', html)
     html = re.sub(r'<meta property="[a-z]+:url" content="[^"]+"/>', '', html)
-    html = re.sub(r'data-ssids="[^"]+"', 'data-ssids="[]"', html)
+    html = re.sub(r'data-ssids="[^"]+"', '', html)
     html = re.sub(r'data-user-data="[^"]+"', 'data-user-data="'+escape(user_data)+'"', html)
+    html = re.sub(r'<a class="[^"]*(report|editor).*?</a>', '', html, flags=re.DOTALL)
+    html = re.sub(r'<button class="[^"]*route.*?</button>', '', html, flags=re.DOTALL)
+
     html = html.replace('<head>', '<head><meta charset="utf-8" /> ')
+    html = html.replace('<img src="">', '')
     return html
 
 
