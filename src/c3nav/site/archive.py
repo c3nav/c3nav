@@ -14,7 +14,16 @@ def static_archive(output_dir: Path, permissions: set[int]):
         f.write(response.content)
 
     staticfiles_found = {
-        Path(m[1]) for m in re.findall(r'(src|href)="(/static/[^"]+)"', response.content.decode())
+        *(Path(m[1]) for m in re.findall(r'(src|href)="(/static/[^"]+)"', response.content.decode())),
+        Path("/static") / "img" / "marker-icon-default.png",
+        Path("/static") / "img" / "marker-icon-origin.png",
+        Path("/static") / "img" / "marker-icon-destination.png",
+        Path("/static") / "img" / "marker-icon-nearby.png",
+        Path("/static") / "img" / "marker-icon-default-2x.png",
+        Path("/static") / "img" / "marker-icon-origin-2x.png",
+        Path("/static") / "img" / "marker-icon-destination-2x.png",
+        Path("/static") / "img" / "marker-icon-nearby-2x.png",
+        Path("/static") / "img" / "marker-shadow.png",
     }
     staticfiles_left = deque(staticfiles_found)
     while staticfiles_left:
@@ -24,13 +33,16 @@ def static_archive(output_dir: Path, permissions: set[int]):
         static_dest.parent.mkdir(parents=True, exist_ok=True)
 
         result = finders.find(str(staticfile).removeprefix("/static/"))
+        if result is None:
+            print(f"couldn't find: {staticfile}")
+            continue
         with Path(result).open("rb") as f:
             content = f.read()
 
         if staticfile.suffix == ".css":
             staticfiles_new = {
                 staticfile.parent / Path(match) for match in
-                re.findall(r'url\(["\']([^\'"\(\)]+)["\']\)', content.decode())
+                re.findall(r'url\(["\']?([^\'"\(\)]+)["\']?\)', content.decode())
             } - staticfiles_found
             if staticfiles_new:
                 staticfiles_found.update(staticfiles_new)

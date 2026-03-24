@@ -108,12 +108,27 @@ class SVGEngine(RenderEngine):
 
         if self.width == 256 and self.height == 256 and not self.g:
             # create empty tile png with minimal size, indexed color palette with only one entry
+
+            f_png = io.BytesIO()
+
             plte = b'PLTE' + bytearray(tuple(int(i*255) for i in self.background_rgb))
-            return (b'\x89PNG\r\n\x1a\n' +
-                    b'\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x01\x03\x00\x00\x00f\xbc:%\x00\x00\x00\x03' +
-                    plte + zlib.crc32(plte).to_bytes(4, byteorder='big') +
-                    b'\x00\x00\x00\x1fIDATh\xde\xed\xc1\x01\r\x00\x00\x00\xc2\xa0\xf7Om\x0e7\xa0\x00\x00\x00\x00\x00' +
-                    b'\x00\x00\x00\xbe\r!\x00\x00\x01\x7f\x19\x9c\xa7\x00\x00\x00\x00IEND\xaeB`\x82')
+            f_png.write(
+                b'\x89PNG\r\n\x1a\n' +
+                b'\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x01\x03\x00\x00\x00f\xbc:%\x00\x00\x00\x03' +
+                plte + zlib.crc32(plte).to_bytes(4, byteorder='big') +
+                b'\x00\x00\x00\x1fIDATh\xde\xed\xc1\x01\r\x00\x00\x00\xc2\xa0\xf7Om\x0e7\xa0\x00\x00\x00\x00\x00' +
+                b'\x00\x00\x00\xbe\r!\x00\x00\x01\x7f\x19\x9c\xa7\x00\x00\x00\x00IEND\xaeB`\x82'
+            )
+
+            # write webp  TODO: this should be simplifyable as well
+            f_webp = io.BytesIO()
+            f_png.seek(0)
+            Image.open(f_png).save(f_webp, "webp", **webp_kwargs)
+
+            f_png.seek(0)
+            f_webp.seek(0)
+
+            return f_png.read(), f_webp.read()
 
         if settings.SVG_RENDERER == 'rsvg':
             # create buffered surfaces
