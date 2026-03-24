@@ -89,8 +89,57 @@ def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     msg = f"...100.0% complete ({len(locations)}/{len(locations)})"
     print(("\b" * erase) + msg)
 
+    # previews
+    static_archive_previews(c, output_dir, locations=[l["id"] for l in locations], png=png)
+
     # tiles
-    static_archive_tiles(c, output_dir)
+    #static_archive_tiles(c, output_dir)
+
+
+def static_archive_previews(c: Client, output_dir: Path, locations: Iterable[int], png: bool = False):
+    locations = [location for location in
+                 (location.get_child() for location in LocationSlug.objects.filter(pk__in=locations))
+                 if getattr(location, "can_search", False)]
+    preview_variants = (2 if png else 1)
+    num_previews = len(locations) * preview_variants
+
+    print(f"archiving previews...")
+
+    def generate_preview_paths():
+        for location in locations:
+            if png:
+                yield Path("map") / "preview" / "l" / f"{location.effective_slug}.png"
+            yield Path("map") / "preview" / "l" / f"{location.effective_slug}.webp"
+
+    def download_previews(preview_path: Path):
+        response = c.get(f"/{preview_path}")
+        if response.status_code != 200:
+            return
+        preview_out = output_dir / preview_path
+        preview_out.parent.mkdir(parents=True, exist_ok=True)
+        with preview_out.open("wb") as f:
+            f.write(response.content)
+
+    start_time = time.time()
+    next_msg = 0
+    erase = 0
+    done_previews = 0
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        for future in executor.map(download_previews, generate_preview_paths(), buffersize=32):
+            done_previews += 1
+
+            now = time.time()
+            if now > next_msg:
+                next_msg = now + 0.5
+                time_to_go = int((now - start_time) / done_previews * (num_previews - done_previews))
+                msg = (f"...{done_previews / num_previews * 100:.1f}% complete ({done_previews}/{num_previews}) - "
+                       f"{time_to_go // 60:02d}m{time_to_go % 60:02d}s remaining").ljust(erase, " ")
+                print(("\b" * erase) + msg, end="")
+                erase = len(msg)
+
+    msg = f"...100.0% complete ({num_previews}/{num_previews})"
+    print(("\b" * erase) + msg)
 
 
 def static_archive_tiles(c: Client, output_dir: Path):
@@ -145,7 +194,7 @@ def static_archive_tiles_at_zoom(c: Client, output_dir: Path, zoom: int, png: bo
     theme_ids = [0] + list(Theme.objects.values_list("id", flat=True))
     num_x = (final_max_x - final_min_x) + 1
     num_y = (final_max_y - final_min_y) + 1
-    tile_variants = len(level_ids) * len(theme_ids)
+    tile_variants = len(level_ids) * len(theme_ids) * (2 if png else 1)
     num_tiles = num_x * num_y * tile_variants
 
     theme_blanks = {}
