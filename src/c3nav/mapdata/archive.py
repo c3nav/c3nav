@@ -93,7 +93,7 @@ def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     static_archive_previews(c, output_dir, locations=[l["id"] for l in locations], png=png)
 
     # tiles
-    #static_archive_tiles(c, output_dir)
+    static_archive_tiles(c, output_dir)
 
 
 def static_archive_previews(c: Client, output_dir: Path, locations: Iterable[int], png: bool = False):
