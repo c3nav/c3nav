@@ -1,18 +1,29 @@
 import re
-from collections import deque, defaultdict
+from collections import deque
+from html import escape
 from pathlib import Path
 
 from django.contrib.staticfiles import finders
 from django.test.client import Client
 
-from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
+from c3nav.mapdata.models.locations import LocationSlug
+
+
+def clean_html(html: str) -> str:
+    user_data = '{"logged_in":false,"allow_editor":false,"allow_control_panel":false,"mesh_control":false,"has_positions":false,"title":"Archive","subtitle":null,"permissions":[],"overlays":[],"quests":{}}'
+    html = re.sub(r'<meta property="[a-z]+:url" content="[^"]+"/>', '', html)
+    html = re.sub(r'<meta property="[a-z]+:url" content="[^"]+"/>', '', html)
+    html = re.sub(r'data-ssids="[^"]+"', 'data-ssids="[]"', html)
+    html = re.sub(r'data-user-data="[^"]+"', 'data-user-data="'+escape(user_data)+'"', html)
+    html = html.replace('<head>', '<head><meta charset="utf-8" /> ')
+    return html
 
 
 def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     c = Client()
     response = c.get("/")
-    with (output_dir / "index.html").open("wb") as f:
-        f.write(response.content)
+    with (output_dir / "index.html").open("w") as f:
+        f.write(clean_html(response.content.decode()))
 
     staticfiles_found = {
         *(Path(m[1]) for m in re.findall(r'(src|href)="(/static/[^"]+)"', response.content.decode())),
@@ -73,5 +84,5 @@ def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
                 continue
             output_path = output_dir / path / "index.html"
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with output_path.open("wb") as f:
-                f.write(response.content)
+            with output_path.open("w") as f:
+                f.write(clean_html(response.content.decode()))
