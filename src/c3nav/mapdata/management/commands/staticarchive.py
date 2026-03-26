@@ -130,6 +130,7 @@ class Command(BaseCommand):
                 f.write("\n")
 
                 for from_path, to_path in redirects.items():
-                    f.write(f"rewrite ^{from_path}$ {to_path} redirect;\n")
+                    if " " not in from_path and " " not in to_path:
+                        f.write(f"location ^~ {from_path} {{ return 302 {to_path}; }}\n")
                 f.write("\n")
 
