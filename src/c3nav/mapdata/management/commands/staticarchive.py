@@ -1,5 +1,6 @@
 import argparse
 import json
+from itertools import chain
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -7,7 +8,7 @@ from django.core.management.base import BaseCommand
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
-from c3nav.mapdata.models import AccessRestriction
+from c3nav.mapdata.models import AccessRestriction, Theme
 
 SERVER_CODE = """
 import http.server
@@ -113,4 +114,22 @@ class Command(BaseCommand):
         with (output_dir / "server.py").open("w") as f:
             f.write(SERVER_CODE)
             f.write(f"\n\nredirects = {json.dumps(redirects, indent=4, sort_keys=True)}\n\n")
+
+        with (output_dir / "nginx.conf").open("w") as f:
+            for suffix in (("png", "webp") if include_png else ("webp", )):
+                for theme_id in chain((0, ), Theme.objects.values_list("id", flat=True)):
+                    f.write(
+                        f"location ~* ^/map/-?[0-9]+/-?[0-9]+/-?[0-9]+/-?[0-9]+/{theme_id}.{suffix}$ {{\n"
+                        f"    error_page 404 /map/blank/{theme_id}.{suffix};\n"
+                        f"}}\n"
+                    )
+                f.write("\n")
+                f.write(f"rewrite ^/[od]/([^/]+)/(details/)?$ /l/$1/ last;\n")
+                f.write(f"rewrite ^/[r]/([^/]+)/[^/]+/(details/)?$ /l/$2/ last;\n")
+                f.write(f"rewrite ^/[l]/([^/]+)/details/$ /l/$1/ last;\n")
+                f.write("\n")
+
+                for from_path, to_path in redirects.items():
+                    f.write(f"rewrite ^{from_path}$ {to_path} redirect;\n")
+                f.write("\n")
 
