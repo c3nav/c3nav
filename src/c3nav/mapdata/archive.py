@@ -253,9 +253,9 @@ def static_archive_tiles_at_zoom(c: Client, output_dir: Path, zoom: int, png: bo
 
     def download_tile(tile_path: Path):
         response = c.get(f"/{tile_path}")
-        tile_out = output_dir / tile_path
-        tile_out.parent.mkdir(parents=True, exist_ok=True)
         if response.content != theme_blanks[int(tile_path.name.split('.')[0])][int(tile_path.suffix == '.webp')]:
+            tile_out = output_dir / tile_path
+            tile_out.parent.mkdir(parents=True, exist_ok=True)
             with tile_out.open("wb") as f:
                 f.write(response.content)
 
