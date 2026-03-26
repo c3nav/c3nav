@@ -17,7 +17,7 @@ from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.utils.tiles import (get_tile_bounds)
 
 
-def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
+def static_archive(output_dir: Path, permissions: set[int], redirects: dict[Path, Path], png: bool = False):
     # mapdata API
     api_base = Path("api") / "v2"
 
@@ -46,13 +46,33 @@ def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
     # download all locations
 
     print(f"downloading all locations...")
-    redirects = defaultdict(list)
+    redirects_to_id = defaultdict(list)
     for slug, target_id in LocationRedirect.objects.values_list("slug", "target_id"):
-        redirects[target_id].append(slug)
+        redirects_to_id[target_id].append(slug)
 
     def generate_location_paths():
         for location in LocationSlug.objects.filter(pk__in=[location["id"] for location in locations]):
             location = location.get_child()
+            redirectslugs = redirects_to_id.get(location.id, [])
+            if location.slug:
+                redirectslugs.append(f"{LocationSlug.LOCATION_TYPE_CODES[location.__class__.__name__]}:{location.id}")
+
+            for slug in redirectslugs:
+                redirects.update(dict(zip(
+                    (
+                        api_base / "map" / "locations" / "by-slug" / slug,
+                        api_base / "map" / "locations" / "by-slug" / slug / "full",
+                        api_base / "map" / "locations" / "by-slug" / slug / "geometry",
+                        api_base / "map" / "locations" / "by-slug" / slug / "display",
+                    ),
+                    (
+                        api_base / "map" / "locations" / "by-slug" / location.effective_slug,
+                        api_base / "map" / "locations" / "by-slug" / location.effective_slug / "full",
+                        api_base / "map" / "locations" / "by-slug" / location.effective_slug / "geometry",
+                        api_base / "map" / "locations" / "by-slug" / location.effective_slug / "display",
+                    ),
+                )))
+
             yield [
                 api_base / "map" / "locations" / str(location.id),
                 api_base / "map" / "locations" / str(location.id) / "full",

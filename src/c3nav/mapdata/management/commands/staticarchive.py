@@ -1,4 +1,5 @@
 import argparse
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -25,9 +26,17 @@ class StaticArchiveHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header("Content-Length", "0")
                 self.end_headers()
                 return
-        
+
+            target = redirects.get(self.path if self.path.endswith("/") else f"{self.path}/", None)
+            if target:
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", target)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+
         return super().send_error(code, message, explain)
-      
+
     def translate_path(self, path):
         if path.startswith('/o/') or path.startswith('/d/'):
             path = f"/l/{path[3:]}"
@@ -93,8 +102,15 @@ class Command(BaseCommand):
 
         from c3nav.site.archive import static_archive as site_static_archive
         from c3nav.mapdata.archive import static_archive as mapdata_static_archive
-        site_static_archive(output_dir=output_dir, permissions=permissions, png=include_png)
-        mapdata_static_archive(output_dir=output_dir, permissions=permissions, png=include_png)
 
-        with (output_dir / "server.p").open("w") as f:
+        redirects = {}
+
+        site_static_archive(output_dir=output_dir, permissions=permissions, redirects=redirects, png=include_png)
+        mapdata_static_archive(output_dir=output_dir, permissions=permissions, redirects=redirects, png=include_png)
+
+        redirects = {f"/{from_path}/": f"/{to_path}/" for from_path, to_path in redirects.items()}
+
+        with (output_dir / "server.py").open("w") as f:
             f.write(SERVER_CODE)
+            f.write(f"\n\nredirects = {json.dumps(redirects, indent=4, sort_keys=True)}\n\n")
+

@@ -1,12 +1,12 @@
 import re
-from collections import deque
+from collections import deque, defaultdict
 from html import escape
 from pathlib import Path
 
 from django.contrib.staticfiles import finders
 from django.test.client import Client
 
-from c3nav.mapdata.models.locations import LocationSlug
+from c3nav.mapdata.models.locations import LocationSlug, LocationRedirect
 
 
 def clean_html(html: str) -> str:
@@ -23,7 +23,7 @@ def clean_html(html: str) -> str:
     return html
 
 
-def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
+def static_archive(output_dir: Path, permissions: set[int], redirects: dict[Path, Path], png: bool = False):
     c = Client()
     response = c.get("/")
     with (output_dir / "index.html").open("w") as f:
@@ -79,9 +79,21 @@ def static_archive(output_dir: Path, permissions: set[int], png: bool = False):
 
     # locations
     print(f"downloading all locations...")
+
+    redirects_to_id = defaultdict(list)
+    for slug, target_id in LocationRedirect.objects.values_list("slug", "target_id"):
+        redirects_to_id[target_id].append(slug)
+
     for location in LocationSlug.objects.filter():
         location = location.get_child()
         if getattr(location, "can_search", False) and location.access_restriction_id is None:
+            redirectslugs = redirects_to_id.get(location.id, [])
+            if location.slug:
+                redirectslugs.append(f"{LocationSlug.LOCATION_TYPE_CODES[location.__class__.__name__]}:{location.id}")
+
+            for slug in redirectslugs:
+                redirects[Path("l") / slug] = Path("l") / location.effective_slug
+
             path = Path("l") / location.effective_slug
             response = c.get(f"/{path}/")
             if response.status_code != 200:
