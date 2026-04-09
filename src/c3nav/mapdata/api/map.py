@@ -109,7 +109,7 @@ class ShowRedirects(BaseSchema):
 
 def cache_job_types_by_identifier(*args, identifier: LocationIdentifier, **kwargs) -> tuple[str, ...]:
     if isinstance(identifier, str) and ":" in identifier:
-        return ("router.rebuild_locator", "mapdata.recalculate_locationtag_final", )
+        return ("routing.rebuild_locator", "mapdata.recalculate_locationtag_final", )
     return ("mapdata.recalculate_locationtag_final",)
 
 

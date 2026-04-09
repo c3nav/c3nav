@@ -307,6 +307,7 @@ class CustomLocation:
     Implements :py:class:`c3nav.mapdata.schemas.locations.SingleLocationProtocol`.
     """
     locationtype: ClassVar = "custom"
+    dynamic: ClassVar = 0
     slug_as_id = False
 
     can_search = True
