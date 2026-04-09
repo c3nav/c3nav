@@ -679,7 +679,7 @@ class BaseRouterDatabaseTarget[TargetT: Model](BaseRouterTarget[TargetT]):
     def __post_init__(self, src: TargetT):
         super().__post_init__(src)
         self.id = src.id
-        self.sorted_tags = [location.pk for location in src.sorted_tags]
+        self.sorted_tags = list(src.sorted_tag_ids)
 
     @property
     def pk(self):
