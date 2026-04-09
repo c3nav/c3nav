@@ -65,8 +65,9 @@ class GeometryIndexed:
         cls._read_metadata(f, kwargs)
 
         # noinspection PyTypeChecker
-        kwargs['data'] = np.frombuffer(f.read(width * height * cls.dtype().itemsize), cls.dtype).reshape(
-            (height, width))
+        kwargs['data'] = np.frombuffer(
+            f.read(width * height * cls.dtype().itemsize), cls.dtype
+        ).reshape((height, width)).copy()
         return cls(**kwargs)
 
     @classmethod

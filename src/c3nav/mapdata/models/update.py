@@ -251,7 +251,7 @@ class MapUpdate(models.Model):
         super().save(**kwargs)
 
         with suppress(FileExistsError):
-            os.mkdir(os.path.dirname(self._changed_geometries_filename()))
+            self._changed_geometries_filename().parent.mkdir(parents=True, exist_ok=True)
 
         if self.geometries_changed:
             self.set_changed_geometries(changed_geometries)
