@@ -51,7 +51,7 @@ map_api_router = APIRouter(tags=["map"])
 def map_settings(request):
     initial_bounds = settings.INITIAL_BOUNDS
     if not initial_bounds:
-        initial_bounds = tuple(chain(*Level.max_bounds()))
+        initial_bounds = Level.max_bounds()
     else:
         initial_bounds = (tuple(settings.INITIAL_BOUNDS)[:2], tuple(settings.INITIAL_BOUNDS)[2:])
 
