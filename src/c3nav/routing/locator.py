@@ -302,10 +302,10 @@ class Locator:
 
     @classmethod
     def load(cls):
-        from c3nav.mapdata.models.update import MapUpdateJob
         update = MapUpdate.last_update("routing.rebuild_locator")
         if getattr(cls.cached, 'update', cls.NoUpdate) < update:
             cls.cached.data = cls.load_nocache(update)
+            cls.cached.update = update
         return cls.cached.data
 
     def convert_raw_scan_data(self, raw_scan_data: list[LocateWifiPeerSchema]) -> ScanData:

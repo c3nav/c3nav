@@ -59,8 +59,6 @@ EdgeIndex: TypeAlias = tuple[int, int]
 
 @dataclass
 class Router:
-    filename: ClassVar = settings.CACHE_ROOT / 'router'
-
     update: MapUpdateTuple
     levels: dict[int, "RouterLevel"]
     spaces: dict[int, "RouterSpace"]
@@ -359,6 +357,7 @@ class Router:
         update = MapUpdate.last_update("routing.rebuild_router")
         if getattr(cls.cached, 'update', cls.NoUpdate) < update:
             cls.cached.data = cls.load_nocache(update)
+            cls.cached.update = update
         return cls.cached.data
 
     def locationpoint_to_routercoordinates(self, locationpoint: LocationPoint,
@@ -424,13 +423,10 @@ class Router:
         point = Point(point.x, point.y)
         level = self.levels[level]
         excluded_spaces = restrictions.spaces if restrictions else frozenset()
-        print(level.space_index.__dict__)
-        print(level.space_index.intersection(Point(point.x, point.y)))
 
         space_ids = (
             level.spaces if level.space_index is None else level.space_index.intersection(Point(point.x, point.y))
         ) - excluded_spaces
-        print(space_ids)
         for space in space_ids:
             if self.spaces[space].geometry_prep.contains(point):
                 return self.spaces[space]
