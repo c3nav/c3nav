@@ -16,12 +16,11 @@ from c3nav.mapdata.utils.cache.proxied import versioned_cache
 class ValidateID:
     model: Type[Model]
 
-    @classmethod
-    def _get_ids_for_model(cls) -> frozenset[int]:
+    def _get_ids_for_model(self) -> frozenset[int]:
         # todo: cache this locally, better, maybe lazily?
         cache_key = (
-            f"mapdata:api:pks:{cls.model.__name__}"
-            + (f":{active_map_permissions.permissions_cache_key}" if hasattr(cls.model, 'q_for_permissions') else "")
+            f"mapdata:api:pks:{self.model.__name__}"
+            + (f":{active_map_permissions.permissions_cache_key}" if hasattr(self.model, 'q_for_permissions') else "")
         )
 
         result = versioned_cache.get(
@@ -30,7 +29,7 @@ class ValidateID:
         if result is not None:
             return result
 
-        result = frozenset(cls.model.objects.values_list("id", flat=True))
+        result = frozenset(self.model.objects.values_list("id", flat=True))
         versioned_cache.set(
             MapUpdate.last_update("mapdata.recalculate_locationtag_effective_inherited_values"), cache_key, result, 300
         )
