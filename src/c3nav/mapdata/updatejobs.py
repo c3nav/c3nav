@@ -417,6 +417,7 @@ def recalculate_locationtag_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
                                                   recalculate_locationtag_static_targets,
                                                   recalculate_locationtag_dynamic_targets,))
 def rebuild_locationmanager(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    (settings.CACHE_ROOT / mapupdates[-1].to_tuple.folder_name).mkdir(exist_ok=True)
     LocationManager.rebuild(mapupdates[-1].to_tuple)
     return True
 
