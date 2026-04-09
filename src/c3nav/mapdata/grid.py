@@ -92,6 +92,9 @@ class DummyGrid(AbstractGrid):
     def get_squares_for_bounds(self, bounds):
         return None
 
+    def __bool__(self):
+        return False
+
 
 if settings.GRID_COLS and settings.GRID_ROWS:
     grid = Grid(settings.GRID_ROWS.split(','), settings.GRID_COLS.split(','))
