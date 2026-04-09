@@ -129,7 +129,7 @@ class MapUpdateJob(models.Model):
         self.save()
         if status == MapUpdateJobStatus.SUCCESS:
             transaction.on_commit(
-                lambda: per_request_cache.set(f"mapdata:last_successful_job:{self.job_type}:update",
+                lambda: per_request_cache.set(f"mapdata:last_job:{self.job_type}:update",
                                               self.mapupdate.to_tuple, None)
             )
 
@@ -169,10 +169,9 @@ class MapUpdate(models.Model):
         try:
             with cls.creation_lock():
                 last_update = cls.objects.latest().to_tuple
-                per_request_cache.set('mapdata:last_update', last_update, None)
         except cls.DoesNotExist:
             last_update = MapUpdateTuple.get_empty()
-            per_request_cache.set('mapdata:last_update', last_update, None)
+        per_request_cache.set('mapdata:last_update', last_update, None)
         return last_update
 
     @classmethod
