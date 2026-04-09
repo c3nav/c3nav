@@ -408,7 +408,8 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
 
     @property
     def display_superlocations(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
-        # todo: precalculate this including the entire tree
+        # todo: precalculate this including the entire tree?
+        from c3nav.mapdata.locations import LocationManager
         return MapPermissionGuardedTaggedSequence([
              MapPermissionTaggedItem({
                  'id': l.pk,
@@ -416,7 +417,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
                  'title': l.title,  # todo: will translation be used here? … this needs automated tests
                  'can_search': l.can_search,
              }, l.effective_access_restrictions)
-             for l in self.parents.all()
+             for l in (LocationManager.load().get(ancestor_id) for ancestor_id in self.ancestors) if l.can_describe
         ])
 
     @cached_property
