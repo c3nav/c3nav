@@ -22,7 +22,7 @@ class LocationById:
             return self.cached_value
 
         from c3nav.mapdata.locations import LocationManager
-        value = LocationManager.get(value_id)
+        value = LocationManager.load().get(value_id)
         if value is None:
             raise ObjectDoesNotExist
         self.cached_id = value_id

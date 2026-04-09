@@ -170,7 +170,8 @@ def preview_location(request, slug, ext: Union[Literal["png"], Literal["webp"]])
 
     # collect all the sublocations
     # todo: handle dynamic locations
-    locations = [location, *filter(None, (LocationManager.get(location_id) for location_id in location.sublocations))]
+    locationmanager = LocationManager.load()
+    locations = [location, *filter(None, (locationmanager.get(location_id) for location_id in location.sublocations))]
 
     # are there any points?
     points: list[LocationPoint] = list(chain(

@@ -53,7 +53,7 @@ def check_location(location_slug: Optional[str], request) -> LocationProtocol | 
     if location_slug is None:
         return None
 
-    location = LocationManager.get(location_slug)
+    location = LocationManager.load().get(location_slug)
     if location is None:
         return None
 
@@ -135,7 +135,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'nearby': True if nearby else False,
     }
 
-    levels = LocationManager.levels_by_level_index()
+    levels = LocationManager.load().levels_by_level_index
 
     level = levels.get(pos.level, None) if pos else None
     if level is not None:
@@ -526,7 +526,7 @@ def about_view(request):
 
 def get_report_location_for_request(pk):
     # todo: do we have similar code? is this function even needed?
-    location = LocationManager.get(pk)
+    location = LocationManager.load().get(pk)
     if location is None:
         raise Http404
     return location
@@ -551,14 +551,14 @@ def report_start_coordinates(request, coordinates):
 
 @never_cache
 def report_missing_check(request, coordinates):
-    location = LocationManager.get(coordinates)
+    location = LocationManager.load().get(coordinates)
     if not location.nearby.near_locations:
         return redirect(reverse('site.report_missing_choose', kwargs={"coordinates": coordinates}))
     return render(request, 'site/report_question.html', {
         'question': _('Are you sure it\'s not one of these?'),
         'locations': [
             {
-                'location': LocationManager.get(location_id),
+                'location': LocationManager.load().get(location_id),
             }
             for location_id in location.nearby.near_locations
         ],
@@ -573,7 +573,7 @@ def report_missing_check(request, coordinates):
 
 @never_cache
 def report_select_location(request, coordinates):
-    location = LocationManager.get(coordinates)
+    location = LocationManager.load().get(coordinates)
     nearby = list(location.nearby.near_locations)
     if location.nearby.space:
         nearby.append(location.nearby.space)
@@ -585,7 +585,7 @@ def report_select_location(request, coordinates):
         'locations': [
             {
                 'url': reverse('site.report_create', kwargs={"location": location_id}),
-                'location': LocationManager.get(location_id),
+                'location': LocationManager.load().get(location_id),
             }
             for location_id in nearby
         ],
@@ -646,7 +646,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.category = 'missing-location'
         report.coordinates_id = coordinates
         if parent:
-            parent = LocationManager.get(parent)
+            parent = LocationManager.load().get(parent)
             if not isinstance(parent, LocationTag):
                 raise Http404
             if parent.can_report_missing == LocationTag.CanReportMissing.REJECT:
@@ -844,7 +844,7 @@ def position_detail(request, pk):
 
 @login_required(login_url='site.login')
 def position_set(request, coordinates):
-    coordinates = LocationManager.get(coordinates)
+    coordinates = LocationManager.load().get(coordinates)
     if coordinates is None:
         raise Http404
 

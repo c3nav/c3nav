@@ -409,15 +409,15 @@ def recalculate_locationtag_points(mapupdates: tuple[MapUpdate, ...]) -> bool:
     return True
 
 
-@register_mapupdate_job("Location tag finalize",
+@register_mapupdate_job("location manager",
                         eager=True, dependencies=(recalculate_locationtag_geometries,
                                                   recalculate_locationtag_bounds,
                                                   recalculate_locationtag_points,
                                                   recalculate_locationtag_target_subtitles,
                                                   recalculate_locationtag_static_targets,
                                                   recalculate_locationtag_dynamic_targets,))
-def recalculate_locationtag_final(mapupdates: tuple[MapUpdate, ...]) -> bool:
-    LocationManager.update(mapupdates[-1].pk)
+def rebuild_locationmanager(mapupdates: tuple[MapUpdate, ...]) -> bool:
+    LocationManager.rebuild(mapupdates[-1].to_tuple)
     return True
 
 
@@ -425,7 +425,7 @@ def recalculate_locationtag_final(mapupdates: tuple[MapUpdate, ...]) -> bool:
                         dependencies=(recalculate_space_effective_geometries,
                                       recalculate_area_effective_geometries,
                                       recalculate_locationtag_effective_inherited_values,
-                                      recalculate_locationtag_final,))
+                                      rebuild_locationmanager,))
 def recalculate_geometries(mapupdates: tuple[MapUpdate, ...]) -> bool:
     if not any(update.geometries_changed for update in mapupdates):
         logger.info('No geometries affected.')

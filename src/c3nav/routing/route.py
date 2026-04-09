@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 def describe_location(location: LocationProtocol) -> LocationProtocol:
     # todo: can this be simpler? why the hasattr?
     if isinstance(location, LocationTag) and hasattr(location, "can_describe") and location.can_describe:
-        final_location = LocationManager.get_visible().get(location.pk)
+        final_location = LocationManager.load().get(location.pk)
         if final_location is not None:
             location = final_location
     return location

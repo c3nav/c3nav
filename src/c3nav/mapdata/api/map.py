@@ -92,11 +92,11 @@ class LocationListFilters(BaseSchema):
 @map_api_router.get('/locations/', summary="list locations",
                     description="Get locations",
                     response={200: list[ListedLocationItemSchema], **validate_responses, **auth_responses})
-@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ))
+@api_etag(cache_job_types=("mapdata.rebuild_locationmanager", ))
 def location_list(request, filters: Query[LocationListFilters]):
     if filters.searchable:
-        return LocationManager.get_searchable_sorted()
-    return LocationManager.get_visible_sorted()
+        return LocationManager.load().searchable
+    return LocationManager.load().visible
 
 
 class ShowRedirects(BaseSchema):
@@ -109,8 +109,8 @@ class ShowRedirects(BaseSchema):
 
 def cache_job_types_by_identifier(*args, identifier: LocationIdentifier, **kwargs) -> tuple[str, ...]:
     if isinstance(identifier, str) and ":" in identifier:
-        return ("routing.rebuild_locator", "mapdata.recalculate_locationtag_final", )
-    return ("mapdata.recalculate_locationtag_final",)
+        return ("routing.rebuild_locator", "mapdata.rebuild_locationmanager", )
+    return ("mapdata.rebuild_locationmanager",)
 
 
 @map_api_router.get('/locations/{identifier}/', summary="get location",
@@ -119,7 +119,7 @@ def cache_job_types_by_identifier(*args, identifier: LocationIdentifier, **kwarg
 @api_stats('location_get')
 @api_etag(cache_job_types=cache_job_types_by_identifier)
 def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowRedirects]):
-    location = LocationManager.get(identifier)
+    location = LocationManager.load().get(identifier)
 
     if location is None:
         raise API404()
@@ -144,7 +144,7 @@ def get_location(request, identifier: LocationIdentifier, redirects: Query[ShowR
 @api_stats('location_display')  # todo: api stats should go by ID maybe?
 @api_etag(cache_job_types=cache_job_types_by_identifier)
 def location_display(request, identifier: LocationIdentifier):
-    location = LocationManager.get(identifier)
+    location = LocationManager.load().get(identifier)
     if location is None:
         raise API404()
 
@@ -165,7 +165,7 @@ def location_display(request, identifier: LocationIdentifier):
 @api_stats('location_geometries')
 @api_etag(base_mapdata=True, cache_job_types=cache_job_types_by_identifier)
 def location_geometries(request, identifier: LocationIdentifier):
-    location = LocationManager.get(identifier)
+    location = LocationManager.load().get(identifier)
 
     if location is None:
         raise API404()
@@ -217,7 +217,7 @@ def set_position(request, position_id: PositionIdentifier, update: UpdatePositio
     if location.owner != request.user:
         raise APIPermissionDenied()
 
-    coordinates = LocationManager.get(update.coordinates_id)
+    coordinates = LocationManager.load().get(update.coordinates_id)
     if coordinates is None:
         raise APIRequestValidationFailed('Cant resolve coordinates.')
 
@@ -254,7 +254,7 @@ Legend
 @map_api_router.get('/legend/{theme_id}/', summary="get legend",
                         description="Get legend / color key for theme",
                         response={200: LegendSchema, **API404.dict(), **auth_responses})
-@api_etag(cache_job_types=("mapdata.recalculate_locationtag_final", ), permissions=True)
+@api_etag(cache_job_types=("mapdata.rebuild_locationmanager", ), permissions=True)
 def legend_for_theme(request, theme_id: int):
     try:
         manager = ColorManager.for_theme(theme_id or None)

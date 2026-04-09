@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import math
+import pickle
 import re
+import time
 from collections import deque, defaultdict
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional, ClassVar, NamedTuple, overload, Literal, TypeAlias, Generator, Mapping
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Prefetch
 from django.utils.functional import cached_property
@@ -47,86 +52,48 @@ class SlugTarget(NamedTuple):
     redirect: True
 
 
+@dataclass
 class LocationManager:
-    _cache_key: MapUpdateTuple | None = None
-    _all_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
-    _visible_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
-    _searchable_locations: LazyDatabaseLocationById = MapPermissionGuardedMapping({})
-    _visible_locations_sorted: LazyDatabaseLocationList = MapPermissionGuardedTaggedSequence(())
-    _searchable_locations_sorted: LazyDatabaseLocationList = MapPermissionGuardedTaggedSequence(())
-    _locations_by_slug: dict[NonEmptyStr, SlugTarget] = {}
-    _levels_by_level_index: MapPermissionGuardedMapping[str, Level] = MapPermissionGuardedMapping({})
+    update: MapUpdateTuple
 
-    @classmethod
-    def levels_by_level_index(cls) -> MapPermissionGuardedMapping[str, Level]:
-        """
-        Get mapping of level index to level
-        """
-        cls._maybe_update()
-        return cls._levels_by_level_index
+    """ all available locations by id under the current map permission context """
+    by_id: LazyDatabaseLocationById = field(default_factory=lambda: MapPermissionGuardedMapping({}))
 
-    @classmethod
-    def get_all(cls) -> LazyDatabaseLocationById:
-        """
-        Get all available locations under the current map permission context
-        """
-        cls._maybe_update()
-        return cls._all_locations
+    """ visible (can_search or can_describe) locations by id under the current map permission context """
+    visible_by_id: LazyDatabaseLocationById = field(default_factory=lambda: MapPermissionGuardedMapping({}))
 
-    @classmethod
-    def get_visible(cls) -> LazyDatabaseLocationById:
-        """
-        Get all visible (can_search or can_describe) locations under the current map permission context
-        """
-        cls._maybe_update()
-        return cls._visible_locations
+    """ searchable (can_search) locations by id under the current map permission context """
+    searchable_by_id: LazyDatabaseLocationById = field(default_factory=lambda: MapPermissionGuardedMapping({}))
 
-    @classmethod
-    def get_searchable(cls) -> LazyDatabaseLocationById:
-        """
-        Get all searchable (can_search or can_describe) locations under the current map permission context
-        """
-        cls._maybe_update()
-        return cls._searchable_locations
+    """ sorted visible (can_search or can_describe) locations under the current map permission context """
+    visible: LazyDatabaseLocationList = field(default_factory=lambda: MapPermissionGuardedTaggedSequence(()))
 
-    @classmethod
-    def get_visible_sorted(cls) -> LazyDatabaseLocationList:
-        """
-        Get all visible (can_search or can_describe) locations under the current map permission context
-        """
-        cls._maybe_update()
-        return cls._visible_locations_sorted
+    """ sorted searchable (can_search) locations under the current map permission context """
+    searchable: LazyDatabaseLocationList = field(default_factory=lambda: MapPermissionGuardedTaggedSequence(()))
 
-    @classmethod
-    def get_searchable_sorted(cls) -> LazyDatabaseLocationList:
-        """
-        Get all searchable (can_search or can_describe) locations under the current map permission context
-        """
-        cls._maybe_update()
-        return cls._searchable_locations_sorted
+    """ location by slug helper – not permission guarded! """
+    _by_slug: dict[NonEmptyStr, SlugTarget] = field(default_factory=dict)
 
-    @classmethod
+    """ mapping of level index to level – not permission guarded!  """
+    levels_by_level_index: MapPermissionGuardedMapping[str, Level] = field(default_factory=lambda: MapPermissionGuardedMapping({}))
+
     @overload
-    def get(cls, identifier: int) -> Optional[LocationProtocol]:
+    def get(self, identifier: int) -> Optional[LocationProtocol]:
         pass
 
-    @classmethod
     @overload
-    def get(cls, identifier: int, *, redirect: Literal[True]) -> Optional[LocationProtocol | LocationRedirect]:
+    def get(self, identifier: int, *, redirect: Literal[True]) -> Optional[LocationProtocol | LocationRedirect]:
         pass
 
-    @classmethod
     @overload
-    def get(cls, identifier: str, *, redirect: Literal[False]) -> Optional[LocationProtocol]:
+    def get(self, identifier: str, *, redirect: Literal[False]) -> Optional[LocationProtocol]:
         pass
 
-    @classmethod
     @overload
-    def get(cls, identifier: str, *, redirect: Literal[True] = True) -> Optional[LocationProtocol | LocationRedirect]:
+    def get(self, identifier: str, *, redirect: Literal[True] = True) -> Optional[LocationProtocol | LocationRedirect]:
         pass
 
-    @classmethod
-    def get(cls, identifier: int | str, *, redirect: bool = None) -> Optional[LocationProtocol | LocationRedirect]:
+    def get(self, identifier: int | str, *, redirect: bool = None) -> Optional[LocationProtocol | LocationRedirect]:
         """
         Get a location based on the given identifier for the given map permission context.
 
@@ -135,14 +102,12 @@ class LocationManager:
 
         Note that IDs can be passed either as strings or integers, but the latter changes the default redirect behavior.
         """
-        cls._maybe_update()
-
         if redirect is None:
             redirect = not isinstance(identifier, int)
 
         # Is this an integer? Then get the location by its ID.
         if isinstance(identifier, int) or identifier.isdigit():
-            location = cls._all_locations.get(int(identifier))
+            location = self.by_id.get(int(identifier))
 
             # Return redirect if the location has a slug.
             return LocationRedirect(
@@ -152,7 +117,7 @@ class LocationManager:
 
         # If this looks like a custom location identifier, get the custom location
         if identifier.startswith('c:'):
-            return cls._get_custom_location(identifier)
+            return self._get_custom_location(identifier)
 
         # If this looks lik a position identifier, get the position
         if identifier.startswith('m:'):
@@ -160,13 +125,13 @@ class LocationManager:
             return Position.objects.filter(secret=identifier[2:]).first()
 
         # Otherwise, this must be a slug, get the location target associated with this slug
-        slug_target = cls._locations_by_slug.get(identifier, None)
+        slug_target = self._by_slug.get(identifier, None)
         if slug_target is None:
             # No ID? Then this slug can't be found.
             return None
 
         # Get the location from the available locations for this request.
-        location = cls._all_locations.get(slug_target.target_id, None)
+        location = self.by_id.get(slug_target.target_id, None)
 
         # If this should be a redirect, return a redirect if we found the location, otherwise return the location (or None)
         return LocationRedirect(
@@ -174,12 +139,11 @@ class LocationManager:
             target=location,
         ) if (slug_target.redirect and location is not None and redirect) else location
 
-    @classmethod
-    def _get_custom_location(cls, identifier: CustomLocationIdentifier) -> Optional["CustomLocation"]:
+    def _get_custom_location(self, identifier: CustomLocationIdentifier) -> Optional["CustomLocation"]:
         match = re.match(r'^c:(?P<level>[a-z0-9-_.]+):(?P<x>-?\d+(\.\d+)?):(?P<y>-?\d+(\.\d+)?)$', identifier)
         if match is None:
             return None
-        level = cls._levels_by_level_index.get(match.group('level'))
+        level = self.levels_by_level_index.get(match.group('level'))
         if not isinstance(level, Level):
             return None
         return CustomLocation(
@@ -189,50 +153,64 @@ class LocationManager:
         )
 
     @classmethod
-    def _maybe_update(cls):
-        update = MapUpdate.last_update("mapdata.recalculate_locationtag_final")
-        update_id = None if update is None else update.update_id
-        if update_id != cls._cache_key:
-            cls.update(update_id)
+    def build_filename(cls, update: MapUpdateTuple):
+        return settings.CACHE_ROOT / update.folder_name / 'locationmanager.pickle'
 
     @classmethod
-    def update(cls, update_id: int | None):
+    def load_nocache(cls, update: MapUpdateTuple) -> LocationManager:
+        manager = pickle.load(open(cls.build_filename(update), 'rb'))
+        return manager
+
+    cached = LocalContext()
+
+    NoUpdate = (-1, -1)
+
+    @classmethod
+    def load(cls) -> LocationManager:
+        from c3nav.mapdata.models import MapUpdate
+        update = MapUpdate.last_update("mapdata.rebuild_locationmanager")
+        if getattr(cls.cached, 'update', cls.NoUpdate) < update:
+            cls.cached.data = cls.load_nocache(update)
+            cls.cached.update = update
+        return cls.cached.data
+
+    @classmethod
+    def rebuild(cls, update: MapUpdateTuple):
         # todo: altitude of points could change later!!
-        cls._cache_key = update_id
-        with active_map_permissions.disable_access_checks():
-            cache_key = f'mapdata:all_locations:{update_id}'
-            all_locations: dict[int, LocationTag] | None
-            all_locations = cache.get(cache_key, None)
-            if all_locations is None:
-                all_locations = cls.generate_locations_by_id()
-                cache.set(cache_key, all_locations, 1800)
-            breadth_first_order = cls.generate_locations_breadth_first_order(all_locations)
-            cls._all_locations = MapPermissionGuardedMapping(all_locations)
-            cls._visible_locations = MapPermissionGuardedMapping({
-                pk: location for pk, location in all_locations.items()
-                if location.can_search or location.can_describe
-            })
-            cls._searchable_locations = MapPermissionGuardedMapping({
-                pk: location for pk, location in all_locations.items()
-                if location.can_search
-            })
-            cls._visible_locations_sorted = MapPermissionGuardedTaggedUniqueSequence(
-                tuple(cls.generate_sorted(cls._visible_locations, breadth_first_order))
-            )
-            cls._searchable_locations_sorted = MapPermissionGuardedTaggedUniqueSequence(
-                tuple(cls.generate_sorted(cls._searchable_locations, breadth_first_order))
-            )
-            cls._locations_by_slug = {
-                location_slug.slug: SlugTarget(target_id=location_slug.target_id, redirect=location_slug.redirect)
-                for location_slug in LocationSlug.objects.all()
-            }
-            cls._levels_by_level_index = MapPermissionGuardedMapping({
-                level.level_index: level
-                for level in Level.objects.filter(on_top_of_id__isnull=True).order_by('base_altitude')
-            })
+        manager = LocationManager(update=update)
 
-    @classmethod
-    def generate_locations_by_id(cls) -> dict[int, LocationTag]:
+        # this is the step that takes the longest
+        all_locations = cls.generate_locations_by_id()
+
+        breadth_first_order = cls.generate_locations_breadth_first_order(all_locations)
+        manager.by_id = MapPermissionGuardedMapping(all_locations)
+        manager.visible_by_id = MapPermissionGuardedMapping({
+            pk: location for pk, location in all_locations.items()
+            if location.can_search or location.can_describe
+        })
+        manager.searchable_by_id = MapPermissionGuardedMapping({
+            pk: location for pk, location in all_locations.items()
+            if location.can_search
+        })
+        manager.visible = MapPermissionGuardedTaggedUniqueSequence(
+            tuple(cls.generate_sorted(manager.visible_by_id, breadth_first_order))
+        )
+        manager.searchable = MapPermissionGuardedTaggedUniqueSequence(
+            tuple(cls.generate_sorted(manager.searchable_by_id, breadth_first_order))
+        )
+        manager._by_slug = {
+            location_slug.slug: SlugTarget(target_id=location_slug.target_id, redirect=location_slug.redirect)
+            for location_slug in LocationSlug.objects.all()
+        }
+        manager.levels_by_level_index = MapPermissionGuardedMapping({
+            level.level_index: level
+            for level in Level.objects.filter(on_top_of_id__isnull=True).order_by('base_altitude')
+        })
+
+        pickle.dump(manager, open(cls.build_filename(update), 'wb'))
+
+    @staticmethod
+    def generate_locations_by_id() -> dict[int, LocationTag]:
         locations = {
             tag.pk: tag for tag in LocationTag.objects.with_restrictions().select_related(
                 "load_group_display",
@@ -251,9 +229,9 @@ class LocationManager:
 
         return locations
 
-    @classmethod
+    @staticmethod
     def generate_locations_breadth_first_order(
-            cls, locations_by_id: dict[int, LocationTag]
+            locations_by_id: dict[int, LocationTag]
     ) -> tuple[MapPermissionTaggedItem[int], ...]:
         children_for_parents: dict[int, deque[int]] = defaultdict(deque)
         children_ids: set[int] = set()

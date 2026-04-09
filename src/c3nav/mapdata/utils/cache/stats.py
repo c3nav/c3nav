@@ -172,7 +172,7 @@ def convert_location(data):
     for name, value in data:
         if name[0] != 'pk' or name[0] == 'c:anywhere':
             continue
-        location = LocationManager.get(name[1])
+        location = LocationManager.load().get(name[1])
         result['total'] += value
         if location is None:
             result['invalid'] += value

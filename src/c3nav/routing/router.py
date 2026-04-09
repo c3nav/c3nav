@@ -687,9 +687,8 @@ class BaseRouterDatabaseTarget[TargetT: Model](BaseRouterTarget[TargetT]):
 
     def get_location(self) -> LocationTag | None:
         # todo: do this nicer eventually
-        visible_locations = LocationManager.get_visible()
         return next(iter(chain(
-            filter(None, (visible_locations.get(pk, None) for pk in self.sorted_tags)),
+            filter(None, (LocationManager.load().get(pk) for pk in self.sorted_tags)),
             (None, )
         )))
 

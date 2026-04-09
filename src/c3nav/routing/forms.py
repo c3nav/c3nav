@@ -9,7 +9,7 @@ class RouteForm(forms.Form):
     destination = forms.CharField()
 
     def clean_origin(self):
-        location = LocationManager.get(self.cleaned_data['origin'])
+        location = LocationManager.load().get(self.cleaned_data['origin'])
         if isinstance(location, LocationRedirect):
             location = location.target
         if location is None:
@@ -17,7 +17,7 @@ class RouteForm(forms.Form):
         return location
 
     def clean_destination(self):
-        location = LocationManager.get(self.cleaned_data['destination'])
+        location = LocationManager.load().get(self.cleaned_data['destination'])
         if isinstance(location, LocationRedirect):
             location = location.target
         if location is None:

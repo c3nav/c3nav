@@ -554,7 +554,7 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     def _dynamic_positions(self) -> tuple[Position, ...]:
         # todo: better caching?
         from c3nav.mapdata.models import MapUpdate
-        cache_update = MapUpdate.last_update("mapdata.recalculate_locationtag_final")
+        cache_update = MapUpdate.last_update("mapdata.rebuild_locationmanager")
         cache_key = f"mapdata:dynamic_positions:{self.pk}"
         result = versioned_proxied_cache.get(cache_update, cache_key)
         if result is None:
