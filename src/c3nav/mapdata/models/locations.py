@@ -295,7 +295,6 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
     @cached_property
     def ancestor_paths(self) -> MapPermissionGuardedTaggedSequence[tuple[int, ...]]:
         self.assert_inherited()
-        print(self.inherited.ancestor_paths)
         return MapPermissionGuardedTaggedSequence(self.inherited.ancestor_paths if self.has_inherited else ())
 
     @cached_property
@@ -356,6 +355,14 @@ class LocationTag(AccessRestrictionMixin, TitledMixin, models.Model):
             *self.redirect_slugs,
             *self.other_titles,
         ))
+
+    def for_details_display(self) -> dict:
+        return {
+            'id': self.pk,
+            'slug': self.effective_slug,
+            'title': self.title,
+            'can_search': self.can_search,
+        }
 
     def details_display(self, *, editor_url=True, **kwargs):
         result = {
@@ -829,30 +836,41 @@ class LocationTagTargetMixin(models.Model):
             return MapPermissionGuardedTaggedSequence(())
         return MapPermissionGuardedTaggedSequence(self.inherited.tags)
 
-    @cached_property
-    def sorted_tags(self) -> MapPermissionGuardedSequence[LocationTag]:
+    def get_sorted_tags(self, tags_from_db=False) -> MapPermissionGuardedSequence[LocationTag]:
         """
         highest priority first
         """
         if not self.has_inherited:
-            return MapPermissionGuardedSequence(())
-        if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
-            raise ValueError(f'Accessing sorted_tags on {self} despite no prefetch_related.')
-        if not self.has_inherited:
             raise ValueError(f'Accessing sorted_tags on {self} despite no select_related for inherited.')
+        if tags_from_db:
+            if "tags" not in getattr(self, '_prefetched_objects_cache', ()):
+                raise ValueError(f'get_sorted_tags(tags_from_db=True) on {self} despite no prefetch_related.')
+            tags_by_id = {tag.pk: tag for tag in self.tags.all()}
+        else:
+            from c3nav.mapdata.locations import LocationManager
+            tags_by_id = LocationManager.load().by_id
 
         # we're getting all the tags, then getting the stuff from inherited to sort them
-        tags_by_id = {tag.pk: tag for tag in self.tags.all()}
         return MapPermissionGuardedSequence(
             tuple(tag for tag in (
                 tags_by_id.get(tag_id) for tag_id in set(MapPermissionGuardedTaggedSequence(self.inherited.tags))
             ) if tag is not None)
         )
 
+    def for_details_display(self):
+        # todo: can we make this simpler or get rid of this?
+        location = self.get_location()
+        if location:
+            return location.for_details_display()
+        return self.title
+
     @property
     def title(self) -> str:
         # todo: precalculate?
-        return self.sorted_tags[0].title if self.sorted_tags else str(self)
+        location = self.get_location()
+        if location is None:
+            return str(self)
+        return location.title
 
     @property
     def subtitle(self):
@@ -877,7 +895,7 @@ class LocationTagTargetMixin(models.Model):
 
     def get_location(self, can_describe=False) -> Optional[LocationTag]:
         # todo: do we want to get rid of this?
-        return next(iter((*(tag for tag in self.sorted_tags if tag.can_describe), None)))
+        return next(iter((*(tag for tag in self.get_sorted_tags() if tag.can_describe), None)))
 
 
 CachedEffectiveGeometries = list[MapPermissionTaggedItem[PolygonSchema | MultiPolygonSchema]]

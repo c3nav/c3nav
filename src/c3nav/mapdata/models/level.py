@@ -105,18 +105,6 @@ class Level(LocationTagTargetMixin, AccessRestrictionMixin, models.Model):
     def subtitle(self):
         return self.title
 
-    def for_details_display(self):
-        # todo: can we make this simpler or get rid of this?
-        location = self.get_location()
-        if location:
-            return {
-                'id': location.pk,
-                'slug': location.effective_slug,
-                'title': location.title,
-                'can_search': location.can_search,
-            }
-        return self.title
-
     @cached_property
     def min_altitude(self):
         return min(self.altitudeareas.all(), key=attrgetter('altitude'), default=self.base_altitude).altitude
@@ -160,6 +148,7 @@ class Level(LocationTagTargetMixin, AccessRestrictionMixin, models.Model):
 
     @property
     def title(self):
+        # todo: get rid of this eventually
         return _('Level %(short_label)s') % {"short_label": self.short_label}
 
     @property

@@ -462,7 +462,7 @@ class Router:
 
         return min(self.levels.items(), key=lambda a: abs(float(a[1].base_altitude)-z))[0]
 
-    def describe_custom_location(self, location: CustomLocation):
+    def describe_custom_location(self, location: CustomLocation) -> CustomLocationDescription:
         restrictions = self.get_restrictions(active_map_permissions.access_restrictions)
 
         point = Point(location.point[1:])
@@ -692,6 +692,13 @@ class BaseRouterDatabaseTarget[TargetT: Model](BaseRouterTarget[TargetT]):
             (None, )
         )))
 
+    def get_describing_location(self) -> LocationTag | None:
+        # todo: do this nicer eventually
+        return next(iter(chain(
+            (l for l in (LocationManager.load().get(pk) for pk in self.sorted_tags) if l and l.can_describe),
+            (None, )
+        )))
+
     @property
     def title(self):
         location = self.get_location()
@@ -787,6 +794,11 @@ class RouterSpace(BaseRouterGeometryTarget[Space, Polygon]):
 
         contained = tuple(area for area in areas.values() if area.geometry_prep.contains(point)
                           if area.pk in contained_area_ids)
+
+        # can_describe only
+        nearby = tuple((area, distance) for area, distance in nearby if area.get_describing_location())
+        contained = tuple(area for area in contained if area.get_describing_location())
+
         if contained:
             return tuple(sorted(contained, key=lambda area: area.geometry.area)), None, nearby
 
