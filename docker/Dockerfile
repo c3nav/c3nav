@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     postgresql-client-18=18.4-0ubuntu0.26.04.1 \
     curl=8.18.0-1ubuntu2.1 \
     # renovate: srcname=pcre2
-    libpcre2-posix3=2:10.46-1build1 \
+    libpcre2-posix3=10.46-1build1 \
     # renovate: srcname=librsvg
     librsvg2-2=2.61.3+dfsg-3 \
     # renovate: srcname=librsvg
@@ -55,7 +55,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     build-essential=12.10ubuntu1 \
     # renovate: srcname=python3.14
     python3.14-dev=3.14.4-1 \
-    libpcre2-dev=2:8.39-15build1 \
+    # renovate: srcname=pcre2
+    libpcre2-dev=10.46-1build1 \
     # renovate: srcname=postgresql-18
     libpq-dev=18.4-0ubuntu0.26.04.1 \
     # renovate: srcname=cairo
