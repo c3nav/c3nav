@@ -66,13 +66,17 @@
       "groupName": "docker core image",
       "matchPaths": [
         "docker/Dockerfile"
-      ]
+      ],
+      "automerge": true,
+      "automergeType": "branch"
     },
     {
       "groupName": "docker tileserver image",
       "matchPaths": [
         "docker/tileserver.dockerfile"
-      ]
+      ],
+      "automerge": true,
+      "automergeType": "branch"
     },
     {
       "groupName": "python development dependencies",
