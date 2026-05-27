@@ -1,7 +1,7 @@
-# syntax=docker/dockerfile:1.20@sha256:26147acbda4f14c5add9946e2fd2ed543fc402884fd75146bd342a7f6271dc1d
-FROM ubuntu:noble-20251013@sha256:c35e29c9450151419d9448b0fd75374fec4fff364a27f176fb458d472dfc9e54 as base
-ARG BASE_IMAGE_NAME=ubuntu:noble-20251013
-ARG BASE_IMAGE_DIGEST=sha256:c35e29c9450151419d9448b0fd75374fec4fff364a27f176fb458d472dfc9e54
+# syntax=docker/dockerfile:1.24@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
+FROM ubuntu:noble-20260410@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b as base
+ARG BASE_IMAGE_NAME=ubuntu:noble-20260410
+ARG BASE_IMAGE_DIGEST=sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
@@ -15,14 +15,14 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.12=3.12.3-1ubuntu0.9 \
+    python3.12=3.12.3-1ubuntu0.13 \
     # renovate: srcname=python3.12
-    libpython3.12=3.12.3-1ubuntu0.9 \
+    libpython3.12=3.12.3-1ubuntu0.13 \
     # renovate: srcname=python3.12
-    python3.12-venv=3.12.3-1ubuntu0.9 \
+    python3.12-venv=3.12.3-1ubuntu0.13 \
     # renovate: srcname=python-pip
     python3-pip=24.0+dfsg-1ubuntu1.3 \
-    curl=8.5.0-2ubuntu10.6 \
+    curl=8.5.0-2ubuntu10.9 \
     # renovate: srcname=pcre3
     libpcre3=2:8.39-15build1 \
     # renovate: srcname=libmemcached
@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.10ubuntu1 \
     # renovate: srcname=python3.12
-    python3.12-dev=3.12.3-1ubuntu0.9 \
+    python3.12-dev=3.12.3-1ubuntu0.13 \
     libpcre3-dev=2:8.39-15build1 \
     # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build3
