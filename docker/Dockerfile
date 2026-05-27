@@ -15,35 +15,35 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.14=3.12.3-1ubuntu0.13 \
+    python3.14=3.14.4-1 \
     # renovate: srcname=python3.14
-    libpython3.14=3.12.3-1ubuntu0.13 \
+    libpython3.14=3.14.4-1 \
     # renovate: srcname=python3.14
-    python3.14-venv=3.12.3-1ubuntu0.13 \
+    python3.14-venv=3.14.4-1 \
     # renovate: srcname=python-pip
     python3-pip=24.0+dfsg-1ubuntu1.3 \
     # renovate: srcname=postgresql-18
     libpq5=16.14-0ubuntu0.24.04.1 \
     # renovate: srcname=postgresql-18
     postgresql-client-16=16.14-0ubuntu0.24.04.1 \
-    curl=8.5.0-2ubuntu10.9 \
+    curl=8.18.0-1ubuntu2.1 \
     # renovate: srcname=pcre2
     libpcre2-posix3=2:10.46-1build1 \
     # renovate: srcname=librsvg
-    librsvg2-2=2.58.0+dfsg-1build1 \
+    librsvg2-2=2.61.3+dfsg-3 \
     # renovate: srcname=librsvg
-    gir1.2-rsvg-2.0=2.58.0+dfsg-1build1 \
+    gir1.2-rsvg-2.0=2.61.3+dfsg-3 \
     # renovate: srcname=cairo
-    libcairo2=1.18.0-3build1 \
+    libcairo2=1.18.4-3 \
     # we can't set a version here because it's different for amd64 and arm64 ugh
     libgirepository-2.0-dev \
     # renovate: srcname=libmemcached
-    libmemcached11t64=1.1.4-1.1build3 \
+    libmemcached11t64=1.1.4-1.1build5 \
     gettext \
-    tzdata=2026a-0ubuntu0.24.04.1 \
+    tzdata=2026a-3ubuntu1 \
     ca-certificates=20240203 \
     # renovate: srcname=libzstd
-    zstd=1.5.5+dfsg2-2build1.1 \
+    zstd=1.5.7+dfsg-3 \
     # renovate: srcname=spatialindex
     libspatialindex-dev=1.9.3-3build1
 ENV PATH="/usr/lib/postgresql/18/bin/:$PATH"
@@ -54,15 +54,15 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.10ubuntu1 \
     # renovate: srcname=python3.14
-    python3.14-dev=3.12.3-1ubuntu0.13 \
+    python3.14-dev=3.14.4-1 \
     libpcre2-dev=2:8.39-15build1 \
     # renovate: srcname=postgresql-18
     libpq-dev=16.14-0ubuntu0.24.04.1 \
     # renovate: srcname=cairo
-    libcairo2-dev=1.18.0-3build1 \
-    libgirepository1.0-dev=1.80.1-1 \
+    libcairo2-dev=1.18.4-3 \
+    libgirepository1.0-dev=1.86.0-6build1 \
     # renovate: srcname=libmemcached
-    libmemcached-dev=1.1.4-1.1build3
+    libmemcached-dev=1.1.4-1.1build5
 
 
 RUN mkdir /app
