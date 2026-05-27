@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.24@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
-FROM ubuntu:noble-20260410@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b as base
-ARG BASE_IMAGE_NAME=ubuntu:noble-20260410
-ARG BASE_IMAGE_DIGEST=sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
+FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 as base
+ARG BASE_IMAGE_NAME=ubuntu:26.04
+ARG BASE_IMAGE_DIGEST=sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
@@ -40,7 +40,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build3 \
     gettext \
-    tzdata=2025b-0ubuntu0.24.04.1 \
+    tzdata=2026a-0ubuntu0.24.04.1 \
     ca-certificates=20240203 \
     # renovate: srcname=libzstd
     zstd=1.5.5+dfsg2-2build1.1 \
