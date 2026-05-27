@@ -21,11 +21,11 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=python3.14
     python3.14-venv=3.14.4-1 \
     # renovate: srcname=python-pip
-    python3-pip=24.0+dfsg-1ubuntu1.3 \
+    python3-pip=25.1.1+dfsg-1ubuntu2 \
     # renovate: srcname=postgresql-18
-    libpq5=16.14-0ubuntu0.24.04.1 \
+    libpq5=18.4-0ubuntu0.26.04.1 \
     # renovate: srcname=postgresql-18
-    postgresql-client-16=16.14-0ubuntu0.24.04.1 \
+    postgresql-client-18=18.4-0ubuntu0.26.04.1 \
     curl=8.18.0-1ubuntu2.1 \
     # renovate: srcname=pcre2
     libpcre2-posix3=2:10.46-1build1 \
@@ -41,11 +41,11 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libmemcached11t64=1.1.4-1.1build5 \
     gettext \
     tzdata=2026a-3ubuntu1 \
-    ca-certificates=20240203 \
+    ca-certificates=20260223 \
     # renovate: srcname=libzstd
     zstd=1.5.7+dfsg-3 \
     # renovate: srcname=spatialindex
-    libspatialindex-dev=1.9.3-3build1
+    libspatialindex-dev=2.1.0-1build1
 ENV PATH="/usr/lib/postgresql/18/bin/:$PATH"
 
 
@@ -57,7 +57,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     python3.14-dev=3.14.4-1 \
     libpcre2-dev=2:8.39-15build1 \
     # renovate: srcname=postgresql-18
-    libpq-dev=16.14-0ubuntu0.24.04.1 \
+    libpq-dev=18.4-0ubuntu0.26.04.1 \
     # renovate: srcname=cairo
     libcairo2-dev=1.18.4-3 \
     libgirepository1.0-dev=1.86.0-6build1 \
