@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
 FROM base as builder
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     apt-get update && apt-get install -y --no-install-recommends \
-    build-essential=12.10ubuntu1 \
+    build-essential=12.12ubuntu2 \
     # renovate: srcname=python3.14
     python3.14-dev=3.14.4-1 \
     libpcre2-dev=2:8.39-15build1 \
