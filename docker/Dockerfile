@@ -55,7 +55,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     build-essential=12.10ubuntu1 \
     # renovate: srcname=python3.14
     python3.14-dev=3.12.3-1ubuntu0.13 \
-    libpcre3-dev=2:8.39-15build1 \
+    libpcre2-dev=2:8.39-15build1 \
     # renovate: srcname=postgresql-18
     libpq-dev=16.14-0ubuntu0.24.04.1 \
     # renovate: srcname=cairo
