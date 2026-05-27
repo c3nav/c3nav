@@ -568,7 +568,7 @@ PRIMARY_COLOR_RANDOMISATION = {
 }
 
 
-CORS_URLS_REGEX = r"^/api/v2/map/.*$"
+CORS_URLS_REGEX = r"^/api/v2/(?:map|mapdata|updates)/.*$"
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = ["GET"]
 CORS_EXPOSE_HEADERS = ["ETag"]
