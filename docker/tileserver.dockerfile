@@ -24,7 +24,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     python3-pip=25.1.1+dfsg-1ubuntu2 \
     curl=8.18.0-1ubuntu2.1 \
     # renovate: srcname=pcre2
-    libpcre2-posix3=2:8.39-15build1 \
+    libpcre2-posix3=10.46-1build1 \
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build5 \
     tzdata=2026a-3ubuntu1 \
@@ -41,7 +41,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     build-essential=12.12ubuntu2 \
     # renovate: srcname=python3.14
     python3.14-dev=3.14.4-1 \
-    libpcre2-dev=2:8.39-15build1 \
+    libpcre2-dev=10.46-1build1 \
     # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build5 \
     # renovate: srcname=libxcrypt
