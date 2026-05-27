@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=python3.14
     python3.14-venv=3.14.4-1 \
     # renovate: srcname=python-pip
-    python3-pip=24.0+dfsg-1ubuntu1.3 \
+    python3-pip=25.1.1+dfsg-1ubuntu2 \
     curl=8.18.0-1ubuntu2.1 \
     # renovate: srcname=pcre2
     libpcre2-posix3=2:8.39-15build1 \
@@ -30,7 +30,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     tzdata=2026a-3ubuntu1 \
     ca-certificates=20260223 \
     # renovate: srcname=libzstd
-    zstd=1.5.7+dfsg-3
+    zstd=1.5.7+dfsg-3 \
+    # renovate: srcname=libxcrypt
+    libcrypt1=1:4.5.1-1
 
 
 FROM base as builder
@@ -41,7 +43,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     python3.14-dev=3.14.4-1 \
     libpcre2-dev=2:8.39-15build1 \
     # renovate: srcname=libmemcached
-    libmemcached-dev=1.1.4-1.1build5
+    libmemcached-dev=1.1.4-1.1build5 \
+    # renovate: srcname=libxcrypt
+    libcrypt-dev=1:4.5.1-1
 
 
 RUN mkdir /app

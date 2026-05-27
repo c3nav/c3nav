@@ -45,7 +45,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=libzstd
     zstd=1.5.7+dfsg-3 \
     # renovate: srcname=spatialindex
-    libspatialindex-dev=2.1.0-1build1
+    libspatialindex-dev=2.1.0-1build1 \
+    # renovate: srcname=libxcrypt
+    libcrypt1=1:4.5.1-1
 ENV PATH="/usr/lib/postgresql/18/bin/:$PATH"
 
 
@@ -63,7 +65,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libcairo2-dev=1.18.4-3 \
     libgirepository1.0-dev=1.86.0-6build1 \
     # renovate: srcname=libmemcached
-    libmemcached-dev=1.1.4-1.1build5
+    libmemcached-dev=1.1.4-1.1build5 \
+    # renovate: srcname=libxcrypt
+    libcrypt-dev=1:4.5.1-1
 
 
 RUN mkdir /app
