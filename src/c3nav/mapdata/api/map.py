@@ -20,7 +20,7 @@ from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidati
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
-from c3nav.mapdata.grid import grid
+from c3nav.mapdata.grid import DummyGrid, grid
 from c3nav.mapdata.models import Source, Theme, Area, Space
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle, RangingBeacon, AutoBeaconMeasurement, \
     BeaconMeasurement
@@ -56,7 +56,7 @@ def map_settings(request):
     return MapSettingsSchema(
         initial_bounds=initial_bounds,
         initial_level=settings.INITIAL_LEVEL or None,
-        grid=grid if grid else None,
+        grid=grid if grid and not isinstance(grid, DummyGrid) else None,
         tile_server=settings.TILE_CACHE_SERVER,
     )
 
