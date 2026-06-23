@@ -3,7 +3,7 @@ set -e
 
 cd /app
 # enable python virtual env
-. /app/env/bin/activate
+. /app/.venv/bin/activate
 
 # number of workers for guicorn, we coppy the value of UWSGI_WORKERS if it is not set
 export WEB_CONCURRENCY="${WEB_CONCURRENCY:-$UWSGI_WORKERS}"
@@ -26,7 +26,7 @@ case "$1" in
 web)
   automigrate
   setup_prometheus_multiproc
-  exec /app/env/bin/uwsgi --master \
+  exec /app/.venv/bin/uwsgi --master \
     --wsgi "c3nav.wsgi" \
     --pythonpath "/app/src" \
     --enable-threads --ignore-sigpipe --disable-logging --need-app \
@@ -37,7 +37,7 @@ web)
 webstatic)
   automigrate
   setup_prometheus_multiproc
-  exec /app/env/bin/uwsgi --master \
+  exec /app/.venv/bin/uwsgi --master \
     --wsgi "c3nav.wsgi" \
     --pythonpath "/app" \
     --enable-threads --ignore-sigpipe --disable-logging --need-app \
