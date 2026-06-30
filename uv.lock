@@ -249,12 +249,6 @@ sso = [
     { name = "social-auth-app-django" },
     { name = "social-auth-core" },
 ]
-tileserver = [
-    { name = "numpy" },
-    { name = "pylibmc" },
-    { name = "pyzstd" },
-    { name = "requests" },
-]
 uwu = [
     { name = "polib" },
     { name = "uwuipy" },
@@ -266,6 +260,7 @@ tileserver = [
     { name = "pylibmc" },
     { name = "pyzstd" },
     { name = "requests" },
+    { name = "uwsgi" },
 ]
 
 [package.metadata]
@@ -296,7 +291,6 @@ requires-dist = [
     { name = "meshpy", specifier = "==2025.1.1" },
     { name = "moderngl", marker = "extra == 'opengl'", specifier = "==5.12.0" },
     { name = "mysqlclient", marker = "extra == 'mysql'" },
-    { name = "numpy", marker = "extra == 'tileserver'", specifier = "==2.3.5" },
     { name = "pgi", marker = "extra == 'rsvg'", specifier = "==0.0.11.2" },
     { name = "pillow", specifier = "==12.0.0" },
     { name = "polib", marker = "extra == 'uwu'", specifier = "==1.2.0" },
@@ -307,14 +301,11 @@ requires-dist = [
     { name = "pydantic-extra-types", specifier = "==2.10.6" },
     { name = "pygobject", marker = "extra == 'rsvg-pygobject'", specifier = "==3.54.5" },
     { name = "pylibmc", marker = "extra == 'memcached'", specifier = "==1.6.3" },
-    { name = "pylibmc", marker = "extra == 'tileserver'", specifier = "==1.6.3" },
     { name = "pyproj", specifier = "==3.7.2" },
     { name = "pyzstd", specifier = "==0.19.1" },
-    { name = "pyzstd", marker = "extra == 'tileserver'", specifier = "==0.19.1" },
     { name = "qrcode", specifier = "==8.2" },
     { name = "redis", marker = "extra == 'redis'", specifier = "==7.1.0" },
     { name = "requests", specifier = "==2.32.5" },
-    { name = "requests", marker = "extra == 'tileserver'", specifier = "==2.32.5" },
     { name = "rtree", specifier = "==0.9.1" },
     { name = "scipy", specifier = "==1.16.3" },
     { name = "sentry-sdk", marker = "extra == 'sentry'", specifier = "==2.48.0" },
@@ -326,7 +317,7 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'server-asgi'", specifier = "==0.38.0" },
     { name = "uwuipy", marker = "extra == 'uwu'", specifier = "==0.1.10" },
 ]
-provides-extras = ["dev", "htmlmin", "memcached", "metrics", "mysql", "opengl", "postgres", "redis", "rsvg", "rsvg-pygobject", "sentry", "server-asgi", "sso", "tileserver", "uwu"]
+provides-extras = ["dev", "htmlmin", "memcached", "metrics", "mysql", "opengl", "postgres", "redis", "rsvg", "rsvg-pygobject", "sentry", "server-asgi", "sso", "uwu"]
 
 [package.metadata.requires-dev]
 tileserver = [
@@ -334,6 +325,7 @@ tileserver = [
     { name = "pylibmc", specifier = "==1.6.3" },
     { name = "pyzstd", specifier = "==0.19.1" },
     { name = "requests", specifier = "==2.32.5" },
+    { name = "uwsgi" },
 ]
 
 [[package]]
@@ -2487,6 +2479,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/cb/ce/f06b84e2697fef468
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/d9/d88e73ca598f4f6ff671fb5fde8a32925c2e08a637303a1d12883c7305fa/uvicorn-0.38.0-py3-none-any.whl", hash = "sha256:48c0afd214ceb59340075b4a052ea1ee91c16fbc2a9b1469cca0e54566977b02", size = 68109, upload-time = "2025-10-18T13:46:42.958Z" },
 ]
+
+[[package]]
+name = "uwsgi"
+version = "2.0.31"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/49/2f57640e889ba509fd1fae10cccec1b58972a07c2724486efba94c5ea448/uwsgi-2.0.31.tar.gz", hash = "sha256:e8f8b350ccc106ff93a65247b9136f529c14bf96b936ac5b264c6ff9d0c76257", size = 822796, upload-time = "2025-10-11T19:17:28.794Z" }
 
 [[package]]
 name = "uwuipy"
