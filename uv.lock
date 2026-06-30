@@ -260,6 +260,14 @@ uwu = [
     { name = "uwuipy" },
 ]
 
+[package.dev-dependencies]
+tileserver = [
+    { name = "numpy" },
+    { name = "pylibmc" },
+    { name = "pyzstd" },
+    { name = "requests" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "cairocffi", marker = "extra == 'rsvg'", specifier = "==1.7.1" },
@@ -319,6 +327,14 @@ requires-dist = [
     { name = "uwuipy", marker = "extra == 'uwu'", specifier = "==0.1.10" },
 ]
 provides-extras = ["dev", "htmlmin", "memcached", "metrics", "mysql", "opengl", "postgres", "redis", "rsvg", "rsvg-pygobject", "sentry", "server-asgi", "sso", "tileserver", "uwu"]
+
+[package.metadata.requires-dev]
+tileserver = [
+    { name = "numpy", specifier = "==2.3.5" },
+    { name = "pylibmc", specifier = "==1.6.3" },
+    { name = "pyzstd", specifier = "==0.19.1" },
+    { name = "requests", specifier = "==2.32.5" },
+]
 
 [[package]]
 name = "cairocffi"

@@ -114,3 +114,11 @@ uwu = [
     "polib==1.2.0",
     "uwuipy==0.1.10",
 ]
+
+[dependency-groups]
+tileserver = [
+    "requests==2.32.5",
+    "numpy==2.3.5",
+    "pylibmc==1.6.3",
+    "pyzstd==0.19.1",
+]
