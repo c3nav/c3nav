@@ -375,8 +375,11 @@ def tile(request, level, zoom, x, y, theme, ext: Union[Literal["png"], Literal["
     if not cache_package.bounds_valid(minx, miny, maxx, maxy):
         raise Http404
 
-    theme = None if theme == 0 else int(theme)
+    theme = int(theme)
     theme_key = str(theme)
+    force_transparent_background = theme == -1
+    if theme == 0 or theme == -1:
+        theme = None
 
     # get level
     level = int(level)
@@ -444,7 +447,8 @@ def tile(request, level, zoom, x, y, theme, ext: Union[Literal["png"], Literal["
 
     if data is None:
         renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=2 ** zoom, access_permissions=access_permissions)
-        image = renderer.render(ImageRenderEngine, theme=theme)
+        image = renderer.render(ImageRenderEngine, theme=theme,
+                                force_transparent_background=force_transparent_background)
         data_png, data_webp = image.render()
 
         if settings.CACHE_TILES:

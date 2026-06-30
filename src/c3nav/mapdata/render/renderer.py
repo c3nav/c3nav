@@ -33,7 +33,7 @@ class MapRenderer:
     def bbox(self):
         return box(self.minx-1, self.miny-1, self.maxx+1, self.maxy+1)
 
-    def render(self, engine_cls, theme, center=True):
+    def render(self, engine_cls, theme, center=True, force_transparent_background=False):
         color_manager = ColorManager.for_theme(theme)
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         access_permissions = self.access_permissions | {None}
@@ -42,8 +42,10 @@ class MapRenderer:
 
         level_render_data = LevelRenderData.get(self.level, theme)
 
+        background = '#00000000' if force_transparent_background else color_manager.background
+
         engine = engine_cls(self.width, self.height, self.minx, self.miny, float(level_render_data.base_altitude),
-                            scale=self.scale, buffer=1, background=color_manager.background,
+                            scale=self.scale, buffer=1, background=background,
                             center=center, min_width=self.min_width)
 
         if hasattr(engine, 'custom_render'):

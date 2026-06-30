@@ -306,7 +306,7 @@ class TileServer:
         # get level
         level = int(level)
         theme_id = int(theme)
-        theme = None if theme_id == 0 else theme_id
+        theme = None if theme_id == 0 or theme_id == -1 else theme_id
         level_data = cache_package.levels.get((level, theme))
         if level_data is None:
             return self.not_found(start_response, b'invalid level or theme.', headers=cors_headers)
