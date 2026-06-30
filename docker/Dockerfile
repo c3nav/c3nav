@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.24@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
-FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 as base
+FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 AS base
 ARG BASE_IMAGE_NAME=ubuntu:26.04
 ARG BASE_IMAGE_DIGEST=sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 ARG TARGETARCH
@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
       org.opencontainers.image.url="https://c3nav.de" \
       org.opencontainers.image.authors="c3nav team"
 
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
@@ -20,8 +20,6 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libpython3.14=3.14.4-1 \
     # renovate: srcname=python3.14
     python3.14-venv=3.14.4-1 \
-    # renovate: srcname=python-pip
-    python3-pip=25.1.1+dfsg-1ubuntu2 \
     # renovate: srcname=postgresql-18
     libpq5=18.4-0ubuntu0.26.04.1 \
     # renovate: srcname=postgresql-18
@@ -51,7 +49,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
 ENV PATH="/usr/lib/postgresql/18/bin/:$PATH"
 
 
-FROM base as builder
+FROM base AS builder
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.12ubuntu2 \
@@ -69,37 +67,46 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=libxcrypt
     libcrypt-dev=1:4.5.1-1
 
+# https://docs.astral.sh/uv/guides/integration/docker/#installing-uv
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+ENV PATH="/root/.local/bin/:$PATH"
 
-RUN mkdir /app
+# https://github.com/astral-sh/uv-docker-example/blob/main/Dockerfile
+ENV PYTHONUNBUFFERED=1
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_NO_DEV=1
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project
+
+COPY . /app
 WORKDIR /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-editable \
+      --extra htmlmin \
+      --extra postgres \
+      --extra redis \
+      --extra memcached \
+      --extra rsvg-pygobject \
+      --extra sentry \
+      --extra metrics \
+      --extra uwu \
+      --extra sso \
+      --extra server-asgi && \
+    uv pip install uwsgi django_extensions
 
-RUN --mount=type=cache,target=/pip-cache \
-    --mount=type=bind,source=/src/requirements,target=/app/requirements \
-    python3.14 -m venv env && \
-    . /app/env/bin/activate && \
-    pip install --cache-dir /pip-cache --upgrade pip wheel && \
-    pip install --cache-dir /pip-cache \
-    -r requirements/production.txt \
-    -r requirements/htmlmin.txt \
-    -r requirements/postgres.txt \
-    -r requirements/redis.txt \
-    -r requirements/memcached.txt \
-    -r requirements/rsvg-pygobject.txt \
-    -r requirements/sentry.txt \
-    -r requirements/metrics.txt \
-    -r requirements/uwu.txt \
-    -r requirements/sso.txt \
-    -r requirements/server-asgi.txt && \
-    pip install --cache-dir /pip-cache uwsgi django_extensions
-
-FROM base as final
+FROM base AS final
 ARG COMMIT
 RUN groupadd -r -g 500 c3nav && useradd -r -u 500 -g 500 -G www-data c3nav
 RUN mkdir /data /etc/c3nav && chown -R c3nav:c3nav /data /etc/c3nav
 VOLUME /data
 
 COPY --link --chown=500:500 /src /app
-COPY --from=builder --chown=500:500 /app/env /app/env
+COPY --from=builder --chown=500:500 /app/.venv /app/.venv
 COPY --chown=root:root --chmod=0755 /docker/entrypoint.sh /usr/bin/entrypoint
 
 ENV C3NAV_DEBUG="" \
@@ -109,16 +116,16 @@ ENV C3NAV_DEBUG="" \
     C3NAV_VERSION="${COMMIT}" \
     MPLBACKEND="agg" \
     UWSGI_WORKERS="4" \
-    PATH="/app/env/bin/:$PATH"
+    PATH="/app/.venv/bin:$PATH"
 
 USER c3nav
 WORKDIR /app
 
-RUN /app/env/bin/python manage.py makemessages --ignore "site-packages" -l en_UW && \
-    /app/env/bin/python genuwu.py && \
-    /app/env/bin/python manage.py compilemessages --ignore "site-packages" && \
-    /app/env/bin/python manage.py collectstatic -l --no-input && \
-    /app/env/bin/python manage.py compress && \
+RUN c3nav-manage makemessages --ignore "site-packages" -l en_UW && \
+    /app/.venv/bin/python genuwu.py && \
+    c3nav-manage compilemessages --ignore "site-packages" && \
+    c3nav-manage collectstatic -l --no-input && \
+    c3nav-manage compress && \
     rm -r /data/*
 
 EXPOSE 8000 5000

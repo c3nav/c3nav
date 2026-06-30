@@ -1,3 +1,0 @@
-starlette==0.50.0
-uvicorn==0.38.0
-gunicorn==23.0.0
