@@ -136,8 +136,8 @@ class Command(BaseCommand):
                 data = render.get_xml().encode()
             else:
                 engine, index = get_engine(options['filetype'])
-                render = renderer.render(engine, options['theme'],
-                                         center=not options['no_center'])
+                render = renderer.render(engine, options['theme'], center=not options['no_center'],
+                                         force_transparent_background=options['transparent_bg'])
                 data = render.render()
                 if index is not None:
                     data = data[index]
