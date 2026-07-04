@@ -149,8 +149,8 @@ class Command(BaseCommand):
                 open(filename, 'wb').write(data)
 
             if options['world']:
-                world_file = settings.RENDER_ROOT / f'{name}.{'pgw' if settings['filetype'] == 'png' else 'wld'}'
-                pixel_size = 1.0 / settings['scale']
+                world_file = settings.RENDER_ROOT / f'{name}.{'pgw' if options['filetype'] == 'png' else 'wld'}'
+                pixel_size = 1.0 / options['scale']
                 with world_file.open('w') as f:
                     f.write('\n'.join((
                         f'{pixel_size}',
@@ -159,4 +159,4 @@ class Command(BaseCommand):
                         f'-{pixel_size}',
                         f'{minx + pixel_size}',
                         f'{maxy - pixel_size}',
-                    )))
+                    )) + '\n')
