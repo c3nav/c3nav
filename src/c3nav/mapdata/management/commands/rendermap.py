@@ -100,6 +100,8 @@ class Command(BaseCommand):
                             help=_('ensure that all objects are at least this thick'))
         parser.add_argument('--name', default=None, type=str,
                             help=_('override filename'))
+        parser.add_argument('--world', action='store_const', const=True, default=False,
+                            help=_('generate world file'))
 
     def handle(self, *args, **options):
         (minx, miny), (maxx, maxy) = Source.max_bounds()
@@ -145,3 +147,16 @@ class Command(BaseCommand):
             open(filename, 'wb').write(data)
             for filename, data in other_data:
                 open(filename, 'wb').write(data)
+
+            if options['world']:
+                world_file = settings.RENDER_ROOT / f'{name}.{'pgw' if settings['filetype'] == 'png' else 'wld'}'
+                pixel_size = 1.0 / settings['scale']
+                with world_file.open('w') as f:
+                    f.write('\n'.join((
+                        f'{pixel_size}',
+                        f'0',
+                        f'0',
+                        f'-{pixel_size}',
+                        f'{minx + pixel_size}',
+                        f'{maxy - pixel_size}',
+                    )))
