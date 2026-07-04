@@ -80,6 +80,8 @@ class Command(BaseCommand):
                             help=_('levels to render, e.g. 0,1,2 or * for all levels (default)'))
         parser.add_argument('--theme', default=None, type=self.theme_value,
                             help=_('theme to use, e.g. 2 or 0 for the default theme (default)'))
+        parser.add_argument('--transparent-bg', action='store_const', const=True, default=False,
+                            help=_('render png and svg output with an transparent background'))
         parser.add_argument('--permissions', default='0', type=self.permissions_value,
                             help=_('permissions, e.g. 2,3 or * for all permissions or 0 for public (default)'))
         parser.add_argument('--full-levels', action='store_const', const=True, default=False,
@@ -129,7 +131,8 @@ class Command(BaseCommand):
 
             if options['filetype'] == 'svg':
                 engine, index = get_engine('png')
-                render = renderer.render(engine, options['theme'], center=not options['no_center'])
+                render = renderer.render(engine, options['theme'], center=not options['no_center'],
+                                         force_transparent_background=options['transparent_bg'])
                 data = render.get_xml().encode()
             else:
                 engine, index = get_engine(options['filetype'])
