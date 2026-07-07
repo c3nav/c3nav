@@ -1,0 +1,118 @@
+[build-system]
+requires = ["uv_build>=0.11.24,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "c3nav"
+version = "0.0.0"
+description = "c3nav"
+requires-python = ">=3.12"
+
+dependencies = [
+    "celery==5.6.0",
+    "channels==4.3.2",
+    "csscompressor==0.9.5",
+    "daphne==4.2.1",
+    "Django==6.0",
+    "django-bootstrap3==25.3",
+    "django-compressor==4.6.0",
+    "django-cors-headers==4.9.0",
+    "django-environ==0.12.0",
+    "django-filter==25.2",
+    "django_libsass==0.9",
+    "django-ninja==1.5.1",
+    "django-pydantic-field==0.4.1",
+    "matplotlib==3.10.8",
+    "MeshPy==2025.1.1",
+    "Pillow==12.0.0",
+    "pybind11==3.0.1",
+    "pydantic-extra-types==2.10.6",
+    "pyproj==3.7.2",
+    "pyzstd==0.19.1",
+    "qrcode==8.2",
+    "requests==2.32.5",
+    "rtree==0.9.1", # should be made optional
+    "scipy==1.16.3",
+    "shapely==2.1.2",
+    "types-shapely==2.1.0.20250917",
+]
+
+[project.scripts]
+c3nav-manage = "c3nav.manage:main"
+
+[project.optional-dependencies]
+dev = [
+    "django-debug-toolbar",
+    "flake8==7.3.0",
+    "isort",
+    "pycodestyle==2.14.0",
+]
+
+htmlmin = [
+    "django-htmlmin==0.11.0",
+]
+
+memcached = [
+    "pylibmc==1.6.3",
+]
+
+metrics = [
+    "django_prometheus==2.3.1",
+]
+
+mysql = [
+    "mysqlclient",
+]
+
+opengl = [
+    "ModernGL==5.12.0",
+]
+
+postgres = [
+    "psycopg2",
+]
+
+redis = [
+    "channels-redis==4.3.0",
+    "hiredis==3.3.0",
+    "redis==7.1.0",
+]
+
+rsvg = [
+    "cairocffi==1.7.1",
+    "pgi==0.0.11.2",
+]
+
+rsvg-pygobject = [
+    "pycairo==1.29.0",
+    "PyGObject==3.54.5",
+]
+
+sentry = [
+    "sentry-sdk==2.48.0",
+]
+
+server-asgi = [
+    "gunicorn==23.0.0",
+    "starlette==0.50.0",
+    "uvicorn==0.38.0",
+]
+
+sso = [
+    "social-auth-app-django==5.6.0",
+    "social-auth-core==4.8.1",
+]
+
+uwu = [
+    "polib==1.2.0",
+    "uwuipy==0.1.10",
+]
+
+[dependency-groups]
+tileserver = [
+    "requests==2.32.5",
+    "numpy==2.3.5",
+    "pylibmc==1.6.3",
+    "pyzstd==0.19.1",
+    "uwsgi",
+]
