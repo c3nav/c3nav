@@ -43,6 +43,8 @@ class TileServer:
         except KeyError:
             raise Exception('C3NAV_UPSTREAM_BASE needs to be set.')
 
+        self.upstream_timeout = int(os.environ.get('C3NAV_UPSTREAM_TIMEOUT', 5))
+
         try:
             self.data_dir = os.environ.get('C3NAV_DATA_DIR', 'data')
         except KeyError:
@@ -355,7 +357,7 @@ class TileServer:
 
         try:
             r = requests.get(f'{self.upstream_base}/map/{level}/{zoom}/{x}/{y}/{theme_id}/{access_cache_key}.{ext}',
-                             headers=self.auth_headers, auth=self.http_auth, timeout=2)
+                             headers=self.auth_headers, auth=self.http_auth, timeout=self.upstream_timeout)
         except requests.exceptions.Timeout:
             if if_none_match:
                 # send 304, even though it's wrong. just display an old tile, sorry.
