@@ -15,19 +15,19 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.14=3.14.4-1 \
+    python3.14=3.14.4-1ubuntu0.1 \
     # renovate: srcname=python3.14
-    libpython3.14=3.14.4-1 \
+    libpython3.14=3.14.4-1ubuntu0.1 \
     # renovate: srcname=python3.14
-    python3.14-venv=3.14.4-1 \
+    python3.14-venv=3.14.4-1ubuntu0.1 \
     # renovate: srcname=python-pip
     python3-pip=25.1.1+dfsg-1ubuntu2 \
-    curl=8.18.0-1ubuntu2.1 \
+    curl=8.18.0-1ubuntu2.3 \
     # renovate: srcname=pcre2
     libpcre2-posix3=10.46-1build1 \
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build5 \
-    tzdata=2026a-3ubuntu1 \
+    tzdata=2026b-0ubuntu0.26.04.1 \
     ca-certificates=20260223 \
     # renovate: srcname=libzstd
     zstd=1.5.7+dfsg-3 \
@@ -40,7 +40,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.12ubuntu2 \
     # renovate: srcname=python3.14
-    python3.14-dev=3.14.4-1 \
+    python3.14-dev=3.14.4-1ubuntu0.1 \
     libpcre2-dev=10.46-1build1 \
     # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build5 \
