@@ -96,6 +96,8 @@ def changeset_detail(request, pk):
                     changeset.save()
 
                 if changeset.can_propose(request):
+                    if request.session.get('changeset') == changeset.pk:
+                        request.session.pop('changeset', None)
                     changeset.propose(request.user)
                     messages.success(request, _('You proposed your changes.'))
                 else:
@@ -128,6 +130,8 @@ def changeset_detail(request, pk):
                     changeset.save()
 
                 if changeset.can_commit(request):
+                    if request.session.get('changeset') == changeset.pk:
+                        request.session.pop('changeset', None)
                     changeset.apply(request.user)
                     messages.success(request, _('You applied your changes.'))
                 else:
@@ -197,6 +201,8 @@ def changeset_detail(request, pk):
                     return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
                 if request.POST.get('apply_confirm') == '1':
+                    if request.session.get('changeset') == changeset.pk:
+                        request.session.pop('changeset', None)
                     changeset.apply(request.user)
                     messages.success(request, _('You accepted and applied these changes.'))
                     return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
