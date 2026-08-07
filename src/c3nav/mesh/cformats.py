@@ -6,53 +6,53 @@ from collections import namedtuple
 from contextlib import suppress
 from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
-from enum import IntEnum, Enum
+from enum import Enum
 from typing import Any, Sequence, Self, Annotated, Literal, Union, Type, TypeVar, ClassVar
 from uuid import UUID
 
-from annotated_types import SLOTS, BaseMetadata, Ge
+from annotated_types import BaseMetadata, Ge
 from pydantic.fields import Field, FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.mesh.utils import indent_c
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class VarLen(BaseMetadata):
     var_len_name: str = "num"
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class NoDef(BaseMetadata):
     no_def: bool = True
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class AsHex(BaseMetadata):
     as_hex: bool = True
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class LenBytes(BaseMetadata):
     len_bytes: Annotated[int, Ge(1)]
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class AsDefinition(BaseMetadata):
     as_definition: bool = True
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class CEmbed(BaseMetadata):
     c_embed: bool = True
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class CName(BaseMetadata):
     c_name: str
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class CDoc(BaseMetadata):
     c_doc: str
 
