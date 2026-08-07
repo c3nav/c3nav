@@ -712,6 +712,7 @@ editor = {
     _highlight_type: null,
     _editing_id: null,
     _editing_layer: null,
+    _dragging_layer: null,
     _bounds_layer: null,
     _highlight_geometries: {},
     _creating: false,
@@ -850,6 +851,10 @@ editor = {
         if (editor._editing_layer !== null) {
             editor._editing_layer.remove();
             editor._editing_layer = null;
+        }
+        if (editor._dragging_layer !== null) {
+            editor._dragging_layer.remove();
+            editor._dragging_layer = null;
         }
         editor._bounds_layer = null;
         editor._line_geometries = [];
@@ -1365,14 +1370,9 @@ editor = {
                     }
                 }
                 if (options) {
-                    editor._editing_layer = L.geoJSON(JSON.parse(geometry_field.val()), {
-                        style: function () {
-                            return options;
-                        },
-                        pointToLayer: editor._point_to_layer,
-                        multipoint: true,
-                    }).getLayers()[0].addTo(editor._geometries_layer);
+                    editor._make_editing_layer(JSON.parse(geometry_field.val()));
                     editor._editing_layer.enableEdit();
+                    editor._add_dragging();
                     if (editor._editing_layer.editor._resizeLatLng !== undefined) {
                         editor._editing_layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
                     }
@@ -1431,6 +1431,57 @@ editor = {
             }
         }
     },
+    _make_editing_layer: function(geojson) {
+        if (editor._editing_layer !== null) {
+            editor._editing_layer.remove();
+            editor._editing_layer = null;
+        }
+        editor._editing_layer = L.geoJSON(geojson, {
+            style: function () {
+                return options;
+            },
+            pointToLayer: editor._point_to_layer,
+            multipoint: true,
+        }).getLayers()[0].addTo(editor._geometries_layer);
+    },
+    _add_dragging: function() {
+        editor._editing_layer.on("dblclick", function() {
+            if (editor._dragging_layer) {
+                editor._dragging_layer.remove();
+                editor._dragging_layer = null;
+            } else {
+                if (editor._editing_layer.feature.geometry.type === "Polygon" || editor._editing_layer.feature.geometry.type === "LineString") {
+                    editor._dragging_layer = L.marker(editor._editing_layer.getCenter()).addTo(editor._geometries_layer);
+                    editor._dragging_layer.dragging.enable();
+                    editor._dragging_layer.on("dragstart", function() {
+                        editor._editing_layer.disableEdit();
+                        editor._dragging_geojson = editor._editing_layer.toGeoJSON().geometry;
+                        editor._dragging_coords = (
+                            (editor._editing_layer.feature.geometry.type === "LineString")
+                            ? [...editor._dragging_geojson.coordinates]
+                            : [...editor._dragging_geojson.coordinates[0]]
+                        );
+                        editor._dragging_start = editor._dragging_layer.getLatLng();
+                    });
+                    editor._dragging_layer.on("drag", function() {
+                        const latlng = editor._dragging_layer.getLatLng();
+                        const offs = [latlng.lat-editor._dragging_start.lat, latlng.lng-editor._dragging_start.lng];
+                        if (editor._editing_layer.feature.geometry.type === "LineString") {
+                            editor._dragging_geojson.coordinates = editor._dragging_coords.map(coords => [coords[0]+offs[1], coords[1]+offs[0]]);
+                        } else {
+                            editor._dragging_geojson.coordinates[0] = editor._dragging_coords.map(coords => [coords[0]+offs[1], coords[1]+offs[0]]);
+                        }
+                        editor._make_editing_layer(editor._dragging_geojson);
+                    });
+                    editor._dragging_layer.on("dragend", function() {
+                        editor._update_editing();
+                        editor._editing_layer.enableEdit();
+                    });
+                }
+            }
+            return false;
+        })
+    },
     _cancel_editing: function () {
         // called on sidebar unload. cancel all editing and creating.
         if (editor._creating) {
@@ -1442,6 +1493,10 @@ editor = {
         if (editor._editing_layer !== null) {
             editor._editing_layer.disableEdit();
             editor._editing_layer = null;
+        }
+        if (editor._dragging_layer !== null) {
+            editor._dragging_layer.dragging.disable();
+            editor._dragging_layer = null;
         }
     },
     _canceled_creating: function (e) {
@@ -1480,12 +1535,14 @@ editor = {
                     form.find('input:not([type=hidden], .btn)').first().focus();
                 }
             }
+            editor._add_dragging();
         }
     },
     _update_editing: function () {
         // called if the temporary drawing layer changes. if we are in editing mode (not creating), update the form.
         if (editor._editing_layer !== null) {
             $('#id_geometry').val(JSON.stringify(editor._editing_layer.toGeoJSON().geometry));
+            if (editor._dragging_layer) editor._dragging_layer.setLatLng(editor._editing_layer.getCenter());
         }
     },
 
