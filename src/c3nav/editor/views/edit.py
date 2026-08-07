@@ -382,6 +382,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                         graph_form.save()
                     form.save_m2m()
                     messages.success(request, _('Object was successfully saved.'))
+                    if new and request.POST.get('addanother') == '1':
+                        return redirect(request.path)
                     return redirect(ctx['back_url'])
             else:
                 messages.error(request, _('You can not edit changes on this changeset.'))
