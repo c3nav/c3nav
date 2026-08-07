@@ -380,7 +380,7 @@ def changeset_detail(request, pk):
                                 'value': subvalue,
                             })
                         sub_change_data.update({
-                            'order': (4, tuple(code for code, title in settings.LANGUAGES).index(lang)),
+                            'order': (4, (*(code for code, title in settings.LANGUAGES), lang).index(lang)),
                         })
                         update_changes.append(sub_change_data)
                 elif isinstance(field, ManyToManyField):
