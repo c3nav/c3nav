@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libpcre2-posix3=10.46-1build1 \
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build5 \
-    tzdata=2026b-0ubuntu0.26.04.1 \
+    tzdata=2026c-0ubuntu0.26.04.1 \
     ca-certificates=20260223 \
     # renovate: srcname=libzstd
     zstd=1.5.7+dfsg-3 \
