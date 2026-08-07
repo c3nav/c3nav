@@ -5,8 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from django.core.management.base import BaseCommand
-from django.utils.translation import gettext_lazy as _
-from django.utils.translation import ngettext_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 
 from c3nav.mapdata.models import AccessRestriction, Theme
 
@@ -75,8 +75,8 @@ class Command(BaseCommand):
         not_found = values - set(map(str, permissions))
         if not_found:
             raise argparse.ArgumentTypeError(
-                ngettext_lazy('Unknown access restriction: %s',
-                              'Unknown access restrictions: %s', len(not_found)) % ', '.join(not_found)
+                ngettext('Unknown access restriction: %s',
+                         'Unknown access restrictions: %s', len(not_found)) % ', '.join(not_found)
             )
 
         return permissions
