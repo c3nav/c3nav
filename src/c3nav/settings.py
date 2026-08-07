@@ -166,7 +166,7 @@ if not SECRET_MESH_KEY:
 
 # Adjustable settings
 
-debug_fallback = "runserver" in sys.argv
+debug_fallback = "runserver" in sys.argv[:2]
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback, env='C3NAV_DEBUG')
 
 BRANDING = config.get('c3nav', 'branding', fallback='c3nav')
@@ -259,7 +259,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 STATIC_URL = config.get('django', 'static_url', fallback='/static/', env='C3NAV_STATIC_URL')
 MEDIA_URL = config.get('django', 'media_url', fallback='/media/', env='C3NAV_MEDIA_URL')
 
-ALLOWED_HOSTS = config.getlist('django', 'allowed_hosts', fallback='*')
+testserver_host = ("testserver", ) if "staticarchive" in sys.argv[:2] or "test" in sys.argv[:2] else ()
+ALLOWED_HOSTS = [*config.getlist('django', 'allowed_hosts', fallback='*'), testserver_host]
 
 if config.getboolean('django', 'reverse_proxy', fallback=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
