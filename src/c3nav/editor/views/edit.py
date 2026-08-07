@@ -136,7 +136,7 @@ def get_changeset_exceeded(request):
 @etag(editor_etag_func)
 @accesses_mapdata
 @sidebar_view
-def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
+def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False, clone=False):
     if isinstance(model, str):
         model = apps.get_model(app_label="mapdata", model_name=model)
 
@@ -179,8 +179,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         on_top_of = get_object_or_404(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
                                       pk=on_top_of)
 
-    new = obj is None
-
+    brandnew = obj is None
+    new = brandnew or clone
     if new and not edit_utils.can_create:
         raise PermissionDenied
 
@@ -195,7 +195,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
         'can_edit': can_edit_changeset,
+        'brandnew': brandnew,
         'new': new,
+        'clone': clone,
         'title': obj.title if obj else None,
         'geometry_url': geometry_url,
     }
@@ -208,7 +210,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     space_id = None
     if model == Level:
         ctx.update({
-            'level': obj,
+            'level': None if new else obj,
             'back_url': reverse('editor.index') if new else reverse('editor.levels.detail', kwargs={'pk': pk}),
             'nozoom': True,
         })
@@ -235,14 +237,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'nozoom': True,
         })
     elif hasattr(model, 'level') and 'Dynamic' not in model.__name__:
-        if not new:
+        if not brandnew:
             level = obj.level
         ctx.update({
             'level': level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'level': level.pk}),
         })
     elif hasattr(model, 'space'):
-        if not new:
+        if not brandnew:
             space = obj.space
         space_id = space.pk
         ctx.update({
@@ -275,7 +277,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'nosave': nosave
     })
 
-    if new:
+    if brandnew:
         ctx.update({
             'nozoom': True
         })
@@ -398,6 +400,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     ctx.update({
         'form': form,
     })
+
+    if not clone:
+        ctx.update({
+            'clone_url': reverse(request.resolver_match.url_name.removesuffix('.edit')+".clone",
+                                 kwargs=request.resolver_match.kwargs),
+        })
 
     if model is AccessRestrictionGroup and request.user_permissions.can_access_base_mapdata:
         levels = list(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True))

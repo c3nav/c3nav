@@ -7,8 +7,17 @@
     {{ extra_json_data|json_script:"sidebar-extra-data" }}
 {% endif %}
 
+{% if clone_url %}
+    <p>
+        <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ clone_url }}">
+            {% trans 'Clone' %}
+        </a>
+    </p>
+{% endif %}
 <h3>
-    {% if new %}
+    {% if clone %}
+        {% blocktrans %}Clone {{ model_title }}{% endblocktrans %}
+    {% elif new %}
         {% blocktrans %}New {{ model_title }}{% endblocktrans %}
     {% else %}
         {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}

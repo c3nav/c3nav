@@ -29,6 +29,7 @@ def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit
         result.append(path(prefix+'/', list_objects, name=name_prefix+'list', kwargs=kwargs))
     result.extend([
         path(prefix+'/<int:pk>/'+explicit_edit, edit, name=name_prefix+'edit', kwargs=kwargs),
+        path(prefix+'/<int:pk>/clone', edit, name=name_prefix+'clone', kwargs={**kwargs, "clone": True}),
         path(prefix+'/create', edit, name=name_prefix+'create', kwargs=kwargs),
     ])
     return result
