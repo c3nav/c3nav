@@ -401,7 +401,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'form': form,
     })
 
-    if not clone:
+    if not new:
         ctx.update({
             'clone_url': reverse(request.resolver_match.url_name.removesuffix('.edit')+".clone",
                                  kwargs=request.resolver_match.kwargs),
