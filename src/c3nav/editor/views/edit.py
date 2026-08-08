@@ -232,6 +232,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'nozoom': True,
         })
     elif model == Space and new:
+        if not brandnew:
+            level = obj.level
         ctx.update({
             'level': level,
             'back_url': reverse('editor.spaces.list', kwargs={'level': level.pk}),
@@ -402,7 +404,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'form': form,
     })
 
-    if not new:
+    if not new and edit_utils.can_create:
         ctx.update({
             'clone_url': reverse(request.resolver_match.url_name.removesuffix('.edit')+".clone",
                                  kwargs=request.resolver_match.kwargs),
