@@ -11,6 +11,7 @@ and potential backwards incompatibilities.
 New features:
 
 - Export a static archive of the instance using the `staticarchive` management command
+- Editor quality of life: Move geometries (double click), clone objects, bulk edit/delete.
 
 Bugfixes:
 
