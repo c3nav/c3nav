@@ -7,7 +7,7 @@ from enum import StrEnum
 from functools import cached_property, reduce
 from itertools import chain, combinations
 from operator import itemgetter
-from typing import Annotated, NamedTuple, Union
+from typing import Annotated, NamedTuple, Union, Iterable
 from typing import Optional, Self, Sequence, TypeAlias
 from uuid import UUID
 
@@ -20,7 +20,7 @@ from shapely import Point
 from shapely.ops import nearest_points
 
 from c3nav.mapdata.models import MapUpdate, Space
-from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement
+from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement, RangingBeacon
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
@@ -141,22 +141,10 @@ class Locator:
 
         # go through beacons, create peers
         for beacon in calculated.beacons.values():
-            identifiers = []
-            for bssid in beacon.addresses:
-                identifiers.append(TypedIdentifier(PeerType.WIFI, bssid.lower()))
-            if beacon.ap_name:
-                identifiers.append(TypedIdentifier(PeerType.WIFI, beacon.ap_name))
-            if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
-                identifiers.append(
-                    TypedIdentifier(PeerType.IBEACON, (beacon.ibeacon_uuid, beacon.ibeacon_major, beacon.ibeacon_minor))
-                )
-            for identifier in identifiers:
+            xyz = self.get_beacon_xyz(beacon, router)
+            for identifier in self.get_beacon_identifiers(beacon):
                 peer_id = self.get_peer_id(identifier, create=True)
-                self.peers[peer_id].xyz = (
-                    int(beacon.geometry.x * 100),
-                    int(beacon.geometry.y * 100),
-                    int((router.altitude_for_point(beacon.space_id, beacon.geometry) + float(beacon.altitude)) * 100),
-                )
+                self.peers[peer_id].xyz = xyz
                 if identifier.identifier in ranging_bssids:
                     self.peers[peer_id].supports80211mc = True
                 self.peers[peer_id].space_id = beacon.space_id
@@ -232,6 +220,37 @@ class Locator:
 
         self.placement_helper = PointPlacementHelper()
 
+    @staticmethod
+    def get_beacon_xyz(beacon: RangingBeacon, router: Router=None) -> tuple[int, int, int]:
+        return (
+            int(beacon.geometry.x * 100),
+            int(beacon.geometry.y * 100),
+            int(((router or Router.load()).altitude_for_point(beacon.space_id, beacon.geometry)
+                 + float(beacon.altitude)) * 100),
+        )
+
+    @staticmethod
+    def get_beacon_identifiers(beacon: RangingBeacon) -> list[TypedIdentifier]:
+        identifiers = []
+        for bssid in beacon.addresses:
+            identifiers.append(TypedIdentifier(PeerType.WIFI, bssid.lower()))
+        if beacon.ap_name:
+            identifiers.append(TypedIdentifier(PeerType.WIFI, beacon.ap_name))
+        if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
+            identifiers.append(
+                TypedIdentifier(PeerType.IBEACON, (beacon.ibeacon_uuid, beacon.ibeacon_major, beacon.ibeacon_minor))
+            )
+        return identifiers
+
+    @staticmethod
+    def get_scan_value_identifiers(scan_value: LocateWifiPeerSchema) -> Iterable[TypedIdentifier]:
+        if settings.WIFI_SSIDS and scan_value.ssid not in settings.WIFI_SSIDS:
+            return ()
+        return (
+           TypedIdentifier(PeerType.WIFI, scan_value.bssid.lower()),
+           TypedIdentifier(PeerType.WIFI, scan_value.ap_name),
+        )
+
     def get_peer_id(self, identifier: TypedIdentifier, create=False) -> Optional[int]:
         peer_id = self.peer_lookup.get(identifier, None)
         if peer_id is None and create:
@@ -244,11 +263,8 @@ class Locator:
     def convert_wifi_scan(self, scan_data: list[LocateWifiPeerSchema], create_peers=False) -> ScanData:
         result = {}
         for scan_value in scan_data:
-            if settings.WIFI_SSIDS and scan_value.ssid not in settings.WIFI_SSIDS:
-                continue
             peer_ids = {
-                self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.bssid.lower()), create=create_peers),
-                self.get_peer_id(TypedIdentifier(PeerType.WIFI, scan_value.ap_name), create=create_peers),
+                self.get_peer_id(identifier) for identifier in self.get_scan_value_identifiers(scan_value)
             } - {None, ""}
             for peer_id in peer_ids:
                 result[peer_id] = ScanDataValue(rssi=scan_value.rssi,
@@ -536,7 +552,7 @@ class Locator:
 
         #print(np_ranges)
 
-        measured_ranges = np_ranges[:, 3]
+        measured_ranges = np.clip(np_ranges[:, 3], a_min=0, a_max=None)
         #print('a', measured_ranges)
         # measured_ranges[measured_ranges<1] = 1
         #print('b', measured_ranges)
@@ -546,6 +562,7 @@ class Locator:
             print("measured_ranges", measured_ranges)
 
         # rating the guess by calculating the distances
+        # negative if the measured distance is higher than it should be for this guess
         def diff_func(guess):
             result = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) - measured_ranges
             # print(result)
@@ -553,16 +570,34 @@ class Locator:
             # factors = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
             # return factors - np.mean(factors)
 
+        max_off = (((np.array(tuple(scan_data[i].rssi for i in peer_ids))*-1-45)**2)*0.08+10)*100
+        print("max_off", max_off)
+
         def cost_func(guess):
             if settings.DEBUG:
                 print("guess", guess)
-            result = diff_func(guess) * -1
+
+            guess_distances = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1)
+            offset = measured_ranges - guess_distances  # negative if it's measured closer than should be possible
+
             if settings.DEBUG:
-                print("diff", result)
-            result[result < 0] = result[result < 0] * -2
-            cost = np.sum(result ** 2)
+                print("diff", offset)
+
+            # for access points more than 10m (=1000cm) away, we don't allow the offset to be below -2m (=-200cm)
+            # but, somehow, this works better if the threshold is at +200cm. why?
+            too_far_select = (guess_distances > 1000) & (offset < -200)
+            offset[too_far_select] -= (offset[too_far_select]+200)*100
+
+            # penalize inaccuracy based on rssi – todo: unclear if this one is really needed
+            max_off_select = (offset > max_off)
+            offset[max_off_select] += (offset[max_off_select]-max_off[max_off_select])*10
+
             if settings.DEBUG:
-                print("cost", result, cost)
+                print("corrected offset", offset)
+
+            cost = np.sum(offset ** 2)
+            if settings.DEBUG:
+                print("cost", offset, cost)
             return cost
 
         # initial guess is the average of all beacons, with scale 1
@@ -576,8 +611,6 @@ class Locator:
 
         if dimensions == 3:
             bounds += ((min(relevant_xyz[:, 2]), max(relevant_xyz[:, 2])),)
-        if settings.DEBUG:
-            print(bounds)
         results = self.least_squares_func(
             fun=cost_func,
             # jac="3-point",
@@ -630,7 +663,8 @@ class Locator:
             analysis.append(f" → result: {round(float(result_distance), 2):.2f} m"
                             f" ({value.distance-result_distance:+.1f} m)" +
                             (f" → correct: {correct_distance:.2f} m"
-                             f" ({value.distance-correct_distance:+.1f} m)" if correct_distance is not None else ""))
+                             f" ({value.distance-correct_distance:+.1f} m)"
+                             f" → {correct_distance-result_distance:+.1f} m" if correct_distance is not None else ""))
 
         # if we are outside a space, let's move the user into the space
         new_level, new_point = self.move_into_space(
@@ -656,7 +690,7 @@ class Locator:
 
         # get suggested peers
         remaining_peer_ids = tuple(self.peers_with_80211mc - set(peer_ids))
-        print(remaining_peer_ids, self.xyz)
+        #print(remaining_peer_ids, self.xyz)
         distances = (
             np.linalg.norm(self.xyz[remaining_peer_ids, :] - np.array(tuple(int(i)*100 for i in result_pos)), axis=1)
         )
