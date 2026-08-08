@@ -1248,7 +1248,7 @@ editor = {
             e.target.list_elem.prop('selected', !e.target.list_elem.prop('selected'));
         } else {
             e.target.list_elem.find('td:last-child a').click();
-            e.target.list_elem.find('td:last-child a').click();
+            e.target.list_elem.find('label').click();
         }
         editor.map.doubleClickZoom.disable();
     },

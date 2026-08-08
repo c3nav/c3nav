@@ -18,7 +18,8 @@ from c3nav.editor import overlay
 from django.views.decorators.http import etag
 from shapely import LineString
 
-from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm
+from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form, DoorGraphForm, \
+    SelectLevelForm, SelectSpaceForm, ConfirmDeleteForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import editor_etag_func, sidebar_view, accesses_mapdata
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge, Door
@@ -553,31 +554,73 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             return redirect(request.path)
 
         action = None
+        selected_ids = ()
         if request.method == 'POST':
             action = request.POST.get('action')
-            selected_queryset = queryset.filter(pk__in=request.POST.getlist("ids"))
+            selected_ids = frozenset(int(pk) for pk in request.POST.getlist("ids"))
+            selected_queryset = queryset.filter(pk__in=selected_ids)
 
+            objs = tuple(selected_queryset)
             if action == 'delete':
-                if not request.changeset.can_edit(request):
-                    messages.error(request, _('You can not edit changes on this changeset.'))
+                form = ConfirmDeleteForm(data=request.POST)
+                if form.is_valid() and form.cleaned_data["confirm"]:
+                    selected_queryset.delete()
+                    for obj in objs:
+                        overlay.handle_pre_change_instance(sender=model, instance=obj)
+                        overlay.handle_post_delete(sender=model, instance=obj)
+
+                    messages.success(request, _('Objects were successfully deleted.'))
                     return redirect(request.path)
 
-                objs = tuple(selected_queryset)
-                selected_queryset.delete()
-                for obj in objs:
-                    overlay.handle_post_delete(sender=model, instance=obj)
+            elif isinstance(edit_utils, LevelChildEditUtils) and action == 'level':
+                form = SelectLevelForm(request=request, data=request.POST)
+                if form.is_valid():
+                    level = Level.qs_for_request(request).get(pk=form.cleaned_data["level"])
+                    selected_queryset.update(level=level)
+                    for obj in objs:
+                        obj.level = level
+                        overlay.handle_pre_change_instance(sender=model, instance=obj)
+                        overlay.handle_post_save(sender=model, instance=obj, created=False, update_fields=("level",))
+                    messages.success(request, _('Objects were successfully moved to the selected level.'))
+                    return redirect(request.path)
 
-                messages.success(request, _('Objects were successfully deleted.'))
-                return redirect(request.path)
+            elif isinstance(edit_utils, SpaceChildEditUtils) and action == 'space':
+                form = SelectLevelForm(request=request, data=request.POST)
+                if form.is_valid():
+                    space = Space.qs_for_request(request).get(pk=form.cleaned_data["space"])
+                    selected_queryset.update(space=space)
+                    for obj in objs:
+                        obj.space = space
+                        overlay.handle_pre_change_instance(sender=model, instance=obj)
+                        overlay.handle_post_save(sender=model, instance=obj, created=False, update_fields=("space",))
+                    messages.success(request, _('Objects were successfully moved to the selected space.'))
+                    return redirect(request.path)
+
+            else:
+                raise ValueError
 
         ctx.update({
             'list_url': list_url,
+            'selected_ids': selected_ids,
         })
         ctx["bulk_actions"] = bulk_actions = []
+        if isinstance(edit_utils, LevelChildEditUtils):
+            bulk_actions.append({
+                "name": "level",
+                "label": _("Move to level"),
+                "form": SelectLevelForm(request=request, data=request.POST if action == "level" else {"level": level.pk})
+            })
+        if isinstance(edit_utils, SpaceChildEditUtils):
+            bulk_actions.append({
+                "name": "space",
+                "label": _("Move to space"),
+                "form": SelectSpaceForm(request=request, data=request.POST if action == "space" else {"space": space.pk})
+            })
         bulk_actions.append({
             "name": "delete",
             "color": "danger",
             "label": _("Delete selected"),
+            "form": ConfirmDeleteForm(data=request.POST if action == "space" else None)
         })
     else:
         ctx["bulk_url"] = reverse(resolver_match.url_name[:-4]+"bulk", kwargs=reverse_kwargs)

@@ -23,7 +23,7 @@ from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge, LocationGroup, Source, LocationGroupCategory, GraphNode, Space, \
-    LocationSlug, WayType
+    LocationSlug, WayType, Level
 from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup, AccessRestriction
 from c3nav.mapdata.models.geometry.space import ObstacleGroup, BeaconMeasurement
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
@@ -513,3 +513,45 @@ class DoorGraphForm(Form):
                 elif edge.access_restriction_id != (cleaned_value or None):
                     edge.access_restriction_id = (cleaned_value or None)
                     edge.save()
+
+
+class ConfirmDeleteForm(Form):
+    confirm = BooleanField(label=_("confirm bulk delete"), required=False)
+
+
+class SelectLevelForm(Form):
+    def __init__(self, *args, request, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+        levels = Level.qs_for_request(request)
+
+        level_choices = {}
+        choices = []
+        for level in levels:
+            if level.on_top_of_id is None:
+                level_choices[level.pk] = []
+                choices.append((level.pk, level.title))
+                choices.append((_("on top of %s") % level.title, level_choices[level.pk]))
+
+        for level in levels:
+            if level.on_top_of_id is not None:
+                level_choices[level.on_top_of_id].append((level.pk, level.title))
+
+        self.fields["level"] = ChoiceField(choices=choices)
+
+
+class SelectSpaceForm(Form):
+    def __init__(self, *args, request, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+
+        level_choices = {}
+        choices = []
+        for level in Level.qs_for_request(request):
+            level_choices[level.pk] = []
+            choices.append((level.title, level_choices[level.pk]))
+
+        for space in Space.qs_for_request(request):
+            level_choices[space.level_id].append((space.pk, space.title))
+
+        self.fields["space"] = ChoiceField(choices=choices)

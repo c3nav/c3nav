@@ -72,7 +72,7 @@
                     {% for col in item.add_cols %}<td>{{ col }}</td>{% endfor %}
                     <td>
                     {% if bulk_actions %}
-                        <input type="checkbox" name="ids" value="{{ item.pk }}" id="bulk_actions_{{ item.pk }}">
+                        <input type="checkbox" name="ids" value="{{ item.pk }}" id="bulk_actions_{{ item.pk }}"{% if item.pk in selected_ids %} checked{% endif %}>
                     {% else %}
                         <a href="{{ item.edit_url }}">{{ edit_caption }}</a>
                     {% endif %}
@@ -89,10 +89,14 @@
 </table>
 {% if bulk_actions %}
     {% for action in bulk_actions %}
-        <p>
-            {% if action.form %}{% bootstrap_form action.form layout="inline" %}{% endif %}
-            <button type="submit" name="action" value="{{ action.name }}" class="btn btn-{% if action.color %}{{ action.color }}{% else %}default{% endif %} pull-right">{{ action.label }}</button>
-        </p>
+        <div class="form-inline bulk-action">
+            {% if action.form %}
+                {% for field in action.form %}
+                    {% bootstrap_field field layout="inline" show_label=False %}
+                {% endfor %}
+            {% endif %}
+            <button type="submit" name="action" value="{{ action.name }}" class="btn btn-{% if action.color %}{{ action.color }}{% else %}default{% endif %}">{{ action.label }}</button>
+        </div>
     {% endfor %}
 </form>
 {% endif %}

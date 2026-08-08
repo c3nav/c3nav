@@ -563,6 +563,34 @@ label.theme-color-label {
     }
 }
 
+ .bulk-action {
+     display: flex;
+     justify-content: flex-end;
+     align-items: stretch;
+     margin-bottom: 15px;
+     :not(:first-child) {
+         margin-left: 5px;
+     }
+     :not(button) {
+         flex-grow: 1;
+         flex-shrink: 1;
+     }
+     .form-control {
+         width: 100%;
+     }
+     .form-group {
+         display: flex;
+         align-items: stretch;
+         * {
+             flex-grow: 1;
+             flex-shrink: 1;
+         }
+         .checkbox {
+             display: flex;
+             align-items: center;
+         }
+     }
+ }
 [data-list] label {
     margin: 0;
     width: 100%;
