@@ -14,6 +14,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from c3nav.editor import overlay
 from django.views.decorators.http import etag
 from shapely import LineString
 
@@ -443,12 +444,12 @@ def get_visible_spaces_kwargs(model, request):
 @etag(editor_etag_func)
 @accesses_mapdata
 @sidebar_view
-def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
+def list_objects(request, model=None, level=None, space=None, explicit_edit=False, bulk=False):
     if isinstance(model, str):
         model = apps.get_model(app_label="mapdata", model_name=model)
 
     resolver_match = getattr(request, 'sub_resolver_match', request.resolver_match)
-    if not resolver_match.url_name.endswith('.list'):
+    if not (resolver_match.url_name.endswith('.list') or resolver_match.url_name.endswith('.bulk')):
         raise ValueError('url_name does not end with .list')
 
     can_edit = request.changeset.can_edit(request)
@@ -538,6 +539,46 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'back_url': reverse('editor.index'),
             'back_title': _('back to overview'),
         })
+
+    if bulk:
+        list_url = reverse(resolver_match.url_name[:-4]+"list", kwargs=reverse_kwargs)
+        if get_changeset_exceeded(request):
+            messages.error(request, _('You can not do bulk edits because your changeset is full.'))
+            return redirect(request.path)
+
+        if not request.changeset.can_edit(request):
+            messages.error(request, _('You can not edit changes on this changeset.'))
+            return redirect(request.path)
+
+        action = None
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            selected_queryset = queryset.filter(pk__in=request.POST.getlist("ids"))
+
+            if action == 'delete':
+                if not request.changeset.can_edit(request):
+                    messages.error(request, _('You can not edit changes on this changeset.'))
+                    return redirect(request.path)
+
+                objs = tuple(selected_queryset)
+                selected_queryset.delete()
+                for obj in objs:
+                    overlay.handle_post_delete(sender=model, instance=obj)
+
+                messages.success(request, _('Objects were successfully deleted.'))
+                return redirect(request.path)
+
+        ctx.update({
+            'list_url': list_url,
+        })
+        ctx["bulk_actions"] = bulk_actions = []
+        bulk_actions.append({
+            "name": "delete",
+            "color": "danger",
+            "label": _("Delete selected"),
+        })
+    else:
+        ctx["bulk_url"] = reverse(resolver_match.url_name[:-4]+"bulk", kwargs=reverse_kwargs)
 
     edit_url_name = resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
     for obj in queryset:

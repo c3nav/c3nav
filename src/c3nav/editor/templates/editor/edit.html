@@ -8,11 +8,9 @@
 {% endif %}
 
 {% if clone_url %}
-    <p>
-        <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ clone_url }}">
-            {% trans 'Clone' %}
-        </a>
-    </p>
+    <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ clone_url }}">
+        <i class="glyphicon glyphicon-copy"></i> {% trans 'Clone' %}
+    </a>
 {% endif %}
 <h3>
     {% if clone %}

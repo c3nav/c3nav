@@ -562,3 +562,11 @@ label.theme-color-label {
         display: flex;
     }
 }
+
+[data-list] label {
+    margin: 0;
+    width: 100%;
+}
+.btn-default.btn-xs.pull-right:has(+ h3) {
+    margin-top: 5px;
+}

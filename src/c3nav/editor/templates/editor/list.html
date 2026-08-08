@@ -3,8 +3,21 @@
 
 {% include 'editor/fragment_levels.html' %}
 
+{% if list_url %}
+    <a class="btn btn-default btn-xs pull-right" href="{{ list_url }}">
+        <i class="glyphicon glyphicon-th-list"></i> {% trans 'List' %}
+    </a>
+{% elif bulk_url %}
+    <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ bulk_url }}">
+        <i class="glyphicon glyphicon-th-list"></i> {% trans 'Bulk edit' %}
+    </a>
+{% endif %}
 <h3>
-    {{ model_title_plural }}
+    {% if bulk_actions %}
+        {% blocktrans %}Edit {{ model_title_plural }}{% endblocktrans %}
+    {% else %}
+        {{ model_title_plural }}
+    {% endif %}
     {% if space %}
         {% with space.title as space_title %}
             <small>{% blocktrans %}in space {{ space_title }}{% endblocktrans %}</small>
@@ -16,7 +29,7 @@
     {% endif %}
 </h3>
 {% bootstrap_messages %}
-{% if can_create %}
+{% if not bulk_actions and can_create %}
     <a class="btn btn-default btn-xs" accesskey="n" href="{{ create_url }}">
         <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New {{ model_title }}{% endblocktrans %}
     </a>
@@ -28,6 +41,10 @@
     {% trans 'Edit' as edit_caption %}
 {% endif %}
 
+{% if bulk_actions %}
+    <form method="post" action="{{ request.path }}">
+    {% csrf_token %}
+{% endif %}
 <table class="table table-condensed itemtable" data-nozoom data-list="{{ model_name }}">
     <tbody>
         {% for objects in grouped_objects %}
@@ -47,9 +64,19 @@
                     </tr>
                 {% endif %}
                 <tr data-pk="{{ item.pk }}">
-                    <td>{{ item.title }}</td>
+                    <td>
+                        {% if bulk_actions %}<label for="bulk_actions_{{ item.pk }}">{% endif %}
+                        {{ item.title }}
+                        {% if bulk_actions %}</label>{% endif %}
+                    </td>
                     {% for col in item.add_cols %}<td>{{ col }}</td>{% endfor %}
-                    <td><a href="{{ item.edit_url }}">{{ edit_caption }}</a></td>
+                    <td>
+                    {% if bulk_actions %}
+                        <input type="checkbox" name="ids" value="{{ item.pk }}" id="bulk_actions_{{ item.pk }}">
+                    {% else %}
+                        <a href="{{ item.edit_url }}">{{ edit_caption }}</a>
+                    {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         {% endfor %}
@@ -60,3 +87,12 @@
         </tr>
     </tbody>
 </table>
+{% if bulk_actions %}
+    {% for action in bulk_actions %}
+        <p>
+            {% if action.form %}{% bootstrap_form action.form layout="inline" %}{% endif %}
+            <button type="submit" name="action" value="{{ action.name }}" class="btn btn-{% if action.color %}{{ action.color }}{% else %}default{% endif %} pull-right">{{ action.label }}</button>
+        </p>
+    {% endfor %}
+</form>
+{% endif %}
