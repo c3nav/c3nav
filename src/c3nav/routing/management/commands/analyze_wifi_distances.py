@@ -21,7 +21,7 @@ class Command(BaseCommand):
         beacons: dict[int, RangingBeacon] = {}
         beacons_xyz: dict[int, np.typing.NDArray] = {}
         beacons_offsets: dict[int, list[float]] = {}
-        measurements: list[tuple[float, float, float, float, float, float, float]] = []
+        measurements: list[tuple[float, ...]] = []
         colors: list[tuple[int, int, int]] = []
         for beacon in RangingBeacon.objects.select_related("space"):
             beacons[beacon.pk] = beacon
@@ -51,16 +51,18 @@ class Command(BaseCommand):
                     correct_distance_z = float(abs(measurement_xyz[2]-beacon_xyz[2]) / 100)
                     beacons_offsets[beacon_id].append(scan_distance-correct_distance_3d)
                     inaccuracy = scan_distance-correct_distance_3d
+                    inaccuracy_percent = scan_distance / correct_distance_3d * 100
                     if inaccuracy < -20:
                         print("very inaccurate", inaccuracy, "m", beacon_xyz/100, measurement.pk)
                     measurements.append((
                         correct_distance_3d,
                         scan_distance,
                         50 - min(correct_distance_z*10, 50) + 10,
-                        scan_value.distance_sd or 0,
+                        (scan_value.distance_sd or 0)*50,
                         scan_value.rssi * -1,
-                        abs(correct_distance_z),
+                        abs(correct_distance_z)+50,
                         inaccuracy,
+                        inaccuracy_percent,
                     ))
                     colors.append(
                         (0, 0.6, 0) if beacon.space_id == measurement.space_id
@@ -83,15 +85,25 @@ class Command(BaseCommand):
         colors: np.typing.NDArray = np.array(colors)
 
         if True:
-            x_axis_i, x_axis_label = 0, "correct distance xyz (m)"
+            #x_axis_i, x_axis_label = 0, "correct distance xyz (m)"
+            x_axis_i, x_axis_label = 1, "measured distance (m)"
+            #x_axis_i, x_axis_label = 3, "measured standard deviation (mm)"
             #x_axis_i, x_axis_label = 4, "rssi * -1"  # rssi
             #x_axis_i, x_axis_label = 5, "correct distance z (m)"
 
-            y_axis_i, y_axis_label, is_log = 1, "measured distance (m)", True
+            #y_axis_i, y_axis_label, is_log = 1, "measured distance (m)", False
+            #y_axis_i, y_axis_label, is_log = 0, "correct distance (m)", False
             #y_axis_i, y_axis_label, is_log = 6, "measurement inaccuracy (m, lower means too short)", False
+            y_axis_i, y_axis_label, is_log = 7, "measurement inaccuracy (%)", False
+
+            x = measurements[:, x_axis_i]
+            y = measurements[:, y_axis_i]
+            print(x.shape, y.shape, colors.shape)
+            A = np.vstack([x, np.ones(len(x))]).T
+            alpha = np.dot((np.dot(np.linalg.inv(np.dot(A.T, A)), A.T)), y)
 
             fig, ax = plt.subplots()
-            ax.scatter(measurements[:, x_axis_i], measurements[:, y_axis_i], measurements[:, 2], colors, alpha=0.3)
+            ax.scatter(x, y, np.abs(measurements[:, 6])+10, colors, alpha=0.3)
             ax.set_xlabel(x_axis_label, fontsize=15)
             ax.set_ylabel(y_axis_label, fontsize=15)
             ax.set_title('Accuracy of WiFi beacon measurements')
@@ -112,7 +124,9 @@ class Command(BaseCommand):
                 ax.plot([5, 120], [1, 116], linestyle="dotted", linewidth=1.5, color='gray')
             else:
                 ax.plot([0, 120], [0, 0], linestyle="dotted", linewidth=1.5, color='gray')
-                ax.plot([0, 120], [0, 0], linestyle="dotted", linewidth=1.5, color='gray')
+                ax.plot([0, 120], [0, 120], linestyle="dotted", linewidth=1.5, color='gray')
+
+            plt.plot(x, alpha[0] * x + alpha[1], linestyle="dotted", linewidth=1.5, color='red')
             parabola_scale = 0.08
             parabola_xoff = 45
             parabola_yoff = 10

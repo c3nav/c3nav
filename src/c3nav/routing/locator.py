@@ -7,7 +7,7 @@ from enum import StrEnum
 from functools import cached_property, reduce
 from itertools import chain, combinations
 from operator import itemgetter
-from typing import Annotated, NamedTuple, Union, Iterable
+from typing import Annotated, NamedTuple, Union, Iterable, cast, Literal
 from typing import Optional, Self, Sequence, TypeAlias
 from uuid import UUID
 
@@ -97,6 +97,13 @@ class LocatorPoint:
     x: float
     y: float
     values: ScanData
+
+
+class RawRangeLocatorResult(NamedTuple):
+    np_ranges: np.typing.NDArray
+    dimensions: Literal[2, 3]
+    xyz: tuple[int, int, int]
+    precision: float
 
 
 class LocatorResult(NamedTuple):
@@ -313,7 +320,7 @@ class Locator:
         pass
 
     @classmethod
-    def load(cls):
+    def load(cls) -> Self:
         from c3nav.mapdata.models import MapUpdate
         update = MapUpdate.last_processed_update()
         if getattr(cls.cached, 'update', cls.NoUpdate) != update:
@@ -337,11 +344,11 @@ class Locator:
         }
 
     def locate(self, raw_scan_data: list[LocateWifiPeerSchema], permissions=None,
-               correct_xyz: Optional[tuple[int, int, int]] = None, stats=False) -> LocatorResult:
+               correct_xyz: Optional[tuple[int, int, int]] = None, stats=False, debug=settings.DEBUG) -> LocatorResult:
         # todo: support for ibeacons
         scan_data = self.convert_raw_scan_data(raw_scan_data)
 
-        result = self.locate_range(scan_data, permissions, correct_xyz=correct_xyz, stats=stats)
+        result = self.locate_range(scan_data, permissions, correct_xyz=correct_xyz, stats=stats, debug=debug)
         if result.location is not None:
             if stats:
                 increment_cache_key('apistats__locatemethod__range')
@@ -501,44 +508,49 @@ class Locator:
             result.append(peer_id)
         return tuple(result)
 
-    def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None,
-                     correct_xyz: Optional[tuple[int, int, int]] = None, stats=False) -> LocatorResult:
+    def _pre_locate_range(self, scan_data: ScanData) -> tuple[tuple[int, ...], LocatorResult | None]:
         peer_ids = self._deduplicate_peer_ids(
             tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
         )
 
         if not peer_ids:
-            return LocatorResult(
+            return peer_ids, LocatorResult(
                 location=None,
                 suggested_peers=self.initial_suggested_peers
             )
 
         if len(peer_ids) == 1:
-            return LocatorResult(
+            return peer_ids, LocatorResult(
                 location=None,
                 suggested_peers=(
-                    [self.peers[pid].suggestion for pid, c in self.peers[peer_ids[0]].seen_with.most_common(20)]
-                    or self.initial_suggested_peers
+                        [self.peers[pid].suggestion for pid, c in self.peers[peer_ids[0]].seen_with.most_common(20)]
+                        or self.initial_suggested_peers
                 )
             )
 
         if len(peer_ids) == 2:
             # todo: maybe we can at least give something?
-            return LocatorResult(
+            return peer_ids, LocatorResult(
                 location=None,
                 suggested_peers=(
-                    [self.peers[pid].suggestion
-                     for pid, c in self.peers[min(peer_ids)].seen_with_with.get(max(peer_ids), Counter()).most_common(20)]
-                    or self.initial_suggested_peers
+                        [self.peers[pid].suggestion
+                         for pid, c in
+                         self.peers[min(peer_ids)].seen_with_with.get(max(peer_ids), Counter()).most_common(20)]
+                        or self.initial_suggested_peers
                 ),
             )
 
+        return peer_ids, None
+
+    def _raw_locate_range(self, peer_ids: tuple[int, ...], scan_data: ScanData,
+                          debug=settings.DEBUG) -> RawRangeLocatorResult:
+
         if len(peer_ids) == 3:
-            if settings.DEBUG:
+            if debug:
                 print('2D trilateration')
             dimensions = 2
         else:
-            if settings.DEBUG:
+            if debug:
                 print('3D trilateration')
             dimensions = 3
 
@@ -557,7 +569,7 @@ class Locator:
         # measured_ranges[measured_ranges<1] = 1
         #print('b', measured_ranges)
 
-        if settings.DEBUG:
+        if debug:
             print("relevant", relevant_xyz)
             print("measured_ranges", measured_ranges)
 
@@ -570,34 +582,33 @@ class Locator:
             # factors = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
             # return factors - np.mean(factors)
 
-        max_off = (((np.array(tuple(scan_data[i].rssi for i in peer_ids))*-1-45)**2)*0.08+10)*100
-        print("max_off", max_off)
-
         def cost_func(guess):
-            if settings.DEBUG:
+            if debug:
                 print("guess", guess)
 
             guess_distances = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1)
-            offset = measured_ranges - guess_distances  # negative if it's measured closer than should be possible
+            inaccuracy_m = measured_ranges - guess_distances  # negative if it's measured closer than should be possible
+            inaccuracy = inaccuracy_m
+            #inaccuracy = (measured_ranges / guess_distances) - 1
 
-            if settings.DEBUG:
-                print("diff", offset)
+            if debug:
+                print("diff", inaccuracy)
 
             # for access points more than 10m (=1000cm) away, we don't allow the offset to be below -2m (=-200cm)
             # but, somehow, this works better if the threshold is at +200cm. why?
-            too_far_select = (guess_distances > 1000) & (offset < -200)
-            offset[too_far_select] -= (offset[too_far_select]+200)*100
+            too_far_select = (guess_distances > 1000) & (inaccuracy_m < -200)
+            inaccuracy[too_far_select] *= 100
 
-            # penalize inaccuracy based on rssi – todo: unclear if this one is really needed
-            max_off_select = (offset > max_off)
-            offset[max_off_select] += (offset[max_off_select]-max_off[max_off_select])*10
+            ## penalize inaccuracy based on rssi – todo: unclear if this one is really needed
+            #max_off_select = (inaccuracy_m > max_off)
+            #inaccuracy_m[max_off_select] += (inaccuracy_m[max_off_select]-max_off[max_off_select])*10
 
-            if settings.DEBUG:
-                print("corrected offset", offset)
+            if debug:
+                print("corrected offset", inaccuracy)
 
-            cost = np.sum(offset ** 2)
-            if settings.DEBUG:
-                print("cost", offset, cost)
+            cost = np.sum(inaccuracy ** 2)
+            if debug:
+                print("cost", inaccuracy, cost)
             return cost
 
         # initial guess is the average of all beacons, with scale 1
@@ -611,6 +622,7 @@ class Locator:
 
         if dimensions == 3:
             bounds += ((min(relevant_xyz[:, 2]), max(relevant_xyz[:, 2])),)
+
         results = self.least_squares_func(
             fun=cost_func,
             # jac="3-point",
@@ -621,15 +633,43 @@ class Locator:
         )
 
         # create result
+        result_x = tuple(results.x)
+        if dimensions == 2:
+            result_x += (initial_guess[2], )
+
+        precision = round(float(np.std(diff_func(result_x))) / 100, 2)
+
+        return RawRangeLocatorResult(
+            np_ranges=np_ranges,
+            dimensions=cast(Literal[2, 3], dimensions),
+            xyz=cast(tuple[int, int, int], result_x),
+            precision=precision,
+        )
+
+    def raw_locate_range(self, scan_data: ScanData, debug=settings.DEBUG) -> RawRangeLocatorResult | None:
+        peer_ids, result = self._pre_locate_range(scan_data)
+        if result is not None:
+            return None
+
+        return self._raw_locate_range(peer_ids, scan_data, debug)
+
+
+    def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None,
+                     correct_xyz: Optional[tuple[int, int, int]] = None, stats=False,
+                     debug=settings.DEBUG) -> LocatorResult:
+        peer_ids, result = self._pre_locate_range(scan_data)
+        if result is not None:
+            return result
+
+        np_ranges, dimensions, result_x, precision = self._raw_locate_range(peer_ids, scan_data, debug)
+
+        result_pos = tuple(i/100 for i in result_x)
+
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
-        result_distances = self.norm_func(np_ranges[:, :dimensions] - results.x, axis=1)/100
-        precision = round(float(np.std(diff_func(results.x)))/100, 2)
+        result_distances = self.norm_func(np_ranges[:, :dimensions] - result_x, axis=1)/100
 
-        result_pos = tuple(i/100 for i in results.x)
-        if dimensions == 2:
-            result_pos += (initial_guess[2]/100, )
         point = Point(result_pos[0], result_pos[1])
 
         level = router.levels[router.level_id_for_xyz(
@@ -643,11 +683,11 @@ class Locator:
         # analyse
         analysis = []
         if correct_xyz is not None:
-            distance = float(np.linalg.norm(results.x - np.array(correct_xyz[:dimensions])))/100
-            distance_2d = float(np.linalg.norm(results.x[:2] - np.array(correct_xyz[:2]))) / 100
+            distance = float(np.linalg.norm(result_x - np.array(correct_xyz[:dimensions])))/100
+            distance_2d = float(np.linalg.norm(result_x[:2] - np.array(correct_xyz[:2]))) / 100
 
             analysis.append(
-                f"{tuple(round(float(i)/100, 2) for i in results.x)} → "
+                f"{tuple(round(float(i)/100, 2) for i in result_x)} → "
                 f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
                 f"(off by {distance:.2f} m" + (f" (2D: {distance_2d:.2f} m" if dimensions > 2 else "") + ")"
             )
@@ -702,7 +742,7 @@ class Locator:
         ]
 
         orig_xyz = None
-        if settings.DEBUG:
+        if debug:
             print('orig_addr', orig_addr)
             if orig_addr:
                 orig_xyz = self.get_xyz(orig_addr)
@@ -725,15 +765,15 @@ class Locator:
                     for i in tuple(self.norm_func(np_ranges[:, :dimensions] - orig_xyz[:dimensions], axis=1))
                 ))
             print()
-            print("diff result-measured:", ", ".join(
-                ("%.2f" % i) for i in
-                tuple(diff_func(result_pos))
-            ))
-            if orig_xyz is not None:
-                print("diff correct-measured:", ", ".join(
-                    ("%.2f" % i) for i in
-                    tuple(diff_func(orig_xyz))
-                ))
+            #print("diff result-measured:", ", ".join(
+            #    ("%.2f" % i) for i in
+            #    tuple(diff_func(result_pos))
+            #))
+            #if orig_xyz is not None:
+            #    print("diff correct-measured:", ", ".join(
+            #        ("%.2f" % i) for i in
+            #        tuple(diff_func(orig_xyz))
+             #   ))
 
             #def print_cost(title, pos):
             #    cost = cost_func(pos)
