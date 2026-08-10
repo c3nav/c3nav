@@ -268,11 +268,18 @@ class Locator:
         return peer_id
 
     def convert_wifi_scan(self, scan_data: list[LocateWifiPeerSchema], create_peers=False) -> ScanData:
+        bad_beacon_ids = {1504, 1473, 1444, 1348, 1383, 1429, 1525, 1435, 1436}  # todo: determine these programmatically
+        bad_peer_ids = set(chain.from_iterable(
+            (self.get_peer_id(identifier) for identifier in self.get_beacon_identifiers(beacon))
+            for beacon in RangingBeacon.objects.filter(pk__in=bad_beacon_ids)
+        ))
         result = {}
         for scan_value in scan_data:
             peer_ids = {
                 self.get_peer_id(identifier) for identifier in self.get_scan_value_identifiers(scan_value)
             } - {None, ""}
+            if peer_ids & bad_peer_ids:
+                continue
             for peer_id in peer_ids:
                 result[peer_id] = ScanDataValue(rssi=scan_value.rssi,
                                                 distance=scan_value.distance,
@@ -513,6 +520,9 @@ class Locator:
             tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
         )
 
+        # ignore everything with distance over 75m
+        #peer_ids = tuple(peer_id for peer_id in peer_ids if scan_data[peer_id].distance < 75)
+
         if not peer_ids:
             return peer_ids, LocatorResult(
                 location=None,
@@ -582,31 +592,48 @@ class Locator:
             # factors = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
             # return factors - np.mean(factors)
 
+        rssis = np.array(tuple(scan_data[i].rssi for i in peer_ids))
+        max_off = (((rssis * -1 - 45) ** 2) * 0.08 + 5) * 100
+        inaccurate_bonus = np.array([scan_data[i].distance_sd == 0.15 for i in peer_ids])
+
+        factors = np.ones(rssis.shape)
+        factors[measured_ranges > 7500] = 0.5  # over 75m measurements are way less accurate
+
         def cost_func(guess):
             if debug:
                 print("guess", guess)
 
             guess_distances = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1)
-            inaccuracy_m = measured_ranges - guess_distances  # negative if it's measured closer than should be possible
-            inaccuracy = inaccuracy_m
+            inaccuracy_cm = measured_ranges - guess_distances  # negative if it's measured closer than should be possible
+            inaccuracy = inaccuracy_cm
             #inaccuracy = (measured_ranges / guess_distances) - 1
 
             if debug:
                 print("diff", inaccuracy)
 
+
+            max_inaccuracy = np.argmax(inaccuracy)
+
             # for access points more than 10m (=1000cm) away, we don't allow the offset to be below -2m (=-200cm)
             # but, somehow, this works better if the threshold is at +200cm. why?
-            too_far_select = (guess_distances > 1000) & (inaccuracy_m < -200)
-            inaccuracy[too_far_select] *= 100
+            too_far_select = (inaccuracy_cm < -500) | ((guess_distances > 1000) & (inaccuracy_cm < -200))
+            if debug:
+                print("too_far_select", too_far_select)
+            inaccuracy[(inaccuracy_cm < 0)] *= 100
+
+            inaccuracy *= factors
 
             ## penalize inaccuracy based on rssi – todo: unclear if this one is really needed
-            #max_off_select = (inaccuracy_m > max_off)
-            #inaccuracy_m[max_off_select] += (inaccuracy_m[max_off_select]-max_off[max_off_select])*10
+            max_off_select = (inaccuracy_cm > max_off)
+            inaccuracy[max_off_select] *= 100
+
+            this_bonus = ~too_far_select & inaccurate_bonus
+            inaccuracy[this_bonus] /= 8
 
             if debug:
                 print("corrected offset", inaccuracy)
 
-            cost = np.sum(inaccuracy ** 2)
+            cost = np.sum((inaccuracy ** 2))
             if debug:
                 print("cost", inaccuracy, cost)
             return cost
@@ -616,12 +643,27 @@ class Locator:
 
         #initial_guess = (76.96*100, 183.65*100, 1600)
 
-        # here the magic happen
-        bounds = tuple(zip(tuple(np.min(self.xyz[:, :2], axis=0) - np.array([200, 200, 100])[:2]),
-                           tuple(np.max(self.xyz[:, :2], axis=0) + np.array([200, 200, 100])[:2])))
+        # select the space – this is currently our main optimization: todo: make this more performant?
+        strongest_measurements = sorted(scan_data.items(), key=lambda a: a[1].rssi, reverse=True)
+        strongest_peer = self.peers[strongest_measurements[0][0]]
+        strongest_router_space = Router.load().spaces[strongest_peer.space_id]
 
+        within_geom_2d = strongest_router_space.geometry
+        minx, miny, maxx, maxy = (int(i * 100) for i in within_geom_2d.bounds)
+
+        bounds = ((minx, maxx), (miny, maxy))
         if dimensions == 3:
-            bounds += ((min(relevant_xyz[:, 2]), max(relevant_xyz[:, 2])),)
+            minz = int(min(
+                min(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
+                for altitudearea in strongest_router_space.altitudeareas
+            )*100)
+            maxz = minz+int((strongest_router_space.height or 2)*100)
+            bounds += ((minz, maxz), )
+
+        #bounds = tuple(zip(min_xyz[:2], max_xyz[:2]))
+
+        #if dimensions == 3:
+        #    bounds += ((min(relevant_xyz[:, 2]), max(relevant_xyz[:, 2])),)
 
         results = self.least_squares_func(
             fun=cost_func,
@@ -668,7 +710,7 @@ class Locator:
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
-        result_distances = self.norm_func(np_ranges[:, :dimensions] - result_x, axis=1)/100
+        result_distances = self.norm_func(np_ranges[:, :dimensions] - result_x[:dimensions], axis=1)/100
 
         point = Point(result_pos[0], result_pos[1])
 
@@ -683,7 +725,7 @@ class Locator:
         # analyse
         analysis = []
         if correct_xyz is not None:
-            distance = float(np.linalg.norm(result_x - np.array(correct_xyz[:dimensions])))/100
+            distance = float(np.linalg.norm(result_x[:dimensions] - np.array(correct_xyz[:dimensions])))/100
             distance_2d = float(np.linalg.norm(result_x[:2] - np.array(correct_xyz[:2]))) / 100
 
             analysis.append(
