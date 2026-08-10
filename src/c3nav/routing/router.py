@@ -670,15 +670,16 @@ class RouterSpace(BaseRouterProxy[Space]):
         point = Point(point.x, point.y)
         if not self.altitudeareas:
             raise LocationUnreachable
-        altitudeareas = tuple(self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point))
-        for area in altitudeareas:
-            if area.geometry_prep.intersects(point):
-                return area
-        altitudeareas = tuple(
-            self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point.buffer(20))
-        )
-        if altitudeareas:
-            return min(altitudeareas, key=lambda area: area.geometry.distance(point))
+        if len(self.altitudeareas) > 0:
+            altitudeareas = tuple(self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point))
+            for area in altitudeareas:
+                if area.geometry_prep.intersects(point):
+                    return area
+            altitudeareas = tuple(
+                self.altitudeareas[i] for i in self.altitudeareas_index.intersection(point.buffer(20))
+            )
+            if altitudeareas:
+                return min(altitudeareas, key=lambda area: area.geometry.distance(point))
         return self.altitudeareas[0]
 
     def areas_for_point(self, areas, point, restrictions):
