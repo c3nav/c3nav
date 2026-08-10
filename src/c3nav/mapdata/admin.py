@@ -66,10 +66,14 @@ class BeaconMeasurementAdmin(admin.ModelAdmin):
         for located in obj.located_all_permissions:
             if located.location is None:
                 result.append("-")
-            line = format_html('<a href="/l/{slug}/">{title}</a>', slug=located.location.slug, title=located.location.title)
+            if located.location:
+                line = format_html('<a href="/l/{slug}/">{title}</a>', slug=located.location.slug, title=located.location.title)
+            else:
+                line = "unknown location"
             if located.precision is not None:
-                line = mark_safe(str(line) + f'sd: {located.precision:.1f} m - ')
-            line = mark_safe(str(line) + format_html('{title}', title=located.location.level.title))
+                line = mark_safe(str(line) + f' sd: {located.precision:.1f} m - ')
+            if located.location:
+                line = mark_safe(str(line) + format_html('{title}', title=located.location.level.title))
             result.append(line)
         return mark_safe("<br>".join(result))
 
