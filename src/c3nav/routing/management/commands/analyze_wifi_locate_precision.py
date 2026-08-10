@@ -75,16 +75,26 @@ class Command(BaseCommand):
                     (result.xyz[0]/100, result.xyz[1]/100, result.xyz[2]/100 - (1.3 if result.dimensions == 3 else 0)),
                     restrictions=None, # yeah this is right
                 )
+                point = Point(result.xyz[0]/100, result.xyz[1]/100)
+                if True:
+                    new_level, new_point = locator.move_into_space(
+                        router=router, level=router.levels[located_level_id], point=point,
+                        restrictions=(), max_space_distance=20,
+                    )
+                    located_level_id = new_level.id
+                    point = new_point
                 level_correct = located_level_id == measurement.space.level_id
                 if level_correct:
-                    located_space_id = router.space_for_point(located_level_id, Point(result.xyz[0]/100, result.xyz[1]/100), restrictions=())
+                    located_space_id = router.space_for_point(located_level_id, point, restrictions=())
                     space_correct = located_space_id.pk == measurement.space_id
-                    if accuracy_2d > 8000:
-                        print(f"measurement #{measurement.pk}/{j} has accuracy {accuracy_2d:.2f}m")
+                    if accuracy_2d > 1500:
+                        print(f"measurement #{measurement.pk}/{j} has accuracy {accuracy_2d/100:.2f}m")
                 else:
+                    print(located_level_id)
                     space_correct = False
 
                 highlight = level_correct and accuracy_2d > 2000
+                highlight = not level_correct
 
                 accuracies.append((len(peer_xyzs), accuracy, accuracy_2d, accuracy_z, level_correct, space_correct))
 
