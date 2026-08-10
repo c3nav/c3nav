@@ -585,6 +585,7 @@ class Locator:
 
         rssis = np.array(tuple(scan_data[i].rssi for i in peer_ids))
         max_off = (((rssis * -1 - 45) ** 2) * 0.08 + 5) * 100
+        max_distance = (((rssis * -1 - 45) ** 2) * 0.15 + 15) * 100
         inaccurate_bonus = np.array([scan_data[i].distance_sd == 0.15 for i in peer_ids])
 
         factors = np.ones(rssis.shape)
@@ -643,16 +644,19 @@ class Locator:
             inaccuracy *= factors
 
             ## penalize inaccuracy based on rssi – todo: unclear if this one is really needed
-            max_off_select = (inaccuracy_cm > max_off)
-            inaccuracy[max_off_select] *= 100
+            #max_off_select = (inaccuracy_cm > max_off)
+            #inaccuracy[max_off_select] *= 100
 
-            this_bonus = ~too_far_select & inaccurate_bonus
-            inaccuracy[this_bonus] /= 8
+            #this_bonus = ~too_far_select & inaccurate_bonus
+            #inaccuracy[this_bonus] /= 8
 
             if debug:
                 print("corrected offset", inaccuracy)
 
             cost = np.sum((inaccuracy ** 2))
+
+            wrong_distance_select = (guess_distances > max_distance)
+            inaccuracy[wrong_distance_select] *= 500
 
             if not within_geom_2d_prep.intersects(Point(*guess[:2]/100)):
                 cost *= 5000
