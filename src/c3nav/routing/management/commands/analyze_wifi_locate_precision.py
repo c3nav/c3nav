@@ -65,6 +65,11 @@ class Command(BaseCommand):
                     continue
 
                 peer_xyzs = set(locator.peers[peer_id].xyz for peer_id in scan_data)
+                best_peer_xyzs = [
+                    xyz for xyz, rssi in
+                    sorted(((locator.peers[peer_id].xyz, value.rssi) for peer_id, value in scan_data.items()),
+                           key=lambda a: a[1], reverse=True)
+                ]
                 accuracy = np.linalg.norm(np.array(result.xyz)-np.array(measurement.correct_xyz))
                 accuracy_2d = np.linalg.norm(np.array(result.xyz)[:2] - np.array(measurement.correct_xyz)[:2])
                 accuracy_z = max(0.01, abs(result.xyz[2] - measurement.correct_xyz[2]))
@@ -94,14 +99,20 @@ class Command(BaseCommand):
                     space_correct = False
 
                 highlight = level_correct and accuracy_2d > 2000
-                highlight = not level_correct
+                highlight = not space_correct or accuracy_2d > 500
 
                 accuracies.append((len(peer_xyzs), accuracy, accuracy_2d, accuracy_z, level_correct, space_correct))
 
                 if highlight:
-                    level_correct_lines[level_id].append((*zip(result.xyz[:2], measurement.correct_xyz[:2]), result.xyz[2]-measurement.correct_xyz[2]))
-                    for peer_xyz in peer_xyzs:
-                        level_ap_lines[level_id].append(tuple(zip(result.xyz[:2], peer_xyz[:2])))
+                    level_correct_lines[level_id].append((
+                        *zip(result.xyz[:2], measurement.correct_xyz[:2]),
+                        ((1, 0, 0) if result.xyz[2] < measurement.correct_xyz[2] else (0, 0, 1))
+                         if located_level_id != measurement.space.level_id else (0.5, 0.5, 0.5),
+                    ))
+
+                    for peer_xyz in best_peer_xyzs[:1]:  # peer_xyzs:
+                        #level_ap_lines[level_id].append(tuple(zip(result.xyz[:2], peer_xyz[:2])))
+                        level_ap_lines[level_id].append(tuple(zip(measurement.correct_xyz[:2], peer_xyz[:2])))
 
         num_correct_levels = 0
         num_correct_spaces = 0
@@ -150,7 +161,6 @@ class Command(BaseCommand):
         fig, all_ax = plt.subplots(rows, cols)
         cmap_accuracy = matplotlib.colors.LinearSegmentedColormap.from_list("", ["lime", "green", "yellow", "red", "magenta", "darkviolet"])
         norm_accuracy = matplotlib.colors.Normalize(0*100, 25*100)
-        cmap_altitude = matplotlib.colors.LinearSegmentedColormap.from_list("", ["blue", "gray", "gray", "gray", "red"])
         for i, (level_id, level) in enumerate(sorted(levels.items(), key=lambda a: a[1].base_altitude)):
             buildings = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
             walkable = unary_union((
@@ -180,7 +190,7 @@ class Command(BaseCommand):
             for x, y in level_ap_lines[level_id]:
                 ax.plot(x, y, linestyle="dotted", linewidth=1, color=(0.7, 0.7, 0.7), alpha=0.5)
             for x, y, color in level_correct_lines[level_id]:
-                ax.arrow(x[1], y[1], x[0]-x[1], y[0]-y[1], linestyle="solid", linewidth=1, color=cmap_altitude(max(0, min(1, color/100/10+0.5))))  #
+                ax.arrow(x[1], y[1], x[0]-x[1], y[0]-y[1], linestyle="solid", linewidth=1, color=color)
             ax.scatter(
                 x=locations[:, 0],
                 y=locations[:, 1],

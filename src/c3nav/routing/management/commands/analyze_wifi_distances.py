@@ -66,7 +66,7 @@ class Command(BaseCommand):
 
                 most_popular_spaces = Counter(beacons[beacon_id].space_id for scan_value, beacon_id in scan_values)
                 most_popular_space_id, most_popular_space_id_num = most_popular_spaces.most_common(1)[0]
-                if most_popular_space_id_num > len(scan_values)/3:
+                if False and most_popular_space_id_num > len(scan_values)/3:
                     print(f"\nmeasurement #{measurement.pk}/{j}")
 
                     from c3nav.mapdata.models import Space
@@ -78,7 +78,7 @@ class Command(BaseCommand):
                         chosen_space_id = most_popular_space_id
 
                 for scan_value, beacon_id in scan_values:
-                    if chosen_space_id and beacons[beacon_id].space_id != chosen_space_id:
+                    if chosen_space_id and (beacons[beacon_id].space_id != chosen_space_id or beacons[beacon_id].space_id == measurement.space_id):
                         # only strongest value
                         continue
                     if scan_value.distance is None:
@@ -101,6 +101,10 @@ class Command(BaseCommand):
                     inaccuracy_percent = scan_distance / correct_distance_3d * 100
                     inaccuracies.setdefault(beacon_id, []).append(inaccuracy)
                     space_distance = 0.01 if (beacon.space_id == measurement.space_id) else distance(unwrap_geom(beacon.space.geometry), unwrap_geom(measurement.geometry))
+                    space_beacon_distance = 0.01 if (beacon.space_id == measurement.space_id) else distance(unwrap_geom(beacon.geometry), unwrap_geom(measurement.space.geometry))
+
+                    if space_distance > 3 and scan_value.rssi > -60:
+                        print(f"\nmeasurement #{measurement.pk}/{j}: unexpected")
                     if beacon.space_id != measurement.space_id:
                         pass#print(f"Measurement #{measurement.pk}/{j}: distance from strongest beacon space: {space_distance} m")
                     measurements.append((
@@ -116,6 +120,7 @@ class Command(BaseCommand):
                         (scan_value.rssi - max_rssi) * -1,
                         (scan_value.distance - min_distance),
                         space_distance,
+                        space_beacon_distance,
                     ))
                     if scan_value.rssi == max_rssi:
                         off = abs(measurement_xyz[2] - beacon_xyz[2])
@@ -140,10 +145,11 @@ class Command(BaseCommand):
             key=lambda a: a[1][0], reverse=True,
         ))
         for beacon_id, (avg, thelist) in inaccuracies.items():
-            print(f"beacon #{beacon_id}: avg off by: {avg:.1f}m - {[round(i) for i in thelist]}")
+            pass # print(f"beacon #{beacon_id}: avg off by: {avg:.1f}m - {[round(i) for i in thelist]}")
 
-        print("Offsets (positive measured distance is bigger than actual distance)")
+        #print("Offsets (positive measured distance is bigger than actual distance)")
         for beacon_id, offsets in beacons_offsets.items():
+            break
             beacon = beacons[beacon_id]
             if offsets:
                 min_ = min(offsets)
@@ -168,12 +174,13 @@ class Command(BaseCommand):
 
             #y_axis_i, y_axis_label, is_log = 1, "measured distance (m)", False
             #y_axis_i, y_axis_label, is_log = 3, "measured standard deviation (mm)", True
-            #y_axis_i, y_axis_label, is_log = 0, "correct distance (m)", False
+            y_axis_i, y_axis_label, is_log = 0, "correct distance (m)", False
             #y_axis_i, y_axis_label, is_log = 5, "correct distance z (m)", False
             #y_axis_i, y_axis_label, is_log = 6, "measurement inaccuracy (m, lower means too short)", False
             #y_axis_i, y_axis_label, is_log = 7, "measurement inaccuracy (%)", False
             #y_axis_i, y_axis_label, is_log = 8, "measured distance × standard deviation", True
             y_axis_i, y_axis_label, is_log = 11, "distance from space that beacon is in (m)", False
+            y_axis_i, y_axis_label, is_log = 12, "distance from space that measurement is in (m)", False
 
             x = measurements[:, x_axis_i]
             y = measurements[:, y_axis_i]
@@ -206,9 +213,9 @@ class Command(BaseCommand):
                 ax.plot([0, 120], [0, 120], linestyle="dotted", linewidth=1.5, color='gray')
 
             #plt.plot(x, alpha[0] * x + alpha[1], linestyle="dotted", linewidth=1.5, color='red')
-            parabola_scale = 0.08
+            parabola_scale = 0.15
             parabola_xoff = 45
-            parabola_yoff = 5
+            parabola_yoff = 15
             ax.plot(
                 tuple(range(1, 100)),
                 tuple((i-parabola_xoff)**2*parabola_scale+parabola_yoff for i in range(1, 100)),

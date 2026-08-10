@@ -1,7 +1,8 @@
 import json
+import math
 from itertools import repeat
-from operator import itemgetter
-from typing import cast, Iterable
+from operator import itemgetter, attrgetter
+from typing import cast, Iterable, Counter
 
 import numpy as np
 from django.conf import settings
@@ -12,6 +13,7 @@ from shapely import distance
 from c3nav.mapdata.models.geometry.space import RangingBeacon, BeaconMeasurement
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.routing.locator import Locator, TypedIdentifier
+from c3nav.routing.router import Router
 from c3nav.routing.schemas import BeaconMeasurementDataSchema
 
 
@@ -39,11 +41,17 @@ class Command(BaseCommand):
         strongest_altitudes = []
         correct_altitudes = []
         visible_ap_ranks = []
+        average_rssis = []
+        space_distances = []
 
         all_xyz = set(tuple(int(i) for i in line) for line in beacons_xyz.values())
         all_xyz_np = np.array(tuple(all_xyz))
 
         space_distance_by_rrsi = []
+
+        num_kept_wrong = 0
+        num_fixed = 0
+        num_broken = 0
 
         for i, measurement in enumerate(cast(Iterable[BeaconMeasurement], BeaconMeasurement.objects.select_related("space"))):
             has = False
@@ -84,14 +92,85 @@ class Command(BaseCommand):
                 closest_altitude = beacons_xyz[closest_beacon_id][2]
                 strongest_altitude = beacons_xyz[strongest_beacon_id][2]
 
+                acceptable_values = [(value, beacon_id) for value, beacon_id in strongest_values
+                                     if value.rssi+5 >= strongest_value.rssi]
+                all_spaces = [beacons[beacon_id].space_id for value, beacon_id in strongest_values]
+                possible_spaces = [beacons[beacon_id].space_id for value, beacon_id in acceptable_values]
+
+                main_space_id = possible_spaces[0]
+
+                router = Router.load()
+
+                spaces_on_top = {
+                    58: [21, 28, 36],
+                    21: [28, 36],
+                    28: [36],
+                    46: [45, 44],
+                    45: [44],
+                }
+                spaces_below = {
+                    36: [28, 21, 58],
+                    28: [21, 58],
+                    21: [58],
+                    44: [45, 46],
+                    45: [46],
+                }
+
+                if main_space_id in spaces_on_top or main_space_id in spaces_below:
+                    connected = {main_space_id, *spaces_on_top.get(main_space_id, ()), *spaces_below.get(main_space_id, ())}
+                    possible_says_us = [sid for sid in all_spaces if sid in connected]
+                    for i in range(2, len(possible_says_us)+1):
+                        sid, num = Counter(possible_says_us[:i]).most_common(1)[0]
+                        if num == 2:
+                            new_space_id = sid
+                            break
+                    else:
+                        new_space_id = None
+
+                    if main_space_id != measurement.space_id:
+                        print("WAS WRONG:", router.spaces[main_space_id].title, "should be:", measurement.space.title)
+                        print("measurement:", tuple(float(i)/100 for i in measurement.correct_xyz),
+                              "beacon:", tuple(float(i)/100 for i in beacons_xyz[strongest_beacon_id]))
+                        print(all_spaces)
+                        if new_space_id is None:
+                            print("- no change found")
+                            num_kept_wrong += 1
+                        elif new_space_id == main_space_id:
+                            print("- kept wrong")
+                            num_kept_wrong += 1
+                        elif new_space_id == measurement.space_id:
+                            print("- fixed")
+                            num_fixed += 1
+                        else:
+                            print("- miscorrected:", router.spaces[new_space_id].title)
+                            num_kept_wrong += 1
+                    else:
+                        print("WAS RIGHT:", measurement.space.title)
+                        if new_space_id is None:
+                            print("- kept")
+                        elif new_space_id == main_space_id:
+                            print("- confirmed")
+                        else:
+                            print(all_spaces)
+                            print("- miscorrected:", router.spaces[new_space_id].title)
+                            num_broken += 1
+
+                else:
+                    if possible_spaces[0] != measurement.space_id:
+                        print("???", possible_spaces, "should be:", measurement.space_id, measurement.space.title, "... looks like", router.spaces[possible_spaces[0]].title)
                 strongest_space = beacons[strongest_beacon_id]
-                if beacons[strongest_beacon_id].space != measurement.space:
+
+                if beacons[strongest_beacon_id].space != measurement.space and False:
+
                     print(f"strongest beacon at {strongest_value.rssi} dB"
                           f" - beacon space: {beacons[strongest_beacon_id].space.title}"
                           f" - correct space: {measurement.space.title}")
-                    space_distance = (beacons[strongest_beacon_id].space != measurement.space)
+                    space_distance = distance(unwrap_geom(strongest_space.geometry), unwrap_geom(measurement.geometry))
                 else:
-                    space_distane = distance(unwrap_geom(beacons[strongest_beacon_id].space.geometry), unwrap_geom(measurement.geometry))
+                    space_distance = 0
+
+                average_rssis.append(np.average([value.rssi for value, beacon_id in scan_values[:int(math.ceil(len(scan_values)/2))]]))
+                space_distances.append(space_distance)
 
                 valid = correct_altitude <= closest_altitude or correct_altitude <= strongest_altitude
                 #print(f"#{measurement.pk}/{j}:", "valid" if valid else "invalid")
@@ -104,14 +183,14 @@ class Command(BaseCommand):
                 altitudes.append([beacons_xyz[beacon_id][2] for scan_value, beacon_id in scan_values])
                 labels.append("" if has else f"#{measurement.pk}")
 
-
-
                 has = True
+
+        print("kept_wrong:", num_kept_wrong, "fixed:", num_fixed, "broken:", num_broken)
 
         visible_ap_ranks = np.array(visible_ap_ranks)
         fig, ax = plt.subplots()
 
-        if True:
+        if False:
             ax.boxplot(altitudes, tick_labels=labels)
             ax.set_xlabel("Measurement", fontsize=15)
             ax.set_ylabel("Altitude", fontsize=15)
@@ -124,17 +203,17 @@ class Command(BaseCommand):
             plt.subplots_adjust(left=0.07, bottom=0.07, right=0.95, top=0.9)
             plt.show()
 
-        if False:
+        if True:
             ax.scatter(
-                visible_ap_ranks[:, 0],
-                visible_ap_ranks[:, 1],
-                np.clip(visible_ap_ranks[:, 2]*-1+100, 10, None),
+                np.array(average_rssis)*-1,
+                np.array(space_distances),
+                s=30,
                 c="red",
                 alpha=0.3,
             )
-            ax.set_yscale('log')
-            ax.set_xticks(list(range(len(closest_altitudes))))
-            ax.set_xticklabels(labels)
+            #ax.set_yscale('log')
+            #ax.set_xticks(list(range(len(closest_altitudes))))
+            #ax.set_xticklabels(labels)
 
         plt.show()
 
