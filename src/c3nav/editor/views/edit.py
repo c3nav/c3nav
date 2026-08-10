@@ -585,7 +585,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
                     return redirect(request.path)
 
             elif isinstance(edit_utils, SpaceChildEditUtils) and action == 'space':
-                form = SelectLevelForm(request=request, data=request.POST)
+                form = SelectSpaceForm(request=request, data=request.POST)
                 if form.is_valid():
                     space = Space.qs_for_request(request).get(pk=form.cleaned_data["space"])
                     selected_queryset.update(space=space)
