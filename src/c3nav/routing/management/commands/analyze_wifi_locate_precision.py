@@ -1,20 +1,18 @@
-import json
-from itertools import repeat, chain
+import math
+from itertools import chain
 from typing import cast, Iterable
 
 import matplotlib
-import numpy as np
-from django.conf import settings
-from django.core.management.base import BaseCommand
 import matplotlib.pyplot as plt
+import numpy as np
+from django.core.management.base import BaseCommand
+from shapely import Point
+from shapely.affinity import scale
 from shapely.ops import unary_union
 from shapely.plotting import plot_polygon
-from shapely.affinity import scale
-
 from c3nav.mapdata.models.geometry.space import RangingBeacon, BeaconMeasurement
 from c3nav.mapdata.utils.geometry import unwrap_geom
-from c3nav.routing.locator import Locator, TypedIdentifier
-from c3nav.routing.schemas import BeaconMeasurementDataSchema
+from c3nav.routing.locator import Locator
 
 
 class Command(BaseCommand):
@@ -29,7 +27,10 @@ class Command(BaseCommand):
         level_ap_lines: dict[int, list[tuple[tuple[int, int], tuple[int, int]]]] = {}
         level_correct_lines: dict[int, list[tuple[tuple[int, int], tuple[int, int]]]] = {}
         level_beacons: dict[int, list[tuple[int, int, int]]] = {}
-        accuracies: list[tuple[float, float]] = []
+        accuracies: list[tuple[int, float, float, float, bool, bool]] = []
+
+        from c3nav.routing.router import Router
+        router = Router.load()
 
         arrangements = {
             1: (1, 1),
@@ -65,12 +66,63 @@ class Command(BaseCommand):
 
                 peer_xyzs = set(locator.peers[peer_id].xyz for peer_id in scan_data)
                 accuracy = np.linalg.norm(np.array(result.xyz)-np.array(measurement.correct_xyz))
+                accuracy_2d = np.linalg.norm(np.array(result.xyz)[:2] - np.array(measurement.correct_xyz)[:2])
+                accuracy_z = max(0.01, abs(result.xyz[2] - measurement.correct_xyz[2]))
                 level_locations[level_id].append((*result.xyz, accuracy, len(peer_xyzs)))
-                accuracies.append((len(peer_xyzs), accuracy))
 
-                level_correct_lines[level_id].append((*zip(result.xyz[:2], measurement.correct_xyz[:2]), result.xyz[2]-measurement.correct_xyz[2]))
-                for peer_xyz in peer_xyzs:
-                    level_ap_lines[level_id].append(tuple(zip(result.xyz[:2], peer_xyz[:2])))
+                located_level_id = router.level_id_for_xyz(
+                    # -1.3m cause we assume people to be above ground
+                    (result.xyz[0]/100, result.xyz[1]/100, result.xyz[2]/100 - (1.3 if result.dimensions == 3 else 0)),
+                    restrictions=None, # yeah this is right
+                )
+                level_correct = located_level_id == measurement.space.level_id
+                if level_correct:
+                    located_space_id = router.space_for_point(located_level_id, Point(result.xyz[0]/100, result.xyz[1]/100), restrictions=())
+                    space_correct = located_space_id.pk == measurement.space_id
+                else:
+                    space_correct = False
+
+                highlight = level_correct and accuracy_2d > 2000
+
+                accuracies.append((len(peer_xyzs), accuracy, accuracy_2d, accuracy_z, level_correct, space_correct))
+
+                if highlight:
+                    level_correct_lines[level_id].append((*zip(result.xyz[:2], measurement.correct_xyz[:2]), result.xyz[2]-measurement.correct_xyz[2]))
+                    for peer_xyz in peer_xyzs:
+                        level_ap_lines[level_id].append(tuple(zip(result.xyz[:2], peer_xyz[:2])))
+
+        num_correct_levels = 0
+        num_correct_spaces = 0
+        accuracies_2d_correct_level = []
+        accuracies_2d_wrong_level = []
+        for num_peers, accuracy_3d, accuracy_2d, accuracy_z, correct_level, correct_space in accuracies:
+            if correct_level:
+                accuracies_2d_correct_level.append(accuracy_2d)
+                num_correct_levels += 1
+                if correct_space:
+                    num_correct_spaces += 1
+            else:
+                accuracies_2d_wrong_level.append(accuracy_2d)
+
+        accuracies_2d_correct_level.sort()
+        accuracies_2d_wrong_level.sort()
+
+        print(f"{num_correct_levels/len(accuracies)*100:.1f}% of all measurements locate to the correct level, of which...")
+        print(f" - {num_correct_spaces/num_correct_levels*100:.1f}% locate to the correct space")
+        last_target = 0
+        for i, accuracy_2d in enumerate(accuracies_2d_correct_level, start=1):
+            current_target = int(i/num_correct_levels*10)
+            if last_target != current_target:
+                last_target = current_target
+                print(f" - {current_target*10}% are 2D accurate <= {accuracy_2d/100:.1f} m")
+        print(f"for measurements that do not locate to the correct level...")
+        last_target = 0
+        for i, accuracy_2d in enumerate(accuracies_2d_wrong_level, start=1):
+            current_target = int(i / (len(accuracies)-num_correct_levels) * 10)
+            if last_target != current_target:
+                last_target = current_target
+                print(f" - {current_target*10}% are 2D accurate <= {accuracy_2d/100:.1f} m")
+
 
         allxyz = np.array(tuple(chain.from_iterable(level_locations.values())))
         minx = np.min(allxyz[:, 0])
@@ -116,7 +168,6 @@ class Command(BaseCommand):
             for x, y in level_ap_lines[level_id]:
                 ax.plot(x, y, linestyle="dotted", linewidth=1, color=(0.7, 0.7, 0.7), alpha=0.5)
             for x, y, color in level_correct_lines[level_id]:
-                print(color, color/100, color/100/10+0.5)
                 ax.arrow(x[1], y[1], x[0]-x[1], y[0]-y[1], linestyle="solid", linewidth=1, color=cmap_altitude(max(0, min(1, color/100/10+0.5))))  #
             ax.scatter(
                 x=locations[:, 0],
@@ -137,17 +188,23 @@ class Command(BaseCommand):
         ax = all_ax[len(levels) // cols, len(levels) % cols]
         accuracies = np.array(accuracies)
         ax.scatter(
-            x=accuracies[:, 0],
-            y=accuracies[:, 1]/100,
+            x=accuracies[:, 0]-0.3,
+            y=accuracies[:, 1] / 100,
             c="red",
             s=30,
-            alpha=0.5,
+            alpha=0.3,
+        )
+        ax.scatter(
+            x=accuracies[:, 0]+0.3,
+            y=np.abs(accuracies[:, 3]) / 100,
+            c="blue",
+            s=30,
+            alpha=0.3,
         )
         ax.set_title("Inaccuracy")
         ax.set_xlabel("Number of visible Ranging Beacons", fontsize=15)
-        ax.set_yscale('log')
         ax.set_ylabel("Inaccuracy (m)", fontsize=15)
-
+        ax.set_yscale('log')
         plt.subplots_adjust(left=0.02, bottom=0.03, right=0.98, top=0.95, hspace=0.07, wspace=0.05)
 
 

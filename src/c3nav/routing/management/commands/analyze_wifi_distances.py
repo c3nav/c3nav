@@ -1,15 +1,14 @@
-import json
 from itertools import repeat
-from typing import cast, Iterable
+from typing import cast, Iterable, Counter
 
-import numpy as np
-from django.conf import settings
-from django.core.management.base import BaseCommand
 import matplotlib.pyplot as plt
+import numpy as np
+from django.core.management.base import BaseCommand
+from shapely import distance
 
 from c3nav.mapdata.models.geometry.space import RangingBeacon, BeaconMeasurement
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.routing.locator import Locator, TypedIdentifier
-from c3nav.routing.schemas import BeaconMeasurementDataSchema
 
 
 class Command(BaseCommand):
@@ -30,11 +29,59 @@ class Command(BaseCommand):
             identifiers = locator.get_beacon_identifiers(beacon)
             identifier_to_beacon.update(dict(zip(identifiers, repeat(beacon.pk))))
 
+        inaccuracies = {}
         for measurement in cast(Iterable[BeaconMeasurement], BeaconMeasurement.objects.select_related("space")):
             measurement_xyz = np.array(measurement.correct_xyz)
-            for scan in measurement.data.wifi:
+            for j, scan in enumerate(measurement.data.wifi):
+                scan_values = []
                 for scan_value in scan:
-                    if scan_value.distance is None or scan_value.distance < 0:
+                    if scan_value.distance is None:
+                        continue
+                    try:
+                        beacon_id = next(iter(filter(
+                            None,
+                            (identifier_to_beacon.get(id_) for id_ in locator.get_scan_value_identifiers(scan_value))
+                        )))
+                    except StopIteration:
+                        continue
+                    scan_values.append((scan_value, beacon_id))
+
+                if not scan_values:
+                    continue
+
+                rssis = [scan_value.rssi for scan_value, beacon_id in scan_values]
+                distances = [scan_value.distance for scan_value, beacon_id in scan_values]
+                sorted_rssi = sorted(rssis, reverse=True)
+                max_rssi = max(rssis)
+                min_distance = min(distances)
+                yes = False
+
+                strongest_space_id = beacons[sorted((
+                    (scan_value, beacon_id)
+                    for scan_value, beacon_id in scan_values
+                    if scan_value.rssi in sorted_rssi[:1]
+                ), key=lambda a: a[0].distance)[0][1]].space_id
+
+                chosen_space_id = strongest_space_id
+
+                most_popular_spaces = Counter(beacons[beacon_id].space_id for scan_value, beacon_id in scan_values)
+                most_popular_space_id, most_popular_space_id_num = most_popular_spaces.most_common(1)[0]
+                if most_popular_space_id_num > len(scan_values)/3:
+                    print(f"\nmeasurement #{measurement.pk}/{j}")
+
+                    from c3nav.mapdata.models import Space
+                    print(f'over a third of the beacons say space "{Space.objects.get(pk=most_popular_space_id).title}"')
+                    if most_popular_space_id == strongest_space_id:
+                        print("agreement.")
+                    else:
+                        print(f'overriding strongest space "{Space.objects.get(pk=strongest_space_id).title}"')
+                        chosen_space_id = most_popular_space_id
+
+                for scan_value, beacon_id in scan_values:
+                    if chosen_space_id and beacons[beacon_id].space_id != chosen_space_id:
+                        # only strongest value
+                        continue
+                    if scan_value.distance is None:
                         continue
                     try:
                         beacon_id = next(iter(filter(
@@ -52,22 +99,48 @@ class Command(BaseCommand):
                     beacons_offsets[beacon_id].append(scan_distance-correct_distance_3d)
                     inaccuracy = scan_distance-correct_distance_3d
                     inaccuracy_percent = scan_distance / correct_distance_3d * 100
-                    if inaccuracy < -20:
-                        print("very inaccurate", inaccuracy, "m", beacon_xyz/100, measurement.pk)
+                    inaccuracies.setdefault(beacon_id, []).append(inaccuracy)
+                    space_distance = 0.01 if (beacon.space_id == measurement.space_id) else distance(unwrap_geom(beacon.space.geometry), unwrap_geom(measurement.geometry))
+                    if beacon.space_id != measurement.space_id:
+                        pass#print(f"Measurement #{measurement.pk}/{j}: distance from strongest beacon space: {space_distance} m")
                     measurements.append((
                         correct_distance_3d,
                         scan_distance,
                         50 - min(correct_distance_z*10, 50) + 10,
-                        (scan_value.distance_sd or 0)*50,
+                        (scan_value.distance_sd or 0),
                         scan_value.rssi * -1,
-                        abs(correct_distance_z)+50,
+                        abs(correct_distance_z),
                         inaccuracy,
                         inaccuracy_percent,
+                        (scan_value.distance_sd or 0)*scan_distance,
+                        (scan_value.rssi - max_rssi) * -1,
+                        (scan_value.distance - min_distance),
+                        space_distance,
                     ))
+                    if scan_value.rssi == max_rssi:
+                        off = abs(measurement_xyz[2] - beacon_xyz[2])
+                        #if off > 400 and len(scan_values) >= 3:
+                        #    print("doent work:", off/100, "#", measurement.pk, beacon_xyz)
+                    if scan_value.distance == min_distance:
+                        off = abs(measurement_xyz[2] - beacon_xyz[2])
+                        if off > 400 and len(scan_values) >= 3:
+                            print("doent work:", off/100, "#", measurement.pk, beacon_xyz)
+                        yes = True
                     colors.append(
                         (0, 0.6, 0) if beacon.space_id == measurement.space_id
                         else ((0.8, 0.8, 0) if beacon.space.level_id == measurement.space.level_id else (1, 0, 0))
                     )
+                    if chosen_space_id:
+                        break
+                if not yes and False:
+                    raise ValueError
+
+        inaccuracies = dict(sorted(
+            [(beacon_id, (sum(abs(i) for i in thelist)/len(thelist), thelist)) for beacon_id, thelist in inaccuracies.items()],
+            key=lambda a: a[1][0], reverse=True,
+        ))
+        for beacon_id, (avg, thelist) in inaccuracies.items():
+            print(f"beacon #{beacon_id}: avg off by: {avg:.1f}m - {[round(i) for i in thelist]}")
 
         print("Offsets (positive measured distance is bigger than actual distance)")
         for beacon_id, offsets in beacons_offsets.items():
@@ -88,13 +161,19 @@ class Command(BaseCommand):
             #x_axis_i, x_axis_label = 0, "correct distance xyz (m)"
             x_axis_i, x_axis_label = 1, "measured distance (m)"
             #x_axis_i, x_axis_label = 3, "measured standard deviation (mm)"
-            #x_axis_i, x_axis_label = 4, "rssi * -1"  # rssi
+            x_axis_i, x_axis_label = 4, "rssi * -1"  # rssi
             #x_axis_i, x_axis_label = 5, "correct distance z (m)"
+            #x_axis_i, x_axis_label = 9, "(rssi - best_rssi) × -1"
+            #x_axis_i, x_axis_label = 10, "measaured distance - closest measured distance (m)"
 
             #y_axis_i, y_axis_label, is_log = 1, "measured distance (m)", False
+            #y_axis_i, y_axis_label, is_log = 3, "measured standard deviation (mm)", True
             #y_axis_i, y_axis_label, is_log = 0, "correct distance (m)", False
+            #y_axis_i, y_axis_label, is_log = 5, "correct distance z (m)", False
             #y_axis_i, y_axis_label, is_log = 6, "measurement inaccuracy (m, lower means too short)", False
-            y_axis_i, y_axis_label, is_log = 7, "measurement inaccuracy (%)", False
+            #y_axis_i, y_axis_label, is_log = 7, "measurement inaccuracy (%)", False
+            #y_axis_i, y_axis_label, is_log = 8, "measured distance × standard deviation", True
+            y_axis_i, y_axis_label, is_log = 11, "distance from space that beacon is in (m)", False
 
             x = measurements[:, x_axis_i]
             y = measurements[:, y_axis_i]
@@ -103,33 +182,33 @@ class Command(BaseCommand):
             alpha = np.dot((np.dot(np.linalg.inv(np.dot(A.T, A)), A.T)), y)
 
             fig, ax = plt.subplots()
-            ax.scatter(x, y, np.abs(measurements[:, 6])+10, colors, alpha=0.3)
+            ax.scatter(x, y, np.abs(measurements[:, 6])*3+10, colors, alpha=0.3)
             ax.set_xlabel(x_axis_label, fontsize=15)
             ax.set_ylabel(y_axis_label, fontsize=15)
             ax.set_title('Accuracy of WiFi beacon measurements')
             if is_log:
                 ax.set_xscale('log')
                 ax.set_yscale('log')
-                ax.plot([1, 120], [1, 120], linestyle="dotted", linewidth=1.5, color='gray')
+                #ax.plot([1, 120], [1, 120], linestyle="dotted", linewidth=1.5, color='gray')
                 #ax.plot([1, 120], [6, 125], linestyle="dotted", linewidth=1.5, color='gray')
-                ax.plot([1, 120], [11, 130], linestyle="dotted", linewidth=1.5, color='gray')
+                #ax.plot([1, 120], [11, 130], linestyle="dotted", linewidth=1.5, color='gray')
                 #ax.plot([1, 120], [16, 135], linestyle="dotted", linewidth=1.5, color='gray')
-                ax.plot([1, 120], [21, 130], linestyle="dotted", linewidth=1.5, color='gray')
+                #ax.plot([1, 120], [21, 130], linestyle="dotted", linewidth=1.5, color='gray')
                 # ax.plot([1, 120], [26, 135], linestyle="dotted", linewidth=1.5, color='gray')
-                ax.plot([1, 120], [31, 130], linestyle="dotted", linewidth=1.5, color='gray')
+                #ax.plot([1, 120], [31, 130], linestyle="dotted", linewidth=1.5, color='gray')
                 # ax.plot([1, 120], [36, 135], linestyle="dotted", linewidth=1.5, color='gray')
-                ax.plot([1, 120], [41, 130], linestyle="dotted", linewidth=1.5, color='gray')
+                #ax.plot([1, 120], [41, 130], linestyle="dotted", linewidth=1.5, color='gray')
                 # ax.plot([1, 120], [46, 135], linestyle="dotted", linewidth=1.5, color='gray')
-                ax.plot([5, 120], [3, 118], linestyle="dotted", linewidth=1.5, color='gray')
-                ax.plot([5, 120], [1, 116], linestyle="dotted", linewidth=1.5, color='gray')
+                #ax.plot([5, 120], [3, 118], linestyle="dotted", linewidth=1.5, color='gray')
+                #ax.plot([5, 120], [1, 116], linestyle="dotted", linewidth=1.5, color='gray')
             else:
                 ax.plot([0, 120], [0, 0], linestyle="dotted", linewidth=1.5, color='gray')
                 ax.plot([0, 120], [0, 120], linestyle="dotted", linewidth=1.5, color='gray')
 
-            plt.plot(x, alpha[0] * x + alpha[1], linestyle="dotted", linewidth=1.5, color='red')
+            #plt.plot(x, alpha[0] * x + alpha[1], linestyle="dotted", linewidth=1.5, color='red')
             parabola_scale = 0.08
             parabola_xoff = 45
-            parabola_yoff = 10
+            parabola_yoff = 5
             ax.plot(
                 tuple(range(1, 100)),
                 tuple((i-parabola_xoff)**2*parabola_scale+parabola_yoff for i in range(1, 100)),
