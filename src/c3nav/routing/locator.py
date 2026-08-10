@@ -583,15 +583,6 @@ class Locator:
             print("relevant", relevant_xyz)
             print("measured_ranges", measured_ranges)
 
-        # rating the guess by calculating the distances
-        # negative if the measured distance is higher than it should be for this guess
-        def diff_func(guess):
-            result = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) - measured_ranges
-            # print(result)
-            return result
-            # factors = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
-            # return factors - np.mean(factors)
-
         rssis = np.array(tuple(scan_data[i].rssi for i in peer_ids))
         max_off = (((rssis * -1 - 45) ** 2) * 0.08 + 5) * 100
         inaccurate_bonus = np.array([scan_data[i].distance_sd == 0.15 for i in peer_ids])
@@ -599,11 +590,39 @@ class Locator:
         factors = np.ones(rssis.shape)
         factors[measured_ranges > 7500] = 0.5  # over 75m measurements are way less accurate
 
+        router = Router.load()
+
+        # select the space – this is currently our main optimization: todo: make this more performant?
+        strongest_measurements = sorted(scan_data.items(), key=lambda a: a[1].rssi, reverse=True)
+        strongest_peer = self.peers[strongest_measurements[0][0]]
+        strongest_router_space = router.spaces[strongest_peer.space_id]
+
+        within_geom_2d = strongest_router_space.geometry
+        within_geom_2d_prep = strongest_router_space.geometry_prep
+        minx, miny, maxx, maxy = (int(i * 100) for i in within_geom_2d.bounds)
+
+        # rating the guess by calculating the distances
+        # negative if the measured distance is higher than it should be for this guess
+        def add_to_guess(guess):
+            if len(guess) > 2:
+                return guess
+            point = Point(*guess)
+            return np.array(
+                (*guess, int(strongest_router_space.altitudearea_for_point(point).get_altitude(point)*100))
+            )
+
+        def diff_func(guess):
+            result = self.norm_func(np_ranges[:, :3] - guess, axis=1)
+            # print(result)
+            return result
+            # factors = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
+            # return factors - np.mean(factors)
+
         def cost_func(guess):
             if debug:
                 print("guess", guess)
 
-            guess_distances = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1)
+            guess_distances = diff_func(add_to_guess(guess))
             inaccuracy_cm = measured_ranges - guess_distances  # negative if it's measured closer than should be possible
             inaccuracy = inaccuracy_cm
             #inaccuracy = (measured_ranges / guess_distances) - 1
@@ -634,31 +653,33 @@ class Locator:
                 print("corrected offset", inaccuracy)
 
             cost = np.sum((inaccuracy ** 2))
+
+            if not within_geom_2d_prep.intersects(Point(*guess[:2]/100)):
+                cost *= 5000
+
             if debug:
                 print("cost", inaccuracy, cost)
             return cost
 
-        # initial guess is the average of all beacons, with scale 1
-        initial_guess = np.average(np_ranges, axis=0)
-
-        #initial_guess = (76.96*100, 183.65*100, 1600)
-
-        # select the space – this is currently our main optimization: todo: make this more performant?
-        strongest_measurements = sorted(scan_data.items(), key=lambda a: a[1].rssi, reverse=True)
-        strongest_peer = self.peers[strongest_measurements[0][0]]
-        strongest_router_space = Router.load().spaces[strongest_peer.space_id]
-
-        within_geom_2d = strongest_router_space.geometry
-        minx, miny, maxx, maxy = (int(i * 100) for i in within_geom_2d.bounds)
-
-        bounds = ((minx, maxx), (miny, maxy))
         if dimensions == 3:
             minz = int(min(
                 min(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
                 for altitudearea in strongest_router_space.altitudeareas
-            )*100)
-            maxz = minz+int((strongest_router_space.height or 2)*100)
-            bounds += ((minz, maxz), )
+            ) * 100)
+            maxz = int(max(
+                max(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
+                for altitudearea in strongest_router_space.altitudeareas
+            ) * 100) + int((strongest_router_space.height or 2)*100)
+        else:
+            if (len(strongest_router_space.altitudeareas) == 1
+                    and strongest_router_space.altitudeareas[0].altitude is not None):
+                minz = maxz = int(strongest_router_space.altitudeareas[0].altitude * 100)
+            else:
+                minz = maxz = None
+
+        bounds = ((minx, maxx), (miny, maxy), *(((minz, maxz), ) if minz is not None else ()))
+
+        initial_guess = tuple((mini+maxi)/2 for mini, maxi in bounds)
 
         #bounds = tuple(zip(min_xyz[:2], max_xyz[:2]))
 
@@ -671,15 +692,13 @@ class Locator:
             #loss="linear",
             bounds=bounds,
             #x_scale=10,
-            x0=initial_guess[:dimensions],
+            x0=initial_guess,
         )
 
         # create result
-        result_x = tuple(results.x)
-        if dimensions == 2:
-            result_x += (initial_guess[2], )
+        result_x = tuple(add_to_guess(results.x))
 
-        precision = round(float(np.std(diff_func(result_x))) / 100, 2)
+        precision = round(float(np.std(diff_func(result_x) - measured_ranges)) / 100, 2)
 
         return RawRangeLocatorResult(
             np_ranges=np_ranges,
@@ -729,8 +748,8 @@ class Locator:
             distance_2d = float(np.linalg.norm(result_x[:2] - np.array(correct_xyz[:2]))) / 100
 
             analysis.append(
-                f"{tuple(round(float(i)/100, 2) for i in result_x)} → "
-                f"{tuple(round(float(i)/100, 2) for i in correct_xyz[:dimensions])} "
+                f"{tuple(round(float(i)/100, 2) for i in correct_xyz)} → "
+                f"({dimensions}D) {tuple(round(float(i)/100, 2) for i in result_x)}"
                 f"(off by {distance:.2f} m" + (f" (2D: {distance_2d:.2f} m" if dimensions > 2 else "") + ")"
             )
             correct_distances = np.linalg.norm(self.xyz[peer_ids, :] - np.array(correct_xyz), axis=1) / 100
