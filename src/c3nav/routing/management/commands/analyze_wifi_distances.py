@@ -29,7 +29,8 @@ class Command(BaseCommand):
             identifiers = locator.get_beacon_identifiers(beacon)
             identifier_to_beacon.update(dict(zip(identifiers, repeat(beacon.pk))))
 
-        inaccuracies = {}
+        beacon_inaccuracies = {}
+        measurement_inaccuracies = {}
         for measurement in cast(Iterable[BeaconMeasurement], BeaconMeasurement.objects.select_related("space")):
             measurement_xyz = np.array(measurement.correct_xyz)
             for j, scan in enumerate(measurement.data.wifi):
@@ -63,19 +64,10 @@ class Command(BaseCommand):
                 ), key=lambda a: a[0].distance)[0][1]].space_id
 
                 chosen_space_id = strongest_space_id
+                chosen_space_id = None
 
                 most_popular_spaces = Counter(beacons[beacon_id].space_id for scan_value, beacon_id in scan_values)
                 most_popular_space_id, most_popular_space_id_num = most_popular_spaces.most_common(1)[0]
-                if False and most_popular_space_id_num > len(scan_values)/3:
-                    print(f"\nmeasurement #{measurement.pk}/{j}")
-
-                    from c3nav.mapdata.models import Space
-                    print(f'over a third of the beacons say space "{Space.objects.get(pk=most_popular_space_id).title}"')
-                    if most_popular_space_id == strongest_space_id:
-                        print("agreement.")
-                    else:
-                        print(f'overriding strongest space "{Space.objects.get(pk=strongest_space_id).title}"')
-                        chosen_space_id = most_popular_space_id
 
                 for scan_value, beacon_id in scan_values:
                     if chosen_space_id and (beacons[beacon_id].space_id != chosen_space_id or beacons[beacon_id].space_id == measurement.space_id):
@@ -99,7 +91,8 @@ class Command(BaseCommand):
                     beacons_offsets[beacon_id].append(scan_distance-correct_distance_3d)
                     inaccuracy = scan_distance-correct_distance_3d
                     inaccuracy_percent = scan_distance / correct_distance_3d * 100
-                    inaccuracies.setdefault(beacon_id, []).append(inaccuracy)
+                    beacon_inaccuracies.setdefault(beacon_id, []).append(inaccuracy)
+                    measurement_inaccuracies.setdefault((measurement.pk, j), []).append(inaccuracy)
                     space_distance = 0.01 if (beacon.space_id == measurement.space_id) else distance(unwrap_geom(beacon.space.geometry), unwrap_geom(measurement.geometry))
                     space_beacon_distance = 0.01 if (beacon.space_id == measurement.space_id) else distance(unwrap_geom(beacon.geometry), unwrap_geom(measurement.space.geometry))
 
@@ -140,12 +133,20 @@ class Command(BaseCommand):
                 if not yes and False:
                     raise ValueError
 
-        inaccuracies = dict(sorted(
-            [(beacon_id, (sum(abs(i) for i in thelist)/len(thelist), thelist)) for beacon_id, thelist in inaccuracies.items()],
+        beacon_inaccuracies = dict(sorted(
+            [(beacon_id, (sum(abs(i) for i in thelist)/len(thelist), thelist)) for beacon_id, thelist in beacon_inaccuracies.items()],
             key=lambda a: a[1][0], reverse=True,
         ))
-        for beacon_id, (avg, thelist) in inaccuracies.items():
-            pass # print(f"beacon #{beacon_id}: avg off by: {avg:.1f}m - {[round(i) for i in thelist]}")
+        for beacon_id, (avg, thelist) in beacon_inaccuracies.items():
+            print(f"beacon #{beacon_id} ({beacons[beacon_id].space.title}): avg off by: {avg:.1f}m - {sorted(round(i) for i in thelist)}")
+
+        measurement_inaccuracies = dict(sorted(
+            [(measurement_id, (sum(abs(i) for i in thelist) / len(thelist), thelist)) for measurement_id, thelist in measurement_inaccuracies.items()],
+            key=lambda a: a[1][0], reverse=True,
+        ))
+        print("\n\n")
+        for measurement_id, (avg, thelist) in measurement_inaccuracies.items():
+            print(f"measurement #{measurement_id}: avg off by: {avg:.1f}m - {sorted(round(i) for i in thelist)}")
 
         #print("Offsets (positive measured distance is bigger than actual distance)")
         for beacon_id, offsets in beacons_offsets.items():
