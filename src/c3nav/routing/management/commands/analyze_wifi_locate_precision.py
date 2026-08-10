@@ -58,7 +58,7 @@ class Command(BaseCommand):
             if measurement.space.level_id not in levels:
                 levels[measurement.space.level_id] = measurement.space.level
 
-            for scan in measurement.data.wifi:
+            for j, scan in enumerate(measurement.data.wifi):
                 scan_data = locator.convert_raw_scan_data(scan)
                 result = locator.raw_locate_range(scan_data, debug=False)
                 if result is None:
@@ -79,6 +79,8 @@ class Command(BaseCommand):
                 if level_correct:
                     located_space_id = router.space_for_point(located_level_id, Point(result.xyz[0]/100, result.xyz[1]/100), restrictions=())
                     space_correct = located_space_id.pk == measurement.space_id
+                    if accuracy_2d > 8000:
+                        print(f"measurement #{measurement.pk}/{j} has accuracy {accuracy_2d:.2f}m")
                 else:
                     space_correct = False
 
