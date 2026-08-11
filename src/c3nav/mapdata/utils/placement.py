@@ -14,7 +14,7 @@ class PointPlacementHelper:
         self.levels = tuple(Level.objects.values_list("pk", flat=True))
         self.lower_levels_for_level = {pk: self.levels[:i] for i, pk in enumerate(self.levels)}
 
-        for space in Space.objects.select_related('level').prefetch_related('holes'):
+        for space in Space.objects.select_related('level').prefetch_related('holes', 'columns'):
             self.spaces_for_level.setdefault(space.level_id, []).append(space)
 
     def get_point_and_space(self, level_id: int, point: Point, name: Optional[str] = None,
