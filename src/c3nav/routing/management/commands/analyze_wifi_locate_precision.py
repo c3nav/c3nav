@@ -92,14 +92,14 @@ class Command(BaseCommand):
                     )
                     located_level_id = new_level.id
                     point = new_point
-                level_correct = located_level_id == measurement.space.level_id
-                if level_correct:
+                if located_level_id == measurement.space.level_id:
+                    level_correct = True
                     located_space_id = router.space_for_point(located_level_id, point, restrictions=())
                     space_correct = located_space_id.pk == measurement.space_id
                     if accuracy_2d > 1500:
                         print(f"measurement #{measurement.pk}/{j} has accuracy {accuracy_2d/100:.2f}m")
                 else:
-                    print(located_level_id)
+                    level_correct = router.levels[located_level_id].on_top_of_id == measurement.space.level_id
                     space_correct = False
 
                 highlight = level_correct and accuracy_2d > 2000
