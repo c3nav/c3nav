@@ -517,7 +517,7 @@ class Locator:
 
     def _pre_locate_range(self, scan_data: ScanData) -> tuple[tuple[int, ...], LocatorResult | None]:
         peer_ids = self._deduplicate_peer_ids(
-            tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance)
+            tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance and item.distance > -5)
         )
 
         # ignore everything with distance over 75m
