@@ -31,7 +31,7 @@ from c3nav.mapdata.utils.index import Index
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
-from c3nav.routing.router import Router
+from c3nav.routing.router import Router, RouterSpace
 from c3nav.routing.schemas import LocateWifiPeerSchema, BeaconMeasurementDataSchema, LocateIBeaconPeerSchema, \
     RangePeerSchema
 
@@ -115,6 +115,7 @@ class RawRangeLocatorResult(NamedTuple):
     dimensions: Literal[2, 3]
     xyz: tuple[int, int, int]
     precision: float
+    space: RouterSpace | None = None
 
 
 class LocatorResult(NamedTuple):
@@ -841,7 +842,7 @@ class Locator:
         if result is not None:
             return result
 
-        np_ranges, dimensions, result_x, precision = self._raw_locate_range(peer_ids, scan_data, debug)
+        np_ranges, dimensions, result_x, precision, located_space = self._raw_locate_range(peer_ids, scan_data, debug)
 
         result_pos = tuple(i/100 for i in result_x)
 
@@ -852,11 +853,15 @@ class Locator:
 
         point = Point(result_pos[0], result_pos[1])
 
-        level = router.levels[router.level_id_for_xyz(
-            # -1.3m cause we assume people to be above ground
-            (result_pos[0], result_pos[1], result_pos[2] - (1.3 if dimensions == 3 else 0)),
-            restrictions=None, # yeah this is right
-        )]
+        if located_space is None or located_space.id not in restrictions.spaces:
+            level = router.levels[router.level_id_for_xyz(
+                # -1.3m cause we assume people to be above ground
+                (result_pos[0], result_pos[1], result_pos[2] - (1.3 if dimensions == 3 else 0)),
+                restrictions=None, # yeah this is right
+            )]
+        else:
+            level = router.levels[located_space.id]
+
         if level.on_top_of_id:
             level = router.levels[level.on_top_of_id]
 
@@ -887,10 +892,14 @@ class Locator:
                              f" → {correct_distance-result_distance:+.1f} m" if correct_distance is not None else ""))
 
         # if we are outside a space, let's move the user into the space
-        new_level, new_point = self.move_into_space(
-            router=router, level=level, point=point,
-            restrictions=restrictions, max_space_distance=20,
-        )
+        if located_space is None or located_space.id not in restrictions.spaces:
+            new_level, new_point = self.move_into_space(
+                router=router, level=level, point=point,
+                restrictions=restrictions, max_space_distance=20,
+            )
+        else:
+            new_level, new_point = None, None
+
         if new_point is not None:
             level = new_level
             point = new_point
