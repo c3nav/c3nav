@@ -268,7 +268,9 @@ class Locator:
         return peer_id
 
     def convert_wifi_scan(self, scan_data: list[LocateWifiPeerSchema], create_peers=False) -> ScanData:
-        bad_beacon_ids = {1504, 1473, 1444, 1348, 1383, 1429, 1525, 1435, 1436}  # todo: determine these programmatically
+        bad_beacon_ids = {1504, 1473, 1444, 1348, 1383, 1429, 1525, 1435, 1436,
+                          1482, 1430, 1417, 1432, 1396, 1475, 1378, 1198, 1397}  # todo: determine these programmatically
+        bad_beacon_ids = set()
         bad_peer_ids = set(chain.from_iterable(
             (self.get_peer_id(identifier) for identifier in self.get_beacon_identifiers(beacon))
             for beacon in RangingBeacon.objects.filter(pk__in=bad_beacon_ids)
