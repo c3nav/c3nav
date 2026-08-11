@@ -586,7 +586,6 @@ class Locator:
             print("measured_ranges", measured_ranges)
 
         rssis = np.array(tuple(scan_data[i].rssi for i in peer_ids))
-        max_off = (((rssis * -1 - 45) ** 2) * 0.08 + 5) * 100
         inaccurate_bonus = np.array([scan_data[i].distance_sd == 0.15 for i in peer_ids])
 
         factors = np.ones(rssis.shape)
@@ -643,10 +642,6 @@ class Locator:
             inaccuracy[(inaccuracy_cm < 0)] *= 100
 
             inaccuracy *= factors
-
-            ## penalize inaccuracy based on rssi – todo: unclear if this one is really needed
-            #max_off_select = (inaccuracy_cm > max_off)
-            #inaccuracy[max_off_select] *= 100
 
             #this_bonus = ~too_far_select & inaccurate_bonus
             #inaccuracy[this_bonus] /= 8
