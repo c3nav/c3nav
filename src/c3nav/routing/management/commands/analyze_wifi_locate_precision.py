@@ -1,4 +1,5 @@
 import math
+import time
 from itertools import chain
 from typing import cast, Iterable
 
@@ -45,6 +46,7 @@ class Command(BaseCommand):
         }
 
         locator = Locator.load()
+        totaltime = 0
         for measurement in cast(Iterable[BeaconMeasurement], BeaconMeasurement.objects.select_related("space",
                                                                                                       "space__level")):
             level_id = measurement.space.level_id
@@ -59,8 +61,10 @@ class Command(BaseCommand):
                 levels[measurement.space.level_id] = measurement.space.level
 
             for j, scan in enumerate(measurement.data.wifi):
+                start = time.time()
                 scan_data = locator.convert_raw_scan_data(scan)
-                result = locator.raw_locate_range(scan_data, debug=False)
+                result = locator.raw_locate_range(scan_data, debug=False, )
+                totaltime += time.time()-start
                 if result is None:
                     continue
 
@@ -114,6 +118,8 @@ class Command(BaseCommand):
                         #level_ap_lines[level_id].append(tuple(zip(result.xyz[:2], peer_xyz[:2])))
                         level_ap_lines[level_id].append(tuple(zip(measurement.correct_xyz[:2], peer_xyz[:2])))
 
+        avg_time = totaltime/len(accuracies)
+
         num_correct_levels = 0
         num_correct_spaces = 0
         accuracies_2d_correct_level = []
@@ -146,6 +152,7 @@ class Command(BaseCommand):
                 last_target = current_target
                 print(f" - {current_target*10}% are 2D accurate <= {accuracy_2d/100:.1f} m")
 
+        print(f"AVG TIME: {avg_time*1000:.2f}ms")
 
         allxyz = np.array(tuple(chain.from_iterable(level_locations.values())))
         minx = np.min(allxyz[:, 0])

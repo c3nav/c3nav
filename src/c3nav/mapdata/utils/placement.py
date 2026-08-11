@@ -18,7 +18,8 @@ class PointPlacementHelper:
             self.spaces_for_level.setdefault(space.level_id, []).append(space)
 
     def get_point_and_space(self, level_id: int, point: Point, name: Optional[str] = None,
-                            restrictions: Optional[RouterRestrictionSet] = None, max_space_distance=1.5):
+                            restrictions: Optional[RouterRestrictionSet] = None, max_space_distance=1.5,
+                            drop_down_through_holes=True):
         # determine space
         restricted_spaces = restrictions.spaces if restrictions else ()
         possible_spaces = [space for space in self.spaces_for_level[level_id]
@@ -59,6 +60,10 @@ class PointPlacementHelper:
             if name:
                 print(f"WARNING: {name} could be in multiple spaces, picking one...")
             new_space = possible_spaces[0]
+
+        if not drop_down_through_holes:
+            # todo: move user out of the hole
+            return new_space, point
 
         lower_levels = self.lower_levels_for_level[new_space.level_id]
         for lower_level in reversed(lower_levels):

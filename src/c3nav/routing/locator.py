@@ -1,4 +1,5 @@
 import bisect
+import math
 import operator
 import pickle
 from collections import Counter, defaultdict
@@ -11,17 +12,22 @@ from typing import Annotated, NamedTuple, Union, Iterable, cast, Literal
 from typing import Optional, Self, Sequence, TypeAlias
 from uuid import UUID
 
+import matplotlib.pyplot as plt
 import numpy as np
 from annotated_types import Lt
 from django.conf import settings
 from pydantic.types import NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
-from shapely import Point
-from shapely.ops import nearest_points
+from shapely import Point, LineString, prepared, Polygon
+from shapely.ops import nearest_points, unary_union
+from shapely.plotting import plot_polygon
+from shapely.affinity import scale
 
-from c3nav.mapdata.models import MapUpdate, Space
+from c3nav.mapdata.models import MapUpdate, Space, Level
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement, RangingBeacon
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
+from c3nav.mapdata.utils.geometry import unwrap_geom, assert_multipolygon, assert_multilinestring
+from c3nav.mapdata.utils.index import Index
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
 from c3nav.mesh.utils import get_nodes_and_ranging_beacons
@@ -59,6 +65,11 @@ class LocatorPeer:
     supports80211mc: bool = False
     seen_with: Counter = field(default_factory=Counter)
     seen_with_with: dict[int, Counter] = field(default_factory=lambda: defaultdict(Counter))
+    line_of_sight_area: Optional[Polygon] = None
+
+    @cached_property
+    def line_of_sight_area_prep(self) -> RangePeerSchema:
+        return prepared.prep(self.line_of_sight_area)
 
     @cached_property
     def suggestion(self) -> RangePeerSchema:
@@ -114,6 +125,15 @@ class LocatorResult(NamedTuple):
 
 
 @dataclass
+class RealSpace:
+    geometry: Polygon
+
+    @cached_property
+    def geometry_prep(self):
+        return prepared.prep(self.geometry)
+
+
+@dataclass
 class Locator:
     peers: list[LocatorPeer] = field(default_factory=list)
     peer_lookup: dict[TypedIdentifier, int] = field(default_factory=dict)
@@ -122,6 +142,8 @@ class Locator:
     placement_helper: Optional[PointPlacementHelper] = None
     peers_with_80211mc: frozenset[int] = field(default_factory=frozenset)
     initial_80211mc_peers: list[int] = field(default_factory=list)
+    real_spaces: list[RealSpace] = field(default_factory=list)
+    space_to_real_space: dict[int, tuple[int, ...]] = field(default_factory=dict)
 
     @cached_property
     def initial_suggested_peers(self) -> list[RangePeerSchema]:
@@ -133,6 +155,82 @@ class Locator:
         locator._rebuild(router)
         pickle.dump(locator, open(cls.build_filename(update), 'wb'))
         return locator
+
+    def get_beacon_line_of_sight(self, beacon: RangingBeacon, real_space):
+        if not beacon.geometry.intersects(real_space):
+            # todo: show warnigns for this stuff somewhere
+            print("beacon outside space!", beacon, beacon.space.title)
+            fix, ax = plt.subplots()
+            plot_polygon(real_space, ax=ax, facecolor=(0, 0, 0, 0.6), add_points=False, linewidth=0)
+            ax.scatter(x=[beacon.geometry.x], y=[beacon.geometry.y], c="red", s=30)
+            plt.show()
+            return real_space
+        # todo: support for holes
+        beacon_coords = beacon.geometry.coords[0]
+        all_coords = frozenset(
+            chain.from_iterable(ring.coords for ring in chain.from_iterable(
+                (polygon.exterior, *polygon.interiors)
+                for polygon in assert_multipolygon(real_space)
+            ))
+        )
+
+        plot = False
+        if plot:
+            fix, ax = plt.subplots()
+            plot_polygon(real_space, ax=ax, facecolor=(0, 0, 0,0.6), add_points=False, linewidth=0)
+
+        coords = []
+        last_angle = None
+        for angle, length, coord in sorted(
+            (
+                math.atan2(beacon_coords[0] - x, beacon_coords[1] - y),
+                np.linalg.norm((beacon_coords[0] -x, beacon_coords[1] - y)),
+                (x, y)
+            )
+            for x, y in all_coords if not real_space.crosses(LineString((beacon_coords, (x, y)))
+        )):
+            if last_angle == angle:
+                continue
+            last_angle = angle
+            try:
+                ray = next(iter(
+                    segment for segment in assert_multilinestring(LineString((
+                        coord,
+                        (coord[0]-math.sin(angle)*5000, coord[1]-math.cos(angle)*5000)
+                    )).intersection(real_space))
+                    if coord in segment.coords
+                ))
+            except StopIteration, AttributeError:
+                coords.append((coord, None))
+            else:
+                ray_end_coord = next(iter(c for c in ray.coords if c != coord))
+                coords.append((ray_end_coord, coord))
+
+        final_coords = []
+        last_outer = coords[-1][0]
+        for outer, inner in coords:
+            if inner is None:
+                final_coords.append(outer)
+                last_outer = outer
+            elif real_space.buffer(-0.005).crosses(LineString((last_outer, outer))):
+                final_coords.append(inner)
+                final_coords.append(outer)
+                last_outer = outer
+            else:
+                final_coords.append(outer)
+                final_coords.append(inner)
+                last_outer = inner
+            if inner is not None:
+                linestring = LineString((last_outer, outer))
+                if plot:
+                    ax.plot(*zip(*linestring.coords), linewidth=1, color='blue')
+
+        polygon = Polygon(final_coords)
+        if plot:
+            #plot_polygon(polygon, ax=ax, facecolor=(1, 0.9, 0.9, 0.8), add_points=False, linewidth=0)
+            ax.scatter(x=[beacon.geometry.x], y=[beacon.geometry.y], c="red", s=30)
+            plt.show()
+        return polygon
 
     def _rebuild(self, router):
         calculated = get_nodes_and_ranging_beacons()
@@ -146,11 +244,48 @@ class Locator:
                 if item.distance is not None:
                     ranging_bssids.add(item.bssid.lower())
 
+        self.space_to_real_space = {}
+        self.real_spaces = []
+        for level in Level.objects.prefetch_related("buildings", "spaces__columns", "spaces__holes"):
+            index = Index()
+            buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
+            level_real_spaces = assert_multipolygon(unary_union(tuple(  # noqa
+                space.geometry.difference(unary_union((
+                    *(unwrap_geom(column.geometry) for column in space.columns.all()
+                      if column.access_restriction_id is None),
+                    *((buildings_geom,) if space.outside else ()),
+                ))) for space in level.spaces.all()
+            )))
+
+            for i, real_space in enumerate(level_real_spaces):
+                index.insert(i, real_space)
+            level_real_spaces = [(real_space, prepared.prep(real_space)) for real_space in level_real_spaces]
+            for space in level.spaces.all():
+                self.space_to_real_space[space.pk] = space_real_space = []
+                for i, real_space in enumerate(level_real_spaces):
+                    if real_space[1].intersects(unwrap_geom(space.geometry)):
+                        space_real_space.append(i+len(self.real_spaces))
+                self.space_to_real_space[space.pk] = tuple(space_real_space)
+
+            self.real_spaces.extend(RealSpace(real_space) for real_space, real_space_prep in level_real_spaces)
+
         # go through beacons, create peers
         for beacon in calculated.beacons.values():
             xyz = self.get_beacon_xyz(beacon, router)
+
+            real_spaces_i = self.space_to_real_space[beacon.space_id]
+            for real_space_i in real_spaces_i:
+                real_space = self.real_spaces[real_space_i]
+                if real_space.geometry.intersects(unwrap_geom(beacon.geometry)):
+                    line_of_sight_area = self.get_beacon_line_of_sight(beacon, self.real_spaces[real_space_i].geometry)
+                    break
+            else:
+                line_of_sight_area = unwrap_geom(beacon.space.geometry)
+                print("beacon outside of space", beacon, beacon.space.title)
+
             for identifier in self.get_beacon_identifiers(beacon):
                 peer_id = self.get_peer_id(identifier, create=True)
+                self.peers[peer_id].line_of_sight_area = line_of_sight_area
                 self.peers[peer_id].xyz = xyz
                 if identifier.identifier in ranging_bssids:
                     self.peers[peer_id].supports80211mc = True
@@ -166,7 +301,6 @@ class Locator:
                 peer_id = self.peer_lookup.get(TypedIdentifier(PeerType.WIFI, value.bssid), None)
                 if peer_id is not None and value.frequency not in self.peers[peer_id].frequencies:
                     self.peers[peer_id].frequencies.append(value.frequency)
-
 
         # count seen with
         range_peer_counter = Counter()
@@ -268,20 +402,11 @@ class Locator:
         return peer_id
 
     def convert_wifi_scan(self, scan_data: list[LocateWifiPeerSchema], create_peers=False) -> ScanData:
-        bad_beacon_ids = {1504, 1473, 1444, 1348, 1383, 1429, 1525, 1435, 1436,
-                          1482, 1430, 1417, 1432, 1396, 1475, 1378, 1198, 1397}  # todo: determine these programmatically
-        bad_beacon_ids = set()
-        bad_peer_ids = set(chain.from_iterable(
-            (self.get_peer_id(identifier) for identifier in self.get_beacon_identifiers(beacon))
-            for beacon in RangingBeacon.objects.filter(pk__in=bad_beacon_ids)
-        ))
         result = {}
         for scan_value in scan_data:
             peer_ids = {
                 self.get_peer_id(identifier) for identifier in self.get_scan_value_identifiers(scan_value)
             } - {None, ""}
-            if peer_ids & bad_peer_ids:
-                continue
             for peer_id in peer_ids:
                 result[peer_id] = ScanDataValue(rssi=scan_value.rssi,
                                                 distance=scan_value.distance,
@@ -381,6 +506,7 @@ class Locator:
         return LocatorResult(location=result, suggested_peers=suggestions)
 
     def locate_by_beacon_positions(self, scan_data: ScanData, permissions=None) -> Optional[CustomLocation]:
+        # todo: use the line of sight things here
         scan_data_we_can_use = sorted([
             (peer_id, value) for peer_id, value in scan_data.items()
             if self.peers[peer_id].space_id and -90 < value.rssi < -10
@@ -454,6 +580,7 @@ class Locator:
         )
 
     def locate_rssi(self, scan_data: ScanData, permissions=None) -> Optional[CustomLocation]:
+        # todo: use the line of sight things here
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
@@ -495,10 +622,12 @@ class Locator:
         return norm
 
     def move_into_space(self, router: "Router", level: "Level", point: Point, restrictions,
-                        max_space_distance: int | float = 20) -> tuple["Level", "Point"]:
+                        max_space_distance: int | float = 20,
+                        drop_down_through_holes=False) -> tuple["Level", "Point"]:
         new_space, new_point = self.placement_helper.get_point_and_space(
             level_id=level.pk, point=point, restrictions=restrictions,
             max_space_distance=max_space_distance,
+            drop_down_through_holes=drop_down_through_holes,
         )
         if new_space is not None:
             level = router.levels[new_space.level_id]
@@ -598,9 +727,7 @@ class Locator:
         strongest_peer = self.peers[strongest_measurements[0][0]]
         strongest_router_space = router.spaces[strongest_peer.space_id]
 
-        within_geom_2d = strongest_router_space.geometry
-        within_geom_2d_prep = strongest_router_space.geometry_prep
-        minx, miny, maxx, maxy = (int(i * 100) for i in within_geom_2d.bounds)
+        minx, miny, maxx, maxy = (int(i * 100) for i in strongest_peer.line_of_sight_area.bounds)
 
         # rating the guess by calculating the distances
         # negative if the measured distance is higher than it should be for this guess
@@ -636,11 +763,13 @@ class Locator:
 
             # for access points more than 10m (=1000cm) away, we don't allow the offset to be below -2m (=-200cm)
             # but, somehow, this works better if the threshold is at +200cm. why?
+            # this is one of the most important optimizations
             too_far_select = (inaccuracy_cm < -500) | ((guess_distances > 1000) & (inaccuracy_cm < -200))
             if debug:
                 print("too_far_select", too_far_select)
             inaccuracy[(inaccuracy_cm < 0)] *= 100
 
+            # time to factor bad measurements less – this also helps quite a bit
             inaccuracy *= factors
 
             #this_bonus = ~too_far_select & inaccurate_bonus
@@ -651,7 +780,7 @@ class Locator:
 
             cost = np.sum((inaccuracy ** 2))
 
-            if not within_geom_2d_prep.intersects(Point(*guess[:2]/100)):
+            if not strongest_peer.line_of_sight_area_prep.intersects(Point(*guess[:2]/100)):
                 cost *= 5000
 
             if debug:
@@ -659,14 +788,7 @@ class Locator:
             return cost
 
         if dimensions == 3:
-            minz = int(min(
-                min(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
-                for altitudearea in strongest_router_space.altitudeareas
-            ) * 100)
-            maxz = int(max(
-                max(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
-                for altitudearea in strongest_router_space.altitudeareas
-            ) * 100) + int((strongest_router_space.height or 2)*100)
+            minz, maxz = strongest_router_space.minz_maxz
         else:
             if (len(strongest_router_space.altitudeareas) == 1
                     and strongest_router_space.altitudeareas[0].altitude is not None):

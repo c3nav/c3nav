@@ -721,6 +721,18 @@ class RouterSpace(BaseRouterProxy[Space]):
             return None, nearby
         return min(near, key=operator.itemgetter(1))[0], nearby
 
+    @cached_property
+    def minz_maxz(self):
+        minz = int(min(
+            min(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
+            for altitudearea in self.altitudeareas
+        ) * 100)
+        maxz = int(max(
+            max(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
+            for altitudearea in self.altitudeareas
+        ) * 100) + int((self.height or 2) * 100)
+        return minz, maxz
+
 
 @dataclass
 class RouterArea(BaseRouterProxy[Area]):
