@@ -590,7 +590,7 @@ class Locator:
         inaccurate_bonus = np.array([scan_data[i].distance_sd == 0.15 for i in peer_ids])
 
         factors = np.ones(rssis.shape)
-        factors[measured_ranges > 7500] = 0.5  # over 75m measurements are way less accurate
+        factors[measured_ranges > 7500] = 0.3  # over 75m measurements are less accurate – this factor is better than 0.5
 
         router = Router.load()
 
