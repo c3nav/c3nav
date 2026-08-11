@@ -179,6 +179,9 @@ class GeometryIndexed:
             bounds = self.get_geometry_bounds(key)
             self.fit_bounds(*bounds)
             cells = self.get_geometry_cells(key, bounds)
+            if not self.data.flags.writable:
+                # on some systems the result of .frombuffer() is read-only, in which case this is needed
+                self.data = self.data.copy()
             self.data[cells] = value
             return
 
