@@ -79,23 +79,30 @@ class Command(BaseCommand):
                 accuracy_z = max(0.01, abs(result.xyz[2] - measurement.correct_xyz[2]))
                 level_locations[level_id].append((*result.xyz, accuracy, len(peer_xyzs)))
 
-                located_level_id = router.level_id_for_xyz(
-                    # -1.3m cause we assume people to be above ground
-                    (result.xyz[0]/100, result.xyz[1]/100, result.xyz[2]/100 - (1.3 if result.dimensions == 3 else 0)),
-                    restrictions=None, # yeah this is right
-                )
-                point = Point(result.xyz[0]/100, result.xyz[1]/100)
-                if True:
+                point = Point(result.xyz[0] / 100, result.xyz[1] / 100)
+
+                if result.space is None:
+                    located_level_id = router.level_id_for_xyz(
+                        # -1.3m cause we assume people to be above ground
+                        (result.xyz[0]/100, result.xyz[1]/100, result.xyz[2]/100 - (1.3 if result.dimensions == 3 else 0)),
+                        restrictions=None, # yeah this is right
+                    )
                     new_level, new_point = locator.move_into_space(
                         router=router, level=router.levels[located_level_id], point=point,
                         restrictions=(), max_space_distance=20,
                     )
                     located_level_id = new_level.id
                     point = new_point
+                else:
+                    located_level_id = result.space.level_id
+
                 if located_level_id == measurement.space.level_id:
                     level_correct = True
-                    located_space_id = router.space_for_point(located_level_id, point, restrictions=())
-                    space_correct = located_space_id.pk == measurement.space_id
+                    located_space = router.space_for_point(located_level_id, point, restrictions=())
+                    if located_space is None:
+                        print(f"measurement #{measurement.pk}/{j} not located in spac")
+
+                    space_correct = located_space is not None and located_space.pk == measurement.space_id
                     if accuracy_2d > 1500:
                         print(f"measurement #{measurement.pk}/{j} has accuracy {accuracy_2d/100:.2f}m")
                 else:
