@@ -3,11 +3,14 @@ from collections import deque, namedtuple
 from itertools import chain
 from typing import List, Sequence, Union
 
+import matplotlib.pyplot as plt
+import numpy as np
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.geometry import mapping as shapely_mapping
 from shapely.geometry import shape as shapely_shape
+from shapely.plotting import plot_polygon
 
 
 class WrappedGeometry():
@@ -354,3 +357,69 @@ def cut_ring(ring: LinearRing) -> List[LinearRing]:
         new_ring = new_ring[:index+1]
 
     return rings
+
+
+def get_line_of_sight(point: Point, polygon: Polygon | MultiPolygon, plot=False) -> Polygon | None:
+    if not point.intersects(polygon):
+        return None
+    # todo: support for holes
+    beacon_coords = point.coords[0]
+    all_coords = frozenset(
+        chain.from_iterable(ring.coords for ring in chain.from_iterable(
+            (polygon.exterior, *polygon.interiors)
+            for polygon in assert_multipolygon(polygon)
+        ))
+    )
+
+    coords = []
+    last_angle = None
+    for angle, length, coord in sorted(
+        (
+            math.atan2(beacon_coords[0] - x, beacon_coords[1] - y),
+            np.linalg.norm((beacon_coords[0] -x, beacon_coords[1] - y)),
+            (x, y)
+        )
+        for x, y in all_coords if not polygon.crosses(LineString((beacon_coords, (x, y)))
+    )):
+        if last_angle == angle:
+            continue
+        last_angle = angle
+        try:
+            ray = next(iter(
+                segment for segment in assert_multilinestring(LineString((
+                    coord,
+                    (coord[0]-math.sin(angle)*5000, coord[1]-math.cos(angle)*5000)
+                )).intersection(polygon))
+                if coord in segment.coords
+            ))
+        except StopIteration, AttributeError:
+            coords.append((coord, None))
+        else:
+            ray_end_coord = next(iter(c for c in ray.coords if c != coord))
+            coords.append((ray_end_coord, coord))
+
+    final_coords = []
+    last_outer = coords[-1][0]
+    for outer, inner in coords:
+        if inner is None:
+            final_coords.append(outer)
+            last_outer = outer
+        elif polygon.buffer(-0.005).crosses(LineString((last_outer, outer))):
+            final_coords.append(inner)
+            final_coords.append(outer)
+            last_outer = outer
+        else:
+            final_coords.append(outer)
+            final_coords.append(inner)
+            last_outer = inner
+        if inner is not None:
+            linestring = LineString((last_outer, outer))
+            if plot:
+                ax.plot(*zip(*linestring.coords), linewidth=1, color='blue')
+
+    polygon = Polygon(final_coords)
+    if plot:
+        plot_polygon(polygon, ax=ax, facecolor=(1, 0.9, 0.9, 0.8), add_points=False, linewidth=0)
+        ax.scatter(x=[point.x], y=[point.y], c="red", s=30)
+        plt.show()
+    return polygon
