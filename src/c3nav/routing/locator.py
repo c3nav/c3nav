@@ -813,6 +813,7 @@ class Locator:
             bounds=bounds,
             #x_scale=10,
             x0=initial_guess,
+            tol=0.1,
         )
 
         # create result
