@@ -853,14 +853,14 @@ class Locator:
 
         point = Point(result_pos[0], result_pos[1])
 
-        if located_space is None or located_space.id not in restrictions.spaces:
+        if located_space is None or located_space.id in restrictions.spaces:
             level = router.levels[router.level_id_for_xyz(
                 # -1.3m cause we assume people to be above ground
                 (result_pos[0], result_pos[1], result_pos[2] - (1.3 if dimensions == 3 else 0)),
                 restrictions=None, # yeah this is right
             )]
         else:
-            level = router.levels[located_space.id]
+            level = router.levels[located_space.level_id]
 
         if level.on_top_of_id:
             level = router.levels[level.on_top_of_id]
@@ -892,7 +892,7 @@ class Locator:
                              f" → {correct_distance-result_distance:+.1f} m" if correct_distance is not None else ""))
 
         # if we are outside a space, let's move the user into the space
-        if located_space is None or located_space.id not in restrictions.spaces:
+        if located_space is None or located_space.id in restrictions.spaces:
             new_level, new_point = self.move_into_space(
                 router=router, level=level, point=point,
                 restrictions=restrictions, max_space_distance=20,
