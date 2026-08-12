@@ -51,6 +51,7 @@ class PointPlacementHelper:
             if new_space_geometry.is_empty:
                 new_space_geometry = new_space.geometry
             if not new_space_geometry.intersects(point):
+                # todo: this buffer operation could be somewhere else to be faster
                 point = nearest_points(new_space_geometry.buffer(-0.05), point)[0]
         elif len(possible_spaces) == 1:
             new_space = possible_spaces[0]

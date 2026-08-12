@@ -371,6 +371,10 @@ def get_line_of_sight(point: Point, polygon: Polygon | MultiPolygon, plot=False)
         ))
     )
 
+    if plot:
+        fig, ax = plt.subplots()
+        plot_polygon(polygon, ax=ax, facecolor=(0, 0, 0, 0.1), add_points=False, linewidth=0)
+
     coords = []
     last_angle = None
     for angle, length, coord in sorted(

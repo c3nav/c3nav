@@ -1,3 +1,4 @@
+from __future__ import annotations
 import bisect
 import math
 import operator
@@ -66,10 +67,7 @@ class LocatorPeer:
     seen_with: Counter = field(default_factory=Counter)
     seen_with_with: dict[int, Counter] = field(default_factory=lambda: defaultdict(Counter))
     line_of_sight_area: LineOfSightArea = None
-
-    @cached_property
-    def line_of_sight_area_prep(self) -> RangePeerSchema:
-        return prepared.prep(self.line_of_sight_area)
+    extended_line_of_sight_area: LineOfSightArea = None
 
     @cached_property
     def suggestion(self) -> RangePeerSchema:
@@ -128,11 +126,23 @@ class LocatorResult(NamedTuple):
 @dataclass
 class RealSpace:
     geometry: Polygon
-    space_ids: frozenset[int]
+    extended_geometry: Polygon | Polygon
+    space_ids: set[int]
+    extend_to: set[int]
 
     @cached_property
     def geometry_prep(self):
         return prepared.prep(self.geometry)
+
+    @cached_property
+    def extended_geometry_prep(self):
+        return prepared.prep(self.extended_geometry)
+
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result.pop('geometry_prep', None)
+        result.pop('extended_geometry_prep', None)
+        return result
 
 
 @dataclass
@@ -143,6 +153,11 @@ class LineOfSightArea:
     @cached_property
     def geometry_prep(self):
         return prepared.prep(self.geometry)
+
+    def __getstate__(self):
+        result = self.__dict__.copy()
+        result.pop('geometry_prep', None)
+        return result
 
 
 @dataclass
@@ -168,8 +183,8 @@ class Locator:
         pickle.dump(locator, open(cls.build_filename(update), 'wb'))
         return locator
 
-    def get_beacon_line_of_sight(self, beacon: RangingBeacon, real_space):
-        line_of_sight = get_line_of_sight(unwrap_geom(beacon.geometry), real_space)
+    def get_beacon_line_of_sight(self, beacon: RangingBeacon, real_space, plot=False):
+        line_of_sight = get_line_of_sight(unwrap_geom(beacon.geometry), real_space, plot=plot)
         if line_of_sight is None:
             # todo: show warnigns for this stuff somewhere
             print("beacon outside space!", beacon, beacon.space.title)
@@ -196,29 +211,46 @@ class Locator:
         self.space_to_real_space = {}
         self.real_spaces = []
         for level in Level.objects.prefetch_related("buildings", "spaces__columns", "spaces__holes"):
-            index = Index()
             buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
-            level_real_spaces = assert_multipolygon(unary_union(tuple(  # noqa
+            level_real_spaces_geom = unary_union(tuple(  # noqa
                 space.geometry.difference(unary_union((
                     *(unwrap_geom(column.geometry) for column in space.columns.all()
                       if column.access_restriction_id is None),
                     *((buildings_geom,) if space.outside else ()),
                 ))) for space in level.spaces.all()
-            )))
+            ))
 
+            level_real_spaces: list[RealSpace] = []
+            for i, real_space in enumerate(assert_multipolygon(level_real_spaces_geom)):
+                level_real_spaces.append(RealSpace(
+                    geometry=real_space,
+                    extended_geometry=real_space,
+                    space_ids=set(),
+                    extend_to=set(),
+                ))
+
+            # todo: speed this up using index
             for i, real_space in enumerate(level_real_spaces):
-                index.insert(i, real_space)
-            level_real_spaces = [(real_space, prepared.prep(real_space), []) for real_space in level_real_spaces]
+                real_space_buffered = real_space.geometry.buffer(0.5)
+                for j, other_real_space in enumerate(level_real_spaces[i+1:], start=i+1):
+                    if other_real_space.geometry_prep.intersects(real_space_buffered):
+                        real_space.extend_to.add(j+len(self.real_spaces))
+                        other_real_space.extend_to.add(i+len(self.real_spaces))
+                if real_space.extend_to:
+                    real_space.extended_geometry = unary_union((
+                        real_space_buffered,
+                        *(level_real_spaces[j-len(self.real_spaces)].geometry for j in real_space.extend_to),
+                    ))
+
             for space in level.spaces.all():
-                self.space_to_real_space[space.pk] = space_real_space = []
-                for i, (real_space, real_space_prep, space_ids) in enumerate(level_real_spaces):
-                    if real_space_prep.intersects(unwrap_geom(space.geometry)):
+                space_real_space = []
+                for i, real_space in enumerate(level_real_spaces):
+                    if real_space.geometry_prep.intersects(unwrap_geom(space.geometry)):
                         space_real_space.append(i+len(self.real_spaces))
-                        space_ids.append(space.pk)
+                        real_space.space_ids.add(space.pk)
                 self.space_to_real_space[space.pk] = tuple(space_real_space)
 
-            self.real_spaces.extend(RealSpace(real_space, frozenset(space_ids))
-                                    for real_space, real_space_prep, space_ids in level_real_spaces)
+            self.real_spaces.extend(level_real_spaces)
 
         # go through beacons, create peers
         for beacon in calculated.beacons.values():
@@ -228,13 +260,21 @@ class Locator:
             for real_space_i in real_spaces_i:
                 real_space = self.real_spaces[real_space_i]
                 if real_space.geometry.intersects(unwrap_geom(beacon.geometry)):
-                    area = self.get_beacon_line_of_sight(beacon, self.real_spaces[real_space_i].geometry)
+                    area = self.get_beacon_line_of_sight(beacon, real_space.geometry)
+                    extended_area = self.get_beacon_line_of_sight(beacon, real_space.extended_geometry)
                     line_of_sight_area = LineOfSightArea(
-                        geometry=area,
+                        geometry=self.get_beacon_line_of_sight(beacon, real_space.geometry),
                         space_ids=frozenset(
                             space_id for space_id in real_space.space_ids
                             if router.spaces[space_id].geometry_prep.intersects(area)
                         )
+                    )
+                    extended_line_of_sight_area = LineOfSightArea(
+                        geometry=extended_area,
+                        space_ids=frozenset(space_id for space_id in frozenset(chain(
+                            real_space.space_ids,
+                            chain.from_iterable(self.real_spaces[i].space_ids for i in real_space.extend_to),
+                        )) if router.spaces[space_id].geometry_prep.intersects(extended_area)),
                     )
                     break
             else:
@@ -242,11 +282,16 @@ class Locator:
                     geometry=unwrap_geom(beacon.space.geometry),
                     space_ids=frozenset((beacon.space_id, )),
                 )
+                extended_line_of_sight_area = LineOfSightArea(
+                    geometry=unwrap_geom(beacon.space.geometry),
+                    space_ids=frozenset((beacon.space_id,)),
+                )
                 print("beacon outside of space", beacon, beacon.space.title)
 
             for identifier in self.get_beacon_identifiers(beacon):
                 peer_id = self.get_peer_id(identifier, create=True)
                 self.peers[peer_id].line_of_sight_area = line_of_sight_area
+                self.peers[peer_id].extended_line_of_sight_area = extended_line_of_sight_area
                 self.peers[peer_id].xyz = xyz
                 if identifier.identifier in ranging_bssids:
                     self.peers[peer_id].supports80211mc = True
@@ -688,7 +733,13 @@ class Locator:
         strongest_peer = self.peers[strongest_measurements[0][0]]
         strongest_router_space = router.spaces[strongest_peer.space_id]
 
-        minx, miny, maxx, maxy = (int(i * 100) for i in strongest_peer.line_of_sight_area.geometry.bounds)
+        line_of_sight_area = (
+            strongest_peer.line_of_sight_area
+            if strongest_measurements[0][1].rssi > -50  or True # todo: be smarter about making this decision
+            else strongest_peer.extended_line_of_sight_area
+        )
+
+        minx, miny, maxx, maxy = (int(i * 100) for i in line_of_sight_area.geometry.bounds)
 
         # rating the guess by calculating the distances
         # negative if the measured distance is higher than it should be for this guess
@@ -741,7 +792,7 @@ class Locator:
 
             cost = np.sum((inaccuracy ** 2))
 
-            if not strongest_peer.line_of_sight_area.geometry_prep.intersects(Point(*guess[:2]/100)):
+            if not line_of_sight_area.geometry_prep.intersects(Point(*guess[:2]/100)):
                 cost *= 5000
 
             if debug:
