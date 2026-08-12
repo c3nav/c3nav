@@ -98,10 +98,11 @@ class Command(BaseCommand):
 
                 if located_level_id == measurement.space.level_id:
                     level_correct = True
-                    located_space = router.space_for_point(located_level_id, point, restrictions=())
+                    located_space = result.space
                     if located_space is None:
-                        print(f"measurement #{measurement.pk}/{j} not located in spac")
-
+                        located_space = router.space_for_point(located_level_id, point, restrictions=())
+                    if located_space is None:
+                        print(f"measurement #{measurement.pk}/{j} not located in space")
                     space_correct = located_space is not None and located_space.pk == measurement.space_id
                     if accuracy_2d > 1500:
                         print(f"measurement #{measurement.pk}/{j} has accuracy {accuracy_2d/100:.2f}m")
