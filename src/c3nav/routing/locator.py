@@ -955,7 +955,7 @@ class Locator:
         #if dimensions == 3:
         #    bounds += ((min(relevant_xyz[:, 2]), max(relevant_xyz[:, 2])),)
 
-        if True:
+        if False:
             results = self.least_squares_func(
                 fun=cost_func,
                 # jac="3-point",
@@ -963,14 +963,95 @@ class Locator:
                 bounds=bounds,
                 #x_scale=10,
                 x0=initial_guess,
+                tol=1,
+            )
+        elif False:
+            results = self.least_squares_func(
+                fun=cost_func,
+                # jac="3-point",
+                # loss="linear",
+                bounds=bounds,
+                # x_scale=10,
+                x0=initial_guess,
+                tol=1,
+            )
+
+            bounds = (
+                (max(results.x[0]-2000, bounds[0][0]), min(results.x[0]+2000, bounds[0][1])),
+                (max(results.x[1]-2000, bounds[1][0]), min(results.x[1]+2000, bounds[1][1])),
+                *(
+                    ((max(results.x[2]-1000, bounds[2][0]), min(results.x[2] + 1000, bounds[2][1])),)
+                    if len(bounds) > 2 else ()
+                )
+            )
+
+            from scipy.optimize import basinhopping
+            def accept_test(f_new, x_new, f_old, x_old):
+                return must_be_in_area.geometry_prep.intersects(Point(*x_new[:2] / 100))
+
+            results = basinhopping(
+                func=cost_func,
+                minimizer_kwargs=dict(
+                    bounds=bounds,
+                    tol=0.1,
+                ),
+                accept_test=accept_test,
+                x0=results.x,
+                niter=10,  # todo: good idea to try out stuff here… higher can be a bit nicer
+                #stepsize=10,  # todo: good idea to try out stuff here
+                #stepwise_factor=0.9,
+            )
+
+        elif True:
+            # this is currently by far the best one
+            from scipy.optimize import basinhopping
+            def accept_test(f_new, x_new, f_old, x_old):
+                return must_be_in_area.geometry_prep.intersects(Point(*x_new[:2] / 100))
+
+            results = basinhopping(
+                func=cost_func,
+                minimizer_kwargs=dict(
+                    bounds=bounds,
+                    tol=5,
+                ),
+                accept_test=accept_test,
+                x0=initial_guess,
+                niter=10,  # todo: good idea to try out stuff here… higher can be a bit nicer
+                stepsize=15,  # todo: good idea to try out stuff here
+                # stepwise_factor=0.9,
+            )
+
+            bounds = (
+                (max(results.x[0] - 2000, bounds[0][0]), min(results.x[0] + 2000, bounds[0][1])),
+                (max(results.x[1] - 2000, bounds[1][0]), min(results.x[1] + 2000, bounds[1][1])),
+                *(
+                    ((max(results.x[2] - 1000, bounds[2][0]), min(results.x[2] + 1000, bounds[2][1])),)
+                    if len(bounds) > 2 else ()
+                )
+            )
+
+            results = self.least_squares_func(
+                fun=cost_func,
+                # jac="3-point",
+                # loss="linear",
+                bounds=bounds,
+                # x_scale=10,
+                x0=results.x,
                 tol=0.1,
             )
+
         else:
+            # best results currently, but pretty slow
+            from scipy.optimize import differential_evolution
             results = differential_evolution(
                 func=cost_func,
                 bounds=bounds,
                 x0=initial_guess,
+                tol=0.1,
+                polish=False,
             )
+
+
 
         result_x = tuple(add_to_guess(results.x))
 
