@@ -128,7 +128,7 @@ class RealSpace:
     geometry: Polygon
     extended_geometry: Polygon | Polygon
     space_ids: set[int]
-    extend_to: set[int]
+    extend_to: set[tuple[int, int]]
 
     @cached_property
     def geometry_prep(self):
@@ -169,8 +169,8 @@ class Locator:
     placement_helper: Optional[PointPlacementHelper] = None
     peers_with_80211mc: frozenset[int] = field(default_factory=frozenset)
     initial_80211mc_peers: list[int] = field(default_factory=list)
-    real_spaces: list[RealSpace] = field(default_factory=list)
-    space_to_real_space: dict[int, tuple[int, ...]] = field(default_factory=dict)
+    real_spaces_by_level: dict[int, list[RealSpace]] = field(default_factory=dict)
+    space_to_real_space: dict[int, tuple[tuple[int, int], ...]] = field(default_factory=dict)
 
     @cached_property
     def initial_suggested_peers(self) -> list[RangePeerSchema]:
@@ -209,7 +209,7 @@ class Locator:
                     ranging_bssids.add(item.bssid.lower())
 
         self.space_to_real_space = {}
-        self.real_spaces = []
+        self.real_spaces_by_level = {}
         for level in Level.objects.prefetch_related("buildings", "spaces__columns", "spaces__holes"):
             buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
             level_real_spaces_geom = unary_union(tuple(  # noqa
@@ -221,7 +221,7 @@ class Locator:
             ))
 
             index = Index()
-            level_real_spaces: list[RealSpace] = []
+            self.real_spaces_by_level[level.pk] = level_real_spaces = []
             for i, real_space in enumerate(assert_multipolygon(level_real_spaces_geom)):
                 index.insert(i, real_space)
                 level_real_spaces.append(RealSpace(
@@ -238,23 +238,22 @@ class Locator:
                 for j in index.intersection(level_real_spaces_buffered[i]):
                     other_real_space = cast(RealSpace, level_real_spaces[j])
                     if j > i and other_real_space.geometry_prep.intersects(real_space_buffered):
-                        real_space.extend_to.add(j + len(self.real_spaces))
-                        other_real_space.extend_to.add(i + len(self.real_spaces))
+                        real_space.extend_to.add((level.pk, j))
+                        other_real_space.extend_to.add((level.pk, j))
                 if real_space.extend_to:
                     real_space.extended_geometry = unary_union((
                         real_space_buffered,
-                        *(level_real_spaces_buffered[j-len(self.real_spaces)] for j in real_space.extend_to),
+                        *(level_real_spaces_buffered[real_space_i] for level_id, real_space_i in real_space.extend_to
+                          if level_id == level.pk),  # todo: multi-level-support
                     ))
 
             for space in level.spaces.all():
-                space_real_space = []
+                space_real_space: list[tuple[int, int]] = []
                 for i, real_space in enumerate(level_real_spaces):
                     if real_space.geometry_prep.intersects(unwrap_geom(space.geometry)):
-                        space_real_space.append(i+len(self.real_spaces))
+                        space_real_space.append((space.level.pk, i))
                         real_space.space_ids.add(space.pk)
                 self.space_to_real_space[space.pk] = tuple(space_real_space)
-
-            self.real_spaces.extend(level_real_spaces)
 
         # go through beacons, create peers
         beacon_to_peer_ids = {}
@@ -276,9 +275,9 @@ class Locator:
         beacon_to_real_space = {}
         for beacon in calculated.beacons.values():
             real_spaces_i = self.space_to_real_space[beacon.space_id]
-            for real_space_i in real_spaces_i:
-                if self.real_spaces[real_space_i].geometry_prep.intersects(unwrap_geom(beacon.geometry)):
-                    beacon_to_real_space[beacon.pk] = real_space_i
+            for level_id, real_space_i in real_spaces_i:
+                if self.real_spaces_by_level[level_id][real_space_i].geometry_prep.intersects(unwrap_geom(beacon.geometry)):
+                    beacon_to_real_space[beacon.pk] = (level_id, real_space_i)
                     break
             else:
                 beacon_to_real_space[beacon.pk] = None
@@ -288,7 +287,7 @@ class Locator:
         for beacon in calculated.beacons.values():
             real_space_i = beacon_to_real_space[beacon.pk]
             if real_space_i is not None:
-                real_space = self.real_spaces[real_space_i]
+                real_space = self.real_spaces_by_level[real_space_i[0]][real_space_i[1]]
                 area = self.get_beacon_line_of_sight(beacon, real_space.geometry)
                 line_of_sight_area = LineOfSightArea(
                     geometry=area,
@@ -305,20 +304,24 @@ class Locator:
 
             for peer_id in beacon_to_peer_ids[beacon.pk]:
                 self.peers[peer_id].line_of_sight_area = line_of_sight_area
+        print("\n")
 
         # extended line of sight for each beacon
+        print("extended line of sight (1) time")
         # go through beacons, create peers
         for beacon in calculated.beacons.values():
+            print(".", flush=True, end="")
             real_space_i = beacon_to_real_space[beacon.pk]
             if real_space_i is not None:
-                real_space = self.real_spaces[real_space_i]
+                real_space = self.real_spaces_by_level[real_space_i[0]][real_space_i[1]]
                 area = self.get_beacon_line_of_sight(beacon, real_space.extended_geometry)
                 extended_line_of_sight_area = LineOfSightArea(
                     geometry=area,
                     space_ids=frozenset(
                         space_id for space_id in chain(
                             real_space.space_ids,
-                            chain.from_iterable(self.real_spaces[j].space_ids for j in real_space.extend_to)
+                            chain.from_iterable(self.real_spaces_by_level[level_id][real_space_i].space_ids
+                                                for level_id, real_space_i in real_space.extend_to)
                         ) if router.spaces[space_id].geometry_prep.intersects(area)
                     )
                 )
