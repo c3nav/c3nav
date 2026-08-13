@@ -232,14 +232,14 @@ class Locator:
                 ))
 
             # todo: speed this up using index
-            level_real_spaces_buffered = [rs.geometry.buffer(0.3, quad_segs=8) for rs in level_real_spaces]
+            level_real_spaces_buffered = [rs.geometry.buffer(0.5, quad_segs=8) for rs in level_real_spaces]
             for i, real_space in enumerate(level_real_spaces):
                 real_space_buffered = level_real_spaces_buffered[i]
                 for j in index.intersection(level_real_spaces_buffered[i]):
                     other_real_space = cast(RealSpace, level_real_spaces[j])
                     if j > i and other_real_space.geometry_prep.intersects(real_space_buffered):
                         real_space.extend_to.add((level.pk, j))
-                        other_real_space.extend_to.add((level.pk, j))
+                        other_real_space.extend_to.add((level.pk, i))
                 if real_space.extend_to:
                     real_space.extended_geometry = unary_union((
                         real_space_buffered,
@@ -254,6 +254,11 @@ class Locator:
                         space_real_space.append((space.level.pk, i))
                         real_space.space_ids.add(space.pk)
                 self.space_to_real_space[space.pk] = tuple(space_real_space)
+
+        full_real_space_by_level = {
+            level_id: unary_union(tuple(real_space.geometry for real_space in real_spaces))
+            for level_id, real_spaces in self.real_spaces_by_level.items()
+        }
 
         # go through beacons, create peers
         beacon_to_peer_ids = {}
@@ -273,17 +278,35 @@ class Locator:
 
         # assign beacons to real_spaces
         beacon_to_real_space = {}
+        covered_real_space_by_level = {}
         for beacon in calculated.beacons.values():
+            beacon_buffered = beacon.geometry.buffer(50)
             real_spaces_i = self.space_to_real_space[beacon.space_id]
             for level_id, real_space_i in real_spaces_i:
-                if self.real_spaces_by_level[level_id][real_space_i].geometry_prep.intersects(unwrap_geom(beacon.geometry)):
+                real_space = self.real_spaces_by_level[level_id][real_space_i]
+                if real_space.geometry_prep.intersects(unwrap_geom(beacon.geometry)):
                     beacon_to_real_space[beacon.pk] = (level_id, real_space_i)
+                    covered_real_space_by_level.setdefault(level_id, []).append(real_space.geometry.intersection(
+                        beacon_buffered
+                    ))
                     break
             else:
+                covered_real_space_by_level.setdefault(beacon.space.level_id, []).append(
+                    beacon.space.geometry.intersection(beacon_buffered)
+                )
                 beacon_to_real_space[beacon.pk] = None
 
+        covered_real_space_by_level = {
+            level_id: unary_union(areas).buffer(0.62, quad_segs=8) for level_id, areas in covered_real_space_by_level.items()
+        }
+        # for level_id, real_space in covered_real_space_by_level.items():
+        #     print("covered_real_space", level_id)
+        #     fig, ax = plt.subplots()
+        #     for polygon in assert_multipolygon(real_space):
+        #         plot_polygon(polygon, ax=ax, facecolor=(0, 0, 0, 0.1), add_points=False, linewidth=0)
+        #     plt.show()
+
         # line of sight for each beacon
-        # go through beacons, create peers
         for beacon in calculated.beacons.values():
             real_space_i = beacon_to_real_space[beacon.pk]
             if real_space_i is not None:
@@ -307,25 +330,37 @@ class Locator:
         print("\n")
 
         # extended line of sight for each beacon
-        print("extended line of sight (1) time")
         # go through beacons, create peers
         for beacon in calculated.beacons.values():
-            print(".", flush=True, end="")
             real_space_i = beacon_to_real_space[beacon.pk]
+            extended_line_of_sight_area = None
             if real_space_i is not None:
-                real_space = self.real_spaces_by_level[real_space_i[0]][real_space_i[1]]
-                area = self.get_beacon_line_of_sight(beacon, real_space.extended_geometry)
-                extended_line_of_sight_area = LineOfSightArea(
-                    geometry=area,
-                    space_ids=frozenset(
-                        space_id for space_id in chain(
-                            real_space.space_ids,
-                            chain.from_iterable(self.real_spaces_by_level[level_id][real_space_i].space_ids
-                                                for level_id, real_space_i in real_space.extend_to)
-                        ) if router.spaces[space_id].geometry_prep.intersects(area)
+                level_id = real_space_i[0]
+                real_space = self.real_spaces_by_level[level_id][real_space_i[1]]
+                real_space_buffered = real_space.geometry.buffer(5)
+
+                for section in assert_multipolygon(real_space.extended_geometry.difference(
+                    covered_real_space_by_level[level_id].difference(real_space_buffered)
+                )):
+                    if not section.intersects(unwrap_geom(beacon.geometry)):
+                        continue
+
+                    area = self.get_beacon_line_of_sight(beacon, section).intersection(
+                        full_real_space_by_level[level_id]
                     )
-                )
-            else:
+                    extended_line_of_sight_area = LineOfSightArea(
+                        geometry=area,
+                        space_ids=frozenset(
+                            space_id for space_id in chain(
+                                real_space.space_ids,
+                                chain.from_iterable(self.real_spaces_by_level[level_id][real_space_i].space_ids
+                                                    for level_id, real_space_i in real_space.extend_to)
+                            ) if router.spaces[space_id].geometry_prep.intersects(area)
+                        )
+                    )
+                    break
+
+            if extended_line_of_sight_area is None:
                 extended_line_of_sight_area = LineOfSightArea(
                     geometry=unwrap_geom(beacon.space.geometry),
                     space_ids=frozenset((beacon.space_id,)),
