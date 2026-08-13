@@ -19,7 +19,7 @@ from annotated_types import Lt
 from django.conf import settings
 from pydantic.types import NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
-from shapely import Point, LineString, prepared, Polygon
+from shapely import Point, LineString, prepared, Polygon, MultiPolygon
 from shapely.ops import nearest_points, unary_union
 from shapely.plotting import plot_polygon
 from shapely.affinity import scale
@@ -27,7 +27,8 @@ from shapely.affinity import scale
 from c3nav.mapdata.models import MapUpdate, Space, Level
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement, RangingBeacon
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
-from c3nav.mapdata.utils.geometry import unwrap_geom, assert_multipolygon, assert_multilinestring, get_line_of_sight
+from c3nav.mapdata.utils.geometry import unwrap_geom, assert_multipolygon, assert_multilinestring, get_line_of_sight, \
+    good_representative_point
 from c3nav.mapdata.utils.index import Index
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.mapdata.utils.placement import PointPlacementHelper
@@ -147,12 +148,16 @@ class RealSpace:
 
 @dataclass
 class LineOfSightArea:
-    geometry: Polygon
+    geometry: Polygon | MultiPolygon
     space_ids: frozenset[int]
 
     @cached_property
     def geometry_prep(self):
         return prepared.prep(self.geometry)
+
+    @cached_property
+    def start_points(self):
+        return tuple(good_representative_point(polygon) for polygon in assert_multipolygon(self.geometry))
 
     def __getstate__(self):
         result = self.__dict__.copy()
@@ -210,15 +215,27 @@ class Locator:
 
         self.space_to_real_space = {}
         self.real_spaces_by_level = {}
-        for level in Level.objects.prefetch_related("buildings", "spaces__columns", "spaces__holes"):
+        accessible_geom_by_level = {}
+        for level in Level.objects.prefetch_related("doors", "buildings", "spaces__columns", "spaces__holes"):
             buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
-            level_real_spaces_geom = unary_union(tuple(  # noqa
-                space.geometry.difference(unary_union((
+            level_real_spaces_geom = []
+            level_accessible_geom = []
+            for space in level.spaces.all():
+                space_geom = space.geometry.difference(unary_union((
                     *(unwrap_geom(column.geometry) for column in space.columns.all()
                       if column.access_restriction_id is None),
                     *((buildings_geom,) if space.outside else ()),
-                ))) for space in level.spaces.all()
-            ))
+                )))
+                space_accessible_geom = space_geom.difference(unary_union(tuple(
+                    unwrap_geom(hole.geometry) for hole in space.holes.all()
+                )))
+                level_real_spaces_geom.append(space_geom)
+                level_accessible_geom.append(space_accessible_geom)
+
+            level_accessible_geom.extend(unwrap_geom(door.geometry) for door in level.doors.all())
+
+            level_real_spaces_geom = unary_union(level_real_spaces_geom)
+            accessible_geom_by_level[level.pk] = unary_union(level_accessible_geom)
 
             index = Index()
             self.real_spaces_by_level[level.pk] = level_real_spaces = []
@@ -231,7 +248,6 @@ class Locator:
                     extend_to=set(),
                 ))
 
-            # todo: speed this up using index
             level_real_spaces_buffered = [rs.geometry.buffer(0.5, quad_segs=8) for rs in level_real_spaces]
             for i, real_space in enumerate(level_real_spaces):
                 real_space_buffered = level_real_spaces_buffered[i]
@@ -311,7 +327,9 @@ class Locator:
             real_space_i = beacon_to_real_space[beacon.pk]
             if real_space_i is not None:
                 real_space = self.real_spaces_by_level[real_space_i[0]][real_space_i[1]]
-                area = self.get_beacon_line_of_sight(beacon, real_space.geometry)
+                area = self.get_beacon_line_of_sight(beacon, real_space.geometry).intersection(
+                    accessible_geom_by_level[real_space_i[0]]
+                )
                 line_of_sight_area = LineOfSightArea(
                     geometry=area,
                     space_ids=frozenset(
@@ -346,7 +364,7 @@ class Locator:
                         continue
 
                     area = self.get_beacon_line_of_sight(beacon, section).intersection(
-                        full_real_space_by_level[level_id]
+                        accessible_geom_by_level[real_space_i[0]]
                     )
                     extended_line_of_sight_area = LineOfSightArea(
                         geometry=area,
@@ -926,9 +944,11 @@ class Locator:
             else:
                 minz = maxz = None
 
-        bounds = ((minx, maxx), (miny, maxy), *(((minz, maxz), ) if minz is not None else ()))
-
-        initial_guess = tuple((mini+maxi)/2 for mini, maxi in bounds)
+        bounds = ((minx, maxx), (miny, maxy))
+        initial_guess = tuple(int(i * 100) for i in must_be_in_area.start_points[0].coords[0])
+        if minz is not None:
+            bounds += ((minz, maxz), )
+            initial_guess += ((minz+maxz)/2, )
 
         #bounds = tuple(zip(min_xyz[:2], max_xyz[:2]))
 
