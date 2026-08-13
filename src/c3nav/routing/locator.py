@@ -257,50 +257,79 @@ class Locator:
             self.real_spaces.extend(level_real_spaces)
 
         # go through beacons, create peers
+        beacon_to_peer_ids = {}
         for beacon in calculated.beacons.values():
             xyz = self.get_beacon_xyz(beacon, router)
 
+            beacon_peer_ids = []
+            for identifier in self.get_beacon_identifiers(beacon):
+                peer_id = self.get_peer_id(identifier, create=True)
+                beacon_peer_ids.append(peer_id)
+                self.peers[peer_id].xyz = xyz
+                if identifier.identifier in ranging_bssids:
+                    self.peers[peer_id].supports80211mc = True
+                self.peers[peer_id].space_id = beacon.space_id
+            beacon_to_peer_ids[beacon.pk] = tuple(beacon_peer_ids)
+        self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
+
+        # assign beacons to real_spaces
+        beacon_to_real_space = {}
+        for beacon in calculated.beacons.values():
             real_spaces_i = self.space_to_real_space[beacon.space_id]
             for real_space_i in real_spaces_i:
-                real_space = self.real_spaces[real_space_i]
-                if real_space.geometry_prep.intersects(unwrap_geom(beacon.geometry)):
-                    area = self.get_beacon_line_of_sight(beacon, real_space.geometry)
-                    extended_area = self.get_beacon_line_of_sight(beacon, real_space.extended_geometry)
-                    line_of_sight_area = LineOfSightArea(
-                        geometry=self.get_beacon_line_of_sight(beacon, real_space.geometry),
-                        space_ids=frozenset(
-                            space_id for space_id in real_space.space_ids
-                            if router.spaces[space_id].geometry_prep.intersects(area)
-                        )
-                    )
-                    extended_line_of_sight_area = LineOfSightArea(
-                        geometry=extended_area,
-                        space_ids=frozenset(space_id for space_id in frozenset(chain(
-                            real_space.space_ids,
-                            chain.from_iterable(self.real_spaces[i].space_ids for i in real_space.extend_to),
-                        )) if router.spaces[space_id].geometry_prep.intersects(extended_area)),
-                    )
+                if self.real_spaces[real_space_i].geometry_prep.intersects(unwrap_geom(beacon.geometry)):
+                    beacon_to_real_space[beacon.pk] = real_space_i
                     break
+            else:
+                beacon_to_real_space[beacon.pk] = None
+
+        # line of sight for each beacon
+        # go through beacons, create peers
+        for beacon in calculated.beacons.values():
+            real_space_i = beacon_to_real_space[beacon.pk]
+            if real_space_i is not None:
+                real_space = self.real_spaces[real_space_i]
+                area = self.get_beacon_line_of_sight(beacon, real_space.geometry)
+                line_of_sight_area = LineOfSightArea(
+                    geometry=area,
+                    space_ids=frozenset(
+                        space_id for space_id in real_space.space_ids
+                        if router.spaces[space_id].geometry_prep.intersects(area)
+                    )
+                )
             else:
                 line_of_sight_area = LineOfSightArea(
                     geometry=unwrap_geom(beacon.space.geometry),
                     space_ids=frozenset((beacon.space_id, )),
                 )
+
+            for peer_id in beacon_to_peer_ids[beacon.pk]:
+                self.peers[peer_id].line_of_sight_area = line_of_sight_area
+
+        # extended line of sight for each beacon
+        # go through beacons, create peers
+        for beacon in calculated.beacons.values():
+            real_space_i = beacon_to_real_space[beacon.pk]
+            if real_space_i is not None:
+                real_space = self.real_spaces[real_space_i]
+                area = self.get_beacon_line_of_sight(beacon, real_space.extended_geometry)
+                extended_line_of_sight_area = LineOfSightArea(
+                    geometry=area,
+                    space_ids=frozenset(
+                        space_id for space_id in chain(
+                            real_space.space_ids,
+                            chain.from_iterable(self.real_spaces[j].space_ids for j in real_space.extend_to)
+                        ) if router.spaces[space_id].geometry_prep.intersects(area)
+                    )
+                )
+            else:
                 extended_line_of_sight_area = LineOfSightArea(
                     geometry=unwrap_geom(beacon.space.geometry),
                     space_ids=frozenset((beacon.space_id,)),
                 )
-                print("beacon outside of space", beacon, beacon.space.title)
 
-            for identifier in self.get_beacon_identifiers(beacon):
-                peer_id = self.get_peer_id(identifier, create=True)
-                self.peers[peer_id].line_of_sight_area = line_of_sight_area
+            for peer_id in beacon_to_peer_ids[beacon.pk]:
                 self.peers[peer_id].extended_line_of_sight_area = extended_line_of_sight_area
-                self.peers[peer_id].xyz = xyz
-                if identifier.identifier in ranging_bssids:
-                    self.peers[peer_id].supports80211mc = True
-                self.peers[peer_id].space_id = beacon.space_id
-        self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
 
         peer_ids_80211mc = tuple(i for i, peer in enumerate(self.peers) if peer.supports80211mc)
         self.peers_with_80211mc = frozenset(peer_ids_80211mc)
