@@ -220,8 +220,10 @@ class Locator:
                 ))) for space in level.spaces.all()
             ))
 
+            index = Index()
             level_real_spaces: list[RealSpace] = []
             for i, real_space in enumerate(assert_multipolygon(level_real_spaces_geom)):
+                index.insert(i, real_space)
                 level_real_spaces.append(RealSpace(
                     geometry=real_space,
                     extended_geometry=real_space,
@@ -230,16 +232,18 @@ class Locator:
                 ))
 
             # todo: speed this up using index
+            level_real_spaces_buffered = [rs.geometry.buffer(0.3, quad_segs=8) for rs in level_real_spaces]
             for i, real_space in enumerate(level_real_spaces):
-                real_space_buffered = real_space.geometry.buffer(0.5)
-                for j, other_real_space in enumerate(level_real_spaces[i+1:], start=i+1):
-                    if other_real_space.geometry_prep.intersects(real_space_buffered):
-                        real_space.extend_to.add(j+len(self.real_spaces))
-                        other_real_space.extend_to.add(i+len(self.real_spaces))
+                real_space_buffered = level_real_spaces_buffered[i]
+                for j in index.intersection(level_real_spaces_buffered[i]):
+                    other_real_space = cast(RealSpace, level_real_spaces[j])
+                    if j > i and other_real_space.geometry_prep.intersects(real_space_buffered):
+                        real_space.extend_to.add(j + len(self.real_spaces))
+                        other_real_space.extend_to.add(i + len(self.real_spaces))
                 if real_space.extend_to:
                     real_space.extended_geometry = unary_union((
                         real_space_buffered,
-                        *(level_real_spaces[j-len(self.real_spaces)].geometry for j in real_space.extend_to),
+                        *(level_real_spaces_buffered[j-len(self.real_spaces)] for j in real_space.extend_to),
                     ))
 
             for space in level.spaces.all():
@@ -259,7 +263,7 @@ class Locator:
             real_spaces_i = self.space_to_real_space[beacon.space_id]
             for real_space_i in real_spaces_i:
                 real_space = self.real_spaces[real_space_i]
-                if real_space.geometry.intersects(unwrap_geom(beacon.geometry)):
+                if real_space.geometry_prep.intersects(unwrap_geom(beacon.geometry)):
                     area = self.get_beacon_line_of_sight(beacon, real_space.geometry)
                     extended_area = self.get_beacon_line_of_sight(beacon, real_space.extended_geometry)
                     line_of_sight_area = LineOfSightArea(
