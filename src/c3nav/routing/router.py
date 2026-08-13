@@ -723,6 +723,8 @@ class RouterSpace(BaseRouterProxy[Space]):
 
     @cached_property
     def minz_maxz(self):
+        if not self.altitudeareas:
+            return None, None
         minz = int(min(
             min(p.altitude for p in altitudearea.points) if altitudearea.altitude is None else altitudearea.altitude
             for altitudearea in self.altitudeareas

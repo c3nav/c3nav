@@ -188,10 +188,10 @@ class Locator:
         if line_of_sight is None:
             # todo: show warnigns for this stuff somewhere
             print("beacon outside space!", beacon, beacon.space.title)
-            fix, ax = plt.subplots()
-            plot_polygon(real_space, ax=ax, facecolor=(0, 0, 0, 0.6), add_points=False, linewidth=0)
-            ax.scatter(x=[beacon.geometry.x], y=[beacon.geometry.y], c="red", s=30)
-            plt.show()
+            #fix, ax = plt.subplots()
+            #plot_polygon(real_space, ax=ax, facecolor=(0, 0, 0, 0.6), add_points=False, linewidth=0)
+            #ax.scatter(x=[beacon.geometry.x], y=[beacon.geometry.y], c="red", s=30)
+            #plt.show()
             return real_space
 
         return line_of_sight
@@ -801,16 +801,47 @@ class Locator:
 
         # select the space – this is currently our main optimization: todo: make this more performant?
         strongest_measurements = sorted(scan_data.items(), key=lambda a: a[1].rssi, reverse=True)
-        strongest_peer = self.peers[strongest_measurements[0][0]]
-        strongest_router_space = router.spaces[strongest_peer.space_id]
 
-        line_of_sight_area = (
-            strongest_peer.line_of_sight_area
-            if strongest_measurements[0][1].rssi > -50  or True # todo: be smarter about making this decision
-            else strongest_peer.extended_line_of_sight_area
-        )
+        must_be_in_area = None
+        close_to_area = None
 
-        minx, miny, maxx, maxy = (int(i * 100) for i in line_of_sight_area.geometry.bounds)
+        # collect line of sight areas of APs with reception so strong we expect them to have line of sight
+        los_rssi = max(-50, strongest_measurements[0][1].rssi-5)
+        los_peers = [
+            self.peers[peer_id] for peer_id, measurement in strongest_measurements[:3]
+            if measurement.rssi > los_rssi
+        ]
+        possible_extended_los_peers = [self.peers[peer_id] for peer_id, measurement in strongest_measurements]
+        if los_peers:
+            main_los_peer = 0
+            if len(los_peers) == 3:
+                if self.check_los_overlap(los_peers[0].line_of_sight_area, los_peers[1].line_of_sight_area):
+                    if self.check_los_overlap(los_peers[0].line_of_sight_area, los_peers[2].line_of_sight_area):
+                        main_los_peer = 0
+                    elif self.check_los_overlap(los_peers[1].line_of_sight_area, los_peers[2].line_of_sight_area):
+                        main_los_peer = 1
+                elif self.check_los_overlap(los_peers[1].line_of_sight_area, los_peers[2].line_of_sight_area):
+                    if self.check_los_overlap(los_peers[2].line_of_sight_area, los_peers[0].line_of_sight_area):
+                        main_los_peer = 2
+            else:
+                main_los_peer = 0
+            must_be_in_area = los_peers[main_los_peer].line_of_sight_area
+            possible_extended_los_peers = (
+                  possible_extended_los_peers[:main_los_peer]+possible_extended_los_peers[main_los_peer+1:]
+            )
+
+        if must_be_in_area is None:
+            print("must be in area is None")
+            if self.check_los_overlap(possible_extended_los_peers[0].line_of_sight_area,
+                                        possible_extended_los_peers[1].extended_line_of_sight_area):
+                must_be_in_area = possible_extended_los_peers[0].extended_line_of_sight_area
+            else:
+                must_be_in_area = possible_extended_los_peers[0].extended_line_of_sight_area
+            close_to_area = possible_extended_los_peers[1].extended_line_of_sight_area
+        else:
+            close_to_area = possible_extended_los_peers[0].extended_line_of_sight_area
+
+        minx, miny, maxx, maxy = (int(i * 100) for i in must_be_in_area.geometry.bounds)
 
         # rating the guess by calculating the distances
         # negative if the measured distance is higher than it should be for this guess
@@ -818,8 +849,16 @@ class Locator:
             if len(guess) > 2:
                 return guess
             point = Point(*guess)
+            if len(must_be_in_area.space_ids) == 1:
+                space = router.spaces[next(iter(must_be_in_area.space_ids))]
+            else:
+                spaces = [router.spaces[space_id] for space_id in must_be_in_area.space_ids]
+                try:
+                    space = next(iter(space for space in spaces if space.geometry_prep.intersects(point)))
+                except StopIteration:
+                    space = min(spaces, key=lambda a: a.geometry.distance(point))
             return np.array(
-                (*guess, int(strongest_router_space.altitudearea_for_point(point).get_altitude(point)*100))
+                (*guess, int(space.altitudearea_for_point(point).get_altitude(point)*100))
             )
 
         def diff_func(guess):
@@ -842,7 +881,7 @@ class Locator:
                 print("diff", inaccuracy)
 
 
-            max_inaccuracy = np.argmax(inaccuracy)
+            #max_inaccuracy = np.argmax(inaccuracy)
 
             # for access points more than 10m (=1000cm) away, we don't allow the offset to be below -2m (=-200cm)
             # but, somehow, this works better if the threshold is at +200cm. why?
@@ -863,19 +902,27 @@ class Locator:
 
             cost = np.sum((inaccuracy ** 2))
 
-            if not line_of_sight_area.geometry_prep.intersects(Point(*guess[:2]/100)):
-                cost *= 5000
+            point = Point(*guess[:2]/100)
+            if not must_be_in_area.geometry_prep.intersects(point):
+                cost += (must_be_in_area.geometry.distance(point) * 10000)**2
+            if not close_to_area.geometry_prep.intersects(point):
+                cost += (close_to_area.geometry.distance(point) * 100)**2
 
             if debug:
                 print("cost", inaccuracy, cost)
             return cost
 
+        minzs, maxzs = zip(*(router.spaces[space_id].minz_maxz for space_id in must_be_in_area.space_ids))
         if dimensions == 3:
-            minz, maxz = strongest_router_space.minz_maxz
+            minzs = [z for z in minzs if z is not None]
+            maxzs = [z for z in maxzs if z is not None]
+            if not minzs:
+                raise ValueError
+            minz, maxz = min(minzs), max(maxzs)
         else:
-            if (len(strongest_router_space.altitudeareas) == 1
-                    and strongest_router_space.altitudeareas[0].altitude is not None):
-                minz = maxz = int(strongest_router_space.altitudeareas[0].altitude * 100)
+            allzs = set((*minzs, *maxzs))
+            if len(allzs) == 1:
+                minz = maxz = next(iter(allzs))
             else:
                 minz = maxz = None
 
@@ -888,33 +935,44 @@ class Locator:
         #if dimensions == 3:
         #    bounds += ((min(relevant_xyz[:, 2]), max(relevant_xyz[:, 2])),)
 
-        results = self.least_squares_func(
-            fun=cost_func,
-            # jac="3-point",
-            #loss="linear",
-            bounds=bounds,
-            #x_scale=10,
-            x0=initial_guess,
-            tol=0.1,
-        )
+        if True:
+            results = self.least_squares_func(
+                fun=cost_func,
+                # jac="3-point",
+                #loss="linear",
+                bounds=bounds,
+                #x_scale=10,
+                x0=initial_guess,
+                tol=0.1,
+            )
+        else:
+            results = differential_evolution(
+                func=cost_func,
+                bounds=bounds,
+                x0=initial_guess,
+            )
 
-        # create result
         result_x = tuple(add_to_guess(results.x))
 
         # move point into line of sight area if needed
         point = Point(*(i/100 for i in result_x[:2]))
-        if not strongest_peer.line_of_sight_area.geometry_prep.intersects(point):
+        if not must_be_in_area.geometry_prep.intersects(point):
             # todo: this buffer operation could be somewhere else to be faster
-            point = nearest_points(strongest_peer.line_of_sight_area.geometry.buffer(-0.05), Point(point))[0]
+            point = nearest_points(must_be_in_area.geometry.buffer(-0.05), Point(point))[0]
             result_x = (int(point.x*100), int(point.y*100), result_x[2])
 
         # determine space
-        if len(strongest_peer.line_of_sight_area.space_ids) > 1:
-            if not strongest_router_space.geometry_prep.intersects(point):
-                for space_id in strongest_peer.line_of_sight_area.space_ids - {strongest_router_space.id}:
-                    space = router.spaces[space_id]
-                    if space.geometry_prep.intersects(point):
-                        strongest_router_space = space
+        if len(must_be_in_area.space_ids) == 1:
+            located_space = router.spaces[next(iter(must_be_in_area.space_ids))]
+        else:
+            spaces = [router.spaces[space_id] for space_id in must_be_in_area.space_ids]
+            for space in spaces:
+                if space.geometry_prep.intersects(point):
+                    located_space = space
+                    break
+            else:
+                print("this. shouldnt. happen.")
+                located_space = min(spaces, key=lambda a: a.geometry.distance(point))
 
         precision = round(float(np.std(diff_func(result_x) - measured_ranges)) / 100, 2)
 
