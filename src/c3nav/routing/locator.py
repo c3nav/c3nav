@@ -19,7 +19,7 @@ from annotated_types import Lt
 from django.conf import settings
 from pydantic.types import NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
-from shapely import Point, LineString, prepared, Polygon
+from shapely import Point, LineString, prepared, Polygon, MultiPolygon
 from shapely.ops import nearest_points, unary_union
 from shapely.plotting import plot_polygon
 from shapely.affinity import scale
@@ -126,7 +126,7 @@ class LocatorResult(NamedTuple):
 @dataclass
 class RealSpace:
     geometry: Polygon
-    extended_geometry: Polygon | Polygon
+    extended_geometry: Polygon | MultiPolygon
     space_ids: set[int]
     extend_to: set[int]
 
@@ -263,7 +263,7 @@ class Locator:
                     area = self.get_beacon_line_of_sight(beacon, real_space.geometry)
                     extended_area = self.get_beacon_line_of_sight(beacon, real_space.extended_geometry)
                     line_of_sight_area = LineOfSightArea(
-                        geometry=self.get_beacon_line_of_sight(beacon, real_space.geometry),
+                        geometry=area,
                         space_ids=frozenset(
                             space_id for space_id in real_space.space_ids
                             if router.spaces[space_id].geometry_prep.intersects(area)
@@ -735,7 +735,7 @@ class Locator:
 
         line_of_sight_area = (
             strongest_peer.line_of_sight_area
-            if strongest_measurements[0][1].rssi > -50  or True # todo: be smarter about making this decision
+            if strongest_measurements[0][1].rssi > -50 # todo: be smarter about making this decision
             else strongest_peer.extended_line_of_sight_area
         )
 
