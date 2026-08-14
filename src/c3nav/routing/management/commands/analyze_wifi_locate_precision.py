@@ -74,8 +74,11 @@ class Command(BaseCommand):
                     sorted(((locator.peers[peer_id].xyz, value.rssi) for peer_id, value in scan_data.items()),
                            key=lambda a: a[1], reverse=True)
                 ]
-                accuracy = np.linalg.norm(np.array(result.xyz)-np.array(measurement.correct_xyz))
-                accuracy_2d = np.linalg.norm(np.array(result.xyz)[:2] - np.array(measurement.correct_xyz)[:2])
+
+                offset_xyz = np.array(result.xyz)-np.array(measurement.correct_xyz)
+
+                accuracy = np.linalg.norm(offset_xyz)
+                accuracy_2d = np.linalg.norm(offset_xyz[:2])
                 accuracy_z = max(0.01, abs(result.xyz[2] - measurement.correct_xyz[2]))
                 level_locations[level_id].append((*result.xyz, accuracy, len(peer_xyzs)))
 
@@ -132,7 +135,9 @@ class Command(BaseCommand):
         num_correct_spaces = 0
         accuracies_2d_correct_level = []
         accuracies_2d_wrong_level = []
+        accuracies_2d = []
         for num_peers, accuracy_3d, accuracy_2d, accuracy_z, correct_level, correct_space in accuracies:
+            accuracies_2d.append(accuracy_2d)
             if correct_level:
                 accuracies_2d_correct_level.append(accuracy_2d)
                 num_correct_levels += 1

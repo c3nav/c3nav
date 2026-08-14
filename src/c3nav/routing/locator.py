@@ -59,6 +59,54 @@ class TypedIdentifier(NamedTuple):
 
 
 @dataclass
+class RangeLocateKnobs:
+    factor0: float = 1
+    factor0start: float = 30
+    factor1start: float = 75
+    factor1: float = 0.3
+    factor2start: float = 77
+    factor2: float = 0.3
+
+    too_far_inaccuracy0: float = -500
+    too_far_inaccuracy1: float = -200
+    too_far_threshold: float = 1000
+    too_far_penalty: float = 100
+
+    must_be_in_penalty: float = 100
+    close_to_penalty: float = 1000
+
+    target_accept_rate: float = 0.407
+    stepwise_factor: float = 0.511
+    stepsize: float = 2129
+
+    LIMITS = (
+        (0, 2),
+        (-20, 50),
+        (0, 100),
+        (0, 2),
+        (50, 150),
+        (0, 2),
+
+        (-1000, 500),
+        (-1000, 500),
+        (0, 2000),
+        (1, 10000),
+
+        (1, 1000),
+        (1, 1000),
+
+        (0.01, 0.99),
+        (0.01, 0.99),
+        (900, 4000),
+    )
+
+    def is_valid(self):
+        return (
+            (self.factor0start < self.factor1start < self.factor2start)
+        )
+
+
+@dataclass
 class LocatorPeer:
     identifier: TypedIdentifier
     frequencies: list[int] = field(default_factory=list)
@@ -741,7 +789,11 @@ class Locator:
             result.append(peer_id)
         return tuple(result)
 
-    def _pre_locate_range(self, scan_data: ScanData) -> tuple[tuple[int, ...], LocatorResult | None]:
+    def _pre_locate_range(self, scan_data: ScanData,
+                          knobs: RangeLocateKnobs | None = None) -> tuple[tuple[int, ...], LocatorResult | None]:
+        if knobs is None:
+            knobs = RangeLocateKnobs()
+
         peer_ids = self._deduplicate_peer_ids(
             tuple(i for i, item in scan_data.items() if i < len(self.xyz) and item.distance and item.distance > -5)
         )
@@ -778,8 +830,13 @@ class Locator:
 
         return peer_ids, None
 
+    def check_los_overlap(self, a: LineOfSightArea, b: LineOfSightArea):
+        return a.geometry_prep.intersects(b.geometry)
+
     def _raw_locate_range(self, peer_ids: tuple[int, ...], scan_data: ScanData,
-                          debug=settings.DEBUG) -> RawRangeLocatorResult:
+                          debug=settings.DEBUG, knobs: RangeLocateKnobs | None = None) -> RawRangeLocatorResult:
+        if knobs is None:
+            knobs = RangeLocateKnobs()
 
         if len(peer_ids) == 3:
             if debug:
@@ -813,7 +870,11 @@ class Locator:
         inaccurate_bonus = np.array([scan_data[i].distance_sd == 0.15 for i in peer_ids])
 
         factors = np.ones(rssis.shape)
-        factors[measured_ranges > 7500] = 0.3  # over 75m measurements are less accurate – this factor is better than 0.5
+
+        # over 75m measurements are less accurate – this factor is better than 0.5 … but now we do this better :)
+        factors[measured_ranges < knobs.factor0start*100] = knobs.factor0
+        factors[measured_ranges > knobs.factor1start*100] = knobs.factor1
+        factors[measured_ranges > knobs.factor2start*100] = knobs.factor2
 
         router = Router.load()
 
@@ -901,13 +962,18 @@ class Locator:
 
             #max_inaccuracy = np.argmax(inaccuracy)
 
+            # before we do the next step, we should make sure the worst value might be filtered out
+
             # for access points more than 10m (=1000cm) away, we don't allow the offset to be below -2m (=-200cm)
             # but, somehow, this works better if the threshold is at +200cm. why?
             # this is one of the most important optimizations
-            too_far_select = (inaccuracy_cm < -500) | ((guess_distances > 1000) & (inaccuracy_cm < -200))
+            too_far_select = (
+                (inaccuracy_cm < knobs.too_far_inaccuracy0)
+                | ((guess_distances > knobs.too_far_threshold) & (inaccuracy_cm < knobs.too_far_inaccuracy1))
+            )
             if debug:
                 print("too_far_select", too_far_select)
-            inaccuracy[(inaccuracy_cm < 0)] *= 100
+            inaccuracy[(inaccuracy_cm < 0)] *= knobs.too_far_penalty
 
             # time to factor bad measurements less – this also helps quite a bit
             inaccuracy *= factors
@@ -922,9 +988,9 @@ class Locator:
 
             point = Point(*guess[:2]/100)
             if not must_be_in_area.geometry_prep.intersects(point):
-                cost += (must_be_in_area.geometry.distance(point) * 10000)**2
+                cost += (must_be_in_area.geometry.distance(point) * knobs.must_be_in_penalty)**2
             if not close_to_area.geometry_prep.intersects(point):
-                cost += (close_to_area.geometry.distance(point) * 100)**2
+                cost += (close_to_area.geometry.distance(point) * knobs.close_to_penalty)**2
 
             if debug:
                 print("cost", inaccuracy, cost)
@@ -1012,18 +1078,20 @@ class Locator:
                 func=cost_func,
                 minimizer_kwargs=dict(
                     bounds=bounds,
-                    tol=5,
+                    tol=2,
                 ),
+                rng=1,
                 accept_test=accept_test,
                 x0=initial_guess,
-                niter=10,  # todo: good idea to try out stuff here… higher can be a bit nicer
-                stepsize=15,  # todo: good idea to try out stuff here
-                # stepwise_factor=0.9,
+                niter=5,  # todo: good idea to try out stuff here… higher can be a bit nicer
+                stepsize=knobs.stepsize,  # todo: good idea to try out stuff here
+                stepwise_factor=knobs.stepwise_factor,
+                target_accept_rate=knobs.target_accept_rate,
             )
 
             bounds = (
-                (max(results.x[0] - 2000, bounds[0][0]), min(results.x[0] + 2000, bounds[0][1])),
-                (max(results.x[1] - 2000, bounds[1][0]), min(results.x[1] + 2000, bounds[1][1])),
+                (max(results.x[0] - 1000, bounds[0][0]), min(results.x[0] + 1000, bounds[0][1])),
+                (max(results.x[1] - 1000, bounds[1][0]), min(results.x[1] + 1000, bounds[1][1])),
                 *(
                     ((max(results.x[2] - 1000, bounds[2][0]), min(results.x[2] + 1000, bounds[2][1])),)
                     if len(bounds) > 2 else ()
@@ -1047,8 +1115,28 @@ class Locator:
                 func=cost_func,
                 bounds=bounds,
                 x0=initial_guess,
-                tol=0.1,
+                tol=0.5,
+                rng=1,
                 polish=False,
+            )
+
+            bounds = (
+                (max(results.x[0] - 200, bounds[0][0]), min(results.x[0] + 200, bounds[0][1])),
+                (max(results.x[1] - 200, bounds[1][0]), min(results.x[1] + 200, bounds[1][1])),
+                *(
+                    ((max(results.x[2] - 200, bounds[2][0]), min(results.x[2] + 200, bounds[2][1])),)
+                    if len(bounds) > 2 else ()
+                )
+            )
+
+            result = self.least_squares_func(
+                fun=cost_func,
+                # jac="3-point",
+                # loss="linear",
+                bounds=bounds,
+                # x_scale=10,
+                x0=results.x,
+                tol=0.1,
             )
 
 
@@ -1072,7 +1160,18 @@ class Locator:
                     located_space = space
                     break
             else:
-                print("this. shouldnt. happen.")
+                #print("this. shouldnt. happen.")
+
+                #fig, ax = plt.subplots()
+                #for polygon in assert_multipolygon(must_be_in_area.geometry):
+                #    plot_polygon(polygon, ax=ax, facecolor=(0, 0, 0, 0.1), add_points=False, linewidth=0)
+                #
+                #for space_id in must_be_in_area.space_ids:
+                #    for polygon in assert_multipolygon(router.spaces[space_id].geometry):
+                #        plot_polygon(polygon, ax=ax, facecolor=(0, 0, 1, 0.1), add_points=False, linewidth=0)
+
+                #ax.scatter(x=[point.x], y=[point.y], c="red", s=30)
+                #plt.show()
                 located_space = min(spaces, key=lambda a: a.geometry.distance(point))
 
         precision = round(float(np.std(diff_func(result_x) - measured_ranges)) / 100, 2)
@@ -1082,14 +1181,18 @@ class Locator:
             dimensions=cast(Literal[2, 3], dimensions),
             xyz=cast(tuple[int, int, int], result_x),
             precision=precision,
+            space=located_space,
         )
 
-    def raw_locate_range(self, scan_data: ScanData, debug=settings.DEBUG) -> RawRangeLocatorResult | None:
-        peer_ids, result = self._pre_locate_range(scan_data)
+    def raw_locate_range(self, scan_data: ScanData, debug=settings.DEBUG,
+                         knobs: RangeLocateKnobs | None = None) -> RawRangeLocatorResult | None:
+        if knobs is None:
+            knobs = RangeLocateKnobs()
+        peer_ids, result = self._pre_locate_range(scan_data, knobs=knobs)
         if result is not None:
             return None
 
-        return self._raw_locate_range(peer_ids, scan_data, debug)
+        return self._raw_locate_range(peer_ids, scan_data, debug, knobs=knobs)
 
 
     def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None,
@@ -1098,7 +1201,6 @@ class Locator:
         peer_ids, result = self._pre_locate_range(scan_data)
         if result is not None:
             return result
-
         np_ranges, dimensions, result_x, precision, located_space = self._raw_locate_range(peer_ids, scan_data, debug)
 
         result_pos = tuple(i/100 for i in result_x)
