@@ -19,10 +19,12 @@ from annotated_types import Lt
 from django.conf import settings
 from pydantic.types import NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
-from shapely import Point, LineString, prepared, Polygon, MultiPolygon
+from shapely import Point, LineString, prepared, Polygon, MultiPolygon, MultiPoint, simplify
+from shapely.geometry import box
 from shapely.ops import nearest_points, unary_union
 from shapely.plotting import plot_polygon
 from shapely.affinity import scale
+from shapely import voronoi_polygons
 
 from c3nav.mapdata.models import MapUpdate, Space, Level
 from c3nav.mapdata.models.geometry.space import AutoBeaconMeasurement, BeaconMeasurement, RangingBeacon
@@ -849,11 +851,195 @@ class Locator:
 
         relevant_xyz = self.xyz[peer_ids, :]
 
+
+
         # create 2d array with x, y, z, distance as rows
-        np_ranges = np.hstack((
-            relevant_xyz,
-            np.array(tuple(float(scan_data[i].distance) for i in peer_ids)).reshape((-1, 1))*100,
-        ))
+
+        np_ranges = np.array(tuple(float(scan_data[i].distance) for i in peer_ids)).reshape((-1, 1))*100
+        np_ranges_squared = np_ranges ** 2
+
+        mask_2d = np.tri(len(relevant_xyz), dtype=bool)
+        mask_3d = np.expand_dims(mask_2d, axis=2) | np.expand_dims(mask_2d, axis=0)
+        mask_2d_indices = np.tril_indices(len(relevant_xyz))
+        mask_2d_xyz = np.broadcast_to(np.expand_dims(mask_2d, axis=2), mask_2d.shape+(3, ))
+        mask_3d_xyz = np.broadcast_to(np.expand_dims(mask_3d, axis=3), mask_3d.shape+(3,))
+
+        # calculating the distances and normalized vectors between beacons
+        # todo: pre-calculate this
+        beacon_pair_vectors = np.subtract(
+            relevant_xyz.reshape((1, -1, 3)),
+            relevant_xyz.reshape((-1, 1, 3)),
+        ).astype(np.float64)
+
+        beacon_pair_distances_squared = np.sum(beacon_pair_vectors ** 2, axis=2)
+        beacon_pair_distances = np.sqrt(beacon_pair_distances_squared)
+        beacon_pair_distances_halved = beacon_pair_distances / 2
+        beacon_pair_distances_doubled = beacon_pair_distances * 2
+        beacon_pair_vectors /= np.expand_dims(beacon_pair_distances, 2)
+
+        # calculate the normalized intersection line direction vector between any triples of beacons
+        # todo: pre-calculate this
+        beacon_triple_vectors = np.cross(
+            np.expand_dims(beacon_pair_vectors, axis=2),
+            np.expand_dims(beacon_pair_vectors, axis=1),
+        )
+        beacon_triple_vectors /= np.expand_dims(np.linalg.norm(beacon_triple_vectors, axis=3), 3)
+        beacon_triple_sideways_vectors = np.cross(
+            beacon_triple_vectors, np.expand_dims(beacon_pair_vectors, 2)
+        )
+        beacon_triple_sideways_vectors /= np.expand_dims(np.linalg.norm(beacon_triple_sideways_vectors, axis=3), 3)
+        beacon_triple_sideways_vectors_angle = np.vecdot(
+            beacon_triple_sideways_vectors,
+            beacon_triple_sideways_vectors.transpose((1, 2, 0, 3))
+        )
+
+        # start_point for triple intersections
+        # this is the point if intersection distance from beacon 0 and from beacon 1 are zero
+        intersection_start_point = relevant_xyz.reshape((1, -1, 1, 3)) - (
+            beacon_triple_sideways_vectors.transpose(2, 0, 1, 3)
+            * np.expand_dims(beacon_pair_distances, 2)
+            / np.expand_dims(beacon_triple_sideways_vectors_angle.transpose(2, 0, 1), 3)
+        )
+
+        # get intersection points
+        beacon_pair_distances_squared + np.subtract(
+            np_ranges_squared.reshape((-1, 1)),
+            np_ranges_squared.reshape((1, -1)),
+            where=~mask_2d,
+            out=None,
+        )
+
+        # we're now trying to find the intersections of the spheres
+        # created by the beacon positions and distances.
+
+        # the first step is to get the pair-wise intersection circles.
+        # for this, we calculate the distance of that circle's center from the first beacon
+        squared_distance_from_first_beacon = beacon_pair_distances_halved + np.subtract(
+            np_ranges_squared.reshape((-1, 1)),
+            np_ranges_squared.reshape((1, -1)),
+            where=~mask_2d,
+            out=None,
+        ) / beacon_pair_distances_doubled
+        # todo: this is where we might filter out spheres that don't overlap
+        distance_from_first_beacon = np.sqrt(squared_distance_from_first_beacon)
+
+        # now we calculate the radius of the circle
+        sideways_distance = np.sqrt(
+            np.clip(np_ranges_squared.reshape((-1, 1)) - squared_distance_from_first_beacon, a_min=0, a_max=None)
+        )
+
+        # we multiply this distance with the normalized vector between the two beacons,
+        # add the coordinates of the first beacon, and get the absolute coordinates of the circle's center
+        intersection_circle_center = relevant_xyz.reshape((-1, 1)) + distance_from_first_beacon * beacon_pair_vectors
+
+        # next, we get the triple-wise intersection points
+        # for this, first, we treat the circles as planes and get the intersecion line
+        # the intersection line between each triple will always have the same direction,
+        # just be in different positions. so, we need to only determine the xyz offset.
+        # luckily, the planes are only shifting in two known directions, so we can just
+        # use those shifts to cheaply calculate the intersection
+        beacon_triple_intersection_origin = intersection_start_point + (
+            beacon_triple_sideways_vectors.transpose(2, 0, 1, 3)
+            * np.expand_dims(np.expand_dims(distance_from_first_beacon, 2), 3)
+            / np.expand_dims(beacon_triple_sideways_vectors_angle.transpose(2, 0, 1), 3)
+        ) + (
+            beacon_triple_sideways_vectors
+            * np.expand_dims(np.expand_dims(distance_from_first_beacon, 0), 3)
+            * np.expand_dims(beacon_triple_sideways_vectors_angle.transpose(2, 0, 1), 3)
+        )
+
+        # now we calculate the intersections between the lines and the spheres,
+        # this is two dots per tripled
+        dotted = np.vecdot(
+            beacon_triple_vectors,
+            beacon_triple_intersection_origin - relevant_xyz.reshape((-1, 1, 1, 1))
+        )
+        delta = (
+            dotted ** 2
+            - np.linalg.norm(beacon_triple_intersection_origin - relevant_xyz.reshape((-1, 1, 1, 1)), axis=3) ** 2
+            - np_ranges_squared.reshape((-1, 1, 1))
+        )
+        if delta < -1:
+            # todo: handle this
+            pass # no intersections
+        elif delta == 0:
+            pass # one intersection
+        else:
+            pass # two intersections
+        delta_sqrt = np.sqrt(delta)
+        points = np.stack((
+            beacon_triple_intersection_origin + (-dotted + delta_sqrt) * beacon_triple_vectors,
+            beacon_triple_intersection_origin + (-dotted - delta_sqrt) * beacon_triple_vectors,
+        ))  # two columns, then 3 dimensions for beacons, then one dimension for xyz
+
+        # lets check which of these points are included in any of the spheres
+        # if a value is negative, it means the value measured is lower than should be physically possible
+        # lets add another dimension at the start column at the start, for within-sphere-checking
+        # todo: decrease dtype size here somewhere
+        closer_by = np_ranges.reshape((-1, 1, 1, 1, 1)) - np.linalg.norm(
+            np.expand_dims(0, points) -
+            relevant_xyz.reshape((-1, 1, 1, 1, 1, 1))
+        )
+        # todo: what if no points match?
+        selected_points_mask = closer_by > -0.01
+        selected_points_coords = np.argwhere(selected_points_mask)
+        selected_points = points[closer_by]
+
+        # todo: implement "Bulging out"
+        minxyz = np.min(selected_points, axis=0)
+        maxxyz = np.max(selected_points, axis=0)
+
+        result = (minxyz+maxxyz) / 2
+        radius = (maxxyz-minxyz) / 2
+
+        if debug:
+            #all_costs = best_two_point[:, :, :, 3]**2
+
+            # first sum all the costs where the peers were beacon 1 or beacon 2
+            #costs = np.sum(np.sum(all_costs, axis=2), axis=0)
+            #costs += np.sum(np.sum(all_costs, axis=2), axis=1)
+            #costs += np.sum(np.sum(all_costs, axis=1), axis=0)
+
+            # now add all the costs where the peers were beacon 3
+
+            #worst = np.argmax(costs)
+
+            #print(
+            #    "worst peer:", peer_ids[worst], tuple(round(i/100, 2) for i in relevant_xyz[worst]),
+            #)
+
+            ijk = np.unravel_index(np.argmin(best_two_point[:, :, :, 3]), shape=best_two_point.shape[:3])
+            best = best_two_point[ijk]
+            print(
+                "best three peers:", tuple(relevant_xyz[i] for i in ijk),
+                f"off by {best[3]/100:.2f}m,",
+                f"pos: {tuple(round(i/100, 2) for i in best[:3])},",
+                ("" if correct_xyz is None else f"off by correct: {np.linalg.norm(best[:3]-correct_xyz)/100:.1f}m"),
+            )
+
+        """
+        # determine distance between all pairs of beacons featured in this scan
+        # todo: this features every pair twice, of course, would be nice to avoid
+        actual_beacon_pair_distances = np.linalg.norm(
+            np.repeat(relevant_xyz.reshape((-1, 1, 3)), repeats=len(peer_ids), axis=1)
+            - np.repeat(relevant_xyz.reshape((1, -1, 3)), repeats=len(peer_ids), axis=0),
+            axis=2,
+        )
+
+        # get sum of distance between all pairs of beacons featured in this scan
+        # todo: this features every pair twice, of course, would be nice to avoid
+        range_pairs_summed = (
+            np.repeat(np_ranges[:, 3].reshape((-1, 1)), repeats=len(peer_ids), axis=1)
+            + np.repeat(np_ranges[:, 3].reshape((1, -1)), repeats=len(peer_ids), axis=0),
+        )
+        """
+
+        # lets see how far off any of these are
+        # every positive value here means that in order for this measurement to be physically possible,
+        # these two access points would have to be closer together. this is unlikely.
+        # todo: add allowance for user moving?
+
+        debug = False
 
         #print(np_ranges)
 
