@@ -2,10 +2,7 @@ import operator
 from functools import reduce
 
 from django.core import checks
-from shapely import speedups
 
-if speedups.available:
-    speedups.enable()
 
 
 try:
