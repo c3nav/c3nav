@@ -496,7 +496,7 @@ class Router:
         result = cache.get(cache_key)
         if result:
             distances, predecessors = result
-            return (np.frombuffer(distances, dtype=np.float64).reshape(self.graph.shape),
+            return (np.frombuffer(distances, dtype=np.float32).reshape(self.graph.shape),
                     np.frombuffer(predecessors, dtype=np.int32).reshape(self.graph.shape))
 
         graph = self.graph.copy()
@@ -559,7 +559,7 @@ class Router:
         graph[tuple(restrictions.edges.transpose().tolist())] = np.inf
 
         distances, predecessors = self.shortest_path_func(graph, directed=True, return_predecessors=True)
-        cache.set(cache_key, (distances.astype(np.float64).tobytes(),
+        cache.set(cache_key, (distances.astype(np.float32).tobytes(),
                               predecessors.astype(np.int32).tobytes()), 600)
         return distances, predecessors
 
