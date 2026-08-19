@@ -66,7 +66,7 @@ with suppress(ImportError):
         "http": Starlette(routes=[
             Mount(
                 path=settings.STATIC_URL,
-                app=StaticFiles(directory=settings.STATIC_ROOT, follow_symlink=True),
+                app=StaticFiles(directory=str(settings.STATIC_ROOT), follow_symlink=True),
                 name='static',
             ),
             Mount(path='/', app=django_asgi),
