@@ -65,8 +65,9 @@ class GeometryIndexed:
         cls._read_metadata(f, kwargs)
 
         # noinspection PyTypeChecker
+        # copy, because frombuffer on an immutable bytes object yields a read-only array
         kwargs['data'] = np.frombuffer(f.read(width * height * cls.dtype().itemsize), cls.dtype).reshape(
-            (height, width))
+            (height, width)).copy()
         return cls(**kwargs)
 
     @classmethod
