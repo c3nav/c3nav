@@ -21,6 +21,6 @@ matplotlib==3.10.8
 scipy==1.16.3
 django_libsass==0.9
 channels==4.3.2
-daphne==4.2.1
+daphne==4.2.2
 pyzstd==0.19.1
 pyproj==3.7.2
