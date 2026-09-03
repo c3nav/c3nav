@@ -5,7 +5,7 @@ django-cors-headers==4.9.0
 csscompressor==0.9.5
 django-ninja==1.5.1
 pydantic-extra-types==2.10.6
-types-shapely==2.1.0.20250917
+types-shapely==2.1.0.20260728
 django-pydantic-field==0.4.1
 django-filter==25.2
 django-environ==0.12.0
