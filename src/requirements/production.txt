@@ -8,7 +8,7 @@ pydantic-extra-types==2.10.6
 types-shapely==2.1.0.20250917
 django-pydantic-field==0.4.1
 django-filter==25.2
-django-environ==0.12.0
+django-environ==0.14.0
 shapely==2.1.2
 pybind11==3.0.1
 MeshPy==2025.1.1
