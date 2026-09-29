@@ -1,0 +1,34 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_levels.html' %}
+
+<h3>
+    {% blocktrans %}Add staircase{% endblocktrans %}
+</h3>
+{% bootstrap_messages %}
+
+<form space="{{ space }}" {% if nozoom %}data-nozoom {% endif %}data-onbeforeunload data-new="staircase" data-geomtype="polygon" {% if access_restriction_select %} data-access-restriction-select{% endif %}>
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <div class="form-group">
+        <label for="stairway-steps">{% trans 'Number of steps:' %}</label>
+        <input type="number" id="stairway-steps" class="form-control" value="10">
+    </div>
+    {% buttons %}
+    {% if can_edit %}
+        {% if not nosave %}
+            <button type="submit" accesskey="m" class="btn btn-primary pull-right">
+                {% trans 'Save' %}
+            </button>
+        {% endif %}
+    {% endif %}
+    <a class="btn btn-danger cancel-btn" href="{{ back_url }}">
+        {% if can_edit %}
+            {% trans 'Cancel' %}
+        {% else %}
+            {% trans 'Back' %}
+        {% endif %}
+    </a>
+    {% endbuttons %}
+</form>
