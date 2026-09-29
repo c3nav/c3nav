@@ -1696,16 +1696,17 @@ editor = {
         };
     },
 
-    _transform_for_staircase: function(xs, ys, num_stairs) {
-        let base_length = Math.sqrt((xs[1]-xs[0])**2 + (ys[1]-ys[0])**2);
-        let cos_a = (xs[1] - xs[0]) / base_length;
-        let sin_a = (ys[1] - ys[0]) / base_length;
-        let p0 = { x: xs[0], y: ys[0] };
+    _transform_for_staircase: function(points, num_stairs) {
+        const base_length = Math.sqrt((points[1].x-points[0].x)**2 + (points[1].y-points[0].y)**2);
+        const cos_a = (points[1].x - points[0].x) / base_length;
+        const sin_a = (points[1].y - points[0].y) / base_length;
+        const p0 = { x: points[0].x, y: points[0].y };
 
-        xs = points.map(p => editor._transform_point_for_staircase(p, p0, cos_a, sin_a).x);
-        ys = points.map(p => editor._transform_point_for_staircase(p, p0, cos_a, sin_a).y);
-        n = xs.length;
+        const xs = points.map(p => editor._transform_point_for_staircase(p, p0, cos_a, sin_a).x);
+        const ys = points.map(p => editor._transform_point_for_staircase(p, p0, cos_a, sin_a).y);
+        const n = xs.length;
 
+        let height;
         if (Math.abs(Math.max(...ys) - ys[0]) > Math.abs(Math.min(...ys) - ys[0])) {
             height = Math.max(...ys) - ys[0];
         } else {
@@ -1718,16 +1719,16 @@ editor = {
         // stair that doesn't split the Space into two parts and gets confused).
         // Hence the -X_OVERFLOW and +X_OVERFLOW; X_OVERFLOW = '2 units' seemed reasonable.
         const X_OVERFLOW = 2;
-        lines = [{p1: { x: xs[0]-X_OVERFLOW, y: ys[0] }, p2: { x: xs[1]+X_OVERFLOW, y: ys[1] }}];
-        for (i = 1; i < num_stairs; ++i) {
+        let lines = [{p1: { x: xs[0]-X_OVERFLOW, y: ys[0] }, p2: { x: xs[1]+X_OVERFLOW, y: ys[1] }}];
+        for (let i = 1; i < num_stairs; ++i) {
             // intersect line y=y0+height/num_stairs*i with all transformed (xs,ys)
-            y = ys[0] + height/num_stairs*i;
-            inters_xs = [];
-            for (j = 0; j < n; ++j) {
-                y1 = ys[j];
-                y2 = ys[(j+1)%n];
-                x1 = xs[j];
-                x2 = xs[(j+1)%n];
+            const y = ys[0] + height/num_stairs*i;
+            const inters_xs = [];
+            for (let j = 0; j < n; ++j) {
+                const y1 = ys[j];
+                const y2 = ys[(j+1)%n];
+                const x1 = xs[j];
+                const x2 = xs[(j+1)%n];
                 if ((y1 > y && y2 > y) || (y1 < y && y2 < y)) {
                     continue;
                 }
@@ -1738,8 +1739,8 @@ editor = {
                     continue;
                 }
 
-                m = (y2 - y1) / (x2 - x1);
-                q = y2 - m * x2;
+                const m = (y2 - y1) / (x2 - x1);
+                const q = y2 - m * x2;
                 inters_xs.push((y - q) / m);
             }
 
@@ -1747,8 +1748,8 @@ editor = {
                 continue;
             }
 
-            min_xs = Math.min(...inters_xs);
-            max_xs = Math.max(...inters_xs);
+            const min_xs = Math.min(...inters_xs);
+            const max_xs = Math.max(...inters_xs);
             lines.push({p1: {x: min_xs-X_OVERFLOW, y: y}, p2: {x: max_xs+X_OVERFLOW, y: y}});
         }
 
@@ -1764,14 +1765,12 @@ editor = {
         if (!editor._current_editing_shape || !editor._current_editing_shape._parts) {
             return [];
         }
-        points = editor._current_editing_shape._parts[0] || [];
+        const points = editor._current_editing_shape._parts[0] || [];
         if (points.length < 3) {
             return [];
         }
 
-        xs = points.map(p => p.x);
-        ys = points.map(p => p.y);
-        lines = editor._transform_for_staircase(xs, ys, editor._staircase_steps_count);
+        let lines = editor._transform_for_staircase(points, editor._staircase_steps_count);
         lines = lines.map(l => [
             editor.map.layerPointToLatLng([l.p1.x, l.p1.y]),
             editor.map.layerPointToLatLng([l.p2.x, l.p2.y]),
@@ -1783,19 +1782,19 @@ editor = {
         if (editor._staircase_layer) {
             editor._staircase_layer.clearLayers();
         }
-        lines = editor._get_staircase_lines();
+        const lines = editor._get_staircase_lines();
         lines.forEach(l => {
             L.polyline(l, {color: "red"}).addTo(editor._staircase_layer);
         });
     },
 
     _staircase_submit: function(form) {
-        csrfmiddlewaretoken = form.find('input[name=csrfmiddlewaretoken]').attr('value');
-        import_tag = form.find('input[name=import_tag]').val();
-        space = form.attr('space');
-        lines = editor._get_staircase_lines();
+        const csrfmiddlewaretoken = form.find('input[name=csrfmiddlewaretoken]').attr('value');
+        const import_tag = form.find('input[name=import_tag]').val();
+        const space = form.attr('space');
+        const lines = editor._get_staircase_lines();
 
-        save_stair = l => fetch("/editor/spaces/" + space + "/stairs/create", {
+        const save_stair = l => fetch("/editor/spaces/" + space + "/stairs/create", {
             method: "POST",
             headers: {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -1809,7 +1808,7 @@ editor = {
                 "&import_tag=" + encodeURIComponent(import_tag),
         });
 
-        complete_redirect = () => {
+        const complete_redirect = () => {
             form.remove();
             window.location.href = "/editor/spaces/" + space + "/stairs";
         };
@@ -1817,7 +1816,7 @@ editor = {
         if (lines.length === 0) {
             complete_redirect();
         } else {
-            let first = lines.shift();
+            const first = lines.shift();
             // save one stair first, so a changeset is created if there is not already one
             save_stair(first).then(() => {
                 // then save the remaining stairs all at once, ending up in the changeset
