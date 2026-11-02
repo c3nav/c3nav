@@ -23,6 +23,8 @@ def login_view(request):
     else:
         form = AuthenticationForm(request)
 
+    form.fields["password"].widget.template_name = "editor/login_password.html"
+
     return render(request, 'editor/account_form.html', {
         'title': _('Log in'),
         'form': form,
@@ -54,6 +56,7 @@ def register_view(request):
         form = UserCreationForm()
 
     form.fields['username'].max_length = 20
+    form.fields["password1"].widget.template_name = "editor/register_password.html"
     for field in form.fields.values():
         field.help_text = None
 

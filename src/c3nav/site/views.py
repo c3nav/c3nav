@@ -309,6 +309,7 @@ def login_view(request):
         form = AuthenticationForm(request)
 
     add_compliance_checkbox(form)
+    form.fields["password"].widget.template_name = "site/login_password.html"
 
     redirect_path = request.GET.get(REDIRECT_FIELD_NAME, '/account/')
     if referer := request.headers.get('Referer', None):
@@ -365,6 +366,7 @@ def register_view(request):
     add_compliance_checkbox(form)
 
     form.fields['username'].max_length = 20
+    form.fields["password1"].widget.template_name = "site/register_password.html"
     for field in form.fields.values():
         field.help_text = None
 
