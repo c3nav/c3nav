@@ -744,23 +744,28 @@ c3nav = {
 
         // add origin and destination lines
         c3nav._location_point_overrides = {};
-        if (!c3nav._add_location_point_override(result.origin, result.items[0])) {
-            c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
-                result.origin.point.slice(1),
-                result.items[0].coordinates.slice(0, 2),
-                result.items[1].coordinates.slice(0, 2)
-            ), true);
-        }
-        if (!c3nav._add_location_point_override(result.destination, result.items.slice(-1)[0])) {
-            c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
-                result.destination.point.slice(1),
-                result.items[result.items.length - 1].coordinates.slice(0, 2),
-                result.items[result.items.length - 2].coordinates.slice(0, 2)
-            ).reverse(), true);
+        if (result.items.length > 0) {
+            if (!c3nav._add_location_point_override(result.origin, result.items[0])) {
+                c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
+                    result.origin.point.slice(1),
+                    result.items[0].coordinates.slice(0, 2),
+                    result.items.length > 1 ? result.items[1].coordinates.slice(0, 2) : result.destination.point.slice(1)
+                ), true);
+            }
+            if (!c3nav._add_location_point_override(result.destination, result.items.slice(-1)[0])) {
+                c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
+                    result.destination.point.slice(1),
+                    result.items[result.items.length - 1].coordinates.slice(0, 2),
+                    result.items.length > 1 ? result.items[result.items.length - 2].coordinates.slice(0, 2) : result.origin.point.slice(1)
+                ).reverse(), true);
+            }
+        } else {
+            // direct line if no items
+            c3nav._add_line_to_route(result.origin.point[0], [result.origin.point.slice(1), result.destination.point.slice(1)], true);
         }
         c3nav.update_map_locations();
 
-        c3nav._firstRouteLevel = first_primary_level;
+        c3nav._firstRouteLevel = first_primary_level || result.origin.point[0];
         $route.find('span').text(result.summary);
         $route.find('em').text(result.options_summary);
         $route.removeClass('loading');

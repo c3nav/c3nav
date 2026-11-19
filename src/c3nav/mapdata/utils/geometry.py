@@ -396,7 +396,7 @@ def get_line_of_sight(point: Point, polygon: Polygon | MultiPolygon, plot=False)
                 )).intersection(polygon))
                 if coord in segment.coords
             ))
-        except StopIteration, AttributeError:
+        except (StopIteration, AttributeError):
             coords.append((coord, None))
         else:
             ray_end_coord = next(iter(c for c in ray.coords if c != coord))
