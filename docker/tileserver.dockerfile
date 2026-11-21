@@ -1,7 +1,7 @@
-# syntax=docker/dockerfile:1.25@sha256:0adf442eae370b6087e08edc7c50b552d80ddf261576f4ebd6421006b2461f12
-FROM ubuntu:26.04@sha256:3131b4cc82a783df6c9df078f86e01819a13594b865c2cad47bd1bca2b7063bb as base
+# syntax=docker/dockerfile:1.29@sha256:572cebbc2b15e6f84c077742952674889cb63cd5e9b80abdffcbe587b6f19183
+FROM ubuntu:26.04@sha256:d66b366dac61b575bee2aef07e9c26e8070096fbe84a3d4d3eb0da069b5d76db as base
 ARG BASE_IMAGE_NAME=ubuntu:26.04
-ARG BASE_IMAGE_DIGEST=sha256:3131b4cc82a783df6c9df078f86e01819a13594b865c2cad47bd1bca2b7063bb
+ARG BASE_IMAGE_DIGEST=sha256:d66b366dac61b575bee2aef07e9c26e8070096fbe84a3d4d3eb0da069b5d76db
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
@@ -15,19 +15,19 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.14=3.14.4-1ubuntu0.1 \
+    python3.14=3.14.4-1ubuntu0.2 \
     # renovate: srcname=python3.14
-    libpython3.14=3.14.4-1ubuntu0.1 \
+    libpython3.14=3.14.4-1ubuntu0.2 \
     # renovate: srcname=python3.14
-    python3.14-venv=3.14.4-1ubuntu0.1 \
+    python3.14-venv=3.14.4-1ubuntu0.2 \
     # renovate: srcname=python-pip
     python3-pip=25.1.1+dfsg-1ubuntu2 \
-    curl=8.18.0-1ubuntu2.3 \
+    curl=8.18.0-1ubuntu2.8 \
     # renovate: srcname=pcre2
-    libpcre2-posix3=10.46-1build1 \
+    libpcre2-posix3=10.46-1ubuntu0.1 \
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build5 \
-    tzdata=2026c-0ubuntu0.26.04.1 \
+    tzdata=2026e-0ubuntu0.26.04.1 \
     ca-certificates=20260223 \
     # renovate: srcname=libzstd
     zstd=1.5.7+dfsg-3 \
@@ -40,7 +40,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.12ubuntu2 \
     # renovate: srcname=python3.14
-    python3.14-dev=3.14.4-1ubuntu0.1 \
+    python3.14-dev=3.14.4-1ubuntu0.2 \
     libpcre2-dev=10.46-1build1 \
     # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build5 \
