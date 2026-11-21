@@ -1,7 +1,7 @@
-# syntax=docker/dockerfile:1.25@sha256:0adf442eae370b6087e08edc7c50b552d80ddf261576f4ebd6421006b2461f12
-FROM ubuntu:26.04@sha256:3131b4cc82a783df6c9df078f86e01819a13594b865c2cad47bd1bca2b7063bb as base
+# syntax=docker/dockerfile:1.29@sha256:572cebbc2b15e6f84c077742952674889cb63cd5e9b80abdffcbe587b6f19183
+FROM ubuntu:26.04@sha256:d66b366dac61b575bee2aef07e9c26e8070096fbe84a3d4d3eb0da069b5d76db as base
 ARG BASE_IMAGE_NAME=ubuntu:26.04
-ARG BASE_IMAGE_DIGEST=sha256:3131b4cc82a783df6c9df078f86e01819a13594b865c2cad47bd1bca2b7063bb
+ARG BASE_IMAGE_DIGEST=sha256:d66b366dac61b575bee2aef07e9c26e8070096fbe84a3d4d3eb0da069b5d76db
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
@@ -23,16 +23,16 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=python-pip
     python3-pip=25.1.1+dfsg-1ubuntu2 \
     # renovate: srcname=postgresql-18
-    libpq5=18.4-0ubuntu0.26.04.1 \
+    libpq5=18.6-0ubuntu0.26.04.1 \
     # renovate: srcname=postgresql-18
-    postgresql-client-18=18.4-0ubuntu0.26.04.1 \
-    curl=8.18.0-1ubuntu2.3 \
+    postgresql-client-18=18.6-0ubuntu0.26.04.1 \
+    curl=8.18.0-1ubuntu2.8 \
     # renovate: srcname=pcre2
-    libpcre2-posix3=10.46-1build1 \
+    libpcre2-posix3=10.46-1ubuntu0.1 \
     # renovate: srcname=librsvg
-    librsvg2-2=2.61.3+dfsg-3 \
+    librsvg2-2=2.61.3+dfsg-3ubuntu0.1 \
     # renovate: srcname=librsvg
-    gir1.2-rsvg-2.0=2.61.3+dfsg-3 \
+    gir1.2-rsvg-2.0=2.61.3+dfsg-3ubuntu0.1 \
     # renovate: srcname=cairo
     libcairo2=1.18.4-3 \
     # we can't set a version here because it's different for amd64 and arm64 ugh
@@ -40,7 +40,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=libmemcached
     libmemcached11t64=1.1.4-1.1build5 \
     gettext \
-    tzdata=2026c-0ubuntu0.26.04.1 \
+    tzdata=2026e-0ubuntu0.26.04.1 \
     ca-certificates=20260223 \
     # renovate: srcname=libzstd
     zstd=1.5.7+dfsg-3 \
@@ -58,9 +58,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=python3.14
     python3.14-dev=3.14.4-1ubuntu0.1 \
     # renovate: srcname=pcre2
-    libpcre2-dev=10.46-1build1 \
+    libpcre2-dev=10.46-1ubuntu0.1 \
     # renovate: srcname=postgresql-18
-    libpq-dev=18.4-0ubuntu0.26.04.1 \
+    libpq-dev=18.6-0ubuntu0.26.04.1 \
     # renovate: srcname=cairo
     libcairo2-dev=1.18.4-3 \
     libgirepository1.0-dev=1.86.0-6build1 \
