@@ -15,11 +15,11 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.14=3.14.4-1ubuntu0.1 \
+    python3.14=3.14.4-1ubuntu0.2 \
     # renovate: srcname=python3.14
-    libpython3.14=3.14.4-1ubuntu0.1 \
+    libpython3.14=3.14.4-1ubuntu0.2 \
     # renovate: srcname=python3.14
-    python3.14-venv=3.14.4-1ubuntu0.1 \
+    python3.14-venv=3.14.4-1ubuntu0.2 \
     # renovate: srcname=python-pip
     python3-pip=25.1.1+dfsg-1ubuntu2 \
     # renovate: srcname=postgresql-18
@@ -56,7 +56,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.12ubuntu2 \
     # renovate: srcname=python3.14
-    python3.14-dev=3.14.4-1ubuntu0.1 \
+    python3.14-dev=3.14.4-1ubuntu0.2 \
     # renovate: srcname=pcre2
     libpcre2-dev=10.46-1ubuntu0.1 \
     # renovate: srcname=postgresql-18
