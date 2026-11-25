@@ -10,7 +10,7 @@ django-pydantic-field==0.6.1
 django-filter==25.2
 django-environ==0.14.0
 shapely==2.1.2
-pybind11==3.0.1
+pybind11==3.1.0
 MeshPy==2025.1.1
 rtree==0.9.1  # this should be optional
 celery==5.6.0
