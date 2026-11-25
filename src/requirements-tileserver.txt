@@ -1,4 +1,4 @@
-requests==2.33.0
-numpy==2.3.5
-pylibmc==1.6.3
-pyzstd==0.19.1
+requests==2.34.2
+numpy==2.5.5
+pylibmc==1.8.0
+pyzstd==0.20.0
