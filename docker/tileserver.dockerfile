@@ -41,7 +41,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     build-essential=12.12ubuntu2 \
     # renovate: srcname=python3.14
     python3.14-dev=3.14.4-1ubuntu0.2 \
-    libpcre2-dev=10.46-1build1 \
+    # renovate: srcname=pcre2
+    libpcre2-dev=10.46-1ubuntu0.1 \
     # renovate: srcname=libmemcached
     libmemcached-dev=1.1.4-1.1build5 \
     # renovate: srcname=libxcrypt
