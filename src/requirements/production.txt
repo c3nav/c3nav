@@ -1,6 +1,6 @@
 Django==6.0
 django-bootstrap3==26.3
-django-compressor==4.6.0
+django-compressor==4.7.0
 django-cors-headers==4.9.0
 csscompressor==0.9.5
 django-ninja==1.5.1
