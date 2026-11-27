@@ -537,7 +537,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             for coords in linestring.coords
                         })
             points.update({
-                marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords,
+                marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords[0],
                                                           altitude=float(marker.altitude))
                 for marker in ramp.markers
             })
