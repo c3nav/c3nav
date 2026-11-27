@@ -182,6 +182,7 @@ editor = {
 
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
+        editor._destroy_staircase_editing();
     },
     _fill_level_control: function (level_control, level_list, geometryURLs) {
         var levels = level_list.find('a');
@@ -496,6 +497,10 @@ editor = {
         // listener for form submits in the sidebar.
         e.preventDefault();
         if (editor._loading_geometry || $(this).is('.creation-lock') || $(this).is('.scan-lock')) return;
+        if (editor._staircase_layer) {
+            editor._staircase_submit($(this));
+            return;
+        }
         var data = $(this).serialize();
         var btn = $(this).data('btn');
         if (btn !== undefined && btn !== null) {
@@ -1365,7 +1370,7 @@ editor = {
                 } else if (mapitem_type) {
                     // creating a new geometry, already drawn but form was rejected
                     options = editor._get_mapitem_type_style(mapitem_type);
-                    if (mapitem_type === 'area') {
+                    if (mapitem_type === 'area' || mapitem_type === 'staircase') {
                         options.fillOpacity = 0.5;
                     }
                 }
@@ -1380,7 +1385,7 @@ editor = {
             } else if (form.is('[data-new]')) {
                 // create new geometry
                 options = editor._get_mapitem_type_style(mapitem_type);
-                if (mapitem_type === 'area') {
+                if (mapitem_type === 'area' || mapitem_type === 'staircase') {
                     options.fillOpacity = 0.5;
                 }
                 form.addClass('creation-lock');
@@ -1428,6 +1433,10 @@ editor = {
                     form.prepend(selector);
                 }
                 startGeomEditing(selected_geomtype);
+            }
+
+            if (mapitem_type === 'staircase') {
+                editor._setup_staircase_editing();
             }
         }
     },
@@ -1709,6 +1718,169 @@ editor = {
         if (!editor._wifi_scan_waits && $('#sidebar').find('.scancollector.running').length) {
             editor._wifi_scan_waits = true;
             mobileclient.scanNow();
+        }
+    },
+
+    // Staircase editing functionality
+
+    _setup_staircase_editing: function() {
+        editor._staircase_steps_count = 10;
+        editor._staircase_layer = L.layerGroup().addTo(editor.map);
+        $('#stairway-steps').on('input', function() {
+            editor._staircase_steps_count = parseInt($(this).val()) || 10;
+            editor._update_staircase_preview();
+        });
+
+        editor.map.on('editable:editing', editor._update_staircase_preview);
+    },
+
+    _destroy_staircase_editing: function() {
+        if (editor._staircase_layer) {
+            editor.map.removeLayer(editor._staircase_layer);
+            editor._staircase_layer = null;
+        }
+        editor.map.off('editable:editing', editor._update_staircase_preview);
+        if (editor._current_editing_shape && editor._current_editing_shape.editor) {
+            editor._current_editing_shape.editor.cancelDrawing();
+            editor._current_editing_shape.remove();
+            editor._current_editing_shape = null;
+        }
+    },
+
+    _transform_point_for_staircase: function(p, p0, cos_a, sin_a) {
+        return {
+            x: + (p.x - p0.x) * cos_a + (p.y - p0.y) * sin_a + p0.x,
+            y: - (p.x - p0.x) * sin_a + (p.y - p0.y) * cos_a + p0.y,
+        };
+    },
+
+    _transform_for_staircase: function(points, num_stairs) {
+        const base_length = Math.sqrt((points[1].x-points[0].x)**2 + (points[1].y-points[0].y)**2);
+        const cos_a = (points[1].x - points[0].x) / base_length;
+        const sin_a = (points[1].y - points[0].y) / base_length;
+        const p0 = { x: points[0].x, y: points[0].y };
+
+        const xs = points.map(p => editor._transform_point_for_staircase(p, p0, cos_a, sin_a).x);
+        const ys = points.map(p => editor._transform_point_for_staircase(p, p0, cos_a, sin_a).y);
+        const n = xs.length;
+
+        let height;
+        if (Math.abs(Math.max(...ys) - ys[0]) > Math.abs(Math.min(...ys) - ys[0])) {
+            height = Math.max(...ys) - ys[0];
+        } else {
+            height = Math.min(...ys) - ys[0];
+        }
+
+        // If the user aligns the staircase creation polygon to an edge of a Space (supposedly the
+        // Space representing the stairwell), we need to ensure that the stairs' lines overflow a
+        // bit, otherwise they won't get picked up by the map rendering algorithm (which may see a
+        // stair that doesn't split the Space into two parts and gets confused).
+        // Hence the -X_OVERFLOW and +X_OVERFLOW; X_OVERFLOW = '2 units' seemed reasonable.
+        const X_OVERFLOW = 2;
+        let lines = [{p1: { x: xs[0]-X_OVERFLOW, y: ys[0] }, p2: { x: xs[1]+X_OVERFLOW, y: ys[1] }}];
+        for (let i = 1; i < num_stairs; ++i) {
+            // intersect line y=y0+height/num_stairs*i with all transformed (xs,ys)
+            const y = ys[0] + height/num_stairs*i;
+            const inters_xs = [];
+            for (let j = 0; j < n; ++j) {
+                const y1 = ys[j];
+                const y2 = ys[(j+1)%n];
+                const x1 = xs[j];
+                const x2 = xs[(j+1)%n];
+                if ((y1 > y && y2 > y) || (y1 < y && y2 < y)) {
+                    continue;
+                }
+
+                if (Math.abs(x2 - x1) < 0.0001) {
+                    // vertical line, m would be infinity
+                    inters_xs.push(x1);
+                    continue;
+                }
+
+                const m = (y2 - y1) / (x2 - x1);
+                const q = y2 - m * x2;
+                inters_xs.push((y - q) / m);
+            }
+
+            if (inters_xs.length < 2) {
+                continue;
+            }
+
+            const min_xs = Math.min(...inters_xs);
+            const max_xs = Math.max(...inters_xs);
+            lines.push({p1: {x: min_xs-X_OVERFLOW, y: y}, p2: {x: max_xs+X_OVERFLOW, y: y}});
+        }
+
+        lines = lines.map(l => ({
+            p1: editor._transform_point_for_staircase(l.p1, p0, cos_a, -sin_a),
+            p2: editor._transform_point_for_staircase(l.p2, p0, cos_a, -sin_a),
+        }));
+
+        return lines;
+    },
+
+    _get_staircase_lines: function() {
+        if (!editor._current_editing_shape || !editor._current_editing_shape._parts) {
+            return [];
+        }
+        const points = editor._current_editing_shape._parts[0] || [];
+        if (points.length < 3) {
+            return [];
+        }
+
+        let lines = editor._transform_for_staircase(points, editor._staircase_steps_count);
+        lines = lines.map(l => [
+            editor.map.layerPointToLatLng([l.p1.x, l.p1.y]),
+            editor.map.layerPointToLatLng([l.p2.x, l.p2.y]),
+        ]);
+        return lines;
+    },
+
+    _update_staircase_preview: function(e = null) {
+        if (editor._staircase_layer) {
+            editor._staircase_layer.clearLayers();
+        }
+        const lines = editor._get_staircase_lines();
+        lines.forEach(l => {
+            L.polyline(l, {color: "red"}).addTo(editor._staircase_layer);
+        });
+    },
+
+    _staircase_submit: function(form) {
+        const csrfmiddlewaretoken = form.find('input[name=csrfmiddlewaretoken]').attr('value');
+        const import_tag = form.find('input[name=import_tag]').val();
+        const space = form.attr('space');
+        const lines = editor._get_staircase_lines();
+
+        const save_stair = l => fetch("/editor/spaces/" + space + "/stairs/create", {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            },
+            body: "csrfmiddlewaretoken=" + encodeURIComponent(csrfmiddlewaretoken) +
+                "&geometry=" + encodeURIComponent(JSON.stringify({
+                    type: "LineString",
+                    coordinates: [[l[0]["lng"], l[0]["lat"]], [l[1]["lng"], l[1]["lat"]]]
+                })) +
+                "&import_tag=" + encodeURIComponent(import_tag),
+        });
+
+        const complete_redirect = () => {
+            form.remove();
+            window.location.href = "/editor/spaces/" + space + "/stairs";
+        };
+
+        if (lines.length === 0) {
+            complete_redirect();
+        } else {
+            const first = lines.shift();
+            // save one stair first, so a changeset is created if there is not already one
+            save_stair(first).then(() => {
+                // then save the remaining stairs all at once, ending up in the changeset
+                Promise.all(lines.map(save_stair))
+                    .then(complete_redirect);
+            });
         }
     }
 };
